@@ -18,16 +18,25 @@ jsat index [PATH] [OPTIONS]
 |----------------|---------|-------------|
 | `PATH` | repo root | Directory to index |
 | `--branch`, `-b` | `HEAD` | Git branch to index |
-| `--force`, `-f` | false | Re-index all files (ignore incremental cache) |
+| `--force`, `-f` | false | Full re-index — ignore incremental manifest |
 | `--languages`, `-l` | auto | Comma-separated list, e.g. `python,go` |
 | `--incremental/--full` | incremental | Use incremental or full index strategy |
+| `--watch`, `-w` | false | Re-index on file change (requires `entr`: `brew install entr`) |
 
 ```bash
-jsat index .
-jsat index src/payments/ --force
+jsat index .                                  # incremental, parallel (4-8× faster)
+jsat index src/payments/ --force             # full re-index
 jsat index . --branch feature/new-api --languages python,go
-jsat index . --full
+jsat index . --watch                          # continuous re-index on save
 ```
+
+**How incremental mode works:**
+
+On the first run JSAT writes `.jsat/index-manifest.json` containing an `mtime + sha256` entry for every indexed file. On subsequent runs only files whose content actually changed are re-parsed; everything else is skipped. A 500-file repo with 5 changed files goes from ~3 s to ~100 ms.
+
+**Rich metadata extracted (v0.2.0+):**
+
+Every Function node now includes `parameters`, `return_type`, `decorators`, `docstring`, `complexity`, and `loc`. Every Class node includes `bases`, `decorators`, `docstring`, and `method_count`. New edge types `INHERITS`, `IMPLEMENTS`, and `RAISES` are also created.
 
 ---
 
@@ -444,7 +453,102 @@ opt history   # browse past optimization diffs
 
 ---
 
-## 8. Export and Import
+## 8. Token Optimizer (`jsat tokens`)
+
+Count tokens, check model budget, and compress text for AI prompts. All offline — zero LLM calls.
+
+```
+jsat tokens [TEXT] [OPTIONS]
+```
+
+| Argument / Flag | Default | Description |
+|----------------|---------|-------------|
+| `TEXT` | — | Inline text to analyze |
+| `--file`, `-f` | — | Read from file instead |
+| `--model`, `-m` | — | Model for budget check: `claude-cli`, `gpt-4o`, `llama3.2`, etc. |
+| `--compress`, `-c` | false | Apply compression strategies and print savings |
+| `--strip-comments` | false | Also remove code comment lines |
+| `--no-dedup` | false | Skip semantic deduplication |
+| `--target`, `-t` | — | Explicit token ceiling for compression |
+| `--verbose`, `-v` | false | Show per-section token breakdown |
+
+```bash
+# Count tokens
+jsat tokens "explain the payment service"
+jsat tokens --file README.md
+
+# Budget check
+jsat tokens --file context.py --model gpt-4o
+jsat tokens --file context.py --model claude-cli
+
+# Compress
+jsat tokens --file context.py --compress
+jsat tokens --file context.py --compress --target 4000 --strip-comments
+
+# Pipe stdin
+cat big_file.py | jsat tokens --model claude-cli --compress
+```
+
+---
+
+## 8b. Maintenance Commands
+
+### `jsat clean`
+
+Remove cached data from `.jsat/` to free disk space or force a fresh start.
+
+```
+jsat clean [OPTIONS]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--cache` | Delete `.jsat/cache/` |
+| `--graph` | Delete `.jsat/graph/` (destroys the index) |
+| `--vectors` | Delete `.jsat/vectors/` |
+| `--history` | Delete `.jsat/prompt-history.jsonl` |
+| `--all` | Delete all of the above |
+
+```bash
+jsat clean --cache          # free cache only
+jsat clean --all            # full reset
+```
+
+### `jsat update`
+
+Self-upgrade JSAT via pip.
+
+```
+jsat update [--pre]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--pre` | Include pre-release versions |
+
+### `jsat knowledge-ingest`
+
+Bulk-ingest markdown files (CLAUDE.md, ADRs, runbooks) into the knowledge base.
+
+```
+jsat knowledge-ingest PATH [OPTIONS]
+```
+
+| Argument / Flag | Default | Description |
+|----------------|---------|-------------|
+| `PATH` | (required) | Directory to scan |
+| `--pattern` | `**/*.md` | Glob pattern for files to ingest |
+| `--category` | auto | Override category (adr, runbook, readme) |
+| `--dry-run` | false | Print what would be ingested, don't write |
+
+```bash
+jsat knowledge-ingest docs/             # ingest all .md files
+jsat knowledge-ingest . --pattern "**/*.md" --dry-run
+```
+
+---
+
+## 9. Export and Import
 
 ### `jsat export`
 
@@ -485,7 +589,7 @@ jsat import backup.jsat.zip
 
 ---
 
-## 9. Remove Command
+## 10. Remove Command
 
 ### `jsat remove`
 
@@ -520,7 +624,7 @@ jsat remove --keep-config      # preserve config.yaml
 
 ---
 
-## 10. Skills Commands (`jsat skills`)
+## 11. Skills Commands (`jsat skills`)
 
 ### `jsat skills list`
 
@@ -552,7 +656,7 @@ jsat skills run my-skill --args target=src/api.py --args depth=3
 
 ---
 
-## 11. MCP Server (Internal)
+## 12. MCP Server (Internal)
 
 ### `jsat mcp-server`
 

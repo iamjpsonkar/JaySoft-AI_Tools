@@ -237,8 +237,9 @@ jsat remove                                   # remove all JSAT artifacts from t
 
 | Command | Description |
 |---|---|
-| `jsat index [path]` | Build or update the codebase graph |
-| `jsat index . --force` | Full re-index (skip incremental check) |
+| `jsat index [path]` | Build or update the codebase graph (incremental, parallel) |
+| `jsat index . --force` | Full re-index — ignore incremental manifest |
+| `jsat index . --watch` | Re-index on file change (requires `brew install entr`) |
 | `jsat index . --languages python,go` | Index specific languages only |
 | `jsat shell` | Start the interactive JSAT REPL |
 | `jsat claude` | Open Claude Code with JSAT MCP tools loaded |
@@ -284,6 +285,17 @@ jsat remove                                   # remove all JSAT artifacts from t
 | `jsat disconnect claude` | Remove from project Claude Code config |
 | `jsat disconnect claude --scope all` | Remove from all scopes |
 
+### Token analysis
+
+| Command | Description |
+|---|---|
+| `jsat tokens "text"` | Count tokens in inline text |
+| `jsat tokens --file README.md` | Count tokens in a file |
+| `jsat tokens --file ctx.py --model gpt-4o` | Show budget bar vs model limit |
+| `jsat tokens --file ctx.py --compress` | Compress and show savings |
+| `jsat tokens --target 4000 --compress` | Compress to explicit token ceiling |
+| `cat file.py \| jsat tokens --model claude-cli` | Pipe stdin |
+
 ### Export and import
 
 | Command | Description |
@@ -311,9 +323,13 @@ from jsat import JSAT
 # Instantiate — auto-detects AI provider, loads config
 js = JSAT(repo=".")
 
-# Build the graph (incremental by default)
+# Build the graph — parallel parsing, incremental by default
 result = js.index()
-print(f"Indexed {result.nodes_indexed} nodes, {result.edges_indexed} edges")
+print(f"Indexed {result.nodes_indexed} nodes in {result.duration_ms}ms")
+print(f"Workers: {result.parallel_workers} | Incremental: {result.incremental}")
+print(f"Skipped: {result.files_skipped} unchanged | Resolved: {result.resolved_edges} edges")
+if result.complexity_hotspots:
+    print("Hotspots:", [(h["name"], h["complexity"]) for h in result.complexity_hotspots])
 
 # Natural language query over the graph
 result = js.query("what calls the refund endpoint?")
@@ -341,6 +357,13 @@ print(f"Exported {manifest.size_mb:.1f} MB")
 # Restore from an export
 js2 = JSAT.from_import("snapshot.jsat.zip")
 
+# Token analysis (offline, no LLM)
+count = js.token_count("explain the payment service")
+report = js.token_compress(large_prompt, model="gpt-4o")
+print(f"Saved {report.savings_pct:.1f}% via: {report.strategies_applied}")
+budget = js.token_budget(my_context, "claude-cli")
+print(f"{budget['budget_pct']:.2f}% of context used ({budget['status']})")
+
 # Switch AI provider mid-session
 js.switch_ai("ollama", model="qwen2.5-coder:7b")
 js.switch_ai("anthropic")
@@ -358,7 +381,7 @@ print(health["profile"], health["graph"]["backend"])
 | # | Tool | Description |
 |---|---|---|
 | 0 | **JSAT Shell** | Interactive REPL — run any tool directly, switch AI mid-session, no AI required |
-| 1 | **Directory Indexer** | Walks a repo, parses source with tree-sitter, writes nodes and edges to the graph |
+| 1 | **Directory Indexer** | Parallel tree-sitter parsing (4–8× faster), true incremental mode, rich metadata (parameters, return types, decorators, docstrings, complexity), symbol resolution, inheritance/raises edges |
 | 2 | **Test Intelligence Helper** | Finds test gaps, maps behaviors to coverage, generates unit/integration/contract tests |
 | 3 | **Feature Helper** | Answers "how do I add X?" using graph context — finds relevant files and patterns |
 | 4 | **Blast Radius Analyzer** | BFS over the graph to trace downstream impact; classifies edges as breaking/degraded/warning/safe |
@@ -395,20 +418,35 @@ review:
 
 JSAT indexes these node types and relationship edges:
 
-**Nodes:** `function`, `class`, `file`, `service`, `endpoint`, `table`, `kafka_topic`
+**Nodes:** `Function`, `Class`, `File`, `Service`, `Endpoint`, `Table`, `Topic`, `KnowledgeEntry`
+
+**Node properties (v0.2.0+):**
+
+| Property | On | Example |
+|---|---|---|
+| `name`, `file`, `language`, `line_start`, `line_end`, `line` | Function, Class | `"PaymentService.refund"` |
+| `parameters` | Function | `[{"name":"order_id","type":"str"}]` |
+| `return_type` | Function | `"bool"`, `"list[Payment]"` |
+| `decorators` | Function, Class | `["staticmethod","login_required"]` |
+| `docstring` | Function, Class | first line, max 200 chars |
+| `complexity` | Function | cyclomatic (1 + branch count) |
+| `loc` | Function | `line_end - line_start + 1` |
+| `bases` | Class | `["BaseModel","Serializable"]` |
+| `method_count` | Class | number of methods in class body |
 
 **Edges:**
 
 | Edge | Meaning |
 |---|---|
-| `CALLS` | Function A calls function B |
+| `CALLS` | Function A calls function B (resolved to node ID post-parse) |
 | `IMPORTS` | File A imports module B |
+| `INHERITS` | Class inherits from parent (all 6 languages) |
+| `IMPLEMENTS` | Class implements interface/trait (Java, Go, Rust) |
+| `RAISES` | Function can raise exception type (Python) |
 | `READS_FROM` | Code reads from a table or topic |
 | `WRITES_TO` | Code writes to a table or topic |
 | `PRODUCES` | Service produces a Kafka message |
 | `CONSUMES` | Service consumes a Kafka topic |
-| `IMPLEMENTS` | Class implements an interface |
-| `INHERITS` | Class inherits from another |
 | `DEPENDS_ON` | Service depends on another service |
 
 ---

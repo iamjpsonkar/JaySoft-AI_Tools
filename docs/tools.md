@@ -60,50 +60,107 @@ The shell is not directly accessible via the Python SDK — use the individual t
 
 ## Tool 1 — Indexer
 
-Parses source files using tree-sitter, extracts the AST, and stores nodes (files, functions, classes, endpoints, tables) and edges (calls, imports, inherits) in the graph database.
+Parses source files using tree-sitter and stores rich metadata in the graph database. As of v0.2.0, the indexer is dramatically more powerful across every dimension.
 
-Supports Python, JavaScript/TypeScript, Go, Java (standard), Ruby, and Rust (standard+). Incremental by default: only changed files are re-parsed.
+**Languages:** Python, JavaScript/TypeScript, Go, Java (`jsat[standard]`), Ruby (`jsat[standard]`), Rust (`jsat[standard]`)
 
-**CLI usage:**
+### What gets extracted (v0.2.0+)
+
+Every **Function** node:
+
+| Property | Type | Example |
+|---|---|---|
+| `name` | str | `"PaymentService.process"` |
+| `file`, `language` | str | `"src/pay.py"`, `"python"` |
+| `line_start`, `line_end`, `line` | int | `42`, `61`, `42` |
+| `parameters` | list | `[{"name":"amount","type":"float"}]` |
+| `return_type` | str | `"bool"`, `"list[Payment]"` |
+| `decorators` | list | `["staticmethod","login_required"]` |
+| `docstring` | str | first line, max 200 chars |
+| `complexity` | int | cyclomatic (1 + branch count) |
+| `loc` | int | `line_end - line_start + 1` |
+| `is_async`, `is_public` | bool | `True`, `False` |
+
+Every **Class** node:
+
+| Property | Type | Example |
+|---|---|---|
+| `bases` | list | `["BaseModel","Serializable"]` |
+| `decorators` | list | `["dataclass"]` |
+| `docstring` | str | first line |
+| `method_count` | int | number of methods |
+| `line` | int | alias for `line_start` |
+
+New **edge types:**
+
+| Edge | Meaning | Languages |
+|---|---|---|
+| `INHERITS` | class → parent class | all |
+| `IMPLEMENTS` | class → interface/trait | Java, Go, Rust |
+| `RAISES` | function → exception type | Python |
+
+### Architecture
+
+**Parallel parsing** — `ThreadPoolExecutor(max_workers=min(cpu_count, 8))`. Each worker owns its own parser instance (tree-sitter is not thread-safe). Expected speedup: 4–8× on multi-core machines.
+
+**True incremental indexing** — `.jsat/index-manifest.json` tracks `mtime + sha256` per file. On the second run, only changed files are re-parsed; unchanged files are skipped entirely. A 500-file repo with 5 changed files indexes in ~100ms instead of 3s.
+
+**Symbol resolution** — after all files are parsed, a post-processing pass resolves CALLS/IMPORTS string-name targets (e.g. `"refund"`) to actual graph node IDs (e.g. `src/pay.py::PaymentService.refund`), so BFS traversal follows real edges.
+
+### CLI usage
 
 ```bash
-jsat index .
-jsat index . --force
-jsat index src/ --languages python,go
-jsat index . --branch feature/api-v2
+jsat index .                                 # incremental, parallel
+jsat index . --force                         # full re-index
+jsat index . --watch                         # re-index on file save (needs: brew install entr)
+jsat index src/ --languages python,go        # specific languages
+jsat index . --branch feature/api-v2        # specific branch
 ```
 
-**Python SDK usage:**
+### Python SDK usage
 
 ```python
 from jsat import JSAT
 
 js = JSAT(repo=".")
 result = js.index()
-print(f"Indexed {result.nodes_indexed} nodes, {result.edges_indexed} edges")
-print(f"Languages: {result.languages}")
-print(f"Duration: {result.duration_ms}ms")
+
+print(f"Nodes: {result.nodes_indexed} | Edges: {result.edges_indexed}")
+print(f"Files indexed: {result.files_indexed} | Skipped: {result.files_skipped}")
+print(f"Incremental: {result.incremental} | Workers: {result.parallel_workers}")
+print(f"Resolved edges: {result.resolved_edges}")
+print(f"Hotspots: {result.complexity_hotspots}")
 ```
 
-Streaming progress events:
+### IndexResult fields
 
 ```python
-for event in js.index_stream():
-    print(f"[{event.phase}] {event.progress_pct:.0f}% — {event.message}")
+class IndexResult:
+    nodes_indexed: int
+    edges_indexed: int
+    files_indexed: int       # files actually parsed this run
+    files_skipped: int       # unchanged files skipped (incremental mode)
+    duration_ms: int
+    languages: list[str]
+    commit: str
+    repo_path: str
+    incremental: bool        # True when delta mode was used
+    resolved_edges: int      # CALLS/IMPORTS edges resolved to node IDs
+    parallel_workers: int    # thread count used
+    complexity_hotspots: list[dict]  # top-5 {name, file, complexity}
 ```
 
-**Example output:**
+### INDEX.md artifact
 
-```
-IndexResult(
-    nodes_indexed=1842,
-    edges_indexed=4391,
-    duration_ms=4218,
-    languages=['python', 'go'],
-    commit='a3f91cc',
-    repo_path='/home/user/my-project'
-)
-```
+After every index run, `.jsat/INDEX.md` is written with:
+
+- Overview table (files, nodes, edges, commit, duration)
+- Language breakdown (Files | Functions | Classes per language)
+- Complexity hotspots (top-10 functions by cyclomatic complexity)
+- Largest files (top-10 by LOC)
+- Inheritance map (Child → Parent chains)
+- Most called functions (top-10 by incoming CALLS count)
+- Dead code candidates (public functions with 0 incoming CALLS, max 20)
 
 ---
 
@@ -618,9 +675,9 @@ result = js.prompt_and_send(
 prompt:
   enabled: true                    # auto-optimize all shell messages
   mode: auto                       # auto | always | never
-  max_context_tokens: 8192
-  few_shot_k: 3                    # examples to inject per query
-  compress_threshold: 6000         # enable compression above this token count
+  max_context_tokens: 4096
+  few_shot_k: 2                    # examples to inject per query
+  compress_threshold: 4000         # enable compression above this token count
   context_depth: 2                 # BFS depth for graph context injection
   cot_tasks: [debug, plan, security]
   history_path: .jsat/prompt-history.jsonl
@@ -634,3 +691,101 @@ prompt:
 ```
 
 Shows the raw input and the full optimized prompt side by side in Claude Code.
+
+---
+
+## Tool 15 — Token Optimizer
+
+Offline token analysis and multi-strategy compression. Zero LLM calls. All strategies are deterministic.
+
+### Compression strategies
+
+Applied in this order:
+
+| Strategy | What it removes | Lossy? |
+|---|---|---|
+| `whitespace` | 3+ blank lines, trailing spaces | No |
+| `stopphrase` | AI filler: "Certainly!", "As an AI...", "I hope this helps" | No |
+| `import_collapse` | `from X import A` + `from X import B` → one line | No |
+| `dedup` | Near-duplicate sentences (Jaccard ≥ 0.82) | Slightly |
+| `comment_strip` | `# comment`, `// comment`, `/* */` (opt-in) | Yes |
+| `recency_pin` | Drops middle content when still over budget; keeps first 70% + last 30% | Yes |
+
+### Model context limits
+
+Built-in table for 35+ models — Claude (200K), GPT-4o (128K), Gemini 1.5 (1M), llama3.2 (131K), etc.
+
+### CLI usage
+
+```bash
+# Count tokens
+jsat tokens "explain the payment service"
+jsat tokens --file README.md
+
+# Check budget vs model limit
+jsat tokens --file context.py --model gpt-4o
+jsat tokens --file context.py --model claude-cli
+
+# Compress and show savings
+jsat tokens --file context.py --compress
+jsat tokens --file context.py --compress --model claude-cli --target 4000
+
+# Strip code comments too
+jsat tokens --file context.py --compress --strip-comments
+
+# Verbose section breakdown
+jsat tokens --file context.py --verbose
+
+# Pipe stdin
+cat big_file.py | jsat tokens --model gpt-4o --compress
+```
+
+### Python SDK usage
+
+```python
+from jsat import JSAT
+
+js = JSAT(repo=".")
+
+# Count tokens
+count = js.token_count("explain the payment service")
+
+# Compress a prompt
+report = js.token_compress(
+    long_context,
+    model="gpt-4o",          # sets ceiling to 85% of 128K
+    strip_comments=False,
+    dedup=True,
+)
+print(f"Saved {report.savings_pct:.1f}% via: {report.strategies_applied}")
+print(report.compressed_text)
+
+# Budget check
+budget = js.token_budget(my_context, "claude-cli")
+# {"tokens": 1240, "limit": 200000, "budget_pct": 0.62,
+#  "headroom_tokens": 198760, "status": "ok"}
+```
+
+### TokenReport fields
+
+```python
+class TokenReport:
+    original_tokens: int
+    compressed_tokens: int
+    savings_tokens: int
+    savings_pct: float             # e.g. 28.4
+    strategies_applied: list[str]  # e.g. ["whitespace","stopphrase","dedup"]
+    model: str | None
+    model_limit: int | None        # context window size
+    budget_used_pct: float | None  # compressed / limit × 100
+    section_breakdown: dict        # per XML tag or Markdown header
+    elapsed_ms: float
+```
+
+### MCP tools
+
+| Tool | Description |
+|---|---|
+| `jsat__token_count` | Estimate token count with optional model budget context |
+| `jsat__token_compress` | Compress text and return savings stats + compressed result |
+| `jsat__token_budget` | Show budget status (ok/warn/critical) for a given model |
