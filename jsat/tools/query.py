@@ -21,6 +21,7 @@ class QueryTool(BaseTool):
         thinking: bool = False,
     ) -> QueryResult:
         import structlog
+
         from jsat._models import QueryResult
 
         log = structlog.get_logger(__name__)

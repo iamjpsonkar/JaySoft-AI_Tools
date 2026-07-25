@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from jsat._graph import GraphClient
     from jsat._ai import AIProvider
+    from jsat._graph import GraphClient
     from jsat._models import JSATConfig
 
 

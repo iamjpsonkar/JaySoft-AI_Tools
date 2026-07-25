@@ -1,6 +1,8 @@
 """jsat._cache — Cache backend factory."""
 from __future__ import annotations
+
 from typing import Any
+
 
 def get_cache(cfg: Any):
     backend = getattr(cfg.cache, "backend", "memory")

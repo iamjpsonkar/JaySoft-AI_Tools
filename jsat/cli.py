@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
-from rich import box
 
 app = typer.Typer(name="jsat", help="JSAT — Codebase intelligence CLI.",
                   add_completion=True, no_args_is_help=True)
@@ -385,8 +385,8 @@ def cmd_skills_list() -> None:
     if not skills:
         console.print("[dim]No skills installed. Add YAML manifests to skills/[/dim]")
         return
-    from rich.table import Table
     from rich import box
+    from rich.table import Table
     table = Table(box=box.ROUNDED, header_style="bold magenta")
     table.add_column("Name")
     table.add_column("Version")
@@ -428,7 +428,8 @@ app.add_typer(ai_app, name="ai")
 
 def _detect_available_providers() -> list[dict]:
     """Probe which AI providers are reachable right now."""
-    import os, shutil
+    import os
+    import shutil
     providers = []
 
     # Ollama
@@ -623,7 +624,7 @@ def cmd_ai_use(
         if ai.is_available():
             console.print("[green]✓ AI is reachable[/]")
             console.print(
-                f"\nTry it:  [bold]jsat query \"what does this project do?\"[/]\n"
+                "\nTry it:  [bold]jsat query \"what does this project do?\"[/]\n"
             )
         else:
             console.print("[yellow]⚠ AI not reachable yet[/] (may need key/server)")
@@ -658,7 +659,8 @@ def cmd_ai_test(
 def cmd_ai_models() -> None:
     """List available models for the configured AI provider."""
     try:
-        import httpx, os
+
+        import httpx
         js = _jsat()
         provider = js._cfg.ai.provider
 
@@ -702,7 +704,8 @@ def cmd_ai_models() -> None:
 
 def _jsat_binary() -> str:
     """Return the absolute path of the currently running jsat binary."""
-    import sys, shutil
+    import shutil
+    import sys
     # Prefer the script that was invoked
     candidate = Path(sys.argv[0]).resolve()
     if candidate.exists() and candidate.name in ("jsat", "jsat.exe"):
@@ -984,7 +987,6 @@ def cmd_mcp_server(
     # before doing any I/O-bound work.
 
     from pathlib import Path
-    import sys
 
     repo_path = Path(repo).resolve()
 
@@ -999,7 +1001,6 @@ def cmd_mcp_server(
         pass  # use defaults if config loading fails
 
     # Pin paths to repo root
-    from jsat._core import JSAT
     class _MinimalJSAT:
         """Thin JSAT wrapper for MCP mode — no system detection, no auto-index."""
         def __init__(self) -> None:
@@ -1020,7 +1021,8 @@ def cmd_mcp_server(
 
         def _get_ai(self):
             if self._ai is None:
-                import shutil, os
+                import shutil
+
                 from jsat._ai.none import NoOpProvider
 
                 # Auto-detect the best available AI — same priority as auto_configure:
@@ -1083,7 +1085,6 @@ def cmd_mcp_server(
 
         def index(self, path=None, **kw):
             from jsat.tools.indexer import IndexerTool
-            from jsat._models import IndexResult
             target = Path(path).resolve() if path else repo_path
             return IndexerTool(graph=self._get_graph(), cfg=self._cfg).run(target)
 

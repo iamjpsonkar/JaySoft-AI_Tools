@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import os
 import time
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING, Iterator
 
 from jsat._ai import AIProvider
 
@@ -52,7 +52,8 @@ class OpenAICompatProvider(AIProvider):
             )
             text = resp.choices[0].message.content or ""
         else:
-            import httpx, json
+
+            import httpx
             resp_h = httpx.post(
                 f"{self._base_url}/chat/completions",
                 json={"model": self._model, "max_tokens": max_tokens,
@@ -81,7 +82,9 @@ class OpenAICompatProvider(AIProvider):
                 if piece:
                     yield piece
         else:
-            import httpx, json
+            import json
+
+            import httpx
             with httpx.stream("POST", f"{self._base_url}/chat/completions",
                               json={"model": self._model, "max_tokens": max_tokens, "stream": True,
                                     "messages": [{"role": "user", "content": prompt}]},

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from jsat.tools import BaseTool
@@ -36,6 +35,7 @@ class BlastRadiusTool(BaseTool):
         severity_filter: list[str] | None = None,
     ) -> BlastRadiusReport:
         import structlog
+
         from jsat._models import BlastRadiusReport, ImpactItem
 
         log = structlog.get_logger(__name__)

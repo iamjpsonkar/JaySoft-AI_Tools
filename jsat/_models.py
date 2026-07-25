@@ -1,10 +1,9 @@
 """jsat._models — All Pydantic models. No circular imports. Import from here."""
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
-
 
 # ── System detection ──────────────────────────────────────────────────────────
 

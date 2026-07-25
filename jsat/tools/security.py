@@ -4,7 +4,6 @@ from __future__ import annotations
 import math
 import subprocess
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +31,8 @@ class SecurityTool(BaseTool):
     def run(self, path: Path, severity_threshold: str = "medium",
             include_deps: bool = True) -> Any:
         import structlog
-        from jsat._models import SecurityFinding, SecurityReport
+
+        from jsat._models import SecurityReport
 
         log = structlog.get_logger(__name__)
         log.info("security_start", path=str(path), threshold=severity_threshold)
@@ -52,8 +52,9 @@ class SecurityTool(BaseTool):
                               duration_ms=duration_ms)
 
     def _run_semgrep(self, path: Path, threshold: str, log: Any) -> list:
-        from jsat._models import SecurityFinding
         import json
+
+        from jsat._models import SecurityFinding
 
         try:
             result = subprocess.run(

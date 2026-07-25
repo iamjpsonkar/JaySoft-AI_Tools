@@ -1,7 +1,6 @@
 """jsat.tools.export — Tool 12: Export/Import System."""
 from __future__ import annotations
 
-import hashlib
 import json
 import time
 import zipfile
@@ -23,6 +22,7 @@ class ExportTool(BaseTool):
 
     def export(self, output: Path, compress_level: int = 6) -> ExportManifest:
         import structlog
+
         from jsat._models import ExportManifest
 
         log = structlog.get_logger(__name__)
@@ -78,6 +78,7 @@ class ExportTool(BaseTool):
     def restore(self, archive: Path, password: str | None = None,
                 migrate: bool = False) -> None:
         import structlog
+
         from jsat._exceptions import ImportCorrupted, ImportVersionMismatch
 
         log = structlog.get_logger(__name__)

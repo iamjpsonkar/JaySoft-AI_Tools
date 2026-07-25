@@ -45,7 +45,8 @@ class SkillsRegistry:
 
     def run(self, name: str, **kwargs: Any) -> str:
         import subprocess
-        from jsat._exceptions import SkillNotFound, SkillExecutionError
+
+        from jsat._exceptions import SkillExecutionError, SkillNotFound
 
         if name not in self._skills:
             raise SkillNotFound(name=name)

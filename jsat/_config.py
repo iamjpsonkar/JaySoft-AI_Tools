@@ -5,7 +5,6 @@ Core deps only: pydantic, pyyaml, psutil, httpx. structlog imported lazily.
 """
 from __future__ import annotations
 
-import json
 import os
 import platform
 import socket
@@ -18,8 +17,8 @@ import psutil
 import yaml
 
 from jsat._models import (
-    AIConfig, CacheConfig, EmbeddingsConfig, GraphConfig, IThinkingConfig,
-    IndexerConfig, JSATConfig, LogConfig, SystemProfile, VectorStoreConfig,
+    JSATConfig,
+    SystemProfile,
 )
 
 _PROFILE_CACHE_NAME = Path(".jsat/system-profile.json")  # relative; resolved per-repo at runtime
@@ -221,7 +220,8 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
     Each entry: {name, provider_key, available, model, reason, free}
     Ordered: available first, then by preference.
     """
-    import os, shutil
+    import os
+    import shutil
 
     results = []
 
@@ -335,7 +335,8 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
 
 def _provider_reachable(provider_key: str, sys_profile: SystemProfile | None) -> bool:
     """Quick check whether a provider is currently usable."""
-    import os, shutil
+    import os
+    import shutil
     if provider_key == "claude_cli":
         return bool(shutil.which("claude"))
     if provider_key == "anthropic":
@@ -361,7 +362,6 @@ def best_available_ai_provider(sys_profile: SystemProfile | None = None) -> str:
 
 def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
     """Apply auto-selection matrix. Returns new JSATConfig; original unchanged."""
-    import shutil
     import structlog
     log = structlog.get_logger(__name__)
     p = sys_profile.detected_profile
@@ -430,6 +430,7 @@ def setup_logging(cfg: JSATConfig) -> None:
     BoundLogger which is incompatible with PrintLoggerFactory / make_filtering_bound_logger.
     """
     import logging
+
     import structlog
 
     level_map = {"DEBUG": logging.DEBUG, "INFO": logging.INFO,

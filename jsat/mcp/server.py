@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from jsat._core import JSAT
 
-from jsat.mcp.tools import MCP_TOOLS
 
 
 class MCPServer:

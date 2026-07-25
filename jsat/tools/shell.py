@@ -56,8 +56,8 @@ class JSATShell:
     """Universal AI shell backed by a JSAT instance."""
 
     def __init__(self, jsat: JSAT) -> None:
-        from rich.console import Console
         import structlog
+        from rich.console import Console
 
         self._js = jsat
         self._console = Console()
@@ -203,7 +203,8 @@ class JSATShell:
     def _ensure_key(self, provider: str) -> bool:
         """If provider needs an API key and it's missing, prompt for it inline.
         Returns True if the key is now available, False if the user skipped."""
-        import os, getpass
+        import getpass
+        import os
 
         req = self._KEY_REQUIREMENTS.get(provider)
         if req is None:
@@ -231,7 +232,7 @@ class JSATShell:
         os.environ[env_var] = key
 
         # Offer to persist to shell profile
-        self._console.print(f"\n  [green]✓ Key set for this session.[/]")
+        self._console.print("\n  [green]✓ Key set for this session.[/]")
         try:
             save = input("  Save to ~/.zshrc / ~/.bashrc? [y/N] ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -495,8 +496,8 @@ class JSATShell:
     # ── JSAT tool commands ────────────────────────────────────────────────────
 
     def _help(self) -> None:
-        from rich.table import Table
         from rich import box
+        from rich.table import Table
         table = Table(box=box.SIMPLE, show_header=False, padding=(0, 2))
         table.add_column("Command", style="bold cyan", min_width=22)
         table.add_column("Description")
@@ -527,7 +528,7 @@ class JSATShell:
             self._console.print("[red]Usage:[/] blast-radius <FILE_OR_SYMBOL>")
             return
         target = " ".join(args)
-        self._console.print(f"[dim]Tracing...[/dim]")
+        self._console.print("[dim]Tracing...[/dim]")
         report = self._js.blast_radius(target)
         s = report.summary
         self._console.print(
@@ -560,7 +561,7 @@ class JSATShell:
             self._console.print("[red]Usage:[/] feature <DESCRIPTION>")
             return
         desc = " ".join(args)
-        self._console.print(f"[dim]Planning...[/dim]")
+        self._console.print("[dim]Planning...[/dim]")
         from jsat.tools.feature import FeatureTool
         plan = FeatureTool(graph=self._js._get_graph(), cfg=self._js._cfg,
                            ai=self._js._get_ai()).run(desc)
@@ -659,7 +660,11 @@ def launch_ai_with_jsat_tools(jsat: "JSAT", ai: str = "claude") -> None:
     ai: "claude" | "gpt" | "ollama" | ... — which AI CLI to launch.
     For now only "claude" is supported; others fall back to JSAT REPL.
     """
-    import json, os, shutil, subprocess, tempfile
+    import json
+    import os
+    import shutil
+    import subprocess
+    import tempfile
 
     repo = str(jsat._repo)
     idx = jsat.index_status

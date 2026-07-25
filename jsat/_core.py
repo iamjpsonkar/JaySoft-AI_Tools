@@ -9,12 +9,19 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
 if TYPE_CHECKING:
-    from jsat._models import (
-        BlastRadiusReport, ExportManifest, IncidentReport,
-        IndexEvent, IndexResult, JSATConfig, QueryResult, SecurityReport, SystemProfile,
-    )
-    from jsat._graph import GraphClient
     from jsat._ai import AIProvider
+    from jsat._graph import GraphClient
+    from jsat._models import (
+        BlastRadiusReport,
+        ExportManifest,
+        IncidentReport,
+        IndexEvent,
+        IndexResult,
+        JSATConfig,
+        QueryResult,
+        SecurityReport,
+        SystemProfile,
+    )
 
 
 class JSAT:
@@ -32,9 +39,10 @@ class JSAT:
         model: str | None = None,
         log_level: str = "WARNING",
     ) -> None:
-        from jsat._config import load_config, detect_system, auto_configure, setup_logging
-        from jsat._models import JSATConfig as _JSATConfig
         import structlog
+
+        from jsat._config import auto_configure, detect_system, load_config, setup_logging
+        from jsat._models import JSATConfig as _JSATConfig
 
         # Apply log level FIRST so config/detect INFO logs are suppressed by default.
         # We use a minimal temporary config — reconfigured below with real settings.
@@ -96,7 +104,6 @@ class JSAT:
           codex                 → OpenAI (codex models)
           custom, compat        → any OpenAI-compatible URL (pass base_url=)
         """
-        import os
 
         # Resolve provider alias + default model
         import shutil as _shutil
@@ -373,7 +380,7 @@ class JSAT:
 
     def doctor(self) -> dict[str, Any]:
         """Full health check — what the CLI `jsat doctor` calls."""
-        from jsat._config import detect_system, detect_ai_providers
+        from jsat._config import detect_ai_providers, detect_system
         sys_profile = detect_system(refresh=True, repo_root=self._repo)
 
         graph_ok, graph_err = False, None

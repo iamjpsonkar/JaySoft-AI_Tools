@@ -30,6 +30,7 @@ class IncidentTool(BaseTool):
         services: list[str] | None = None,
     ) -> IncidentReport:
         import structlog
+
         from jsat._models import Hypothesis, IncidentReport
 
         log = structlog.get_logger(__name__)
@@ -68,7 +69,7 @@ class IncidentTool(BaseTool):
             import git
             repo = git.Repo(".", search_parent_directories=True)
             hours = self._parse_hours(since)
-            from datetime import datetime, timezone, timedelta
+            from datetime import datetime, timedelta, timezone
             cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
             commits = []
             for c in repo.iter_commits(since=cutoff.isoformat()):

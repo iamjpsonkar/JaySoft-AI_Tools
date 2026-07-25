@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Generator
 from jsat.tools import BaseTool
 
 if TYPE_CHECKING:
-    from jsat._graph import GraphClient
-    from jsat._models import IndexEvent, IndexResult, JSATConfig
+    from jsat._models import IndexEvent, IndexResult
 
 
 class IndexerTool(BaseTool):
@@ -23,8 +22,9 @@ class IndexerTool(BaseTool):
         languages: list[str] | None = None,
     ) -> IndexResult:
         import structlog
+
         from jsat._models import IndexResult
-        from jsat._parsers import get_parser, detect_language
+        from jsat._parsers import detect_language, get_parser
 
         log = structlog.get_logger(__name__)
         log.info("indexer_start", path=str(path), branch=branch, force=force)
