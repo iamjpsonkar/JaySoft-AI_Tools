@@ -385,6 +385,23 @@ class JSAT:
             few_shot_k=few_shot_k, no_context=no_context, no_examples=no_examples,
         )
 
+    def prompt_stream(self, raw_input: str, **kwargs: Any):
+        """Optimize a query and stream the AI response token by token.
+
+        Usage:
+            async for chunk in js.prompt_stream("improve the retry logic"):
+                print(chunk, end="", flush=True)
+        """
+        from jsat.tools.prompt_optimizer import PromptOptimizer
+        result = self.prompt(raw_input, **kwargs)
+        ai = self._get_ai()
+        optimizer = PromptOptimizer(graph=self._get_graph(), cfg=self._cfg, ai=ai)
+        response_chunks: list[str] = []
+        for chunk in ai.stream(result.optimized_prompt, max_tokens=2048):
+            response_chunks.append(chunk)
+            yield chunk
+        optimizer.save_to_history(result, "".join(response_chunks))
+
     def prompt_and_send(self, raw_input: str, **kwargs: Any) -> dict[str, Any]:
         """Optimize a query and send it to the configured AI. Returns {response, prompt_result}."""
         from jsat.tools.prompt_optimizer import PromptOptimizer

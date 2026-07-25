@@ -414,3 +414,38 @@ class PromptOptimizer(BaseTool):
 
     def _count_tokens(self, text: str) -> int:
         return max(1, int(len(text.split()) * 1.3))
+
+    def self_critique(self, prompt: str, response: str, task_type: str) -> str | None:
+        """Self-critique pass on AI response for high-stakes tasks (security/payment/auth).
+
+        Returns corrected response if violations found, None if response is clean.
+        Costs one extra AI call. Enabled via --self-critique flag or config.
+        """
+        import structlog
+        log = structlog.get_logger(__name__)
+        if self._ai is None or not self._ai.is_available():
+            log.warning("self_critique_no_ai")
+            return None
+        critique_prompt = (
+            f"Review this AI response for task type '{task_type}'.\n\n"
+            f"TASK PROMPT (truncated):\n{prompt[:500]}\n\n"
+            f"AI RESPONSE:\n{response}\n\n"
+            "Check for: (1) security issues, (2) correctness, (3) constraint violations.\n"
+            "If clean, reply EXACTLY: CLEAN\n"
+            "If violations found, reply: VIOLATIONS FOUND, then provide corrected version."
+        )
+        try:
+            log.info("self_critique_start", task_type=task_type)
+            critique = self._ai.complete(critique_prompt, max_tokens=1024)
+            if critique.strip().upper().startswith("CLEAN"):
+                log.info("self_critique_clean")
+                return None
+            log.warning("self_critique_violations_found", preview=critique[:200])
+            lines = critique.splitlines()
+            corrected = "\n".join(
+                l for l in lines[next((i for i, l in enumerate(lines) if "VIOLATIONS" in l.upper()), 0)+1:]
+            ).strip()
+            return corrected or response
+        except Exception as e:
+            log.error("self_critique_failed", error=str(e))
+            return None

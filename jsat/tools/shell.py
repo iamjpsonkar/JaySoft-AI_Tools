@@ -39,6 +39,7 @@ _COMMANDS: dict[str, str] = {
     "help":           "help — show this message",
     "exit":           "exit / quit — leave the shell",
     "opt":            "opt on|off|show|history — toggle/inspect prompt optimizer",
+    "noopt":          "noopt — disable prompt optimizer for this session (alias: opt off)",
 }
 
 _PROVIDERS = [
@@ -161,6 +162,7 @@ class JSATShell:
             "switch":         self._cmd_switch,
             "ai":             lambda _: self._show_ai(),
             "opt":            self._cmd_opt,
+            "noopt":          lambda _: self._cmd_opt(["off"]),
             "index":          self._cmd_index,
             "blast-radius":   self._cmd_blast_radius,
             "test-gaps":      self._cmd_test_gaps,

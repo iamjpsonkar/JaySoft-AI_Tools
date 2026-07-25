@@ -432,6 +432,7 @@ def cmd_prompt(
     compress: bool = typer.Option(True, "--compress/--no-compress"),
     no_context: bool = typer.Option(False, "--no-context"),
     no_examples: bool = typer.Option(False, "--no-examples"),
+    self_critique: bool = typer.Option(False, "--self-critique", help="Run critique pass on response (high-stakes tasks)"),
     diff: bool = typer.Option(False, "--diff", help="Show raw vs optimized"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -510,6 +511,20 @@ def cmd_prompt(
     except Exception as e:
         err.print(f"[red]AI error:[/] {e}")
         raise typer.Exit(1) from e
+
+    # Self-critique pass (optional, costs 1 extra AI call)
+    if self_critique:
+        console.print("[dim]Running self-critique pass...[/dim]")
+        try:
+            corrected = optimizer.self_critique(result.optimized_prompt, response_text, result.task_type)
+            if corrected:
+                console.print("\n[yellow]⚠ Self-critique found issues — showing corrected version:[/yellow]\n")
+                console.print(corrected)
+                response_text = corrected
+            else:
+                console.print("[green]✓ Self-critique: response looks clean[/green]")
+        except Exception as e:
+            console.print(f"[dim]Self-critique skipped: {e}[/dim]")
 
     try:
         optimizer.save_to_history(result, response_text)
