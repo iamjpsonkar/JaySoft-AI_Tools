@@ -1044,6 +1044,153 @@ def cmd_mcp_server(
     server.run()  # blocks until stdin closes
 
 
+# ── remove ────────────────────────────────────────────────────────────────────
+
+@app.command("remove")
+def cmd_remove(
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    keep_config: bool = typer.Option(False, "--keep-config",
+                                     help="Keep .jsat/config.yaml (preserve settings)"),
+) -> None:
+    """Remove ALL JSAT artifacts from the current repo.
+
+    \b
+    Deletes:
+      .jsat/graph/          — codebase graph database
+      .jsat/vectors/        — embedding vectors
+      .jsat/cache/          — semantic cache
+      .jsat/system-profile.json
+      .jsat/config.yaml     — (unless --keep-config)
+      .jsat/                — directory itself (if empty after cleanup)
+      .jsat.yaml            — legacy root config (if present)
+      .claude/commands/jsat-*.md  — JSAT slash command skills
+      mcpServers.jsat entry in .claude/settings.json
+
+    \b
+    Does NOT touch other .claude/ config, your source code, or git history.
+    """
+    import shutil
+
+    cwd = Path.cwd()
+
+    # ── Inventory what will be removed ───────────────────────────────────────
+    items: list[tuple[str, Path]] = []
+
+    jsat_dir = cwd / ".jsat"
+    for sub in ["graph", "vectors", "cache", "system-profile.json"]:
+        p = jsat_dir / sub
+        if p.exists():
+            items.append((f".jsat/{sub}", p))
+
+    if not keep_config:
+        config_yaml = jsat_dir / "config.yaml"
+        if config_yaml.exists():
+            items.append((".jsat/config.yaml", config_yaml))
+
+    legacy = cwd / ".jsat.yaml"
+    if legacy.exists():
+        items.append((".jsat.yaml (legacy)", legacy))
+
+    # Claude skills
+    skills_dir = cwd / ".claude" / "commands"
+    jsat_skills = list(skills_dir.glob("jsat-*.md")) if skills_dir.exists() else []
+    for skill in jsat_skills:
+        items.append((f".claude/commands/{skill.name}", skill))
+
+    # Claude MCP entry
+    settings_path = cwd / ".claude" / "settings.json"
+    settings = _read_json(settings_path)
+    has_mcp = "jsat" in settings.get("mcpServers", {})
+    if has_mcp:
+        items.append(("mcpServers.jsat in .claude/settings.json", settings_path))
+
+    if not items:
+        console.print("[dim]Nothing to remove — JSAT has no artifacts in this directory.[/dim]")
+        return
+
+    # ── Show what will be removed ─────────────────────────────────────────────
+    console.print(f"\n[bold]JSAT artifacts in[/] [cyan]{cwd}[/cyan]:\n")
+    for label, _ in items:
+        console.print(f"  [red]✗[/] {label}")
+
+    # ── Confirm ───────────────────────────────────────────────────────────────
+    if not yes:
+        console.print()
+        try:
+            confirm = input("Remove all of the above? [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            confirm = "n"
+        if confirm != "y":
+            console.print("[dim]Cancelled.[/dim]")
+            return
+
+    console.print()
+
+    # ── Remove ────────────────────────────────────────────────────────────────
+    removed = 0
+
+    # Graph, vectors, cache, system-profile (directories + files)
+    for sub in ["graph", "vectors", "cache"]:
+        p = jsat_dir / sub
+        if p.exists():
+            shutil.rmtree(p, ignore_errors=True)
+            console.print(f"[green]✓[/] Removed .jsat/{sub}/")
+            removed += 1
+
+    for sub in ["system-profile.json"]:
+        p = jsat_dir / sub
+        if p.exists():
+            p.unlink()
+            console.print(f"[green]✓[/] Removed .jsat/{sub}")
+            removed += 1
+
+    # Config
+    if not keep_config:
+        config_yaml = jsat_dir / "config.yaml"
+        if config_yaml.exists():
+            config_yaml.unlink()
+            console.print("[green]✓[/] Removed .jsat/config.yaml")
+            removed += 1
+
+    # Remove .jsat/ directory if now empty
+    if jsat_dir.exists():
+        remaining = list(jsat_dir.iterdir())
+        if not remaining:
+            jsat_dir.rmdir()
+            console.print("[green]✓[/] Removed .jsat/")
+        else:
+            console.print(
+                f"[dim]  .jsat/ kept ({len(remaining)} file(s) remain — "
+                f"use --keep-config=false to remove all)[/dim]"
+            )
+
+    # Legacy
+    if legacy.exists():
+        legacy.unlink()
+        console.print("[green]✓[/] Removed .jsat.yaml")
+        removed += 1
+
+    # Claude skills
+    for skill in jsat_skills:
+        skill.unlink(missing_ok=True)
+    if jsat_skills:
+        console.print(f"[green]✓[/] Removed {len(jsat_skills)} JSAT skill file(s) from .claude/commands/")
+        removed += len(jsat_skills)
+
+    # Claude MCP entry
+    if has_mcp:
+        del settings["mcpServers"]["jsat"]
+        if not settings["mcpServers"]:
+            del settings["mcpServers"]
+        _write_json(settings_path, settings)
+        console.print("[green]✓[/] Removed jsat from .claude/settings.json")
+        removed += 1
+
+    console.print(f"\n[bold green]Done.[/] {removed} item(s) removed.")
+    if has_mcp:
+        console.print("[bold yellow]→ Restart Claude Code[/] to deactivate JSAT tools.\n")
+
+
 # ── entry point ───────────────────────────────────────────────────────────────
 
 def main() -> None:
