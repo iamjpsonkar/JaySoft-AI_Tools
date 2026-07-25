@@ -114,58 +114,116 @@ switch lmstudio  → LM Studio
 
 ---
 
-## Claude Code Integration
+## AI Tool Integration
 
-JSAT's tightest integration is with Claude Code. One command registers JSAT as an MCP server and installs `/jsat-*` slash commands. After that, Claude can call JSAT tools automatically — or you can invoke them explicitly.
+JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — the tool picks up all 55 JSAT tools automatically.
 
-### Setup
+### Connect
 
 ```bash
-jsat connect claude                       # project-level (this repo only)
-jsat connect claude --scope global        # global (all Claude Code sessions)
+jsat connect claude                        # Claude Code — project scope
+jsat connect claude --scope global         # Claude Code — all sessions
+jsat connect codex                         # OpenAI Codex CLI — project scope
+jsat connect codex --scope global          # OpenAI Codex CLI — global
+jsat connect cursor                        # Cursor
+jsat connect windsurf                      # Windsurf (Codeium)
+jsat connect continue                      # Continue.dev
+jsat connect zed                           # Zed editor
+jsat connect gemini                        # Google Gemini CLI
+
+jsat connect list                          # show every active connection
 ```
 
-Restart Claude Code. JSAT tools are now available.
+Restart the AI tool after connecting. JSAT's 55 MCP tools are immediately available.
+
+### Config files written per tool
+
+| Tool | Config file |
+|---|---|
+| Claude Code (project) | `.claude/settings.json` |
+| Claude Code (global) | `~/.claude/settings.json` |
+| Codex CLI (project) | `.codex/config.json` |
+| Codex CLI (global) | `~/.codex/config.json` |
+| Cursor | `~/.cursor/mcp.json` |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` |
+| Continue | `~/.continue/config.json` |
+| Zed | `~/.config/zed/settings.json` |
+| Gemini CLI | `~/.gemini/settings.json` |
+
+### Disconnect
+
+```bash
+jsat disconnect claude                     # Claude Code project scope
+jsat disconnect claude --scope all         # Claude Code everywhere
+jsat disconnect codex                      # Codex
+jsat disconnect cursor                     # Cursor
+jsat disconnect windsurf                   # Windsurf
+jsat disconnect continue                   # Continue
+jsat disconnect zed                        # Zed
+jsat disconnect gemini                     # Gemini CLI
+jsat disconnect all                        # every tool at once
+```
+
+### Claude Code — slash commands (28 total)
+
+`jsat connect claude` also installs 28 `/jsat-*` slash commands, organized by category:
+
+**Graph exploration**
+| Command | What it does |
+|---|---|
+| `/jsat-query <question>` | Natural language query over the indexed graph |
+| `/jsat-find-function <name>` | Look up a function — file, params, return type, complexity |
+| `/jsat-find-class <name>` | Look up a class — file, bases, method count |
+| `/jsat-list-services` | List all indexed services |
+| `/jsat-list-endpoints` | List all API endpoints with method, route, auth |
+| `/jsat-trace <symbol>` | Trace a call chain from a symbol |
+| `/jsat-index [path]` | Rebuild the codebase graph (incremental) |
+| `/jsat-status` | Node/edge counts |
+| `/jsat-doctor` | Full system health check |
+
+**Impact & safety**
+| Command | What it does |
+|---|---|
+| `/jsat-blast-radius <file or symbol>` | Downstream impact grouped by severity |
+| `/jsat-security [path]` | OWASP scan — Critical and High first |
+| `/jsat-migration <file>` | DB migration safety — lock type, duration estimate |
+| `/jsat-contract <diff>` | API contract compatibility check |
+
+**Code quality**
+| Command | What it does |
+|---|---|
+| `/jsat-review <diff>` | Multi-model parallel code review |
+| `/jsat-test-gaps [path]` | Find untested paths, generate tests |
+| `/jsat-coverage [path]` | Behavioral coverage estimate |
+
+**Knowledge & investigation**
+| Command | What it does |
+|---|---|
+| `/jsat-knowledge <query>` | Search the knowledge base |
+| `/jsat-knowledge-add <text>` | Add an ADR / runbook / decision |
+| `/jsat-runbook <target>` | Generate an incident runbook |
+| `/jsat-incident <description>` | Root-cause hypotheses ranked by confidence |
+| `/jsat-recent [path]` | Recent changes in an area |
+
+**Prompt & token tools**
+| Command | What it does |
+|---|---|
+| `/jsat-prompt <query>` | Optimize a prompt through the full pipeline |
+| `/jsat-prompt-diff <query>` | Show raw input vs what the AI actually received |
+| `/jsat-tokens <text>` | Count tokens; compress to fit context limit |
+| `/jsat-token-budget <text>` | Check budget against the active model's context window |
+
+**IThinking**
+| Command | What it does |
+|---|---|
+| `/jsat-ithinking <task>` | Full IThinking: plan → assumptions → decompose → confirm |
+| `/jsat-think <task>` | Quick shortcut — think before any task |
+| `/jsat-reflect <outcome>` | Record what was done (phase 6 log) |
 
 ### Open Claude with JSAT context pre-loaded
 
 ```bash
 jsat claude
-```
-
-### Slash commands installed into Claude Code
-
-| Command | What it does |
-|---|---|
-| `/jsat-query <question>` | Natural language query over the indexed graph |
-| `/jsat-blast-radius <file or symbol>` | Trace downstream impact grouped by severity |
-| `/jsat-security [path]` | Security scan — Critical and High issues first |
-| `/jsat-incident <description>` | Root-cause hypotheses ranked by confidence |
-| `/jsat-index [path]` | Rebuild the codebase graph |
-| `/jsat-status` | Node and edge counts |
-| `/jsat-doctor` | Full health check |
-| `/jsat-ithinking <task>` | Run the IThinking structured planning framework for a task |
-| `/jsat-think <task>` | Alias for `/jsat-ithinking` — shorthand for quick invocation |
-| `/jsat-prompt-diff <query>` | Show raw input vs optimized prompt side by side |
-
-### MCP tools Claude can call automatically
-
-JSAT defines 47 MCP tool slots across 12 categories; 38 are currently wired and active in the MCP server. Highlights:
-
-- `jsat__query` — answer any codebase question
-- `jsat__blast_radius_file`, `jsat__blast_radius_diff`, `jsat__blast_radius_symbol`, `jsat__blast_radius_topic`
-- `jsat__security_scan_file`, `jsat__get_auth_coverage`, `jsat__list_secrets`, `jsat__get_dependency_cves`
-- `jsat__investigate_incident`, `jsat__generate_runbook`
-- `jsat__check_breaking_changes`, `jsat__get_compat_score`
-- `jsat__validate_migration`, `jsat__suggest_zero_downtime`
-- `jsat__submit_for_review`, `jsat__get_high_confidence_bugs`
-- `jsat__ithinking_plan`, `jsat__ithinking_execute`
-- `jsat__prompt_optimize`, `jsat__prompt_diff`
-
-### Connect to Cursor
-
-```bash
-jsat connect cursor        # writes to ~/.cursor/mcp.json
 ```
 
 ---
@@ -223,9 +281,8 @@ Shows both panels: raw input vs full optimized prompt with injected context, con
 ### Disconnect or remove
 
 ```bash
-jsat disconnect claude                        # project-level
-jsat disconnect claude --scope global         # global
-jsat disconnect claude --scope all            # everywhere
+jsat disconnect claude --scope all            # Claude Code everywhere
+jsat disconnect all                           # every connected tool at once
 jsat remove                                   # remove all JSAT artifacts from this repo
 ```
 
@@ -277,13 +334,19 @@ jsat remove                                   # remove all JSAT artifacts from t
 
 | Command | Description |
 |---|---|
-| `jsat connect claude` | Wire JSAT into Claude Code (project scope) |
-| `jsat connect claude --scope global` | Wire JSAT globally (all sessions) |
-| `jsat connect claude --no-skills` | MCP only — skip installing slash commands |
+| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 28 slash commands |
+| `jsat connect claude --scope global` | Wire JSAT into Claude Code globally |
+| `jsat connect claude --no-skills` | MCP only — skip slash command installation |
+| `jsat connect codex` | Wire JSAT into OpenAI Codex CLI (project scope) |
+| `jsat connect codex --scope global` | Wire JSAT into Codex globally |
 | `jsat connect cursor` | Wire JSAT into Cursor |
-| `jsat connect list` | Show all active JSAT MCP configs |
-| `jsat disconnect claude` | Remove from project Claude Code config |
-| `jsat disconnect claude --scope all` | Remove from all scopes |
+| `jsat connect windsurf` | Wire JSAT into Windsurf |
+| `jsat connect continue` | Wire JSAT into Continue.dev |
+| `jsat connect zed` | Wire JSAT into Zed editor |
+| `jsat connect gemini` | Wire JSAT into Google Gemini CLI |
+| `jsat connect list` | Show all active JSAT MCP connections |
+| `jsat disconnect <tool>` | Remove JSAT from a specific tool |
+| `jsat disconnect all` | Remove JSAT from every tool at once |
 
 ### Token analysis
 

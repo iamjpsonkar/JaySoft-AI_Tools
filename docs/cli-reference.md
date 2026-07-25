@@ -244,9 +244,11 @@ jsat ai models
 
 ## 3. Connect Commands (`jsat connect`)
 
+JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — all 55 JSAT tools are immediately available to the AI.
+
 ### `jsat connect claude`
 
-Wire JSAT into Claude Code as an MCP server and install `/jsat-*` slash commands.
+Wire JSAT into Claude Code as an MCP server and install 28 `/jsat-*` slash commands.
 
 ```
 jsat connect claude [OPTIONS]
@@ -254,19 +256,39 @@ jsat connect claude [OPTIONS]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--scope`, `-s` | `project` | `project` or `global` |
-| `--repo`, `-r` | `.` | Repo path for the MCP server |
-| `--install-skills/--no-skills` | `--install-skills` | Install `/jsat-*` commands |
+| `--scope`, `-s` | `project` | `project` → `.claude/settings.json` \| `global` → `~/.claude/settings.json` |
+| `--repo`, `-r` | `.` | Repo path passed to the MCP server |
+| `--install-skills/--no-skills` | `--install-skills` | Install `/jsat-*` slash commands |
 | `--show` | false | Print the written config |
 
 ```bash
 jsat connect claude                         # project scope
-jsat connect claude --scope global          # global scope (all sessions)
+jsat connect claude --scope global          # global (all Claude Code sessions)
 jsat connect claude --no-skills             # MCP only, no slash commands
 jsat connect claude --show                  # print config after writing
 ```
 
 Restart Claude Code after running.
+
+---
+
+### `jsat connect codex`
+
+Wire JSAT into the OpenAI Codex CLI as an MCP server.
+
+```
+jsat connect codex [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--scope`, `-s` | `project` | `project` → `.codex/config.json` \| `global` → `~/.codex/config.json` |
+| `--repo`, `-r` | `.` | Repo path passed to the MCP server |
+
+```bash
+jsat connect codex                          # project scope
+jsat connect codex --scope global           # global
+```
 
 ---
 
@@ -290,47 +312,140 @@ Writes to `~/.cursor/mcp.json`. Restart Cursor after running.
 
 ---
 
+### `jsat connect windsurf`
+
+Wire JSAT into Windsurf (Codeium) as an MCP server.
+
+```
+jsat connect windsurf [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--repo`, `-r` | `.` | Repo path for the MCP server |
+
+```bash
+jsat connect windsurf
+```
+
+Writes to `~/.codeium/windsurf/mcp_config.json`. Restart Windsurf after running.
+
+---
+
+### `jsat connect continue`
+
+Wire JSAT into Continue.dev as an MCP server.
+
+```
+jsat connect continue [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--repo`, `-r` | `.` | Repo path for the MCP server |
+
+```bash
+jsat connect continue
+```
+
+Writes to `~/.continue/config.json` using Continue's `mcpServers` array format. Reload Continue (Cmd/Ctrl+Shift+P → "Continue: Reload") to activate.
+
+---
+
+### `jsat connect zed`
+
+Wire JSAT into Zed editor as a context server.
+
+```
+jsat connect zed [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--repo`, `-r` | `.` | Repo path for the MCP server |
+
+```bash
+jsat connect zed
+```
+
+Writes to `~/.config/zed/settings.json` using Zed's `context_servers` format. Restart Zed after running.
+
+---
+
+### `jsat connect gemini`
+
+Wire JSAT into the Google Gemini CLI as an MCP server.
+
+```
+jsat connect gemini [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--repo`, `-r` | `.` | Repo path for the MCP server |
+
+```bash
+jsat connect gemini
+```
+
+Writes to `~/.gemini/settings.json`. Restart Gemini CLI after running.
+
+---
+
 ### `jsat connect list`
 
-Show all Claude Code and Cursor MCP configs that include JSAT.
+Show all AI tools that have JSAT wired as an MCP server.
 
 ```bash
 jsat connect list
 ```
 
-Checks:
+Checks all 9 known config locations:
 
-- `~/.claude/settings.json` (global Claude Code)
-- `.claude/settings.json` (project Claude Code)
-- `~/.cursor/mcp.json` (Cursor)
+| Tool | Config file |
+|---|---|
+| Claude Code (project) | `.claude/settings.json` |
+| Claude Code (global) | `~/.claude/settings.json` |
+| Codex (project) | `.codex/config.json` |
+| Codex (global) | `~/.codex/config.json` |
+| Cursor | `~/.cursor/mcp.json` |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` |
+| Continue | `~/.continue/config.json` |
+| Zed | `~/.config/zed/settings.json` |
+| Gemini CLI | `~/.gemini/settings.json` |
 
 ---
 
 ## 4. Disconnect Commands (`jsat disconnect`)
 
-### `jsat disconnect claude`
-
-Remove JSAT from Claude Code's MCP config and optionally remove skill files.
+Remove JSAT from one or all AI tools.
 
 ```
-jsat disconnect claude [OPTIONS]
+jsat disconnect TOOL [OPTIONS]
 ```
 
 | Argument | Default | Description |
 |---------|---------|-------------|
-| `TOOL` | `claude` | Tool to disconnect: `claude`, `cursor`, or `all` |
-| `--scope`, `-s` | `project` | `project`, `global`, or `all` |
-| `--keep-skills` | false | Keep `/jsat-*` skill files (default: remove them) |
+| `TOOL` | `claude` | `claude` \| `codex` \| `cursor` \| `windsurf` \| `continue` \| `zed` \| `gemini` \| `all` |
+| `--scope`, `-s` | `project` | `project`, `global`, or `all` (claude and codex only) |
+| `--keep-skills` | false | Keep `/jsat-*` skill files when disconnecting from Claude Code |
 
 ```bash
-jsat disconnect claude                       # project scope
-jsat disconnect claude --scope global        # global scope
-jsat disconnect claude --scope all           # both project and global
-jsat disconnect claude --keep-skills         # remove MCP entry, keep skill files
-jsat disconnect cursor                       # disconnect from Cursor
+jsat disconnect claude                       # Claude Code project scope
+jsat disconnect claude --scope global        # Claude Code global
+jsat disconnect claude --scope all           # Claude Code everywhere
+jsat disconnect claude --keep-skills         # remove MCP entry, keep slash commands
+jsat disconnect codex                        # Codex project scope
+jsat disconnect codex --scope global         # Codex global
+jsat disconnect cursor                       # Cursor
+jsat disconnect windsurf                     # Windsurf
+jsat disconnect continue                     # Continue.dev
+jsat disconnect zed                          # Zed
+jsat disconnect gemini                       # Gemini CLI
+jsat disconnect all                          # every tool at once
 ```
 
-Restart Claude Code after running.
+Restart the relevant AI tool after disconnecting.
 
 ---
 
