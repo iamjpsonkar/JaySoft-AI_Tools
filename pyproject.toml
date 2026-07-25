@@ -5,22 +5,38 @@ build-backend = "hatchling.build"
 [project]
 name = "jsat"
 version = "0.1.1"
-description = "JaySoft AI Tools — open-source codebase intelligence shell and SDK"
+description = "Codebase intelligence shell and SDK — index once, query forever, works with Claude, GPT, Ollama, and any AI"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
-authors = [{ name = "JaySoft", email = "iamjpsonkar@gmail.com" }]
-keywords = ["codebase", "intelligence", "ai", "sdk", "cli", "static-analysis"]
+authors = [
+    { name = "Jay Prakash Sonkar", email = "iamjpsonkar@gmail.com" },
+]
+maintainers = [
+    { name = "Jay Prakash Sonkar", email = "iamjpsonkar@gmail.com" },
+]
+keywords = [
+    "codebase", "intelligence", "ai", "mcp", "llm", "claude", "ollama",
+    "sdk", "cli", "static-analysis", "developer-tools", "graph", "tree-sitter",
+    "blast-radius", "security", "incident-investigation",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Utilities",
+    "Environment :: Console",
+    "Typing :: Typed",
 ]
 
 dependencies = [
@@ -84,9 +100,11 @@ all = [
 jsat = "jsat.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/jsat-project/jsat"
-Repository = "https://github.com/jsat-project/jsat"
-"Bug Tracker" = "https://github.com/jsat-project/jsat/issues"
+Homepage = "https://github.com/iamjpsonkar/JaySoft-AI_Tools"
+Documentation = "https://iamjpsonkar.github.io/JaySoft-AI_Tools"
+Repository = "https://github.com/iamjpsonkar/JaySoft-AI_Tools"
+"Bug Tracker" = "https://github.com/iamjpsonkar/JaySoft-AI_Tools/issues"
+Changelog = "https://github.com/iamjpsonkar/JaySoft-AI_Tools/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["jsat"]
