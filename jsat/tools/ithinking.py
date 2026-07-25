@@ -109,7 +109,25 @@ class IThinkingTool(BaseTool):
         output = "Assumptions flagged:\n" + "\n".join(found) if found else "No risky assumptions."
         return PhaseResult(4, "Assumption Audit", output, gate, True)
 
+    # Operations that always require explicit user confirmation before execution
+    _HARD_STOP_PATTERNS = (
+        "drop table", "drop database", "delete from", "truncate",
+        "rm -rf", "format", "wipe", "destroy", "purge",
+    )
+
     def _p5_execute(self, prompt: str, cb: Callable[[str], str]) -> tuple[PhaseResult, str, int]:
+        # Hard-stop gate: block destructive operations and flag for user approval
+        prompt_lower = prompt.lower()
+        hard_stop = any(pat in prompt_lower for pat in self._HARD_STOP_PATTERNS)
+        if hard_stop:
+            matched = next(p for p in self._HARD_STOP_PATTERNS if p in prompt_lower)
+            output = (
+                f"HARD STOP — destructive operation detected: '{matched}'\n"
+                "This operation requires explicit user approval before execution.\n"
+                "Confirm you want to proceed before running this task."
+            )
+            return PhaseResult(5, "Gated Execution", output, True, False), "", 0
+
         try:
             result = cb(prompt)
             actual = max(1, (len(prompt) + len(result)) // 4)

@@ -190,6 +190,44 @@ class MCPServer:
                            "properties": {"output": {"type": "string"}}},
                 "handler": lambda a: _ser(js.export(a["output"])),
             },
+            # ── Test tools ───────────────────────────────────────────────────
+            "get_test_gaps": {
+                "description": "Find uncovered code paths — functions and endpoints with no tests.",
+                "schema": {"type": "object", "properties": {
+                    "service": {"type": "string"},
+                    "path": {"type": "string"}}},
+                "handler": lambda a: _run_test_gaps(js, a),
+            },
+            # ── Security tools ───────────────────────────────────────────────
+            "list_secrets": {
+                "description": "Find hardcoded secrets using Shannon entropy analysis. Values are never stored.",
+                "schema": {"type": "object", "properties": {
+                    "path": {"type": "string", "description": "Directory to scan (default: repo root)"}}},
+                "handler": lambda a: _ser(js.security_review(
+                    path=a.get("path", "."), severity_threshold="low")),
+            },
+            # ── Migration tools ──────────────────────────────────────────────
+            "validate_migration": {
+                "description": "Validate a SQL migration file: lock risk, duration estimate, rollback presence, zero-downtime guide.",
+                "schema": {"type": "object", "required": ["file"],
+                           "properties": {"file": {"type": "string"}}},
+                "handler": lambda a: _run_migration(js, a["file"]),
+            },
+            # ── Knowledge tools ──────────────────────────────────────────────
+            "knowledge_query": {
+                "description": "Answer a question using the project knowledge base (architecture decisions, gotchas, runbooks).",
+                "schema": {"type": "object", "required": ["question"],
+                           "properties": {"question": {"type": "string"}}},
+                "handler": lambda a: _run_knowledge_query(js, a["question"]),
+            },
+            "knowledge_add": {
+                "description": "Add a note to the project knowledge base.",
+                "schema": {"type": "object", "required": ["text"],
+                           "properties": {
+                               "text": {"type": "string"},
+                               "category": {"type": "string", "default": "general"}}},
+                "handler": lambda a: _run_knowledge_add(js, a["text"], a.get("category","general")),
+            },
             # ── IThinking ────────────────────────────────────────────────────
             "ithinking_plan": {
                 "description": (
@@ -230,6 +268,57 @@ class MCPServer:
                 "handler": lambda a: _ithinking_audit(a["subtask"]),
             },
         }
+
+
+def _run_test_gaps(js: object, args: dict) -> str:
+    from pathlib import Path
+
+    from jsat.tools.test_helper import TestHelperTool
+    tool = TestHelperTool(graph=js._get_graph(), cfg=js._cfg)  # type: ignore[attr-defined]
+    r = tool.run(path=Path(args["path"]) if "path" in args else None,
+                 service=args.get("service"))
+    lines = [
+        f"Coverage: {r.coverage_pct:.1f}%",
+        f"Untested functions: {len(r.untested_functions)}",
+        f"Untested endpoints: {len(r.untested_endpoints)}",
+        f"Over-mocked tests: {len(r.over_mocked_tests)}",
+    ]
+    if r.untested_functions:
+        lines.append("\nTop untested:")
+        lines.extend(f"  - {fn}" for fn in r.untested_functions[:10])
+    return "\n".join(lines)
+
+
+def _run_migration(js: object, file_path: str) -> str:
+    from pathlib import Path
+
+    from jsat.tools.migration import MigrationTool
+    tool = MigrationTool(graph=js._get_graph(), cfg=js._cfg)  # type: ignore[attr-defined]
+    r = tool.run(Path(file_path))
+    lines = [
+        f"Risk: {r.risk_level.upper()}",
+        f"Lock estimate: {r.lock_estimate_seconds:.1f}s",
+        f"Has rollback: {'yes' if r.has_rollback else 'NO — add a DOWN migration'}",
+    ]
+    if r.zero_downtime_guide:
+        lines.append(f"\n{r.zero_downtime_guide}")
+    return "\n".join(lines)
+
+
+def _run_knowledge_query(js: object, question: str) -> str:
+    from jsat.tools.knowledge import KnowledgeTool
+    tool = KnowledgeTool(graph=js._get_graph(), cfg=js._cfg,  # type: ignore[attr-defined]
+                         ai=js._get_ai())  # type: ignore[attr-defined]
+    r = tool.query(question)
+    return f"{r.answer}\n\n*Confidence: {r.confidence:.0%} | Sources: {len(r.sources)}*"
+
+
+def _run_knowledge_add(js: object, text: str, category: str) -> str:
+    from jsat.tools.knowledge import KnowledgeTool
+    tool = KnowledgeTool(graph=js._get_graph(), cfg=js._cfg,  # type: ignore[attr-defined]
+                         ai=js._get_ai())  # type: ignore[attr-defined]
+    tool.add(text, category=category)
+    return f"✓ Stored in knowledge base (category: {category})"
 
 
 def _ithinking_plan(js: object, task: str) -> str:
@@ -278,7 +367,7 @@ def _ithinking_reflect(task: str, result: str) -> str:
 
 def _ithinking_audit(subtask: str) -> str:
     """Phase 4: assumption audit for a single subtask."""
-    from jsat.tools.ithinking import IThinkingTool, _RISKY_TERMS
+    from jsat.tools.ithinking import _RISKY_TERMS, IThinkingTool
     found = [f"  [{t}] {msg}" for t, msg in _RISKY_TERMS.items()
              if t in subtask.lower()]
     if not found:

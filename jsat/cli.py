@@ -971,6 +971,124 @@ def cmd_connect_remove(
         console.print(f"[dim]JSAT not found in {settings_path}[/]")
 
 
+# ── ci-setup ──────────────────────────────────────────────────────────────────
+
+@app.command("ci-setup")
+def cmd_ci_setup(
+    provider: str = typer.Option("github", "--provider", "-p",
+                                  help="CI provider: github | gitlab"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Install JSAT checks into your CI pipeline (blast-radius, security, contract).
+
+    \b
+    GitHub Actions:
+        jsat ci-setup --provider github
+
+    \b
+    GitLab CI:
+        jsat ci-setup --provider gitlab
+    """
+    from pathlib import Path
+
+    repo_path = Path(repo).resolve()
+
+    if provider == "github":
+        dest = repo_path / ".github" / "workflows" / "jsat.yml"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        content = """\
+name: JSAT Analysis
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  jsat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install JSAT
+        run: pip install "jsat[standard]"
+
+      - name: Index repo (incremental)
+        run: jsat index . --incremental
+
+      - name: Blast Radius
+        run: |
+          jsat blast-radius --diff origin/${{ github.base_ref }}...HEAD \\
+            --output blast-radius.md
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: API Contract check
+        run: jsat contract-check --base origin/${{ github.base_ref }}
+
+      - name: Security Review
+        run: jsat security-review . --sarif security.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security.sarif
+"""
+        dest.write_text(content, encoding="utf-8")
+        console.print(f"\n[green]✓[/] Written [bold]{dest}[/]")
+        console.print(
+            "\nJSAT will now run on every PR:\n"
+            "  [cyan]Blast Radius[/] — what does this change break?\n"
+            "  [cyan]Contract Check[/] — any breaking API changes?\n"
+            "  [cyan]Security[/] — OWASP issues, secrets, CVEs\n\n"
+            "Add [bold]ANTHROPIC_API_KEY[/] to GitHub Secrets for AI-powered analysis.\n"
+        )
+
+    elif provider == "gitlab":
+        dest = repo_path / ".gitlab-ci.yml"
+        content = """\
+jsat:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - pip install "jsat[standard]"
+    - jsat index . --incremental
+    - jsat blast-radius --diff origin/$CI_DEFAULT_BRANCH...HEAD
+    - jsat contract-check --base origin/$CI_DEFAULT_BRANCH
+    - jsat security-review . --sarif gl-sast-report.json
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+  only:
+    - merge_requests
+"""
+        # Append to existing file if it exists
+        if dest.exists():
+            existing = dest.read_text()
+            if "jsat:" not in existing:
+                dest.write_text(existing.rstrip() + "\n\n" + content, encoding="utf-8")
+                console.print(f"[green]✓[/] Appended JSAT job to [bold]{dest}[/]")
+            else:
+                console.print(f"[dim]JSAT job already in {dest}[/]")
+        else:
+            dest.write_text(content, encoding="utf-8")
+            console.print(f"[green]✓[/] Written [bold]{dest}[/]")
+    else:
+        err.print(f"[red]Unknown provider:[/] {provider}. Valid: github | gitlab")
+        raise typer.Exit(1)
+
+
 # ── mcp-server ───────────────────────────────────────────────────────────────
 
 @app.command("mcp-server")
