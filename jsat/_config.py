@@ -239,7 +239,12 @@ def write_profile_preset(profile: str, output_path: Path) -> None:
 # ── 5. setup_logging ─────────────────────────────────────────────────────────
 
 def setup_logging(cfg: JSATConfig) -> None:
-    """Configure structlog globally based on cfg.log settings."""
+    """Configure structlog globally based on cfg.log settings.
+
+    Uses structlog's native (non-stdlib) pipeline with PrintLoggerFactory.
+    stdlib.add_logger_name is intentionally excluded — it requires a stdlib
+    BoundLogger which is incompatible with PrintLoggerFactory / make_filtering_bound_logger.
+    """
     import logging
     import structlog
 
@@ -247,17 +252,22 @@ def setup_logging(cfg: JSATConfig) -> None:
                  "WARNING": logging.WARNING, "ERROR": logging.ERROR}
     level = level_map.get(cfg.log.level.upper(), logging.INFO)
 
+    # Also configure stdlib logging so any library that uses it respects the level
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
     if cfg.log.file:
         Path(cfg.log.file).parent.mkdir(parents=True, exist_ok=True)
         handlers.append(logging.FileHandler(cfg.log.file, encoding="utf-8"))
-
     logging.basicConfig(level=level, handlers=handlers, force=True)
 
+    # Suppress noisy third-party loggers at WARNING by default
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("git").setLevel(logging.WARNING)
+
+    # Native structlog pipeline — no stdlib.add_logger_name (incompatible with PrintLogger)
     processors: list[Any] = [
-        structlog.stdlib.add_log_level,
+        structlog.processors.add_log_level,       # native, works with PrintLogger
         structlog.processors.TimeStamper(fmt="iso", utc=True),
-        structlog.stdlib.add_logger_name,
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
     ]

@@ -27,11 +27,11 @@ console = Console()
 err = Console(stderr=True)
 
 
-def _jsat(repo: str = "."):
+def _jsat(repo: str = ".", verbose: bool = False):
     from jsat._core import JSAT
     from jsat._exceptions import JSATError
     try:
-        return JSAT(repo=repo)
+        return JSAT(repo=repo, log_level="DEBUG" if verbose else "WARNING")
     except JSATError as e:
         err.print(f"[bold red]Config error:[/] {e}")
         raise typer.Exit(1) from e

@@ -30,10 +30,19 @@ class JSAT:
         config: str | Path | None = None,
         ai_provider: str | None = None,
         model: str | None = None,
-        log_level: str = "INFO",
+        log_level: str = "WARNING",
     ) -> None:
         from jsat._config import load_config, detect_system, auto_configure, setup_logging
+        from jsat._models import JSATConfig as _JSATConfig
         import structlog
+
+        # Apply log level FIRST so config/detect INFO logs are suppressed by default.
+        # We use a minimal temporary config — reconfigured below with real settings.
+        _tmp_cfg = _JSATConfig()
+        _tmp_cfg = _tmp_cfg.model_copy(
+            update={"log": _tmp_cfg.log.model_copy(update={"level": log_level})}
+        )
+        setup_logging(_tmp_cfg)
 
         self._repo = Path(repo).resolve()
         self._cfg: JSATConfig = load_config(config)
@@ -50,6 +59,10 @@ class JSAT:
                 update={"ai": self._cfg.ai.model_copy(update={"model": model})}
             )
 
+        # Reconfigure logging with actual config (level may differ from tmp)
+        self._cfg = self._cfg.model_copy(
+            update={"log": self._cfg.log.model_copy(update={"level": log_level})}
+        )
         setup_logging(self._cfg)
 
         self._graph: GraphClient | None = None
