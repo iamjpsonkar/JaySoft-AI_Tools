@@ -106,6 +106,30 @@ class LogConfig(BaseModel):
     file: str | None = None
 
 
+class PrivacyConfig(BaseModel):
+    """Section L privacy settings — PII handling and audit logging."""
+    hash_pii: bool = False          # hash PII fields before storing in knowledge base
+    no_telemetry: bool = False      # disable anonymous usage telemetry
+    audit_log: bool = False         # write audit log of all queries and tool calls
+    audit_log_path: str = ".jsat/audit.log"
+
+
+class SecurityConfig(BaseModel):
+    """Security thresholds for the security review tool."""
+    cvss_threshold: float = 7.0
+    secret_entropy_threshold: float = 4.5
+    block_on_critical: bool = True
+    sarif_output: bool = True
+
+
+class ReviewConfig(BaseModel):
+    """Multi-model code review configuration."""
+    models: list[dict] = Field(default_factory=list)
+    parallel_timeout_seconds: int = 90
+    dedup_threshold: float = 0.85
+    min_confidence: str = "medium"
+
+
 class SkillsConfig(BaseModel):
     dir: str = "skills/"
     auto_discover: bool = True
@@ -114,7 +138,7 @@ class SkillsConfig(BaseModel):
 
 
 class JSATConfig(BaseModel):
-    """Root config model. Loaded from .jsat.yaml."""
+    """Root config model. Loaded from .jsat/config.yaml."""
     version: str = "1"
     project_name: str = "unnamed"
     project_root: str = "."
@@ -127,6 +151,9 @@ class JSATConfig(BaseModel):
     ithinking: IThinkingConfig = Field(default_factory=IThinkingConfig)
     log: LogConfig = Field(default_factory=LogConfig)
     skills: SkillsConfig = Field(default_factory=SkillsConfig)
+    privacy: PrivacyConfig = Field(default_factory=PrivacyConfig)
+    security: SecurityConfig = Field(default_factory=SecurityConfig)
+    review: ReviewConfig = Field(default_factory=ReviewConfig)
 
 
 # ── Tool output models ────────────────────────────────────────────────────────

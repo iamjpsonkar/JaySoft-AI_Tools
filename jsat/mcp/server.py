@@ -33,10 +33,11 @@ class MCPServer:
         import os
         self._log.info("mcp_server_running", mode="stdin/stdout")
 
-        # Optional MCP auth: check JSAT_MCP_TOKEN if set (team mode)
+        # Section L auth: enforce JSAT_MCP_TOKEN when set (team mode)
         self._auth_token: str | None = os.environ.get("JSAT_MCP_TOKEN")
         if self._auth_token:
-            self._log.info("mcp_auth_enabled")
+            self._log.info("mcp_auth_enabled",
+                           note="All requests must include Authorization: Bearer <token>")
 
         for line in sys.stdin:
             line = line.strip()
@@ -62,6 +63,18 @@ class MCPServer:
         method = msg.get("method", "")
         id_ = msg.get("id", None)
 
+        # Section L: enforce auth token when JSAT_MCP_TOKEN is set
+        if self._auth_token and method not in ("initialize", "notifications/initialized"):
+            provided = (msg.get("params") or {}).get("_auth_token", "")
+            # Also accept via meta field (Claude Code passes in params)
+            if provided != self._auth_token:
+                self._log.warning("mcp_auth_rejected", method=method)
+                if id_ is not None:
+                    return {"jsonrpc": "2.0", "id": id_,
+                            "error": {"code": -32600,
+                                      "message": "Unauthorized: set JSAT_MCP_TOKEN correctly"}}
+                return None
+
         # Notifications (no id) — acknowledge but return nothing
         if method == "notifications/initialized":
             return None
@@ -70,7 +83,7 @@ class MCPServer:
             return {"jsonrpc": "2.0", "id": id_, "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "jsat", "version": "0.1.2"},
+                "serverInfo": {"name": "jsat", "version": "0.1.3"},
             }}
 
         if method == "tools/list":
@@ -120,7 +133,7 @@ class MCPServer:
 
         return {
             "status": "ok",
-            "version": "0.1.2",
+            "version": "0.1.3",
             "graph": {
                 "connected": True,
                 "nodes": status.get("nodes", 0),
@@ -175,7 +188,7 @@ class MCPServer:
                 "description": "Return JSAT version, AI provider, and graph backend.",
                 "schema": {"type": "object", "properties": {}},
                 "handler": lambda a: _ser({
-                    "version": "0.1.2",
+                    "version": "0.1.3",
                     "ai_provider": js._cfg.ai.provider,
                     "model": js._cfg.ai.model,
                     "graph_backend": js._cfg.graph.backend,

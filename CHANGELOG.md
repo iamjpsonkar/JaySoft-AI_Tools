@@ -4,6 +4,74 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-07-26
+
+### Added
+
+**Multi-model code review** (`jsat/tools/review.py` — complete rewrite)
+- True parallel dispatch via `ThreadPoolExecutor` — all configured models run simultaneously
+- Provider factory resolves `claude_cli`, `anthropic`, `openai`, `openai_compat`, `ollama` from config
+- Per-model 90-second timeout (configurable via `review.parallel_timeout_seconds`) — individual failures skip, review continues
+- Deduplication by title similarity: findings from multiple models merged and ranked HIGH/MEDIUM/LOW by agreement count
+- Falls back to single configured provider when `review.models` is empty (backward compatible)
+
+**Section K — Agent Prompt Library** (full specification from plan.md)
+- All 7 orchestrator agents upgraded from 1-line stubs to complete system prompts (29× more detailed)
+- Conflict Resolver agent (K7) added — was missing entirely; includes 7-step resolution with confidence scoring
+- Agents: Understanding, Generation, Review, Test, Security, Documentation, Conflict Resolver
+
+**IThinking Phase 5 gate** — hard-stop for destructive operations
+- Blocks: `drop table`, `drop database`, `delete from`, `truncate`, `rm -rf`, `wipe`, `destroy`, `purge`
+- Returns clear escalation message instead of executing
+
+**MCP server — 17 tools** (was 8)
+- New: `get_test_gaps`, `list_secrets`, `validate_migration`, `knowledge_query`, `knowledge_add`
+- New: `ithinking_plan`, `ithinking_reflect`, `ithinking_audit_assumptions`, `health`
+
+**`jsat ci-setup` command**
+- `jsat ci-setup --provider github` → writes `.github/workflows/jsat.yml`
+- `jsat ci-setup --provider gitlab` → appends to `.gitlab-ci.yml`
+- CI runs: blast-radius, contract-check, security-review on every PR
+
+**Claude Code — 2 new skills**
+- `/jsat-ithinking <task>` — plan before acting (phases 0-4), then execute
+- `/jsat-think <task>` — shortcut for think-carefully-first workflow
+
+**Privacy and security config** (`PrivacyConfig`, `SecurityConfig`, `ReviewConfig` in `_models.py`)
+- `privacy.hash_pii`, `privacy.audit_log`, `privacy.audit_log_path`
+- `security.cvss_threshold`, `security.secret_entropy_threshold`, `security.block_on_critical`
+- `review.models`, `review.parallel_timeout_seconds`, `review.min_confidence`
+
+**MCP auth enforcement** (Section L)
+- `JSAT_MCP_TOKEN` env var now enforced when set
+- Unauthorized requests return `{"code": -32600, "message": "Unauthorized"}`
+
+### Fixed
+
+- `jsat mcp-server` starts in <1s (was 30+ seconds due to auto-indexing + service pings before serving)
+- `jsat__query` returning "Invalid session ID" — claude CLI no longer uses `--session-id`/`--resume`
+- `jsat__query` returning "claude exited 1" — `--model llama3.2` no longer passed to claude CLI
+- `ALTER TABLE orders ALTER COLUMN` correctly classified as `dangerous` (table name in SQL broke pattern matching)
+- `is_async` detection works across all tree-sitter-python versions
+- Migration lock type detection handles table names between keywords
+
+## [0.1.2] — 2026-07-26
+
+### Added
+- Updated PyPI metadata: description, author, classifiers, URLs, keywords
+- GitHub Pages documentation site (`mkdocs-material`, 9 pages)
+- `local_test.sh` — local test runner with lint, watch, and auto-fix modes
+- `jsat disconnect claude` accepts tool name as argument
+
+### Fixed
+- GitHub Actions CI: removed `uv`/`semgrep` from test install (exit 127); ruff lint errors fixed
+
+## [0.1.1] — 2026-07-25
+
+### Fixed
+- PyPI `400 File already exists` — version was already uploaded; bumped to 0.1.1
+- Added `skip-existing: true` to publish workflow
+
 ## [0.1.0] — 2026-07-25
 
 ### Added
