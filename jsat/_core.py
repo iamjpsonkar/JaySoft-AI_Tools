@@ -1,0 +1,257 @@
+"""
+jsat._core — JSAT main class.
+
+Thin shell: all tool logic lives in jsat/tools/. Every heavy import is lazy.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Generator
+
+if TYPE_CHECKING:
+    from jsat._models import (
+        BlastRadiusReport, ExportManifest, IncidentReport,
+        IndexEvent, IndexResult, JSATConfig, QueryResult, SecurityReport, SystemProfile,
+    )
+    from jsat._graph import GraphClient
+    from jsat._ai import AIProvider
+
+
+class JSAT:
+    """Main user-facing object for JSAT codebase intelligence.
+
+    All heavy dependencies are loaded lazily on first use.
+    Instantiation is fast — only config loading and system detection run.
+    """
+
+    def __init__(
+        self,
+        repo: str | Path = ".",
+        config: str | Path | None = None,
+        ai_provider: str | None = None,
+        model: str | None = None,
+        log_level: str = "INFO",
+    ) -> None:
+        from jsat._config import load_config, detect_system, auto_configure, setup_logging
+        import structlog
+
+        self._repo = Path(repo).resolve()
+        self._cfg: JSATConfig = load_config(config)
+        self._sys: SystemProfile = detect_system()
+        self._cfg = auto_configure(self._cfg, self._sys)
+
+        # Caller overrides win over auto-configure
+        if ai_provider:
+            self._cfg = self._cfg.model_copy(
+                update={"ai": self._cfg.ai.model_copy(update={"provider": ai_provider})}
+            )
+        if model:
+            self._cfg = self._cfg.model_copy(
+                update={"ai": self._cfg.ai.model_copy(update={"model": model})}
+            )
+
+        setup_logging(self._cfg)
+
+        self._graph: GraphClient | None = None
+        self._ai: AIProvider | None = None
+
+        log = structlog.get_logger(__name__)
+        log.info("jsat_init", repo=str(self._repo),
+                 profile=self._sys.detected_profile,
+                 ai_provider=self._cfg.ai.provider,
+                 graph_backend=self._cfg.graph.backend)
+
+    # ── Lazy backend accessors ────────────────────────────────────────────────
+
+    def _get_graph(self) -> GraphClient:
+        if self._graph is not None:
+            return self._graph
+        backend = self._cfg.graph.backend
+        if backend == "neo4j":
+            try:
+                from jsat._graph.neo4j import Neo4jGraph  # type: ignore[import]
+                self._graph = Neo4jGraph(self._cfg.graph)
+            except ImportError as e:
+                from jsat._exceptions import ProfileError
+                raise ProfileError("Neo4j requires jsat[team].\nInstall: pip install 'jsat[team]'",
+                                   required_extra="team") from e
+        else:
+            from jsat._graph.sqlite import SQLiteGraph
+            self._graph = SQLiteGraph(self._cfg.graph)
+        return self._graph
+
+    def _get_ai(self) -> AIProvider:
+        if self._ai is not None:
+            return self._ai
+        from jsat._ai import get_ai_provider
+        from jsat._ai.none import NoOpProvider
+        try:
+            provider = get_ai_provider(self._cfg)
+            if not provider.is_available():
+                import structlog
+                structlog.get_logger(__name__).warning(
+                    "ai_provider_unavailable",
+                    provider=self._cfg.ai.provider,
+                    message="Falling back to NoOpProvider",
+                )
+                provider = NoOpProvider()
+            self._ai = provider
+        except Exception:
+            self._ai = NoOpProvider()
+        return self._ai
+
+    # ── Public API ────────────────────────────────────────────────────────────
+
+    def index(
+        self,
+        path: str | Path | None = None,
+        branch: str = "HEAD",
+        force: bool = False,
+        languages: list[str] | None = None,
+    ) -> IndexResult:
+        """Build or update the codebase index. Blocks until complete."""
+        from jsat.tools.indexer import IndexerTool
+        target = Path(path).resolve() if path else self._repo
+        return IndexerTool(graph=self._get_graph(), cfg=self._cfg).run(
+            target, branch, force, languages
+        )
+
+    def index_stream(
+        self,
+        path: str | Path | None = None,
+        branch: str = "HEAD",
+    ) -> Generator[IndexEvent, None, IndexResult]:
+        """Stream progress events while indexing."""
+        from jsat.tools.indexer import IndexerTool
+        target = Path(path).resolve() if path else self._repo
+        return IndexerTool(graph=self._get_graph(), cfg=self._cfg).run_stream(target, branch)
+
+    def query(
+        self,
+        question: str,
+        context_budget: int = 8192,
+        service: str | None = None,
+        ithinking: bool = False,
+    ) -> QueryResult:
+        """Natural language query over the codebase graph."""
+        from jsat.tools.query import QueryTool
+        return QueryTool(
+            graph=self._get_graph(), ai=self._get_ai(), cfg=self._cfg
+        ).run(question, context_budget=context_budget, service=service)
+
+    def blast_radius(
+        self,
+        target: str,
+        diff: str | None = None,
+        max_depth: int = 5,
+        severity_filter: list[str] | None = None,
+    ) -> BlastRadiusReport:
+        """Trace downstream impact of a change."""
+        from jsat.tools.blast_radius import BlastRadiusTool
+        return BlastRadiusTool(graph=self._get_graph(), cfg=self._cfg).run(
+            target, diff, max_depth, severity_filter
+        )
+
+    def security_review(
+        self,
+        path: str | Path = ".",
+        severity_threshold: str = "medium",
+        include_deps: bool = True,
+    ) -> SecurityReport:
+        """Run security analysis. Requires jsat[standard]."""
+        try:
+            from jsat.tools.security import SecurityTool
+        except ImportError as e:
+            from jsat._exceptions import ProfileError
+            raise ProfileError("Security review requires jsat[standard].\n"
+                               "Install: pip install 'jsat[standard]'",
+                               required_extra="standard") from e
+        return SecurityTool(graph=self._get_graph(), cfg=self._cfg).run(
+            Path(path), severity_threshold, include_deps
+        )
+
+    def investigate_incident(
+        self,
+        description: str,
+        since: str = "72h",
+        services: list[str] | None = None,
+    ) -> IncidentReport:
+        """Investigate a production incident."""
+        from jsat.tools.incident import IncidentTool
+        return IncidentTool(
+            graph=self._get_graph(), ai=self._get_ai(), cfg=self._cfg
+        ).run(description, since, services)
+
+    def export(
+        self,
+        output: str | Path,
+        compress_level: int = 6,
+        encrypt: bool = False,
+        password: str | None = None,
+    ) -> ExportManifest:
+        """Export the index as a portable zip."""
+        from jsat.tools.export import ExportTool
+        return ExportTool(graph=self._get_graph(), cfg=self._cfg).export(
+            Path(output), compress_level
+        )
+
+    @classmethod
+    def from_import(cls, archive: str | Path, password: str | None = None) -> JSAT:
+        """Restore a JSAT instance from an exported archive."""
+        from jsat.tools.export import ExportTool
+        instance = cls(repo=str(Path(archive).parent))
+        ExportTool(graph=instance._get_graph(), cfg=instance._cfg).restore(Path(archive))
+        return instance
+
+    @property
+    def index_status(self) -> dict[str, Any]:
+        """Quick snapshot: nodes, edges, commit, is_fresh."""
+        try:
+            g = self._get_graph()
+            return {
+                "nodes": g.node_count(),
+                "edges": g.edge_count(),
+                "commit": None,
+                "is_fresh": True,
+            }
+        except Exception as e:
+            return {"nodes": 0, "edges": 0, "commit": None, "is_fresh": False, "error": str(e)}
+
+    def doctor(self) -> dict[str, Any]:
+        """Full health check — what the CLI `jsat doctor` calls."""
+        from jsat._config import detect_system
+        sys_profile = detect_system(refresh=True)
+
+        graph_ok, graph_err = False, None
+        try:
+            g = self._get_graph()
+            graph_ok = g.node_count() >= 0
+        except Exception as e:
+            graph_err = str(e)
+
+        ai_ok, ai_err = False, None
+        try:
+            ai_ok = self._get_ai().is_available()
+        except Exception as e:
+            ai_err = str(e)
+
+        return {
+            "version": "0.1.0",
+            "system": {
+                "ram_gb": sys_profile.ram_gb,
+                "cpu_arch": sys_profile.cpu_arch,
+                "gpu": sys_profile.gpu,
+                "is_ci": sys_profile.is_ci,
+            },
+            "profile": sys_profile.detected_profile,
+            "services": {
+                "ollama": {"running": sys_profile.ollama_up},
+                "neo4j":  {"running": sys_profile.neo4j_up},
+                "qdrant": {"running": sys_profile.qdrant_up},
+                "redis":  {"running": sys_profile.redis_up},
+            },
+            "graph": {"ok": graph_ok, "backend": self._cfg.graph.backend, "error": graph_err},
+            "ai":    {"ok": ai_ok, "provider": self._cfg.ai.provider,
+                      "model": self._cfg.ai.model, "error": ai_err},
+            "index": self.index_status,
+        }
