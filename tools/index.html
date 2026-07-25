@@ -807,6 +807,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#prompt-optimizer-jsat-prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prompt Optimizer (jsat prompt)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1081,6 +1092,17 @@
     <span class="md-ellipsis">
       
         Tool 14 — IThinking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prompt-optimizer-jsat-prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prompt Optimizer (jsat prompt)
       
     </span>
   </a>
@@ -1550,6 +1572,91 @@
 <a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="w">  </span><span class="nt">assumption_audit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
 <p>Set <code>mode: silent</code> in CI to skip interactive prompts. Set <code>mode: report-only</code> to always show the plan but never pause.</p>
+<hr />
+<h2 id="prompt-optimizer-jsat-prompt">Prompt Optimizer (<code>jsat prompt</code>)<a class="headerlink" href="#prompt-optimizer-jsat-prompt" title="Permanent link">&para;</a></h2>
+<p>A 7-stage pipeline that converts any raw query into the best possible prompt for the configured AI model, then optionally sends it. Auto-optimization is enabled by default in the JSAT shell — every message you type passes through the pipeline before being sent to the AI.</p>
+<p><strong>Pipeline stages:</strong>
+1. Task classification — labels the query as one of: <code>code_gen</code>, <code>refactor</code>, <code>review</code>, <code>debug</code>, <code>question</code>, <code>plan</code>, <code>test</code>, <code>security</code>
+2. Context injection — BFS over the codebase graph (70/30 recency split) to pull relevant nodes
+3. Constraint injection — pulls ADRs and coding standards from the knowledge base
+4. Few-shot example selection — kNN over prompt history to find the most relevant past examples
+5. Output format specification — selects the right format: code only, JSON findings, prose, or numbered steps
+6. Model-specific formatting — XML wrapping for Claude, Markdown for GPT, plain text for Ollama
+7. Token compression — progressively shortens examples → removes blocks → strips docstrings to fit within the token budget</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span><span class="w">              </span><span class="c1"># inspect optimized prompt</span>
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span><span class="w">       </span><span class="c1"># optimize and send</span>
+<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--diff<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span><span class="w">       </span><span class="c1"># show raw vs optimized side by side</span>
+<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--format<span class="w"> </span>code<span class="w"> </span>--ai<span class="w"> </span>claude<span class="w"> </span><span class="s2">&quot;write a test for refund()&quot;</span>
+<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--cot<span class="w"> </span>--verbose<span class="w"> </span><span class="s2">&quot;debug the 500 on checkout&quot;</span>
+<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--dry-run<span class="w"> </span>--no-context<span class="w"> </span><span class="s2">&quot;what does the payment service do?&quot;</span>
+</code></pre></div>
+<p><strong>Shell usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>jsat&gt; improve the retry logic
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>✦ Optimized refactor | 6→847 tokens (35% saved) | 3 ctx nodes | opt show to see diff
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>opt on        # enable auto-optimization (default)
+<a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a>opt off       # disable for the current session
+<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>opt show      # show raw input vs full optimized prompt for the last message
+<a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a>opt history   # browse past optimization diffs
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>
+<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>
+<a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a><span class="c1"># Return the optimized prompt string without sending</span>
+<a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a><span class="n">optimized</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">&quot;improve the retry logic&quot;</span><span class="p">)</span>
+<a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">optimized</span><span class="p">)</span>
+<a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a>
+<a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a><span class="c1"># Optimize and send to the configured AI; returns a QueryResult</span>
+<a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt_and_send</span><span class="p">(</span><span class="s2">&quot;improve the retry logic&quot;</span><span class="p">)</span>
+<a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+<a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a>
+<a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a><span class="c1"># With options</span>
+<a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt_and_send</span><span class="p">(</span>
+<a id="__codelineno-39-15" name="__codelineno-39-15" href="#__codelineno-39-15"></a>    <span class="s2">&quot;write a test for refund()&quot;</span><span class="p">,</span>
+<a id="__codelineno-39-16" name="__codelineno-39-16" href="#__codelineno-39-16"></a>    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;code&quot;</span><span class="p">,</span>
+<a id="__codelineno-39-17" name="__codelineno-39-17" href="#__codelineno-39-17"></a>    <span class="n">ai</span><span class="o">=</span><span class="s2">&quot;claude&quot;</span><span class="p">,</span>
+<a id="__codelineno-39-18" name="__codelineno-39-18" href="#__codelineno-39-18"></a>    <span class="n">cot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-39-19" name="__codelineno-39-19" href="#__codelineno-39-19"></a>    <span class="n">no_context</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-39-20" name="__codelineno-39-20" href="#__codelineno-39-20"></a><span class="p">)</span>
+</code></pre></div>
+<p><strong>MCP tools:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>jsat__prompt_optimize</code></td>
+<td>Return the optimized prompt for a query without sending it</td>
+</tr>
+<tr>
+<td><code>jsat__prompt_diff</code></td>
+<td>Return raw input and optimized prompt as a structured diff</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Configuration</strong> (<code>.jsat/config.yaml</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="nt">prompt</span><span class="p">:</span>
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">                    </span><span class="c1"># auto-optimize all shell messages</span>
+<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span><span class="w">                       </span><span class="c1"># auto | always | never</span>
+<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="w">  </span><span class="nt">max_context_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8192</span>
+<a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="w">  </span><span class="nt">few_shot_k</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w">                    </span><span class="c1"># examples to inject per query</span>
+<a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a><span class="w">  </span><span class="nt">compress_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6000</span><span class="w">         </span><span class="c1"># enable compression above this token count</span>
+<a id="__codelineno-40-7" name="__codelineno-40-7" href="#__codelineno-40-7"></a><span class="w">  </span><span class="nt">context_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">                 </span><span class="c1"># BFS depth for graph context injection</span>
+<a id="__codelineno-40-8" name="__codelineno-40-8" href="#__codelineno-40-8"></a><span class="w">  </span><span class="nt">cot_tasks</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">debug</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">plan</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">security</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-40-9" name="__codelineno-40-9" href="#__codelineno-40-9"></a><span class="w">  </span><span class="nt">history_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.jsat/prompt-history.jsonl</span>
+<a id="__codelineno-40-10" name="__codelineno-40-10" href="#__codelineno-40-10"></a><span class="w">  </span><span class="nt">history_max_entries</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span>
+</code></pre></div>
+<p><strong>Claude Code slash command:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>/jsat-prompt-diff &lt;query&gt;
+</code></pre></div>
+<p>Shows the raw input and the full optimized prompt side by side in Claude Code.</p>
 
 
 

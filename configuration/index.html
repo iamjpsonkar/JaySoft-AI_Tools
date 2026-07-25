@@ -891,6 +891,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prompt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1184,6 +1195,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prompt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1374,16 +1396,28 @@
 <a id="__codelineno-1-108" name="__codelineno-1-108" href="#__codelineno-1-108"></a><span class="w">  </span><span class="nt">parallel_timeout_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">90</span><span class="w">   </span><span class="c1"># wall-clock deadline per model; exceeded models are skipped</span>
 <a id="__codelineno-1-109" name="__codelineno-1-109" href="#__codelineno-1-109"></a><span class="w">  </span><span class="nt">min_confidence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span><span class="w">          </span><span class="c1"># &quot;low&quot; | &quot;medium&quot; | &quot;high&quot;</span>
 <a id="__codelineno-1-110" name="__codelineno-1-110" href="#__codelineno-1-110"></a>
-<a id="__codelineno-1-111" name="__codelineno-1-111" href="#__codelineno-1-111"></a><span class="c1"># ── Security ───────────────────────────────────────────────────────────────────</span>
-<a id="__codelineno-1-112" name="__codelineno-1-112" href="#__codelineno-1-112"></a><span class="nt">security</span><span class="p">:</span>
-<a id="__codelineno-1-113" name="__codelineno-1-113" href="#__codelineno-1-113"></a><span class="w">  </span><span class="nt">cvss_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span><span class="w">          </span><span class="c1"># &quot;low&quot; | &quot;medium&quot; | &quot;high&quot; | &quot;critical&quot;</span>
-<a id="__codelineno-1-114" name="__codelineno-1-114" href="#__codelineno-1-114"></a><span class="w">  </span><span class="nt">secret_entropy_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3.5</span><span class="w">   </span><span class="c1"># Shannon entropy threshold for secret detection</span>
-<a id="__codelineno-1-115" name="__codelineno-1-115" href="#__codelineno-1-115"></a>
-<a id="__codelineno-1-116" name="__codelineno-1-116" href="#__codelineno-1-116"></a><span class="c1"># ── Privacy ────────────────────────────────────────────────────────────────────</span>
-<a id="__codelineno-1-117" name="__codelineno-1-117" href="#__codelineno-1-117"></a><span class="nt">privacy</span><span class="p">:</span>
-<a id="__codelineno-1-118" name="__codelineno-1-118" href="#__codelineno-1-118"></a><span class="w">  </span><span class="nt">hash_pii</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                 </span><span class="c1"># hash PII values before storing in the graph</span>
-<a id="__codelineno-1-119" name="__codelineno-1-119" href="#__codelineno-1-119"></a><span class="w">  </span><span class="nt">audit_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                </span><span class="c1"># write an audit log of all JSAT operations</span>
-<a id="__codelineno-1-120" name="__codelineno-1-120" href="#__codelineno-1-120"></a><span class="w">  </span><span class="nt">audit_log_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.jsat/audit.log</span>
+<a id="__codelineno-1-111" name="__codelineno-1-111" href="#__codelineno-1-111"></a><span class="c1"># ── Prompt Optimizer ───────────────────────────────────────────────────────────</span>
+<a id="__codelineno-1-112" name="__codelineno-1-112" href="#__codelineno-1-112"></a><span class="nt">prompt</span><span class="p">:</span>
+<a id="__codelineno-1-113" name="__codelineno-1-113" href="#__codelineno-1-113"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">                    </span><span class="c1"># auto-optimize all shell messages</span>
+<a id="__codelineno-1-114" name="__codelineno-1-114" href="#__codelineno-1-114"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span><span class="w">                       </span><span class="c1"># &quot;auto&quot; | &quot;always&quot; | &quot;never&quot;</span>
+<a id="__codelineno-1-115" name="__codelineno-1-115" href="#__codelineno-1-115"></a><span class="w">  </span><span class="nt">max_context_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8192</span><span class="w">         </span><span class="c1"># max tokens allocated to injected graph context</span>
+<a id="__codelineno-1-116" name="__codelineno-1-116" href="#__codelineno-1-116"></a><span class="w">  </span><span class="nt">few_shot_k</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w">                    </span><span class="c1"># number of few-shot examples to inject</span>
+<a id="__codelineno-1-117" name="__codelineno-1-117" href="#__codelineno-1-117"></a><span class="w">  </span><span class="nt">compress_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6000</span><span class="w">         </span><span class="c1"># enable token compression above this count</span>
+<a id="__codelineno-1-118" name="__codelineno-1-118" href="#__codelineno-1-118"></a><span class="w">  </span><span class="nt">context_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">                 </span><span class="c1"># BFS depth for graph context injection</span>
+<a id="__codelineno-1-119" name="__codelineno-1-119" href="#__codelineno-1-119"></a><span class="w">  </span><span class="nt">cot_tasks</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">debug</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">plan</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">security</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># task types that get chain-of-thought appended</span>
+<a id="__codelineno-1-120" name="__codelineno-1-120" href="#__codelineno-1-120"></a><span class="w">  </span><span class="nt">history_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.jsat/prompt-history.jsonl</span>
+<a id="__codelineno-1-121" name="__codelineno-1-121" href="#__codelineno-1-121"></a><span class="w">  </span><span class="nt">history_max_entries</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span>
+<a id="__codelineno-1-122" name="__codelineno-1-122" href="#__codelineno-1-122"></a>
+<a id="__codelineno-1-123" name="__codelineno-1-123" href="#__codelineno-1-123"></a><span class="c1"># ── Security ───────────────────────────────────────────────────────────────────</span>
+<a id="__codelineno-1-124" name="__codelineno-1-124" href="#__codelineno-1-124"></a><span class="nt">security</span><span class="p">:</span>
+<a id="__codelineno-1-125" name="__codelineno-1-125" href="#__codelineno-1-125"></a><span class="w">  </span><span class="nt">cvss_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span><span class="w">          </span><span class="c1"># &quot;low&quot; | &quot;medium&quot; | &quot;high&quot; | &quot;critical&quot;</span>
+<a id="__codelineno-1-126" name="__codelineno-1-126" href="#__codelineno-1-126"></a><span class="w">  </span><span class="nt">secret_entropy_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3.5</span><span class="w">   </span><span class="c1"># Shannon entropy threshold for secret detection</span>
+<a id="__codelineno-1-127" name="__codelineno-1-127" href="#__codelineno-1-127"></a>
+<a id="__codelineno-1-128" name="__codelineno-1-128" href="#__codelineno-1-128"></a><span class="c1"># ── Privacy ────────────────────────────────────────────────────────────────────</span>
+<a id="__codelineno-1-129" name="__codelineno-1-129" href="#__codelineno-1-129"></a><span class="nt">privacy</span><span class="p">:</span>
+<a id="__codelineno-1-130" name="__codelineno-1-130" href="#__codelineno-1-130"></a><span class="w">  </span><span class="nt">hash_pii</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                 </span><span class="c1"># hash PII values before storing in the graph</span>
+<a id="__codelineno-1-131" name="__codelineno-1-131" href="#__codelineno-1-131"></a><span class="w">  </span><span class="nt">audit_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                </span><span class="c1"># write an audit log of all JSAT operations</span>
+<a id="__codelineno-1-132" name="__codelineno-1-132" href="#__codelineno-1-132"></a><span class="w">  </span><span class="nt">audit_log_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.jsat/audit.log</span>
 </code></pre></div>
 <hr />
 <h2 id="profiles">Profiles<a class="headerlink" href="#profiles" title="Permanent link">&para;</a></h2>
@@ -1605,6 +1639,24 @@
 <li><code>high</code> — confirmed by all configured models</li>
 </ul>
 <p>Do not put API keys in the <code>models</code> list. Keys are read from environment variables as usual (<code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>, etc.).</p>
+<hr />
+<h3 id="prompt"><code>prompt</code><a class="headerlink" href="#prompt" title="Permanent link">&para;</a></h3>
+<p>Controls the 7-stage prompt optimization pipeline. Auto-optimization rewrites every shell message before sending it to the AI — injecting codebase context, constraints, few-shot examples, and model-specific formatting.</p>
+<ul>
+<li><code>enabled: true</code> — turn auto-optimization on or off globally. When <code>false</code>, messages are sent as typed.</li>
+<li><code>mode</code> — when optimization runs:</li>
+<li><code>auto</code> — optimize only when the raw prompt is below <code>max_context_tokens</code> and the task classifier assigns a non-trivial label</li>
+<li><code>always</code> — optimize every message unconditionally</li>
+<li><code>never</code> — disable the pipeline (equivalent to <code>enabled: false</code>)</li>
+<li><code>max_context_tokens</code> — maximum tokens that can be consumed by injected graph context (stage 2). Larger values inject more codebase context but increase LLM cost.</li>
+<li><code>few_shot_k</code> — number of past prompt/response pairs to inject as few-shot examples (stage 4). Set to <code>0</code> to disable few-shot injection.</li>
+<li><code>compress_threshold</code> — if the assembled prompt exceeds this token count, stage 7 (token compression) activates. Lower values compress more aggressively; higher values leave prompts unchanged unless they are very large.</li>
+<li><code>context_depth</code> — BFS depth used when traversing the codebase graph for context injection. Depth 1 includes only direct neighbors; depth 2 includes neighbors-of-neighbors. Higher values surface more context but increase token usage.</li>
+<li><code>cot_tasks</code> — list of task types that automatically get chain-of-thought appended. Recognized values: <code>debug</code>, <code>plan</code>, <code>security</code>, <code>review</code>, <code>refactor</code>, <code>code_gen</code>, <code>test</code>, <code>question</code>.</li>
+<li><code>history_path</code> — JSONL file where every prompt/response pair is appended for future few-shot retrieval.</li>
+<li><code>history_max_entries</code> — maximum entries kept in the history file. Older entries are evicted when this limit is reached.</li>
+</ul>
+<p>Set <code>enabled: false</code> or <code>mode: never</code> in the <code>ci</code> profile to skip optimization in pipelines where deterministic, unmodified prompts are required.</p>
 <hr />
 <h3 id="security"><code>security</code><a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
 <p>Controls thresholds for the SecurityReview tool.</p>
