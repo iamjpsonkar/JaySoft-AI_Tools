@@ -44,6 +44,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    # If this job fails with "branch not allowed", go to:
+    # Settings → Environments → github-pages → Deployment branches → add "main"
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
