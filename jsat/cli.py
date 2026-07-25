@@ -111,6 +111,7 @@ def cmd_disconnect(
         removed_any |= _remove_from_standard(
             "Windsurf", Path.home() / ".codeium" / "windsurf" / "mcp_config.json"
         )
+        _remove_jsat_block(Path.cwd() / ".windsurfrules")
 
     # ── continue ──────────────────────────────────────────────────────────────
     if tool_lower in ("continue", "all"):
@@ -142,6 +143,7 @@ def cmd_disconnect(
         removed_any |= _remove_from_standard(
             "Gemini CLI", Path.home() / ".gemini" / "settings.json"
         )
+        _remove_jsat_block(Path.cwd() / "GEMINI.md")
 
     if tool_lower not in ("claude", "codex", "cursor", "windsurf",
                           "continue", "zed", "gemini", "all"):
@@ -1389,15 +1391,77 @@ def cmd_connect_cursor(
     )
 
 
+def _jsat_instructions_block() -> str:
+    """Return the standard JSAT tool-guidance block for AI instruction files."""
+    return """\
+## JSAT — Codebase Intelligence Tools
+
+JSAT is connected as an MCP server. The following tools are available for you to call automatically:
+
+### Graph exploration
+- `jsat__query` — answer any codebase question using the indexed graph
+- `jsat__get_function` — look up a function by name (returns params, return type, complexity)
+- `jsat__get_class` — look up a class (bases, method count, file)
+- `jsat__list_services` — list all indexed services
+- `jsat__list_endpoints` — list all API endpoints
+- `jsat__trace_call_chain` — trace a call chain from a symbol
+- `jsat__get_index_status` — graph node/edge counts
+
+### Impact & safety
+- `jsat__blast_radius` — trace downstream impact of a change (breaking/degraded/warning/safe)
+- `jsat__security_review` — OWASP scan with severity grouping
+- `jsat__validate_migration` — DB migration lock type + zero-downtime advice
+- `jsat__get_api_diff` — API contract breaking-change detection
+
+### Code quality
+- `jsat__submit_for_review` — multi-model parallel code review
+- `jsat__get_test_gaps` — find untested code paths
+- `jsat__generate_unit_test` — generate a unit test for a function
+
+### Knowledge & investigation
+- `jsat__knowledge_query` — search the knowledge base (ADRs, runbooks)
+- `jsat__investigate_incident` — root-cause hypotheses ranked by confidence
+- `jsat__generate_runbook` — incident runbook for a service
+
+### Prompt & token tools
+- `jsat__prompt_optimize` — offline 6-agent prompt pipeline (zero LLM cost)
+- `jsat__prompt_multi_agent` — 3 parallel LLM rewrite agents, picks best
+- `jsat__token_count` — token count estimation
+- `jsat__token_compress` — offline compression (whitespace, dedup, import collapse)
+- `jsat__token_budget` — check budget against a model's context window
+
+### When to use JSAT tools
+- Before answering "what does X do?" → call `jsat__query` or `jsat__get_function`
+- Before editing a file → call `jsat__blast_radius` to understand downstream impact
+- Before writing a test → call `jsat__get_test_gaps` to find untested paths
+- Before a large refactor → call `jsat__ithinking_plan` for structured planning
+- When context is getting long → call `jsat__token_compress` to shrink it
+"""
+
+
+def _write_codex_instructions(scope: str) -> Path:
+    """Write/update .codex/instructions.md with JSAT tool guidance."""
+    if scope == "global":
+        instructions_path = Path.home() / ".codex" / "instructions.md"
+    else:
+        instructions_path = Path.cwd() / ".codex" / "instructions.md"
+    _write_instructions_file(instructions_path)
+    return instructions_path
+
+
 @connect_app.command("codex")
 def cmd_connect_codex(
     repo: str = typer.Option(".", "--repo", "-r"),
     scope: str = typer.Option(
         "project", "--scope", "-s",
-        help="'project' → .codex/config.json  |  'global' → ~/.codex/config.json",
+        help="'project' → .codex/  |  'global' → ~/.codex/",
+    ),
+    no_instructions: bool = typer.Option(
+        False, "--no-instructions",
+        help="Skip writing instructions.md (MCP config only)",
     ),
 ) -> None:
-    """Wire JSAT into OpenAI Codex CLI as an MCP server.
+    """Wire JSAT into OpenAI Codex CLI as an MCP server + instructions.
 
     \b
     Project level (just this repo):
@@ -1406,6 +1470,10 @@ def cmd_connect_codex(
     \b
     Global level (all Codex sessions):
         jsat connect codex --scope global
+
+    Writes two files:
+      .codex/config.json       — MCP server registration
+      .codex/instructions.md   — JSAT tool guidance for the agent
     """
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
@@ -1415,14 +1483,67 @@ def cmd_connect_codex(
         config_path = Path.cwd() / ".codex" / "config.json"
     _connect_mcp_tool("Codex", config_path, binary, repo_path, "Restart Codex")
 
+    if not no_instructions:
+        inst_path = _write_codex_instructions(scope)
+        console.print(f"[green]✓[/] JSAT tool guidance written to [cyan]{inst_path}[/]")
+        console.print("[dim]  Codex reads this file at startup — no restart needed for instructions.[/dim]\n")
+
+
+def _write_instructions_file(file_path: Path) -> None:
+    """Append (or replace) JSAT guidance block in a markdown instruction file."""
+    import re as _re2
+    marker_start = "<!-- jsat-start -->"
+    marker_end = "<!-- jsat-end -->"
+    block = f"{marker_start}\n{_jsat_instructions_block()}{marker_end}\n"
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    existing = file_path.read_text(encoding="utf-8") if file_path.exists() else ""
+    if marker_start in existing:
+        updated = _re2.sub(
+            rf"{_re2.escape(marker_start)}.*?{_re2.escape(marker_end)}\n?",
+            block, existing, flags=_re2.DOTALL,
+        )
+    else:
+        updated = existing.rstrip() + ("\n\n" if existing else "") + block
+    file_path.write_text(updated, encoding="utf-8")
+
+
+def _remove_jsat_block(file_path: Path) -> None:
+    """Remove the <!-- jsat-start --> ... <!-- jsat-end --> block from a file."""
+    import re as _re2
+    if not file_path.exists():
+        return
+    content = file_path.read_text(encoding="utf-8")
+    marker_start = "<!-- jsat-start -->"
+    marker_end = "<!-- jsat-end -->"
+    if marker_start not in content:
+        return
+    updated = _re2.sub(
+        rf"{_re2.escape(marker_start)}.*?{_re2.escape(marker_end)}\n?",
+        "", content, flags=_re2.DOTALL,
+    ).strip()
+    if updated:
+        file_path.write_text(updated + "\n", encoding="utf-8")
+    else:
+        file_path.unlink()  # file was only JSAT content — remove it entirely
+
+
+def _print_instructions_written(path: Path, tool: str, note: str = "") -> None:
+    console.print(f"[green]✓[/] JSAT tool guidance written to [cyan]{path}[/]")
+    if note:
+        console.print(f"[dim]  {note}[/dim]\n")
+
 
 @connect_app.command("windsurf")
 def cmd_connect_windsurf(
     repo: str = typer.Option(".", "--repo", "-r"),
+    no_instructions: bool = typer.Option(False, "--no-instructions",
+                                          help="Skip writing .windsurfrules"),
 ) -> None:
-    """Wire JSAT into Windsurf (Codeium) as an MCP server.
+    """Wire JSAT into Windsurf as an MCP server + .windsurfrules guidance.
 
-    Writes to ~/.codeium/windsurf/mcp_config.json
+    Writes:
+      ~/.codeium/windsurf/mcp_config.json  — MCP server registration
+      .windsurfrules                         — JSAT tool guidance (project root)
     """
     _connect_mcp_tool(
         "Windsurf",
@@ -1430,15 +1551,23 @@ def cmd_connect_windsurf(
         _jsat_binary(), str(Path(repo).resolve()),
         "Restart Windsurf",
     )
+    if not no_instructions:
+        rules_path = Path(repo).resolve() / ".windsurfrules"
+        _write_instructions_file(rules_path)
+        _print_instructions_written(rules_path, "Windsurf",
+                                    "Windsurf reads .windsurfrules from the project root automatically.")
 
 
 @connect_app.command("continue")
 def cmd_connect_continue(
     repo: str = typer.Option(".", "--repo", "-r"),
+    no_instructions: bool = typer.Option(False, "--no-instructions",
+                                          help="Skip adding JSAT custom commands"),
 ) -> None:
-    """Wire JSAT into Continue.dev as an MCP server.
+    """Wire JSAT into Continue.dev as an MCP server + custom commands.
 
-    Writes to ~/.continue/config.json (Continue v0.9+ mcpServers format).
+    Writes to:
+      ~/.continue/config.json  — MCP server + customCommands entries
     """
     import json as _json
     binary = _jsat_binary()
@@ -1446,14 +1575,13 @@ def cmd_connect_continue(
     config_path = Path.home() / ".continue" / "config.json"
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Continue uses an array of mcpServers entries
     try:
         cfg = _json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
     except Exception:
         cfg = {}
 
+    # MCP server registration
     servers: list = cfg.get("mcpServers", [])
-    # Remove any existing jsat entry then re-add
     servers = [s for s in servers if s.get("name") != "jsat"]
     servers.append({
         "name": "jsat",
@@ -1462,19 +1590,54 @@ def cmd_connect_continue(
         "type": "stdio",
     })
     cfg["mcpServers"] = servers
+
+    # Custom slash commands (Continue's equivalent of skills)
+    if not no_instructions:
+        existing_cmds: list = cfg.get("customCommands", [])
+        existing_cmds = [c for c in existing_cmds if not c.get("name", "").startswith("jsat-")]
+        jsat_commands = [
+            {"name": "jsat-query", "description": "Answer a question about the codebase",
+             "prompt": "Use the jsat__query MCP tool with question=\"{input}\""},
+            {"name": "jsat-blast-radius", "description": "Trace impact of a change",
+             "prompt": "Use jsat__blast_radius with target=\"{input}\""},
+            {"name": "jsat-security", "description": "Run a security scan",
+             "prompt": "Use jsat__security_review with path=\"{input}\" or \".\""},
+            {"name": "jsat-review", "description": "Multi-model code review",
+             "prompt": "Use jsat__submit_for_review with diff=\"{input}\""},
+            {"name": "jsat-test-gaps", "description": "Find untested code paths",
+             "prompt": "Use jsat__get_test_gaps with path=\"{input}\" or \".\""},
+            {"name": "jsat-knowledge", "description": "Search the knowledge base",
+             "prompt": "Use jsat__knowledge_query with query=\"{input}\""},
+            {"name": "jsat-incident", "description": "Investigate a production incident",
+             "prompt": "Use jsat__investigate_incident with description=\"{input}\""},
+            {"name": "jsat-prompt-rewrite", "description": "Rewrite a prompt with LLM agents",
+             "prompt": "Use jsat__prompt_multi_agent with query=\"{input}\" and n_agents=3"},
+            {"name": "jsat-tokens", "description": "Count and compress tokens",
+             "prompt": "Use jsat__token_count then jsat__token_compress with text=\"{input}\""},
+            {"name": "jsat-ithinking", "description": "Plan before acting",
+             "prompt": "Use jsat__ithinking_plan with task=\"{input}\""},
+        ]
+        cfg["customCommands"] = existing_cmds + jsat_commands
+
     config_path.write_text(_json.dumps(cfg, indent=2), encoding="utf-8")
 
     console.print(f"\n[green]✓[/] Added JSAT to Continue config: [cyan]{config_path}[/]")
+    if not no_instructions:
+        console.print(f"[green]✓[/] Added 10 [cyan]/jsat-*[/] custom commands to Continue")
     console.print("[bold yellow]→ Reload Continue[/] (Cmd/Ctrl+Shift+P → 'Continue: Reload') to activate.\n")
 
 
 @connect_app.command("zed")
 def cmd_connect_zed(
     repo: str = typer.Option(".", "--repo", "-r"),
+    no_instructions: bool = typer.Option(False, "--no-instructions",
+                                          help="Skip writing .zed/settings.json instructions"),
 ) -> None:
-    """Wire JSAT into Zed editor as a context server.
+    """Wire JSAT into Zed editor as a context server + project instructions.
 
-    Writes to ~/.config/zed/settings.json (Zed context_servers format).
+    Writes:
+      ~/.config/zed/settings.json  — context_servers registration
+      .zed/settings.json            — project-level JSAT system prompt (optional)
     """
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
@@ -1485,10 +1648,7 @@ def cmd_connect_zed(
     settings.setdefault("context_servers", {})
     already = "jsat" in settings["context_servers"]
     settings["context_servers"]["jsat"] = {
-        "command": {
-            "path": binary,
-            "args": ["mcp-server", "--repo", repo_path],
-        }
+        "command": {"path": binary, "args": ["mcp-server", "--repo", repo_path]}
     }
     _write_json(config_path, settings)
 
@@ -1496,14 +1656,36 @@ def cmd_connect_zed(
     console.print(f"\n[green]✓[/] {action} JSAT in Zed config: [cyan]{config_path}[/]")
     console.print("[bold yellow]→ Restart Zed[/] to activate JSAT context server.\n")
 
+    if not no_instructions:
+        # Write project-level system prompt for Zed
+        zed_proj = Path(repo).resolve() / ".zed" / "settings.json"
+        zed_proj.parent.mkdir(parents=True, exist_ok=True)
+        proj_settings = _read_json(zed_proj)
+        proj_settings["assistant"] = proj_settings.get("assistant", {})
+        proj_settings["assistant"]["default_model"] = proj_settings["assistant"].get(
+            "default_model", {"provider": "anthropic", "model": "claude-sonnet-4-6"})
+        # Write a system_prompt file that Zed will pick up
+        system_md = Path(repo).resolve() / ".zed" / "JSAT.md"
+        system_md.write_text(
+            "# JSAT Codebase Intelligence\n\n" + _jsat_instructions_block(),
+            encoding="utf-8"
+        )
+        _write_json(zed_proj, proj_settings)
+        _print_instructions_written(system_md, "Zed",
+                                    "Place this file in .zed/ — Zed picks it up as project context.")
+
 
 @connect_app.command("gemini")
 def cmd_connect_gemini(
     repo: str = typer.Option(".", "--repo", "-r"),
+    no_instructions: bool = typer.Option(False, "--no-instructions",
+                                          help="Skip writing GEMINI.md"),
 ) -> None:
-    """Wire JSAT into Google Gemini CLI as an MCP server.
+    """Wire JSAT into Google Gemini CLI as an MCP server + GEMINI.md guidance.
 
-    Writes to ~/.gemini/settings.json
+    Writes:
+      ~/.gemini/settings.json  — MCP server registration
+      GEMINI.md                — JSAT tool guidance (project root, auto-read by Gemini CLI)
     """
     _connect_mcp_tool(
         "Gemini CLI",
@@ -1511,6 +1693,11 @@ def cmd_connect_gemini(
         _jsat_binary(), str(Path(repo).resolve()),
         "Restart Gemini CLI",
     )
+    if not no_instructions:
+        gemini_md = Path(repo).resolve() / "GEMINI.md"
+        _write_instructions_file(gemini_md)
+        _print_instructions_written(gemini_md, "Gemini CLI",
+                                    "Gemini CLI reads GEMINI.md from the project root automatically.")
 
 
 # ── All known JSAT config locations ───────────────────────────────────────────
