@@ -58,7 +58,7 @@ class MCPServer:
             return {"jsonrpc": "2.0", "id": id_, "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "jsat", "version": "0.1.1"},
+                "serverInfo": {"name": "jsat", "version": "0.1.2"},
             }}
 
         if method == "tools/list":
@@ -127,7 +127,7 @@ class MCPServer:
                 "description": "Return JSAT version, AI provider, and graph backend.",
                 "schema": {"type": "object", "properties": {}},
                 "handler": lambda a: _ser({
-                    "version": "0.1.1",
+                    "version": "0.1.2",
                     "ai_provider": js._cfg.ai.provider,
                     "model": js._cfg.ai.model,
                     "graph_backend": js._cfg.graph.backend,
