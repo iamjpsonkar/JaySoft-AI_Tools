@@ -252,6 +252,49 @@ def cmd_skills_run(
         raise typer.Exit(1) from e
 
 
+# ── mcp-server ───────────────────────────────────────────────────────────────
+
+@app.command("mcp-server")
+def cmd_mcp_server(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root to serve"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging"),
+) -> None:
+    """Start the JSAT MCP server (stdin/stdout JSON-RPC 2.0).
+
+    Connect Claude Code or any MCP client by adding to settings.json:
+
+    \b
+    {
+      "mcpServers": {
+        "jsat": {
+          "command": "jsat",
+          "args": ["mcp-server", "--repo", "/path/to/your/project"]
+        }
+      }
+    }
+    """
+    import sys
+    js = _jsat(repo=repo, verbose=verbose)
+
+    # Build the index if not already done (silent)
+    status = js.index_status
+    if status.get("nodes", 0) == 0:
+        try:
+            js.index(path=repo)
+        except Exception:
+            pass  # MCP server starts even if indexing fails
+
+    from jsat.mcp.server import MCPServer
+    server = MCPServer(js)
+    # Print capabilities to stderr so Claude Code knows we started
+    print(
+        '{"jsonrpc":"2.0","id":0,"result":{"protocolVersion":"2024-11-05",'
+        '"capabilities":{"tools":{}},"serverInfo":{"name":"jsat","version":"0.1.0"}}}',
+        file=sys.stderr,
+    )
+    server.run()
+
+
 # ── entry point ───────────────────────────────────────────────────────────────
 
 def main() -> None:

@@ -34,7 +34,8 @@ class MCPServer:
             try:
                 msg = json.loads(line)
                 response = self._handle(msg)
-                print(json.dumps(response), flush=True)
+                if response is not None:
+                    print(json.dumps(response), flush=True)
                 self._log.debug("mcp_handled", method=msg.get("method"))
             except json.JSONDecodeError as e:
                 err = {"jsonrpc": "2.0", "id": None,
@@ -46,9 +47,13 @@ class MCPServer:
                        "error": {"code": -32603, "message": str(e)}}
                 print(json.dumps(err), flush=True)
 
-    def _handle(self, msg: dict) -> dict:
+    def _handle(self, msg: dict) -> dict | None:
         method = msg.get("method", "")
-        id_ = msg.get("id", 1)
+        id_ = msg.get("id", None)
+
+        # Notifications (no id) — acknowledge but return nothing
+        if method == "notifications/initialized":
+            return None
 
         if method == "initialize":
             return {"jsonrpc": "2.0", "id": id_, "result": {
@@ -65,7 +70,7 @@ class MCPServer:
             params = msg.get("params", {})
             name = params.get("name", "")
             args = params.get("arguments", {})
-            self._log.info("mcp_tool_call", name=name, args_keys=list(args.keys()))
+            self._log.info("mcp_tool_call", name=name)
             try:
                 result = self._call(name, args)
                 text = result if isinstance(result, str) else json.dumps(result, default=str)
@@ -75,6 +80,10 @@ class MCPServer:
                 self._log.error("mcp_tool_error", name=name, error=str(e))
                 return {"jsonrpc": "2.0", "id": id_,
                         "error": {"code": -32603, "message": str(e)}}
+
+        if id_ is None:
+            # Unknown notification — ignore silently
+            return None
 
         return {"jsonrpc": "2.0", "id": id_,
                 "error": {"code": -32601, "message": f"Method not found: {method}"}}
@@ -91,53 +100,95 @@ class MCPServer:
 
     def _build_registry(self) -> dict:
         js = self._jsat
+
+        def _ser(obj: object) -> str:
+            if isinstance(obj, str): return obj
+            try:
+                return json.dumps(
+                    obj.__dict__ if hasattr(obj, "__dict__") else obj,
+                    default=str, indent=2
+                )
+            except Exception:
+                return str(obj)
+
         return {
             "index_repo": {
-                "description": "Build or refresh the codebase index.",
+                "description": "Build or refresh the codebase index for the repo.",
                 "schema": {"type": "object", "properties": {
-                    "path": {"type": "string"}, "force": {"type": "boolean"}}},
-                "handler": lambda a: vars(js.index(path=a.get("path"), force=a.get("force", False))),
-            },
-            "blast_radius_file": {
-                "description": "Compute blast radius for a file.",
-                "schema": {"type": "object", "required": ["file"],
-                           "properties": {"file": {"type": "string"}, "max_depth": {"type": "integer"}}},
-                "handler": lambda a: vars(js.blast_radius(target=a["file"],
-                                                            max_depth=a.get("max_depth", 5))),
-            },
-            "query": {
-                "description": "Natural language query over the codebase.",
-                "schema": {"type": "object", "required": ["question"],
-                           "properties": {"question": {"type": "string"}}},
-                "handler": lambda a: js.query(a["question"]).answer,
-            },
-            "investigate_incident": {
-                "description": "Investigate a production incident.",
-                "schema": {"type": "object", "required": ["description"],
-                           "properties": {"description": {"type": "string"},
-                                          "since": {"type": "string"}}},
-                "handler": lambda a: vars(js.investigate_incident(
-                    a["description"], since=a.get("since", "72h"))),
+                    "path": {"type": "string"},
+                    "force": {"type": "boolean"}}},
+                "handler": lambda a: _ser(js.index(path=a.get("path"), force=a.get("force", False))),
             },
             "get_index_status": {
-                "description": "Return index node/edge counts.",
+                "description": "Return graph index statistics (node/edge counts, freshness).",
                 "schema": {"type": "object", "properties": {}},
-                "handler": lambda a: js.index_status,
-            },
-            "export_index": {
-                "description": "Export current index to .jsat.zip.",
-                "schema": {"type": "object", "required": ["output"],
-                           "properties": {"output": {"type": "string"}}},
-                "handler": lambda a: vars(js.export(a["output"])),
+                "handler": lambda a: _ser(js.index_status),
             },
             "get_jsat_version": {
-                "description": "Return JSAT version and provider info.",
+                "description": "Return JSAT version, AI provider, and graph backend.",
                 "schema": {"type": "object", "properties": {}},
-                "handler": lambda a: {
+                "handler": lambda a: _ser({
                     "version": "0.1.0",
                     "ai_provider": js._cfg.ai.provider,
                     "model": js._cfg.ai.model,
                     "graph_backend": js._cfg.graph.backend,
-                },
+                }),
+            },
+            "query": {
+                "description": (
+                    "Answer a natural language question about the codebase using the graph index. "
+                    "Examples: 'what does this project do?', "
+                    "'which services write to the orders table?', 'where is the refund logic?'"
+                ),
+                "schema": {"type": "object", "required": ["question"],
+                           "properties": {
+                               "question": {"type": "string"},
+                               "service": {"type": "string", "description": "Scope to a service"}}},
+                "handler": lambda a: js.query(a["question"], service=a.get("service")).answer,
+            },
+            "blast_radius": {
+                "description": (
+                    "Trace every downstream component affected by a change to a file or symbol. "
+                    "Returns a severity-ranked list: breaking / degraded / warning / safe."
+                ),
+                "schema": {"type": "object", "required": ["target"],
+                           "properties": {
+                               "target": {"type": "string", "description": "File path or symbol name"},
+                               "max_depth": {"type": "integer", "default": 5}}},
+                "handler": lambda a: _ser(js.blast_radius(
+                    target=a["target"], max_depth=a.get("max_depth", 5))),
+            },
+            "security_review": {
+                "description": (
+                    "Run OWASP security analysis and secret detection on a path. "
+                    "Returns findings with severity, file, line, and remediation guidance."
+                ),
+                "schema": {"type": "object", "properties": {
+                    "path": {"type": "string", "description": "Directory or file (default: .)"},
+                    "severity_threshold": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                        "default": "medium"}}},
+                "handler": lambda a: _ser(js.security_review(
+                    path=a.get("path", "."),
+                    severity_threshold=a.get("severity_threshold", "medium"))),
+            },
+            "investigate_incident": {
+                "description": (
+                    "Investigate a production incident. Scores recent git commits "
+                    "as root-cause hypotheses using recency, blast-radius, and pattern matching."
+                ),
+                "schema": {"type": "object", "required": ["description"],
+                           "properties": {
+                               "description": {"type": "string", "description": "Error message or symptom"},
+                               "since": {"type": "string", "default": "72h"}}},
+                "handler": lambda a: _ser(js.investigate_incident(
+                    a["description"], since=a.get("since", "72h"))),
+            },
+            "export_index": {
+                "description": "Export the current index as a portable .jsat.zip archive.",
+                "schema": {"type": "object", "required": ["output"],
+                           "properties": {"output": {"type": "string"}}},
+                "handler": lambda a: _ser(js.export(a["output"])),
             },
         }
