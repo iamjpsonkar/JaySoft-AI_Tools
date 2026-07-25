@@ -373,7 +373,78 @@ The generated workflow runs `jsat index` and `jsat doctor --json` on every push 
 
 ---
 
-## 7. Export and Import
+## 7. Prompt Optimizer (`jsat prompt`)
+
+Optimize any query through a 7-stage pipeline before sending it to the AI. Auto-optimization runs on every shell message by default.
+
+### `jsat prompt <query>`
+
+Print the optimized prompt without sending it to the AI. Use this to inspect what would be sent.
+
+```bash
+jsat prompt "improve the retry logic"
+jsat prompt "explain the auth flow"
+```
+
+---
+
+### `jsat prompt --send`
+
+Optimize the query and send it to the configured AI provider.
+
+```bash
+jsat prompt --send "improve the retry logic"
+jsat prompt --send "write a test for refund()"
+```
+
+---
+
+### `jsat prompt --diff`
+
+Show a side-by-side comparison of the raw input and the full optimized prompt (with injected context, constraints, few-shot examples, and model formatting).
+
+```bash
+jsat prompt --diff "improve the retry logic"
+```
+
+---
+
+### Flags
+
+| Flag | Values | Description |
+|------|--------|-------------|
+| `--send` | — | Optimize and send to the AI |
+| `--diff` | — | Show raw input vs optimized prompt side by side |
+| `--format`, `-f` | `code`, `plan`, `json`, `prose` | Override output format for this prompt |
+| `--ai` | `claude`, `gpt`, `ollama` | Override AI provider for this prompt |
+| `--cot` | — | Append chain-of-thought instructions to the prompt |
+| `--verbose` | — | Print a stage-by-stage breakdown of the pipeline |
+| `--dry-run` | — | Inspect the full optimized prompt without sending or printing the AI response |
+| `--no-context` | — | Skip graph context injection (stages 2) |
+| `--no-examples` | — | Skip few-shot example injection (stage 4) |
+
+```bash
+jsat prompt --send --format code --ai claude "write a test for refund()"
+jsat prompt --send --cot --verbose "debug why checkout is returning 500"
+jsat prompt --dry-run --no-context "what does the payment service do?"
+```
+
+---
+
+### Shell commands (`opt`)
+
+Inside the JSAT shell, use the `opt` command to control optimization:
+
+```
+opt on        # enable auto-optimization for all messages (default)
+opt off       # disable for the current session
+opt show      # show raw input vs full optimized prompt for the last message
+opt history   # browse past optimization diffs
+```
+
+---
+
+## 8. Export and Import
 
 ### `jsat export`
 
@@ -414,7 +485,7 @@ jsat import backup.jsat.zip
 
 ---
 
-## 8. Remove Command
+## 9. Remove Command
 
 ### `jsat remove`
 
@@ -449,7 +520,7 @@ jsat remove --keep-config      # preserve config.yaml
 
 ---
 
-## 9. Skills Commands (`jsat skills`)
+## 10. Skills Commands (`jsat skills`)
 
 ### `jsat skills list`
 
@@ -481,7 +552,7 @@ jsat skills run my-skill --args target=src/api.py --args depth=3
 
 ---
 
-## 10. MCP Server (Internal)
+## 11. MCP Server (Internal)
 
 ### `jsat mcp-server`
 

@@ -146,6 +146,7 @@ jsat claude
 | `/jsat-doctor` | Full health check |
 | `/jsat-ithinking <task>` | Run the IThinking structured planning framework for a task |
 | `/jsat-think <task>` | Alias for `/jsat-ithinking` — shorthand for quick invocation |
+| `/jsat-prompt-diff <query>` | Show raw input vs optimized prompt side by side |
 
 ### MCP tools Claude can call automatically
 
@@ -159,12 +160,65 @@ JSAT defines 47 MCP tool slots across 12 categories; 38 are currently wired and 
 - `jsat__validate_migration`, `jsat__suggest_zero_downtime`
 - `jsat__submit_for_review`, `jsat__get_high_confidence_bugs`
 - `jsat__ithinking_plan`, `jsat__ithinking_execute`
+- `jsat__prompt_optimize`, `jsat__prompt_diff`
 
 ### Connect to Cursor
 
 ```bash
 jsat connect cursor        # writes to ~/.cursor/mcp.json
 ```
+
+---
+
+## Prompt Optimizer
+
+JSAT automatically optimizes every query through a 7-stage pipeline before sending it to the AI:
+
+```bash
+# Print the optimized prompt (inspect mode)
+jsat prompt "improve the retry logic"
+
+# Optimize + send to AI
+jsat prompt --send "improve the retry logic"
+
+# See what you typed vs what the AI actually received
+jsat prompt --diff "improve the retry logic"
+
+# Format, CoT, specific AI
+jsat prompt --send --format code --ai claude "write a test for refund()"
+```
+
+**Stages:**
+1. Task classification (code_gen / refactor / review / debug / question / plan / test / security)
+2. Context injection from the JSAT graph (BFS, 70/30 recency split)
+3. Constraint injection from the knowledge base (ADRs, coding standards)
+4. Few-shot example selection (kNN over prompt history)
+5. Output format specification (code only / JSON findings / prose / numbered steps)
+6. Model-specific formatting (XML for Claude, Markdown for GPT, plain for Ollama)
+7. Token compression (example shortening → block removal → docstring stripping)
+
+**In the shell** — every message is auto-optimized:
+```
+jsat [Claude Code (CLI)]> improve the retry logic
+
+✦ Optimized refactor | 6→847 tokens (35% saved) | 3 ctx nodes | opt show to see diff
+
+Claude: Here's the improved retry using tenacity...
+```
+
+**Shell commands:**
+```
+opt on        # enable auto-optimization (default)
+opt off       # disable for the current session
+opt show      # show raw input vs full optimized prompt side by side
+opt history   # browse past optimization diffs
+```
+
+**See before/after:**
+```
+jsat> opt show
+```
+Shows both panels: raw input vs full optimized prompt with injected context, constraints, and model formatting.
 
 ### Disconnect or remove
 
@@ -190,6 +244,11 @@ jsat remove                                   # remove all JSAT artifacts from t
 | `jsat claude` | Open Claude Code with JSAT MCP tools loaded |
 | `jsat gpt` | Open a GPT session with JSAT tools |
 | `jsat ollama [--model llama3.2]` | Open a local Ollama session |
+| `jsat prompt <query>` | Print the optimized prompt (inspect without sending) |
+| `jsat prompt --send <query>` | Optimize prompt and send to the configured AI |
+| `jsat prompt --diff <query>` | Show raw input vs optimized prompt side by side |
+| `jsat prompt --format code\|plan\|json\|prose` | Override output format for this prompt |
+| `jsat prompt --ai claude\|gpt\|ollama` | Override AI provider for this prompt |
 | `jsat doctor` | System health check (graph, AI, services) |
 | `jsat doctor --json` | Health check as raw JSON |
 | `jsat version` | Print JSAT version |

@@ -541,3 +541,96 @@ ithinking:
 ```
 
 Set `mode: silent` in CI to skip interactive prompts. Set `mode: report-only` to always show the plan but never pause.
+
+---
+
+## Prompt Optimizer (`jsat prompt`)
+
+A 7-stage pipeline that converts any raw query into the best possible prompt for the configured AI model, then optionally sends it. Auto-optimization is enabled by default in the JSAT shell — every message you type passes through the pipeline before being sent to the AI.
+
+**Pipeline stages:**
+1. Task classification — labels the query as one of: `code_gen`, `refactor`, `review`, `debug`, `question`, `plan`, `test`, `security`
+2. Context injection — BFS over the codebase graph (70/30 recency split) to pull relevant nodes
+3. Constraint injection — pulls ADRs and coding standards from the knowledge base
+4. Few-shot example selection — kNN over prompt history to find the most relevant past examples
+5. Output format specification — selects the right format: code only, JSON findings, prose, or numbered steps
+6. Model-specific formatting — XML wrapping for Claude, Markdown for GPT, plain text for Ollama
+7. Token compression — progressively shortens examples → removes blocks → strips docstrings to fit within the token budget
+
+**CLI usage:**
+
+```bash
+jsat prompt "improve the retry logic"              # inspect optimized prompt
+jsat prompt --send "improve the retry logic"       # optimize and send
+jsat prompt --diff "improve the retry logic"       # show raw vs optimized side by side
+jsat prompt --send --format code --ai claude "write a test for refund()"
+jsat prompt --send --cot --verbose "debug the 500 on checkout"
+jsat prompt --dry-run --no-context "what does the payment service do?"
+```
+
+**Shell usage:**
+
+```
+jsat> improve the retry logic
+✦ Optimized refactor | 6→847 tokens (35% saved) | 3 ctx nodes | opt show to see diff
+
+opt on        # enable auto-optimization (default)
+opt off       # disable for the current session
+opt show      # show raw input vs full optimized prompt for the last message
+opt history   # browse past optimization diffs
+```
+
+**Python SDK usage:**
+
+```python
+from jsat import JSAT
+
+js = JSAT(repo=".")
+
+# Return the optimized prompt string without sending
+optimized = js.prompt("improve the retry logic")
+print(optimized)
+
+# Optimize and send to the configured AI; returns a QueryResult
+result = js.prompt_and_send("improve the retry logic")
+print(result.answer)
+
+# With options
+result = js.prompt_and_send(
+    "write a test for refund()",
+    format="code",
+    ai="claude",
+    cot=False,
+    no_context=False,
+)
+```
+
+**MCP tools:**
+
+| Tool | Description |
+|------|-------------|
+| `jsat__prompt_optimize` | Return the optimized prompt for a query without sending it |
+| `jsat__prompt_diff` | Return raw input and optimized prompt as a structured diff |
+
+**Configuration** (`.jsat/config.yaml`):
+
+```yaml
+prompt:
+  enabled: true                    # auto-optimize all shell messages
+  mode: auto                       # auto | always | never
+  max_context_tokens: 8192
+  few_shot_k: 3                    # examples to inject per query
+  compress_threshold: 6000         # enable compression above this token count
+  context_depth: 2                 # BFS depth for graph context injection
+  cot_tasks: [debug, plan, security]
+  history_path: .jsat/prompt-history.jsonl
+  history_max_entries: 10000
+```
+
+**Claude Code slash command:**
+
+```
+/jsat-prompt-diff <query>
+```
+
+Shows the raw input and the full optimized prompt side by side in Claude Code.

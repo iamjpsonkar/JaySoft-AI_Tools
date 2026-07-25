@@ -141,6 +141,18 @@ review:
   parallel_timeout_seconds: 90   # wall-clock deadline per model; exceeded models are skipped
   min_confidence: medium          # "low" | "medium" | "high"
 
+# ── Prompt Optimizer ───────────────────────────────────────────────────────────
+prompt:
+  enabled: true                    # auto-optimize all shell messages
+  mode: auto                       # "auto" | "always" | "never"
+  max_context_tokens: 8192         # max tokens allocated to injected graph context
+  few_shot_k: 3                    # number of few-shot examples to inject
+  compress_threshold: 6000         # enable token compression above this count
+  context_depth: 2                 # BFS depth for graph context injection
+  cot_tasks: [debug, plan, security]  # task types that get chain-of-thought appended
+  history_path: .jsat/prompt-history.jsonl
+  history_max_entries: 10000
+
 # ── Security ───────────────────────────────────────────────────────────────────
 security:
   cvss_threshold: medium          # "low" | "medium" | "high" | "critical"
@@ -438,6 +450,27 @@ Controls multi-model parallel code review (Tool 9 — MultiModelReview).
   - `high` — confirmed by all configured models
 
 Do not put API keys in the `models` list. Keys are read from environment variables as usual (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.).
+
+---
+
+### `prompt`
+
+Controls the 7-stage prompt optimization pipeline. Auto-optimization rewrites every shell message before sending it to the AI — injecting codebase context, constraints, few-shot examples, and model-specific formatting.
+
+- `enabled: true` — turn auto-optimization on or off globally. When `false`, messages are sent as typed.
+- `mode` — when optimization runs:
+  - `auto` — optimize only when the raw prompt is below `max_context_tokens` and the task classifier assigns a non-trivial label
+  - `always` — optimize every message unconditionally
+  - `never` — disable the pipeline (equivalent to `enabled: false`)
+- `max_context_tokens` — maximum tokens that can be consumed by injected graph context (stage 2). Larger values inject more codebase context but increase LLM cost.
+- `few_shot_k` — number of past prompt/response pairs to inject as few-shot examples (stage 4). Set to `0` to disable few-shot injection.
+- `compress_threshold` — if the assembled prompt exceeds this token count, stage 7 (token compression) activates. Lower values compress more aggressively; higher values leave prompts unchanged unless they are very large.
+- `context_depth` — BFS depth used when traversing the codebase graph for context injection. Depth 1 includes only direct neighbors; depth 2 includes neighbors-of-neighbors. Higher values surface more context but increase token usage.
+- `cot_tasks` — list of task types that automatically get chain-of-thought appended. Recognized values: `debug`, `plan`, `security`, `review`, `refactor`, `code_gen`, `test`, `question`.
+- `history_path` — JSONL file where every prompt/response pair is appended for future few-shot retrieval.
+- `history_max_entries` — maximum entries kept in the history file. Older entries are evicted when this limit is reached.
+
+Set `enabled: false` or `mode: never` in the `ci` profile to skip optimization in pipelines where deterministic, unmodified prompts are required.
 
 ---
 

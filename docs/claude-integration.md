@@ -11,7 +11,7 @@ Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←�
 When you run `jsat connect claude`, JSAT:
 
 1. Writes an MCP server entry into `.claude/settings.json` (or `~/.claude/settings.json` for global scope)
-2. Installs nine `/jsat-*` slash command skill files in `.claude/commands/`
+2. Installs ten `/jsat-*` slash command skill files in `.claude/commands/`
 
 Claude Code reads these on startup, starts the `jsat mcp-server` process, and makes all JSAT tools available during your session.
 
@@ -63,7 +63,7 @@ jsat connect list
 
 ## Slash Commands
 
-Nine `/jsat-*` slash commands are installed into Claude Code when you run `jsat connect claude`.
+Ten `/jsat-*` slash commands are installed into Claude Code when you run `jsat connect claude`.
 
 ### `/jsat-query`
 
@@ -172,6 +172,42 @@ Shorthand alias for `/jsat-ithinking`. Identical behavior — use whichever is e
 ```
 /jsat-think how should I migrate the orders table without downtime?
 ```
+
+### `/jsat-prompt-diff`
+
+Show the raw input you typed next to the full optimized prompt that was actually sent to the AI — including injected graph context, knowledge-base constraints, few-shot examples, and model-specific formatting.
+
+```
+/jsat-prompt-diff improve the retry logic
+/jsat-prompt-diff what does the checkout service do?
+```
+
+Claude calls `jsat__prompt_diff`. The output is rendered as two labelled panels: **Raw** and **Optimized**. Useful for understanding exactly what context was injected and why the AI responded the way it did.
+
+---
+
+## Prompt Optimizer
+
+Every `jsat__query` call — and every message you type in the JSAT shell — is passed through the 7-stage prompt optimization pipeline before reaching the AI. The pipeline classifies the task, injects codebase context from the graph, pulls constraints from the knowledge base, selects few-shot examples from prompt history, applies output formatting, adds model-specific wrappers (XML for Claude, Markdown for GPT), and compresses to fit within the token budget.
+
+You do not need to do anything to enable this. Auto-optimization is on by default.
+
+To see what was sent to the AI after the last message:
+```
+/jsat-prompt-diff <your query>
+```
+
+To pre-inspect before sending:
+```bash
+jsat prompt --diff "your query"
+```
+
+MCP tools for programmatic use:
+
+| Tool | Description |
+|------|-------------|
+| `jsat__prompt_optimize` | Return the optimized prompt for a query without sending it |
+| `jsat__prompt_diff` | Return raw input and optimized prompt as a structured diff |
 
 ---
 
