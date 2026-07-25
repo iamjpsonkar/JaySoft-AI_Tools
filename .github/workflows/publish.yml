@@ -30,6 +30,9 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        # Uses OIDC trusted publishing — no API token needed in secrets!
-        # Set up at: pypi.org → Your projects → Publishing → Add publisher
-        # Publisher: GitHub Actions, repo: your/repo, workflow: publish.yml
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+        # To set the secret:
+        # 1. pypi.org → Account Settings → API tokens → Add token (Entire account)
+        # 2. GitHub repo → Settings → Secrets and variables → Actions → New secret
+        #    Name: PYPI_API_TOKEN   Value: pypi-AgEI...
