@@ -89,16 +89,13 @@ def cmd_index(
 # ── shell ─────────────────────────────────────────────────────────────────────
 
 @app.command("shell")
-def cmd_shell() -> None:
+def cmd_shell(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+) -> None:
     """Start the interactive JSAT REPL."""
-    console.print(Panel(
-        "[cyan]JSAT Shell v0.1.0[/] — coming in next release\n\n"
-        "For now, use the SDK:\n"
-        "  [bold]from jsat import JSAT[/]\n"
-        "  [bold]js = JSAT(repo='.')  [/]\n"
-        "  [bold]js.index()           [/]",
-        title="JSAT Shell", border_style="cyan"
-    ))
+    from jsat.tools.shell import launch
+    js = _jsat(repo=repo)
+    launch(js)
 
 
 # ── doctor ────────────────────────────────────────────────────────────────────
@@ -213,16 +210,46 @@ def cmd_import(
 @skills_app.command("list")
 def cmd_skills_list() -> None:
     """List installed JSAT skills."""
-    console.print("[yellow]Skills registry not yet implemented.[/] Coming in v0.2.")
+    from jsat.skills.registry import SkillsRegistry
+    js = _jsat()
+    registry = SkillsRegistry(js._cfg.skills.dir)
+    skills = registry.list_skills()
+    if not skills:
+        console.print("[dim]No skills installed. Add YAML manifests to skills/[/dim]")
+        return
+    from rich.table import Table
+    from rich import box
+    table = Table(box=box.ROUNDED, header_style="bold magenta")
+    table.add_column("Name")
+    table.add_column("Version")
+    table.add_column("Type")
+    table.add_column("Description")
+    for s in skills:
+        table.add_row(s["name"], s.get("version", "?"),
+                      s.get("source_type", "?"), s.get("description", ""))
+    console.print(table)
 
 
 @skills_app.command("run")
 def cmd_skills_run(
     name: str = typer.Argument(...),
-    args: Optional[list[str]] = typer.Option(None, "--args", "-a"),
+    args: Optional[list[str]] = typer.Option(None, "--args", "-a", help="key=val pairs"),
 ) -> None:
     """Run a named skill."""
-    console.print(f"[yellow]Skill '{name}' not yet implemented.[/] Coming in v0.2.")
+    from jsat.skills.registry import SkillsRegistry
+    js = _jsat()
+    registry = SkillsRegistry(js._cfg.skills.dir)
+    kwargs = {}
+    for pair in (args or []):
+        if "=" in pair:
+            k, _, v = pair.partition("=")
+            kwargs[k.strip()] = v.strip()
+    try:
+        result = registry.run(name, **kwargs)
+        console.print(result)
+    except Exception as e:
+        err.print(f"[bold red]Skill '{name}' failed:[/] {e}")
+        raise typer.Exit(1) from e
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
