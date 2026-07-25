@@ -649,3 +649,72 @@ class JSATShell:
 def launch(jsat: JSAT) -> None:
     """Entry point called by the CLI."""
     JSATShell(jsat).run()
+
+
+# ── Standalone launcher (called from CLI) ─────────────────────────────────────
+
+def launch_ai_with_jsat_tools(jsat: "JSAT", ai: str = "claude") -> None:
+    """Launch an AI session with JSAT tools wired in as MCP.
+
+    ai: "claude" | "gpt" | "ollama" | ... — which AI CLI to launch.
+    For now only "claude" is supported; others fall back to JSAT REPL.
+    """
+    import json, os, shutil, subprocess, tempfile
+
+    repo = str(jsat._repo)
+    idx = jsat.index_status
+    nodes = idx.get("nodes", 0)
+    edges = idx.get("edges", 0)
+
+    if ai == "claude" and shutil.which("claude"):
+        jsat_bin = shutil.which("jsat") or sys.argv[0]
+
+        mcp_config = {
+            "mcpServers": {
+                "jsat": {
+                    "command": jsat_bin,
+                    "args": ["mcp-server", "--repo", repo],
+                    "env": {},
+                }
+            }
+        }
+
+        jsat_context = (
+            f"You are working in the codebase at: {repo}\n"
+            f"JSAT graph: {nodes:,} nodes, {edges:,} edges.\n\n"
+            "JSAT MCP tools available to you (use proactively for codebase questions):\n"
+            "  jsat__query              — answer any codebase question from the graph\n"
+            "  jsat__blast_radius       — trace downstream impact of any file/symbol change\n"
+            "  jsat__security_review    — find security issues and secrets\n"
+            "  jsat__investigate_incident — score commits as incident hypotheses\n"
+            "  jsat__index_repo         — rebuild the codebase graph\n"
+            "  jsat__get_index_status   — graph stats\n"
+            "  jsat__export_index       — export graph as zip\n"
+            "  jsat__get_jsat_version   — JSAT version info\n\n"
+            "You also have /jsat-* slash commands available if skills are installed.\n"
+            "Run 'jsat connect claude --install-skills' to install them."
+        )
+
+        mcp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False, prefix="jsat-mcp-"
+            ) as f:
+                json.dump(mcp_config, f, indent=2)
+                mcp_path = f.name
+
+            subprocess.run([
+                "claude",
+                "--mcp-config", mcp_path,
+                "--add-dir", repo,
+                "--append-system-prompt", jsat_context,
+            ])
+        finally:
+            if mcp_path:
+                try:
+                    os.unlink(mcp_path)
+                except Exception:
+                    pass
+    else:
+        # Fallback: custom JSAT shell
+        launch(jsat)

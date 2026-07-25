@@ -93,11 +93,45 @@ def cmd_index(
 @app.command("shell")
 def cmd_shell(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+    provider: str = typer.Option("auto", "--provider", "-p",
+                                  help="AI to launch: auto|claude|gpt|ollama|lmstudio"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
-    """Start the interactive JSAT REPL."""
-    from jsat.tools.shell import launch
-    js = _jsat(repo=repo)
-    launch(js)
+    """Open an AI session with full JSAT tools available.
+
+    \b
+    By default launches the best available AI (Claude Code CLI if installed)
+    with JSAT's MCP tools wired in — so the AI can call:
+      jsat__query, jsat__blast_radius, jsat__security_review,
+      jsat__investigate_incident, jsat__index_repo, and more.
+
+    \b
+    Inside Claude you can also use JSAT slash commands:
+      /jsat-query what does this service do?
+      /jsat-blast-radius src/payment.py
+      /jsat-security
+      /jsat-incident 500 errors on checkout
+
+    \b
+    Switch AI provider:
+      jsat shell --provider gpt
+      jsat shell --provider ollama
+    """
+    import shutil
+    from jsat.tools.shell import launch_ai_with_jsat_tools
+
+    js = _jsat(repo=repo, verbose=verbose)
+
+    # Resolve which AI to launch
+    if provider == "auto":
+        # Prefer claude CLI, then fall back to custom JSAT shell
+        if shutil.which("claude"):
+            launch_ai_with_jsat_tools(js, ai="claude")
+        else:
+            from jsat.tools.shell import launch
+            launch(js)
+    else:
+        launch_ai_with_jsat_tools(js, ai=provider)
 
 
 # ── doctor ────────────────────────────────────────────────────────────────────
@@ -590,6 +624,63 @@ def _write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
+    """Write /jsat-* skill files so Claude Code can call JSAT tools via slash commands."""
+    if commands_dir is None:
+        if scope == "global":
+            commands_dir = Path.home() / ".claude" / "commands"
+        else:
+            commands_dir = Path.cwd() / ".claude" / "commands"
+
+    commands_dir.mkdir(parents=True, exist_ok=True)
+
+    skills = {
+        "jsat-query": (
+            "Answer a question about this codebase using JSAT's graph index.",
+            'Use the jsat__query MCP tool with question="$ARGUMENTS" to answer '
+            "the question using the indexed codebase graph. Show the answer clearly."
+        ),
+        "jsat-blast-radius": (
+            "Trace downstream impact of a file or symbol change.",
+            'Use the jsat__blast_radius MCP tool with target="$ARGUMENTS" to trace '
+            "impact. Group results by severity: breaking / degraded / warning / safe."
+        ),
+        "jsat-security": (
+            "Run a security scan on the codebase.",
+            'Use the jsat__security_review MCP tool with path="$ARGUMENTS" (or "." if empty). '
+            "Group findings by severity. Highlight Critical and High issues first."
+        ),
+        "jsat-incident": (
+            "Investigate a production incident using recent git history.",
+            'Use the jsat__investigate_incident MCP tool with description="$ARGUMENTS". '
+            "Show top hypotheses ranked by score with evidence for each."
+        ),
+        "jsat-index": (
+            "Build or refresh the JSAT codebase graph index.",
+            'Use the jsat__index_repo MCP tool with path="$ARGUMENTS" (or "." if empty). '
+            "Report how many nodes and edges were indexed."
+        ),
+        "jsat-status": (
+            "Show JSAT index statistics.",
+            "Use the jsat__get_index_status MCP tool and display node/edge counts."
+        ),
+        "jsat-doctor": (
+            "Run a JSAT system health check.",
+            "Use the jsat__get_jsat_version MCP tool and jsat__get_index_status to "
+            "show system status, version, and index health."
+        ),
+    }
+
+    written = []
+    for name, (description, instruction) in skills.items():
+        skill_file = commands_dir / f"{name}.md"
+        content = f"---\ndescription: {description}\n---\n\n{instruction}\n"
+        skill_file.write_text(content, encoding="utf-8")
+        written.append(name)
+
+    return commands_dir
+
+
 @connect_app.command("claude")
 def cmd_connect_claude(
     scope: str = typer.Option(
@@ -599,9 +690,13 @@ def cmd_connect_claude(
     ),
     repo: str = typer.Option(".", "--repo", "-r",
                               help="Repo path passed to mcp-server (default: current dir)"),
+    install_skills: bool = typer.Option(
+        True, "--install-skills/--no-skills",
+        help="Also install /jsat-* slash commands in Claude Code",
+    ),
     show: bool = typer.Option(False, "--show", help="Print the config that was written"),
 ) -> None:
-    """Wire JSAT into Claude Code as an MCP server — no manual JSON editing.
+    """Wire JSAT into Claude Code as an MCP server and install /jsat-* commands.
 
     \b
     Project level (just this repo):
@@ -655,11 +750,25 @@ def cmd_connect_claude(
     if show:
         console.print_json(json.dumps({"mcpServers": {"jsat": jsat_entry}}, indent=2))
 
+    # Install /jsat-* slash commands
+    if install_skills:
+        skills_dir = _write_jsat_skills(scope)
+        console.print(
+            f"[green]✓[/] Installed JSAT slash commands in [bold]{skills_dir}[/]\n"
+            "  [cyan]/jsat-query[/]          — ask anything about the codebase\n"
+            "  [cyan]/jsat-blast-radius[/]   — trace impact of a change\n"
+            "  [cyan]/jsat-security[/]       — security scan\n"
+            "  [cyan]/jsat-incident[/]       — investigate an incident\n"
+            "  [cyan]/jsat-index[/]          — rebuild the graph\n"
+            "  [cyan]/jsat-status[/]         — graph stats\n"
+            "  [cyan]/jsat-doctor[/]         — health check\n"
+        )
+
     console.print(
-        "[bold yellow]→ Restart Claude Code[/] to activate JSAT tools.\n"
-        "  Claude will then have access to:\n"
-        "  [dim]query · blast_radius · security_review · investigate_incident ·[/]\n"
-        "  [dim]index_repo · get_index_status · export_index · get_jsat_version[/]\n"
+        "[bold yellow]→ Restart Claude Code[/] to activate.\n"
+        "  MCP tools: [dim]jsat__query · jsat__blast_radius · jsat__security_review ·[/]\n"
+        "             [dim]jsat__investigate_incident · jsat__index_repo · ...[/]\n"
+        "  Slash cmds: [dim]/jsat-query · /jsat-blast-radius · /jsat-security · ...[/]\n"
     )
 
 
