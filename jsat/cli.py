@@ -20,8 +20,10 @@ from rich import box
 
 app = typer.Typer(name="jsat", help="JSAT — Codebase intelligence CLI.",
                   add_completion=True, no_args_is_help=True)
-skills_app = typer.Typer(help="Manage and run JSAT skills.")
-app.add_typer(skills_app, name="skills")
+skills_app  = typer.Typer(help="Manage and run JSAT skills.")
+connect_app = typer.Typer(help="Connect JSAT to AI tools (Claude, Cursor, etc.).")
+app.add_typer(skills_app,  name="skills")
+app.add_typer(connect_app, name="connect")
 
 console = Console()
 err = Console(stderr=True)
@@ -250,6 +252,185 @@ def cmd_skills_run(
     except Exception as e:
         err.print(f"[bold red]Skill '{name}' failed:[/] {e}")
         raise typer.Exit(1) from e
+
+
+# ── connect ───────────────────────────────────────────────────────────────────
+
+def _jsat_binary() -> str:
+    """Return the absolute path of the currently running jsat binary."""
+    import sys, shutil
+    # Prefer the script that was invoked
+    candidate = Path(sys.argv[0]).resolve()
+    if candidate.exists() and candidate.name in ("jsat", "jsat.exe"):
+        return str(candidate)
+    # Fall back to shutil.which
+    found = shutil.which("jsat")
+    if found:
+        return str(Path(found).resolve())
+    # Last resort: derive from sys.executable (same venv)
+    bin_dir = Path(sys.executable).parent
+    for name in ("jsat", "jsat.exe"):
+        p = bin_dir / name
+        if p.exists():
+            return str(p)
+    return "jsat"
+
+
+def _read_json(path: Path) -> dict:
+    """Read JSON file; return {} if missing or invalid."""
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _write_json(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+@connect_app.command("claude")
+def cmd_connect_claude(
+    scope: str = typer.Option(
+        "project",
+        "--scope", "-s",
+        help="'project' → .claude/settings.json  |  'global' → ~/.claude/settings.json",
+    ),
+    repo: str = typer.Option(".", "--repo", "-r",
+                              help="Repo path passed to mcp-server (default: current dir)"),
+    show: bool = typer.Option(False, "--show", help="Print the config that was written"),
+) -> None:
+    """Wire JSAT into Claude Code as an MCP server — no manual JSON editing.
+
+    \b
+    Project level (just this repo):
+        jsat connect claude
+
+    \b
+    Global level (all Claude Code sessions):
+        jsat connect claude --scope global
+
+    \b
+    After running, restart Claude Code. JSAT tools will appear automatically.
+    Claude can then call: query, blast_radius, security_review,
+    investigate_incident, index_repo, get_index_status, and more.
+    """
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+
+    # Determine settings file location
+    if scope == "global":
+        settings_path = Path.home() / ".claude" / "settings.json"
+        label = "global (~/.claude/settings.json)"
+    else:
+        settings_path = Path.cwd() / ".claude" / "settings.json"
+        label = f"project (.claude/settings.json in {Path.cwd().name}/)"
+
+    # Read existing settings (preserve all other keys)
+    settings = _read_json(settings_path)
+
+    # Build the JSAT MCP entry
+    jsat_entry = {
+        "command": binary,
+        "args": ["mcp-server", "--repo", repo_path],
+        "env": {},
+    }
+
+    # Inject into mcpServers (create key if absent)
+    settings.setdefault("mcpServers", {})
+    already_present = "jsat" in settings["mcpServers"]
+    settings["mcpServers"]["jsat"] = jsat_entry
+
+    _write_json(settings_path, settings)
+
+    action = "Updated" if already_present else "Added"
+    console.print(
+        f"\n[green]✓[/] {action} JSAT MCP server in [bold]{label}[/]\n"
+    )
+    console.print(f"  Binary : [cyan]{binary}[/]")
+    console.print(f"  Repo   : [cyan]{repo_path}[/]")
+    console.print(f"  Config : [cyan]{settings_path}[/]\n")
+
+    if show:
+        console.print_json(json.dumps({"mcpServers": {"jsat": jsat_entry}}, indent=2))
+
+    console.print(
+        "[bold yellow]→ Restart Claude Code[/] to activate JSAT tools.\n"
+        "  Claude will then have access to:\n"
+        "  [dim]query · blast_radius · security_review · investigate_incident ·[/]\n"
+        "  [dim]index_repo · get_index_status · export_index · get_jsat_version[/]\n"
+    )
+
+
+@connect_app.command("cursor")
+def cmd_connect_cursor(
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Wire JSAT into Cursor as an MCP server.
+
+    Writes to ~/.cursor/mcp.json (Cursor's MCP config file).
+    """
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+    settings_path = Path.home() / ".cursor" / "mcp.json"
+
+    settings = _read_json(settings_path)
+    settings.setdefault("mcpServers", {})
+    settings["mcpServers"]["jsat"] = {
+        "command": binary,
+        "args": ["mcp-server", "--repo", repo_path],
+    }
+    _write_json(settings_path, settings)
+
+    console.print(f"\n[green]✓[/] Added JSAT to Cursor MCP config: [cyan]{settings_path}[/]")
+    console.print("[bold yellow]→ Restart Cursor[/] to activate JSAT tools.\n")
+
+
+@connect_app.command("list")
+def cmd_connect_list() -> None:
+    """Show all Claude Code and Cursor MCP configs that include JSAT."""
+    candidates = [
+        Path.home() / ".claude" / "settings.json",
+        Path.cwd() / ".claude" / "settings.json",
+        Path.home() / ".cursor" / "mcp.json",
+    ]
+    found_any = False
+    for p in candidates:
+        data = _read_json(p)
+        jsat_cfg = data.get("mcpServers", {}).get("jsat")
+        if jsat_cfg:
+            found_any = True
+            console.print(f"[green]✓[/] [bold]{p}[/]")
+            console.print(f"   command: {jsat_cfg.get('command')}")
+            console.print(f"   args:    {jsat_cfg.get('args')}\n")
+    if not found_any:
+        console.print(
+            "[dim]No JSAT MCP configs found. Run:[/]\n"
+            "  [bold]jsat connect claude[/]           ← project-level\n"
+            "  [bold]jsat connect claude --scope global[/]  ← global\n"
+        )
+
+
+@connect_app.command("remove")
+def cmd_connect_remove(
+    scope: str = typer.Option("project", "--scope", "-s",
+                               help="'project' or 'global'"),
+) -> None:
+    """Remove JSAT from Claude Code's MCP config."""
+    if scope == "global":
+        settings_path = Path.home() / ".claude" / "settings.json"
+    else:
+        settings_path = Path.cwd() / ".claude" / "settings.json"
+
+    settings = _read_json(settings_path)
+    if "jsat" in settings.get("mcpServers", {}):
+        del settings["mcpServers"]["jsat"]
+        _write_json(settings_path, settings)
+        console.print(f"[green]✓[/] Removed JSAT from [bold]{settings_path}[/]")
+    else:
+        console.print(f"[dim]JSAT not found in {settings_path}[/]")
 
 
 # ── mcp-server ───────────────────────────────────────────────────────────────
