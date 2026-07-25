@@ -43,6 +43,32 @@ def _enclosing_class(node: Any) -> Any | None:
     return None
 
 
+def _is_async_fn(fn_node: Any, source: bytes) -> bool:
+    """Detect async functions across tree-sitter-python versions.
+
+    Older versions use node type 'async_function_definition'.
+    Newer versions use 'function_definition' with an 'async' child keyword,
+    or wrap it in a parent with an 'async' sibling.
+    """
+    # v0.21 style: separate node type
+    if fn_node.type == "async_function_definition":
+        return True
+    # Check direct children for 'async' keyword
+    for child in fn_node.children:
+        if child.type == "async":
+            return True
+    # Check parent siblings (some grammar versions put async at parent level)
+    parent = fn_node.parent
+    if parent:
+        for child in parent.children:
+            if child.type == "async" and child.end_byte <= fn_node.start_byte:
+                return True
+    # Fallback: look at source text before the 'def' keyword
+    fn_start = fn_node.start_byte
+    preceding = source[max(0, fn_start - 10):fn_start].decode("utf-8", errors="replace")
+    return "async" in preceding.lower()
+
+
 def _file_node(file_id: str, loc: int) -> dict[str, Any]:
     return {"id": file_id, "label": "File",
             "properties": {"path": file_id, "language": "python", "loc": loc}}
@@ -113,7 +139,7 @@ class PythonParser(BaseParser):
             result.nodes.append({"id": nid, "label": "Function", "properties": {
                 "name": qual, "file": fid, "language": "python",
                 "line_start": fn.start_point[0] + 1, "line_end": fn.end_point[0] + 1,
-                "is_async": fn.type == "async_function_definition",
+                "is_async": _is_async_fn(fn, src),
                 "is_public": not bare.startswith("_"),
             }})
 

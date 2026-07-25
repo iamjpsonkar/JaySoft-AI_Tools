@@ -49,7 +49,10 @@ def test_no_secrets_in_clean_file(tool, tmp_path):
 
 @pytest.mark.ci
 def test_finds_high_entropy_token(tool, tmp_path):
-    token = "sk-" + "x" * 40        # long high-entropy string
+    # Use a realistic high-entropy string (mixed chars, not all the same)
+    # Shannon entropy must be > 4.5 (the default threshold)
+    # "sk-" + diverse alphanumeric chars gives entropy ~5.5
+    token = "sk-aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789ab"
     f = tmp_path / "secret.py"
     f.write_text(f'API_KEY = "{token}"\n')
     import structlog

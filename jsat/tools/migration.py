@@ -94,11 +94,46 @@ class MigrationTool(BaseTool):
         stmts = [s.strip() for s in cleaned.split(";") if s.strip()]
         results = []
         for stmt in stmts:
-            norm = " ".join(stmt.upper().split())
-            op = next((k for k in sorted(_LOCK_TYPES, key=len, reverse=True)
-                       if norm.startswith(k)), " ".join(norm.split()[:2]))
+            op = self._detect_op_type(stmt)
             results.append((stmt, op))
         return results
+
+    def _detect_op_type(self, sql: str) -> str:
+        """Detect the SQL operation type, handling table names between keywords.
+
+        e.g. 'ALTER TABLE orders ALTER COLUMN' → 'ALTER TABLE ALTER COLUMN'
+             'CREATE INDEX CONCURRENTLY idx ON t(c)' → 'CREATE INDEX CONCURRENTLY'
+        """
+        norm = " ".join(sql.upper().split())
+
+        # Direct prefix match (works for CREATE INDEX CONCURRENTLY, DROP TABLE, etc.)
+        for key in sorted(_LOCK_TYPES, key=len, reverse=True):
+            if norm.startswith(key):
+                return key
+
+        # ALTER TABLE <tablename> <action> — strip the table name and retry
+        # e.g. "ALTER TABLE orders ALTER COLUMN" → "ALTER TABLE ALTER COLUMN"
+        m = re.match(r"^(ALTER\s+TABLE)\s+\w+\s+(.+)", norm)
+        if m:
+            without_table = f"ALTER TABLE {m.group(2)}"
+            for key in sorted(_LOCK_TYPES, key=len, reverse=True):
+                if without_table.startswith(key):
+                    return key
+
+        # CREATE INDEX <name> ON — strip the index name and retry
+        # e.g. "CREATE INDEX idx ON" → "CREATE INDEX"
+        m2 = re.match(r"^(CREATE\s+(?:UNIQUE\s+)?INDEX)\s+(?:CONCURRENTLY\s+)?\w+\s+", norm)
+        if m2:
+            prefix = m2.group(0).rstrip()
+            # check if CONCURRENTLY is in the original
+            if "CONCURRENTLY" in prefix:
+                return "CREATE INDEX CONCURRENTLY"
+            if "UNIQUE" in prefix:
+                return "CREATE UNIQUE"
+            return "CREATE INDEX"
+
+        words = norm.split()
+        return " ".join(words[:2]) if len(words) >= 2 else (words[0] if words else "UNKNOWN")
 
     def _table_name(self, sql: str) -> str | None:
         m = _TABLE_RE.search(sql)
