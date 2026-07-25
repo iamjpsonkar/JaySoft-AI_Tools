@@ -945,26 +945,103 @@ def cmd_mcp_server(
       }
     }
     """
-    import sys
-    js = _jsat(repo=repo, verbose=verbose)
+    # ── CRITICAL: start serving JSON-RPC IMMEDIATELY.
+    # Do NOT call _jsat() here first — that runs detect_system() which pings
+    # 4 services (each 0.5s timeout) and potentially auto-indexes the repo.
+    # Claude Code has a short timeout for MCP server startup (~5s).
+    # Any delay before the first JSON-RPC response causes Claude to mark the
+    # server as failed and show "MCP tools not available".
+    #
+    # Solution: load config lazily inside the MCPServer handlers; start serving
+    # before doing any I/O-bound work.
 
-    # Build the index if not already done (silent)
-    status = js.index_status
-    if status.get("nodes", 0) == 0:
-        try:
-            js.index(path=repo)
-        except Exception:
-            pass  # MCP server starts even if indexing fails
+    from pathlib import Path
+    import sys
+
+    repo_path = Path(repo).resolve()
+
+    # Minimal config load — no system detection, no service pings, no indexing
+    from jsat._config import load_config
+    from jsat._models import JSATConfig
+
+    cfg: JSATConfig = JSATConfig()  # safe defaults
+    try:
+        cfg = load_config(repo=repo_path)
+    except Exception:
+        pass  # use defaults if config loading fails
+
+    # Pin paths to repo root
+    from jsat._core import JSAT
+    class _MinimalJSAT:
+        """Thin JSAT wrapper for MCP mode — no system detection, no auto-index."""
+        def __init__(self) -> None:
+            self._repo = repo_path
+            self._cfg = cfg
+            self._graph = None
+            self._ai = None
+
+        def _get_graph(self):
+            if self._graph is None:
+                # Pin graph path to repo
+                graph_path = str(repo_path / ".jsat" / "graph" / "graph.db")
+                from jsat._models import GraphConfig
+                graph_cfg = GraphConfig(path=graph_path)
+                from jsat._graph.sqlite import SQLiteGraph
+                self._graph = SQLiteGraph(graph_cfg)
+            return self._graph
+
+        def _get_ai(self):
+            if self._ai is None:
+                from jsat._ai import get_ai_provider
+                from jsat._ai.none import NoOpProvider
+                try:
+                    self._ai = get_ai_provider(self._cfg)
+                except Exception:
+                    self._ai = NoOpProvider()
+            return self._ai
+
+        @property
+        def index_status(self):
+            try:
+                g = self._get_graph()
+                return {"nodes": g.node_count(), "edges": g.edge_count(),
+                        "is_fresh": True}
+            except Exception:
+                return {"nodes": 0, "edges": 0, "is_fresh": False}
+
+        def index(self, path=None, **kw):
+            from jsat.tools.indexer import IndexerTool
+            from jsat._models import IndexResult
+            target = Path(path).resolve() if path else repo_path
+            return IndexerTool(graph=self._get_graph(), cfg=self._cfg).run(target)
+
+        def query(self, question, **kw):
+            from jsat.tools.query import QueryTool
+            return QueryTool(graph=self._get_graph(), ai=self._get_ai(),
+                             cfg=self._cfg).run(question)
+
+        def blast_radius(self, target, **kw):
+            from jsat.tools.blast_radius import BlastRadiusTool
+            return BlastRadiusTool(graph=self._get_graph(), cfg=self._cfg).run(target)
+
+        def security_review(self, path=".", **kw):
+            from jsat.tools.security import SecurityTool
+            return SecurityTool(graph=self._get_graph(), cfg=self._cfg).run(Path(path))
+
+        def investigate_incident(self, description, since="72h", **kw):
+            from jsat.tools.incident import IncidentTool
+            return IncidentTool(graph=self._get_graph(), ai=self._get_ai(),
+                                cfg=self._cfg).run(description, since=since)
+
+        def export(self, output, **kw):
+            from jsat.tools.export import ExportTool
+            return ExportTool(graph=self._get_graph(), cfg=self._cfg).export(Path(output))
+
+    js = _MinimalJSAT()
 
     from jsat.mcp.server import MCPServer
-    server = MCPServer(js)
-    # Print capabilities to stderr so Claude Code knows we started
-    print(
-        '{"jsonrpc":"2.0","id":0,"result":{"protocolVersion":"2024-11-05",'
-        '"capabilities":{"tools":{}},"serverInfo":{"name":"jsat","version":"0.1.0"}}}',
-        file=sys.stderr,
-    )
-    server.run()
+    server = MCPServer(js)  # type: ignore[arg-type]
+    server.run()  # blocks until stdin closes
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
