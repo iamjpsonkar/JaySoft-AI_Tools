@@ -185,10 +185,16 @@ class IndexEvent(BaseModel):
 class IndexResult(BaseModel):
     nodes_indexed: int
     edges_indexed: int
+    files_indexed: int = 0
+    files_skipped: int = 0       # unchanged files in incremental mode
     duration_ms: int
     languages: list[str]
     commit: str
     repo_path: str
+    incremental: bool = False    # True when only changed files were re-parsed
+    resolved_edges: int = 0      # CALLS/IMPORTS edges resolved to actual node IDs
+    parallel_workers: int = 1    # thread count used for parsing
+    complexity_hotspots: list[dict] = []  # top-5 {name, file, complexity}
 
 
 class ImpactItem(BaseModel):

@@ -4,6 +4,77 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-07-25
+
+### Added — Indexer overhaul (Tool 1)
+
+**Parallel parsing** (`indexer.py`)
+- `ThreadPoolExecutor(max_workers=min(cpu_count,8))` — each file parsed in its own thread
+- Each worker creates its own parser instance (tree-sitter is not thread-safe)
+- Expected speedup: 4–8× on multi-core machines for large repos
+- `IndexResult.parallel_workers` — reports thread count used
+
+**True incremental indexing** (`_parsers/manifest.py` — new)
+- `IndexManifest` class: load/save/delta logic using mtime + sha256
+- Manifest stored at `.jsat/index-manifest.json`
+- Delta algorithm: mtime as fast pre-filter, sha256 only when mtime changed
+- Deleted/modified files: stale nodes+edges removed before re-parsing
+- On unchanged repo: only changed files re-parsed (e.g. 3s → 100ms for 500-file repo)
+- `IndexResult.incremental` — True when delta mode was active
+- `IndexResult.files_skipped` — count of unchanged files bypassed
+
+**Rich metadata extraction** — all 6 parsers (Python, JS/TS, Java, Go, Ruby, Rust)
+
+Every **Function** node now includes:
+- `parameters` — `[{name, type?, default?}]` for all languages
+- `return_type` — explicit return type annotation (where available)
+- `decorators` — `["property","staticmethod","login_required"]` etc.
+- `docstring` — first line of docstring/JSDoc/`///` comment (max 200 chars)
+- `complexity` — cyclomatic complexity (1 + branch count: if/for/while/match/except)
+- `loc` — lines of code (`line_end - line_start + 1`)
+- `line` — alias for `line_start` (fixes MCP handler compat bug)
+
+Every **Class** node now includes:
+- `bases` — `["BaseModel","Serializable"]` parent class names
+- `decorators` — class-level decorators/annotations
+- `docstring` — first line of class docstring
+- `method_count` — number of methods defined in the class body
+- `line` — alias for `line_start`
+
+**New edge types:**
+- `INHERITS` — class → parent class (Python, JS, Java, Ruby, Rust)
+- `IMPLEMENTS` — class → interface/trait (Java, Go, Rust)
+- `RAISES` — function → exception type (Python `raise` statements)
+
+**Symbol resolution pass** (`indexer.py._resolve_edges()`)
+- After all files are parsed, resolves CALLS/IMPORTS string-name targets to actual node IDs
+- Uses name matching: `id LIKE '%::name'` or `properties.name = name`
+- Resolves only unambiguous matches (exactly 1 candidate)
+- `IndexResult.resolved_edges` — count of edges successfully resolved
+
+**Richer INDEX.md artifact**
+- Overview table: files, nodes, edges, resolved edges, git commit
+- Language breakdown: Files | Functions | Classes per language
+- Complexity hotspots: top-10 functions by cyclomatic complexity
+- Largest files: top-10 by LOC
+- Inheritance map: Child → Parent chains (max 30)
+- Most called functions: top-10 by incoming CALLS count
+- Dead code candidates: public functions with 0 incoming CALLS (max 20, informational)
+- Services/Endpoints/Tables/Topics: preserved if created by other tools
+- Incremental run tag and file count in header
+
+**`IndexResult` model enrichment** (`_models.py`)
+- `files_indexed: int` — files actually parsed this run
+- `files_skipped: int` — unchanged files skipped in incremental mode
+- `incremental: bool` — whether delta mode was used
+- `resolved_edges: int` — CALLS/IMPORTS edges resolved to actual node IDs
+- `parallel_workers: int` — thread count used
+- `complexity_hotspots: list[dict]` — top-5 `{name, file, complexity}`
+
+### Tests
+- `tests/test_indexer.py` — 37 new CI-safe tests: end-to-end indexer, incremental mode, manifest helpers, rich metadata on nodes, edge types
+- Suite: **280 passing, 9 skipped**
+
 ## [0.1.9] — 2026-07-25
 
 ### Added
