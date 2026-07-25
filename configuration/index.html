@@ -879,6 +879,39 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        security
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#privacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        privacy
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1139,6 +1172,39 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        security
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#privacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        privacy
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1299,6 +1365,25 @@
 <a id="__codelineno-1-99" name="__codelineno-1-99" href="#__codelineno-1-99"></a><span class="w">  </span><span class="nt">auto_discover</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <a id="__codelineno-1-100" name="__codelineno-1-100" href="#__codelineno-1-100"></a><span class="w">  </span><span class="nt">override_builtins</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <a id="__codelineno-1-101" name="__codelineno-1-101" href="#__codelineno-1-101"></a><span class="w">  </span><span class="nt">clusters</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<a id="__codelineno-1-102" name="__codelineno-1-102" href="#__codelineno-1-102"></a>
+<a id="__codelineno-1-103" name="__codelineno-1-103" href="#__codelineno-1-103"></a><span class="c1"># ── Review ─────────────────────────────────────────────────────────────────────</span>
+<a id="__codelineno-1-104" name="__codelineno-1-104" href="#__codelineno-1-104"></a><span class="nt">review</span><span class="p">:</span>
+<a id="__codelineno-1-105" name="__codelineno-1-105" href="#__codelineno-1-105"></a><span class="w">  </span><span class="nt">models</span><span class="p">:</span>
+<a id="__codelineno-1-106" name="__codelineno-1-106" href="#__codelineno-1-106"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="nv">claude_cli</span><span class="p p-Indicator">,</span><span class="nt"> model</span><span class="p">:</span><span class="w"> </span><span class="nv">claude-sonnet-4-6</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-107" name="__codelineno-1-107" href="#__codelineno-1-107"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="nv">ollama</span><span class="p p-Indicator">,</span><span class="nt"> model</span><span class="p">:</span><span class="w"> </span><span class="nv">qwen2.5-coder</span><span class="p p-Indicator">:</span><span class="nv">7b</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-108" name="__codelineno-1-108" href="#__codelineno-1-108"></a><span class="w">  </span><span class="nt">parallel_timeout_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">90</span><span class="w">   </span><span class="c1"># wall-clock deadline per model; exceeded models are skipped</span>
+<a id="__codelineno-1-109" name="__codelineno-1-109" href="#__codelineno-1-109"></a><span class="w">  </span><span class="nt">min_confidence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span><span class="w">          </span><span class="c1"># &quot;low&quot; | &quot;medium&quot; | &quot;high&quot;</span>
+<a id="__codelineno-1-110" name="__codelineno-1-110" href="#__codelineno-1-110"></a>
+<a id="__codelineno-1-111" name="__codelineno-1-111" href="#__codelineno-1-111"></a><span class="c1"># ── Security ───────────────────────────────────────────────────────────────────</span>
+<a id="__codelineno-1-112" name="__codelineno-1-112" href="#__codelineno-1-112"></a><span class="nt">security</span><span class="p">:</span>
+<a id="__codelineno-1-113" name="__codelineno-1-113" href="#__codelineno-1-113"></a><span class="w">  </span><span class="nt">cvss_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span><span class="w">          </span><span class="c1"># &quot;low&quot; | &quot;medium&quot; | &quot;high&quot; | &quot;critical&quot;</span>
+<a id="__codelineno-1-114" name="__codelineno-1-114" href="#__codelineno-1-114"></a><span class="w">  </span><span class="nt">secret_entropy_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3.5</span><span class="w">   </span><span class="c1"># Shannon entropy threshold for secret detection</span>
+<a id="__codelineno-1-115" name="__codelineno-1-115" href="#__codelineno-1-115"></a>
+<a id="__codelineno-1-116" name="__codelineno-1-116" href="#__codelineno-1-116"></a><span class="c1"># ── Privacy ────────────────────────────────────────────────────────────────────</span>
+<a id="__codelineno-1-117" name="__codelineno-1-117" href="#__codelineno-1-117"></a><span class="nt">privacy</span><span class="p">:</span>
+<a id="__codelineno-1-118" name="__codelineno-1-118" href="#__codelineno-1-118"></a><span class="w">  </span><span class="nt">hash_pii</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                 </span><span class="c1"># hash PII values before storing in the graph</span>
+<a id="__codelineno-1-119" name="__codelineno-1-119" href="#__codelineno-1-119"></a><span class="w">  </span><span class="nt">audit_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                </span><span class="c1"># write an audit log of all JSAT operations</span>
+<a id="__codelineno-1-120" name="__codelineno-1-120" href="#__codelineno-1-120"></a><span class="w">  </span><span class="nt">audit_log_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.jsat/audit.log</span>
 </code></pre></div>
 <hr />
 <h2 id="profiles">Profiles<a class="headerlink" href="#profiles" title="Permanent link">&para;</a></h2>
@@ -1508,6 +1593,34 @@
 <li><code>format: json</code> — structured JSON logs, useful in CI and for log aggregation tools</li>
 <li><code>file: /var/log/jsat.log</code> — additionally write logs to a file</li>
 </ul>
+<hr />
+<h3 id="review"><code>review</code><a class="headerlink" href="#review" title="Permanent link">&para;</a></h3>
+<p>Controls multi-model parallel code review (Tool 9 — MultiModelReview).</p>
+<ul>
+<li><code>models</code> — list of provider/model pairs to dispatch the diff to simultaneously. Each entry must specify a <code>provider</code> (<code>claude_cli</code>, <code>ollama</code>, <code>anthropic</code>, <code>openai</code>, <code>openai_compat</code>) and a <code>model</code> name.</li>
+<li><code>parallel_timeout_seconds</code> — wall-clock deadline applied to every model dispatch. Models that exceed this are skipped; their timeout is recorded as a warning in the review output.</li>
+<li><code>min_confidence</code> — controls which findings are surfaced:</li>
+<li><code>low</code> — any single model's finding</li>
+<li><code>medium</code> — confirmed by 2 or more models (default)</li>
+<li><code>high</code> — confirmed by all configured models</li>
+</ul>
+<p>Do not put API keys in the <code>models</code> list. Keys are read from environment variables as usual (<code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>, etc.).</p>
+<hr />
+<h3 id="security"><code>security</code><a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
+<p>Controls thresholds for the SecurityReview tool.</p>
+<ul>
+<li><code>cvss_threshold</code> — minimum CVSS severity level to report in dependency CVE scans: <code>low</code>, <code>medium</code>, <code>high</code>, or <code>critical</code>. Findings below this threshold are suppressed.</li>
+<li><code>secret_entropy_threshold</code> — Shannon entropy value above which a string literal is flagged as a potential hardcoded secret. The default of <code>3.5</code> catches most API keys, tokens, and base64-encoded values while reducing false positives on normal strings. Lower values increase sensitivity; higher values reduce noise.</li>
+</ul>
+<hr />
+<h3 id="privacy"><code>privacy</code><a class="headerlink" href="#privacy" title="Permanent link">&para;</a></h3>
+<p>Controls how JSAT handles potentially sensitive data in the graph and logs.</p>
+<ul>
+<li><code>hash_pii: true</code> — before storing any value extracted from source code that matches a PII pattern (email addresses, phone numbers, national IDs), JSAT replaces the raw value with a SHA-256 hash. This prevents PII from being stored in the graph or sent to an LLM.</li>
+<li><code>audit_log: true</code> — write a structured audit log of every JSAT operation (index, query, review, knowledge write, MCP tool call) to <code>audit_log_path</code>. Each entry includes a timestamp, operation type, user identity (if available), and a summary of inputs/outputs with sensitive values redacted.</li>
+<li><code>audit_log_path</code> — path to the audit log file (relative to repo root). Default: <code>.jsat/audit.log</code>.</li>
+</ul>
+<p>Neither setting is enabled by default. Enable both in regulated environments or wherever a record of AI-assisted operations is required for compliance.</p>
 <hr />
 <h2 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
 <p>All secrets should be passed via environment variables, never stored in config:</p>

@@ -733,6 +733,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#jsat-ithinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /jsat-ithinking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-think" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /jsat-think
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1283,6 +1305,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#jsat-ithinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /jsat-ithinking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-think" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /jsat-think
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1486,14 +1530,14 @@
 
 
 <h1 id="claude-integration">Claude Integration<a class="headerlink" href="#claude-integration" title="Permanent link">&para;</a></h1>
-<p>JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get seven <code>/jsat-*</code> slash commands.</p>
+<p>JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get nine <code>/jsat-*</code> slash commands.</p>
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←→  Graph DB
 </code></pre></div>
 <p>When you run <code>jsat connect claude</code>, JSAT:</p>
 <ol>
 <li>Writes an MCP server entry into <code>.claude/settings.json</code> (or <code>~/.claude/settings.json</code> for global scope)</li>
-<li>Installs seven <code>/jsat-*</code> slash command skill files in <code>.claude/commands/</code></li>
+<li>Installs nine <code>/jsat-*</code> slash command skill files in <code>.claude/commands/</code></li>
 </ol>
 <p>Claude Code reads these on startup, starts the <code>jsat mcp-server</code> process, and makes all JSAT tools available during your session.</p>
 <hr />
@@ -1520,7 +1564,7 @@
 <p><strong>After any connect command, restart Claude Code to activate the tools.</strong></p>
 <hr />
 <h2 id="slash-commands">Slash Commands<a class="headerlink" href="#slash-commands" title="Permanent link">&para;</a></h2>
-<p>Seven <code>/jsat-*</code> slash commands are installed into Claude Code when you run <code>jsat connect claude</code>.</p>
+<p>Nine <code>/jsat-*</code> slash commands are installed into Claude Code when you run <code>jsat connect claude</code>.</p>
 <h3 id="jsat-query"><code>/jsat-query</code><a class="headerlink" href="#jsat-query" title="Permanent link">&para;</a></h3>
 <p>Ask any natural language question about the indexed codebase.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>/jsat-query what does this project do?
@@ -1573,9 +1617,20 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>/jsat-doctor
 </code></pre></div>
 <p>Claude calls <code>jsat__get_jsat_version</code> and <code>jsat__get_index_status</code> and shows version, system profile, and index health.</p>
+<h3 id="jsat-ithinking"><code>/jsat-ithinking</code><a class="headerlink" href="#jsat-ithinking" title="Permanent link">&para;</a></h3>
+<p>Run the IThinking structured planning framework for a complex task. IThinking decomposes the task into phases, audits assumptions, estimates token cost, and (depending on <code>gate_level</code>) pauses for human review before execution.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>/jsat-ithinking Refactor the authentication module to support OAuth2
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>/jsat-ithinking add retry logic to the payment gateway client
+</code></pre></div>
+<p>Claude calls <code>jsat__ithinking_plan</code> followed by <code>jsat__ithinking_audit_assumptions</code>. With <code>gate_level: medium</code> or higher, Claude will present the plan and wait for your approval before proceeding.</p>
+<p>Installed by <code>jsat connect claude</code>. Controlled via the <code>ithinking</code> block in <code>.jsat/config.yaml</code>.</p>
+<h3 id="jsat-think"><code>/jsat-think</code><a class="headerlink" href="#jsat-think" title="Permanent link">&para;</a></h3>
+<p>Shorthand alias for <code>/jsat-ithinking</code>. Identical behavior — use whichever is easier to type.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>/jsat-think how should I migrate the orders table without downtime?
+</code></pre></div>
 <hr />
 <h2 id="mcp-tools">MCP Tools<a class="headerlink" href="#mcp-tools" title="Permanent link">&para;</a></h2>
-<p>In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced <code>jsat__*</code>.</p>
+<p>In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced <code>jsat__*</code>. JSAT defines 47 tool slots; 17 are currently wired and active in the MCP server.</p>
 <h3 id="index-and-graph-tools">Index and graph tools<a class="headerlink" href="#index-and-graph-tools" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1823,16 +1878,16 @@
 <hr />
 <h2 id="disconnecting">Disconnecting<a class="headerlink" href="#disconnecting" title="Permanent link">&para;</a></h2>
 <p>Remove JSAT from the current project's Claude Code config:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude
 </code></pre></div>
 <p>Remove from global config:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global
 </code></pre></div>
 <p>Remove from both:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all
 </code></pre></div>
 <p>Keep the skill files but remove the MCP server entry:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--keep-skills
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--keep-skills
 </code></pre></div>
 <p>Restart Claude Code after disconnecting.</p>
 <hr />
@@ -1846,7 +1901,7 @@
 </ol>
 <h3 id="slash-commands-not-appearing">Slash commands not appearing<a class="headerlink" href="#slash-commands-not-appearing" title="Permanent link">&para;</a></h3>
 <p>The skill files must exist in <code>.claude/commands/</code> (project scope) or <code>~/.claude/commands/</code> (global scope). Check:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ls<span class="w"> </span>.claude/commands/jsat-*.md
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>ls<span class="w"> </span>.claude/commands/jsat-*.md
 </code></pre></div>
 <p>If missing, re-run <code>jsat connect claude</code>.</p>
 <h3 id="mcp-server-starts-slowly">MCP server starts slowly<a class="headerlink" href="#mcp-server-starts-slowly" title="Permanent link">&para;</a></h3>
@@ -1874,15 +1929,15 @@
 </tbody>
 </table>
 <p>The MCP entry written into settings looks like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="p">{</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nt">&quot;jsat&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/jsat&quot;</span><span class="p">,</span>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;mcp-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--repo&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/project&quot;</span><span class="p">],</span>
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
-<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="p">{</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="nt">&quot;jsat&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/jsat&quot;</span><span class="p">,</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;mcp-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--repo&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/project&quot;</span><span class="p">],</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="p">}</span>
 </code></pre></div>
 
 
