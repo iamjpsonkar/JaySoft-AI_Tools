@@ -1020,12 +1020,48 @@ def cmd_mcp_server(
 
         def _get_ai(self):
             if self._ai is None:
-                from jsat._ai import get_ai_provider
+                import shutil, os
                 from jsat._ai.none import NoOpProvider
-                try:
-                    self._ai = get_ai_provider(self._cfg)
-                except Exception:
-                    self._ai = NoOpProvider()
+
+                # Auto-detect the best available AI — same priority as auto_configure:
+                # claude_cli > anthropic API > openai API > ollama > none
+                def _try_claude_cli():
+                    if shutil.which("claude"):
+                        from jsat._ai.claude_cli import ClaudeCliProvider
+                        p = ClaudeCliProvider(self._cfg)
+                        if p.is_available():
+                            return p
+                    return None
+
+                def _try_provider(name: str):
+                    try:
+                        from jsat._ai import get_ai_provider
+                        cfg_copy = self._cfg.model_copy(update={
+                            "ai": self._cfg.ai.model_copy(update={"provider": name})
+                        })
+                        p = get_ai_provider(cfg_copy)
+                        if p.is_available():
+                            return p
+                    except Exception:
+                        pass
+                    return None
+
+                configured = self._cfg.ai.provider
+
+                # 1. Use configured provider if it actually works
+                provider = _try_provider(configured)
+
+                # 2. Fallback chain if configured provider is unreachable
+                if provider is None:
+                    provider = (
+                        _try_claude_cli() or
+                        _try_provider("anthropic") or
+                        _try_provider("openai") or
+                        _try_provider("ollama")
+                    )
+
+                self._ai = provider or NoOpProvider()
+
             return self._ai
 
         @property
