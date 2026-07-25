@@ -994,61 +994,165 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
 
     commands_dir.mkdir(parents=True, exist_ok=True)
 
-    skills = {
+    skills: dict[str, tuple[str, str]] = {
+        # ── Graph exploration ─────────────────────────────────────────────────
         "jsat-query": (
             "Answer a question about this codebase using JSAT's graph index.",
             'Use the jsat__query MCP tool with question="$ARGUMENTS" to answer '
             "the question using the indexed codebase graph. Show the answer clearly."
         ),
-        "jsat-blast-radius": (
-            "Trace downstream impact of a file or symbol change.",
-            'Use the jsat__blast_radius MCP tool with target="$ARGUMENTS" to trace '
-            "impact. Group results by severity: breaking / degraded / warning / safe."
-        ),
-        "jsat-security": (
-            "Run a security scan on the codebase.",
-            'Use the jsat__security_review MCP tool with path="$ARGUMENTS" (or "." if empty). '
-            "Group findings by severity. Highlight Critical and High issues first."
-        ),
-        "jsat-incident": (
-            "Investigate a production incident using recent git history.",
-            'Use the jsat__investigate_incident MCP tool with description="$ARGUMENTS". '
-            "Show top hypotheses ranked by score with evidence for each."
-        ),
         "jsat-index": (
             "Build or refresh the JSAT codebase graph index.",
             'Use the jsat__index_repo MCP tool with path="$ARGUMENTS" (or "." if empty). '
-            "Report how many nodes and edges were indexed."
+            "Report nodes indexed, edges indexed, parallel workers, and whether it was incremental."
         ),
         "jsat-status": (
-            "Show JSAT index statistics.",
-            "Use the jsat__get_index_status MCP tool and display node/edge counts."
+            "Show JSAT index statistics and health.",
+            "Use jsat__get_index_status and jsat__get_jsat_version to display node/edge counts, "
+            "version, and graph backend."
         ),
         "jsat-doctor": (
-            "Run a JSAT system health check.",
-            "Use the jsat__get_jsat_version MCP tool and jsat__get_index_status to "
-            "show system status, version, and index health."
+            "Run a full JSAT system health check.",
+            "Use jsat__health to show system status, AI provider, graph backend, version, "
+            "and any configuration issues. Flag anything that needs attention."
+        ),
+        "jsat-find-function": (
+            "Find a function or method in the indexed codebase.",
+            'Use jsat__get_function with name="$ARGUMENTS" to locate the function, '
+            "show its file, line numbers, parameters, return type, and complexity."
+        ),
+        "jsat-find-class": (
+            "Find a class in the indexed codebase.",
+            'Use jsat__get_class with name="$ARGUMENTS" to locate the class, '
+            "show its file, base classes, and method count."
+        ),
+        "jsat-list-services": (
+            "List all services found in the indexed codebase.",
+            "Use jsat__list_services to show all services with their language and entry point."
+        ),
+        "jsat-list-endpoints": (
+            "List all API endpoints found in the indexed codebase.",
+            "Use jsat__list_endpoints to show all HTTP endpoints with method, route, and auth info."
+        ),
+        "jsat-trace": (
+            "Trace a call chain from a symbol through the codebase.",
+            'Use jsat__trace_call_chain with symbol="$ARGUMENTS" to show the full call path. '
+            "Display as a numbered chain from entrypoint to leaf."
+        ),
+        # ── Impact & safety ───────────────────────────────────────────────────
+        "jsat-blast-radius": (
+            "Trace downstream impact of a file or symbol change.",
+            'Use jsat__blast_radius with target="$ARGUMENTS" to trace impact. '
+            "Group results by severity: breaking / degraded / warning / safe. "
+            "Show a Mermaid diagram if the impact is large."
+        ),
+        "jsat-security": (
+            "Run a security scan on the codebase.",
+            'Use jsat__security_review with path="$ARGUMENTS" (or "." if empty). '
+            "Group findings by severity. Highlight Critical and High issues first. "
+            "For each finding show: file, line, rule, and remediation advice."
+        ),
+        "jsat-migration": (
+            "Validate a database migration file for safety.",
+            'Use jsat__validate_migration with path="$ARGUMENTS" to check lock types, '
+            "estimate duration, and flag dangerous operations. Suggest zero-downtime alternatives."
+        ),
+        "jsat-contract": (
+            "Check API contract compatibility between branches.",
+            'Use jsat__get_api_diff with diff="$ARGUMENTS" to detect breaking changes '
+            "in OpenAPI/AsyncAPI specs. Show compatibility score and breaking vs non-breaking changes."
+        ),
+        # ── Code quality ──────────────────────────────────────────────────────
+        "jsat-review": (
+            "Submit code for multi-model review.",
+            'Use jsat__submit_for_review with diff="$ARGUMENTS" to run a parallel multi-model '
+            "code review. Show findings grouped by confidence (high → low). "
+            "Highlight bugs confirmed by multiple models."
+        ),
+        "jsat-test-gaps": (
+            "Find untested code paths and generate tests.",
+            'Use jsat__get_test_gaps with path="$ARGUMENTS" (or "." if empty) to find '
+            "functions with no test coverage. For the top gaps, use jsat__generate_unit_test "
+            "to generate a test for each."
+        ),
+        "jsat-coverage": (
+            "Show behavioral test coverage estimate for a path.",
+            'Use jsat__get_behavioral_coverage with path="$ARGUMENTS" to estimate '
+            "how much of the code behavior is covered by tests."
+        ),
+        # ── Knowledge base ────────────────────────────────────────────────────
+        "jsat-knowledge": (
+            "Query the JSAT knowledge base for architectural context.",
+            'Use jsat__knowledge_query with query="$ARGUMENTS" to search the knowledge base '
+            "for relevant ADRs, runbooks, and architectural decisions. Summarise findings."
+        ),
+        "jsat-knowledge-add": (
+            "Add an entry to the JSAT knowledge base.",
+            'Use jsat__knowledge_add with text="$ARGUMENTS" to store a new architectural '
+            "decision, runbook note, or tribal knowledge entry."
+        ),
+        "jsat-runbook": (
+            "Generate an incident runbook for a service or component.",
+            'Use jsat__generate_runbook with target="$ARGUMENTS" to produce a runbook '
+            "covering diagnosis steps, rollback procedure, and escalation path."
+        ),
+        # ── Investigation ─────────────────────────────────────────────────────
+        "jsat-incident": (
+            "Investigate a production incident using recent git history.",
+            'Use jsat__investigate_incident with description="$ARGUMENTS". '
+            "Show top hypotheses ranked by score with evidence and recent commits for each."
+        ),
+        "jsat-recent": (
+            "Show recent changes in the codebase.",
+            'Use jsat__get_recent_changes with target="$ARGUMENTS" (or "." if empty) '
+            "to list recent commits affecting the area. Highlight risky changes."
+        ),
+        # ── Prompt & token tools ──────────────────────────────────────────────
+        "jsat-prompt": (
+            "Optimize a query through the JSAT prompt pipeline before sending.",
+            'Use jsat__prompt_optimize with query="$ARGUMENTS" to run the full '
+            "offline pipeline: task classification → graph context → constraints → "
+            "few-shot examples → model formatting → token compression. "
+            "Show the optimized prompt and token savings."
         ),
         "jsat-prompt-diff": (
-            "Show what the user typed vs what JSAT sent to the AI after optimization.",
-            "Use the jsat__prompt_diff MCP tool with query=\"$ARGUMENTS\" to show "
-            "the before/after comparison: raw input vs fully optimized prompt with "
-            "injected context, constraints, few-shot examples, and model formatting. "
-            "Display both sides clearly — label one 'You sent' and the other 'AI received'."
+            "Show what you typed vs what JSAT sent to the AI after optimization.",
+            'Use jsat__prompt_diff with query="$ARGUMENTS" to show the before/after '
+            "comparison: raw input vs fully optimized prompt with injected context, "
+            "constraints, few-shot examples, and model formatting. "
+            "Label one panel 'You sent' and the other 'AI received'."
         ),
+        "jsat-tokens": (
+            "Count tokens and compress text to fit model context limits.",
+            'Use jsat__token_count with text="$ARGUMENTS" to estimate token count. '
+            "If the text is large, also use jsat__token_compress to apply offline "
+            "compression (whitespace, dedup, import collapse) and show savings."
+        ),
+        "jsat-token-budget": (
+            "Check how much of a model's context window a text uses.",
+            'Use jsat__token_budget with text="$ARGUMENTS" and model="claude-sonnet-4-6" '
+            "(or the model currently in use) to show tokens used, limit, percentage, "
+            "headroom, and status (ok / warn / critical)."
+        ),
+        # ── IThinking ─────────────────────────────────────────────────────────
         "jsat-ithinking": (
             "Apply IThinking meta-cognitive reasoning before acting on a task.",
-            "Use the jsat__ithinking_plan MCP tool with task=\"$ARGUMENTS\" to run "
-            "IThinking phases 0-4: intent clarification, local feasibility check, "
-            "prompt optimisation, task decomposition, and assumption audit. "
-            "Display the plan clearly. After the user approves, proceed with the task. "
-            "Then use jsat__ithinking_reflect to record what was done."
+            'Use jsat__ithinking_plan with task="$ARGUMENTS" to run phases 0-4: '
+            "intent clarification, local feasibility check, prompt optimisation, "
+            "task decomposition, and assumption audit. "
+            "Display the plan clearly, then ask for confirmation before proceeding. "
+            "After completing, use jsat__ithinking_reflect to record what was done."
         ),
         "jsat-think": (
             "Think carefully before acting — IThinking shortcut.",
-            "Before doing anything, use the jsat__ithinking_plan MCP tool with "
-            "task=\"$ARGUMENTS\" to clarify intent, check assumptions, and decompose "
-            "the work. Show the plan and ask for confirmation before proceeding."
+            'Before doing anything, use jsat__ithinking_plan with task="$ARGUMENTS" '
+            "to clarify intent, check assumptions, and decompose the work. "
+            "Show the plan and ask for confirmation before proceeding."
+        ),
+        "jsat-reflect": (
+            "Record what was done after completing a task (IThinking phase 6).",
+            'Use jsat__ithinking_reflect with subtask="$ARGUMENTS" to log the outcome, '
+            "what worked, what didn\'t, and any follow-up actions."
         ),
     }
 
@@ -1135,16 +1239,41 @@ def cmd_connect_claude(
     if install_skills:
         skills_dir = _write_jsat_skills(scope)
         console.print(
-            f"[green]✓[/] Installed JSAT slash commands in [bold]{skills_dir}[/]\n"
-            "  [cyan]/jsat-query[/]          — ask anything about the codebase\n"
-            "  [cyan]/jsat-blast-radius[/]   — trace impact of a change\n"
-            "  [cyan]/jsat-security[/]       — security scan\n"
-            "  [cyan]/jsat-incident[/]       — investigate an incident\n"
-            "  [cyan]/jsat-index[/]          — rebuild the graph\n"
-            "  [cyan]/jsat-status[/]         — graph stats\n"
-            "  [cyan]/jsat-doctor[/]         — health check\n"
-            "  [cyan]/jsat-ithinking[/]      — IThinking: plan before acting\n"
-            "  [cyan]/jsat-think[/]          — think carefully before any task\n"
+            f"[green]✓[/] Installed 28 JSAT slash commands in [bold]{skills_dir}[/]\n"
+            "\n[bold]Graph exploration[/]\n"
+            "  [cyan]/jsat-query[/]           — ask anything about the codebase\n"
+            "  [cyan]/jsat-find-function[/]   — look up a function by name\n"
+            "  [cyan]/jsat-find-class[/]      — look up a class by name\n"
+            "  [cyan]/jsat-list-services[/]   — list all indexed services\n"
+            "  [cyan]/jsat-list-endpoints[/]  — list all API endpoints\n"
+            "  [cyan]/jsat-trace[/]           — trace a call chain\n"
+            "  [cyan]/jsat-index[/]           — rebuild the graph (incremental)\n"
+            "  [cyan]/jsat-status[/]          — graph stats\n"
+            "  [cyan]/jsat-doctor[/]          — system health check\n"
+            "\n[bold]Impact & safety[/]\n"
+            "  [cyan]/jsat-blast-radius[/]    — trace downstream impact of a change\n"
+            "  [cyan]/jsat-security[/]        — OWASP security scan\n"
+            "  [cyan]/jsat-migration[/]       — validate DB migration safety\n"
+            "  [cyan]/jsat-contract[/]        — API contract compatibility check\n"
+            "\n[bold]Code quality[/]\n"
+            "  [cyan]/jsat-review[/]          — multi-model parallel code review\n"
+            "  [cyan]/jsat-test-gaps[/]       — find untested code, generate tests\n"
+            "  [cyan]/jsat-coverage[/]        — behavioral coverage estimate\n"
+            "\n[bold]Knowledge & investigation[/]\n"
+            "  [cyan]/jsat-knowledge[/]       — query the knowledge base\n"
+            "  [cyan]/jsat-knowledge-add[/]   — add to the knowledge base\n"
+            "  [cyan]/jsat-runbook[/]         — generate an incident runbook\n"
+            "  [cyan]/jsat-incident[/]        — investigate a production incident\n"
+            "  [cyan]/jsat-recent[/]          — show recent codebase changes\n"
+            "\n[bold]Prompt & token tools[/]\n"
+            "  [cyan]/jsat-prompt[/]          — optimize a prompt before sending\n"
+            "  [cyan]/jsat-prompt-diff[/]     — see raw vs optimized prompt\n"
+            "  [cyan]/jsat-tokens[/]          — count tokens, compress text\n"
+            "  [cyan]/jsat-token-budget[/]    — check model context budget\n"
+            "\n[bold]IThinking[/]\n"
+            "  [cyan]/jsat-ithinking[/]       — full IThinking: plan before acting\n"
+            "  [cyan]/jsat-think[/]           — quick: think before any task\n"
+            "  [cyan]/jsat-reflect[/]         — record outcome after a task\n"
         )
 
     console.print(
