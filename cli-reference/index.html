@@ -2335,7 +2335,7 @@
 <p>Restart Claude Code after running.</p>
 <hr />
 <h3 id="jsat-connect-codex"><code>jsat connect codex</code><a class="headerlink" href="#jsat-connect-codex" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into the OpenAI Codex CLI as an MCP server.</p>
+<p>Wire JSAT into the OpenAI Codex CLI as an MCP server and write agent instructions.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>jsat connect codex [OPTIONS]
 </code></pre></div>
 <table>
@@ -2350,18 +2350,26 @@
 <tr>
 <td><code>--scope</code>, <code>-s</code></td>
 <td><code>project</code></td>
-<td><code>project</code> → <code>.codex/config.json</code> | <code>global</code> → <code>~/.codex/config.json</code></td>
+<td><code>project</code> → <code>.codex/</code> | <code>global</code> → <code>~/.codex/</code></td>
 </tr>
 <tr>
 <td><code>--repo</code>, <code>-r</code></td>
 <td><code>.</code></td>
 <td>Repo path passed to the MCP server</td>
 </tr>
+<tr>
+<td><code>--no-instructions</code></td>
+<td>false</td>
+<td>MCP config only — skip instructions.md</td>
+</tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                          </span><span class="c1"># project scope</span>
 <a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">           </span><span class="c1"># global</span>
 </code></pre></div>
+<p>Writes two files:
+- <code>.codex/config.json</code> — MCP server registration
+- <code>.codex/instructions.md</code> — JSAT tool guidance (Codex reads at startup)</p>
 <hr />
 <h3 id="jsat-connect-cursor"><code>jsat connect cursor</code><a class="headerlink" href="#jsat-connect-cursor" title="Permanent link">&para;</a></h3>
 <p>Wire JSAT into Cursor as an MCP server.</p>
@@ -2386,9 +2394,12 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>cursor
 </code></pre></div>
 <p>Writes to <code>~/.cursor/mcp.json</code>. Restart Cursor after running.</p>
+<blockquote>
+<p><strong>Note:</strong> Cursor reads <code>.cursorrules</code> from the project root as agent instructions. You can copy the content from <code>.codex/instructions.md</code> or <code>.windsurfrules</code> if you want JSAT guidance in Cursor too.</p>
+</blockquote>
 <hr />
 <h3 id="jsat-connect-windsurf"><code>jsat connect windsurf</code><a class="headerlink" href="#jsat-connect-windsurf" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into Windsurf (Codeium) as an MCP server.</p>
+<p>Wire JSAT into Windsurf (Codeium) as an MCP server and write <code>.windsurfrules</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>jsat connect windsurf [OPTIONS]
 </code></pre></div>
 <table>
@@ -2405,14 +2416,22 @@
 <td><code>.</code></td>
 <td>Repo path for the MCP server</td>
 </tr>
+<tr>
+<td><code>--no-instructions</code></td>
+<td>false</td>
+<td>MCP config only — skip .windsurfrules</td>
+</tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>windsurf
 </code></pre></div>
-<p>Writes to <code>~/.codeium/windsurf/mcp_config.json</code>. Restart Windsurf after running.</p>
+<p>Writes two files:
+- <code>~/.codeium/windsurf/mcp_config.json</code> — MCP server registration
+- <code>.windsurfrules</code> — JSAT tool guidance (Windsurf reads from project root automatically)</p>
+<p>Restart Windsurf after running.</p>
 <hr />
 <h3 id="jsat-connect-continue"><code>jsat connect continue</code><a class="headerlink" href="#jsat-connect-continue" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into Continue.dev as an MCP server.</p>
+<p>Wire JSAT into Continue.dev as an MCP server and add 10 <code>/jsat-*</code> custom commands.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>jsat connect continue [OPTIONS]
 </code></pre></div>
 <table>
@@ -2429,14 +2448,25 @@
 <td><code>.</code></td>
 <td>Repo path for the MCP server</td>
 </tr>
+<tr>
+<td><code>--no-instructions</code></td>
+<td>false</td>
+<td>MCP config only — skip custom commands</td>
+</tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span><span class="k">continue</span>
 </code></pre></div>
-<p>Writes to <code>~/.continue/config.json</code> using Continue's <code>mcpServers</code> array format. Reload Continue (Cmd/Ctrl+Shift+P → "Continue: Reload") to activate.</p>
+<p>Writes to <code>~/.continue/config.json</code>:
+- <code>mcpServers</code> array entry — MCP server registration
+- <code>customCommands</code> entries — 10 <code>/jsat-*</code> slash commands:
+  <code>/jsat-query</code>, <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>,
+  <code>/jsat-test-gaps</code>, <code>/jsat-knowledge</code>, <code>/jsat-incident</code>,
+  <code>/jsat-prompt-rewrite</code>, <code>/jsat-tokens</code>, <code>/jsat-ithinking</code></p>
+<p>Reload Continue (Cmd/Ctrl+Shift+P → "Continue: Reload") to activate.</p>
 <hr />
 <h3 id="jsat-connect-zed"><code>jsat connect zed</code><a class="headerlink" href="#jsat-connect-zed" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into Zed editor as a context server.</p>
+<p>Wire JSAT into Zed editor as a context server and write <code>.zed/JSAT.md</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>jsat connect zed [OPTIONS]
 </code></pre></div>
 <table>
@@ -2453,14 +2483,22 @@
 <td><code>.</code></td>
 <td>Repo path for the MCP server</td>
 </tr>
+<tr>
+<td><code>--no-instructions</code></td>
+<td>false</td>
+<td>Context server only — skip .zed/JSAT.md</td>
+</tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>zed
 </code></pre></div>
-<p>Writes to <code>~/.config/zed/settings.json</code> using Zed's <code>context_servers</code> format. Restart Zed after running.</p>
+<p>Writes two files:
+- <code>~/.config/zed/settings.json</code> — <code>context_servers</code> registration
+- <code>.zed/JSAT.md</code> — JSAT tool guidance (project context for Zed)</p>
+<p>Restart Zed after running.</p>
 <hr />
 <h3 id="jsat-connect-gemini"><code>jsat connect gemini</code><a class="headerlink" href="#jsat-connect-gemini" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into the Google Gemini CLI as an MCP server.</p>
+<p>Wire JSAT into the Google Gemini CLI as an MCP server and write <code>GEMINI.md</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>jsat connect gemini [OPTIONS]
 </code></pre></div>
 <table>
@@ -2477,11 +2515,19 @@
 <td><code>.</code></td>
 <td>Repo path for the MCP server</td>
 </tr>
+<tr>
+<td><code>--no-instructions</code></td>
+<td>false</td>
+<td>MCP config only — skip GEMINI.md</td>
+</tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>gemini
 </code></pre></div>
-<p>Writes to <code>~/.gemini/settings.json</code>. Restart Gemini CLI after running.</p>
+<p>Writes two files:
+- <code>~/.gemini/settings.json</code> — MCP server registration
+- <code>GEMINI.md</code> — JSAT tool guidance (Gemini CLI reads from project root automatically)</p>
+<p>Restart Gemini CLI after running.</p>
 <hr />
 <h3 id="jsat-connect-list"><code>jsat connect list</code><a class="headerlink" href="#jsat-connect-list" title="Permanent link">&para;</a></h3>
 <p>Show all AI tools that have JSAT wired as an MCP server.</p>
