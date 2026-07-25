@@ -73,6 +73,8 @@ class JSAT:
 
         self._graph: GraphClient | None = None
         self._ai: AIProvider | None = None
+        self._active_provider: str = self._cfg.ai.provider
+        self._active_model: str = self._cfg.ai.model
 
         log = structlog.get_logger(__name__)
         log.info("jsat_init", repo=str(self._repo),
@@ -80,6 +82,91 @@ class JSAT:
                  profile=self._sys.detected_profile,
                  ai_provider=self._cfg.ai.provider,
                  graph_backend=self._cfg.graph.backend)
+
+    def switch_ai(self, provider: str, model: str | None = None,
+                  base_url: str | None = None) -> tuple[str, str]:
+        """Switch the AI provider mid-session. Returns (provider, model) that's now active.
+
+        Supported aliases:
+          claude, anthropic     → Anthropic API
+          gpt, openai, chatgpt  → OpenAI API
+          ollama                → local Ollama
+          gemini                → Google Gemini (via OpenAI-compat endpoint)
+          lmstudio              → LM Studio (localhost:1234)
+          codex                 → OpenAI (codex models)
+          custom, compat        → any OpenAI-compatible URL (pass base_url=)
+        """
+        import os
+
+        # Resolve provider alias + default model
+        _aliases: dict[str, tuple[str, str, str | None]] = {
+            # alias → (internal_provider, default_model, base_url)
+            "claude":     ("anthropic",    "claude-sonnet-4-6",             None),
+            "anthropic":  ("anthropic",    "claude-sonnet-4-6",             None),
+            "haiku":      ("anthropic",    "claude-haiku-4-5-20251001",     None),
+            "opus":       ("anthropic",    "claude-opus-4-8",               None),
+            "gpt":        ("openai",       "gpt-4o",                        None),
+            "openai":     ("openai",       "gpt-4o",                        None),
+            "chatgpt":    ("openai",       "gpt-4o",                        None),
+            "gpt4":       ("openai",       "gpt-4o",                        None),
+            "gpt4mini":   ("openai",       "gpt-4o-mini",                   None),
+            "codex":      ("openai",       "gpt-4o",                        None),
+            "ollama":     ("ollama",       "llama3.2",                      None),
+            "llama":      ("ollama",       "llama3.2",                      None),
+            "phi":        ("ollama",       "phi3:mini",                     None),
+            "gemini":     ("openai_compat","gemini-1.5-flash",
+                           "https://generativelanguage.googleapis.com/v1beta/openai"),
+            "gemini-pro": ("openai_compat","gemini-1.5-pro",
+                           "https://generativelanguage.googleapis.com/v1beta/openai"),
+            "lmstudio":   ("openai_compat","local-model",                   "http://localhost:1234/v1"),
+            "lm-studio":  ("openai_compat","local-model",                   "http://localhost:1234/v1"),
+            "custom":     ("openai_compat","local-model",                    base_url or "http://localhost:1234/v1"),
+            "compat":     ("openai_compat","local-model",                    base_url or "http://localhost:1234/v1"),
+        }
+
+        alias = provider.lower().strip()
+        if alias not in _aliases:
+            raise ValueError(
+                f"Unknown provider '{provider}'.\n"
+                f"Available: {', '.join(sorted(_aliases))}"
+            )
+
+        internal, default_model, resolved_url = _aliases[alias]
+        chosen_model = model or default_model
+        chosen_url = base_url or resolved_url
+
+        # Update config
+        ai_update: dict = {"provider": internal, "model": chosen_model}
+        if chosen_url:
+            ai_update["base_url"] = chosen_url
+        self._cfg = self._cfg.model_copy(
+            update={"ai": self._cfg.ai.model_copy(update=ai_update)}
+        )
+
+        # Reset cached AI so _get_ai() rebuilds with new config
+        self._ai = None
+        self._active_provider = alias
+        self._active_model = chosen_model
+
+        # Verify reachability
+        try:
+            ai = self._get_ai()
+            ok = ai.is_available()
+        except Exception:
+            ok = False
+
+        return alias, chosen_model, ok  # type: ignore[return-value]
+
+    def active_ai_label(self) -> str:
+        """Short human-readable label of the current AI: 'Claude (claude-sonnet-4-6)'"""
+        _labels = {
+            "anthropic":    "Claude",
+            "openai":       "GPT",
+            "ollama":       "Ollama",
+            "openai_compat":"Local/Compat",
+        }
+        provider_name = _labels.get(self._cfg.ai.provider, self._cfg.ai.provider)
+        return f"{provider_name} ({self._cfg.ai.model})"
 
     def _pin_paths_to_repo(self, cfg: JSATConfig) -> JSATConfig:
         """Resolve all relative .jsat/* paths against self._repo.
