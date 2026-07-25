@@ -131,7 +131,7 @@ def cmd_doctor(
     sys_t.add_row("CI mode", str(s.get("is_ci", False)))
     console.print(Panel(sys_t, title="System", border_style="blue"))
 
-    # Services
+    # Services (graph + index)
     svc_t = Table(box=box.ROUNDED, header_style="bold magenta")
     svc_t.add_column("Service")
     svc_t.add_column("Status")
@@ -141,13 +141,33 @@ def cmd_doctor(
     g = report.get("graph", {})
     svc_t.add_row("graph", _ok(g.get("ok")),
                   f"backend={g.get('backend','?')}" + (f" err={g['error']}" if g.get("error") else ""))
-    ai = report.get("ai", {})
-    svc_t.add_row("AI", _ok(ai.get("ok")),
-                  f"{ai.get('provider','?')}/{ai.get('model','?')}" + (f" err={ai['error']}" if ai.get("error") else ""))
     idx = report.get("index", {})
     svc_t.add_row("index", _ok(idx.get("is_fresh")),
                   f"nodes={idx.get('nodes',0)} edges={idx.get('edges',0)}")
     console.print(Panel(svc_t, title="Services", border_style="blue"))
+
+    # AI providers — show all detected ones
+    ai = report.get("ai", {})
+    ai_t = Table(box=box.ROUNDED, header_style="bold magenta")
+    ai_t.add_column("AI Provider")
+    ai_t.add_column("Status")
+    ai_t.add_column("Free")
+    ai_t.add_column("Switch command")
+    active_provider = ai.get("provider", "")
+    for p in ai.get("available_providers", []):
+        name = p.get("name", "?")
+        alias = p.get("alias", "?")
+        available = p.get("available", False)
+        is_active = p.get("provider_key") == active_provider
+        label = f"[bold cyan]{name}[/] [dim](active)[/]" if is_active else name
+        status = "[green]✓ available[/]" if available else "[dim]✗ unavailable[/]"
+        free = "[green]free[/]" if p.get("free") else "[dim]paid[/]"
+        switch_cmd = f"[cyan]switch {alias}[/]" if available else f"[dim]switch {alias}[/]"
+        ai_t.add_row(label, status, free, switch_cmd)
+    if not ai.get("available_providers"):
+        ai_t.add_row("[dim]none detected[/]", "[red]✗[/]", "", "")
+    console.print(Panel(ai_t, title=f"AI Providers  (active: {active_provider}/{ai.get('model','?')})",
+                        border_style="blue"))
 
 
 # ── init ──────────────────────────────────────────────────────────────────────

@@ -99,9 +99,16 @@ class JSAT:
         import os
 
         # Resolve provider alias + default model
+        import shutil as _shutil
+        _claude_cli_available = bool(_shutil.which("claude"))
+
         _aliases: dict[str, tuple[str, str, str | None]] = {
             # alias → (internal_provider, default_model, base_url)
-            "claude":     ("anthropic",    "claude-sonnet-4-6",             None),
+            # "claude" prefers CLI if installed (no API key needed), else falls back to API
+            "claude":     ("claude_cli" if _claude_cli_available else "anthropic",
+                           "claude-sonnet-4-6", None),
+            "claude-api": ("anthropic",    "claude-sonnet-4-6",             None),
+            "claude-cli": ("claude_cli",   "claude-sonnet-4-6",             None),
             "anthropic":  ("anthropic",    "claude-sonnet-4-6",             None),
             "haiku":      ("anthropic",    "claude-haiku-4-5-20251001",     None),
             "opus":       ("anthropic",    "claude-opus-4-8",               None),
@@ -158,15 +165,22 @@ class JSAT:
         return alias, chosen_model, ok  # type: ignore[return-value]
 
     def active_ai_label(self) -> str:
-        """Short human-readable label of the current AI: 'Claude (claude-sonnet-4-6)'"""
+        """Short human-readable label: 'Claude Code (CLI)' or 'GPT (gpt-4o-mini)'"""
         _labels = {
-            "anthropic":    "Claude",
+            "claude_cli":   "Claude Code (CLI)",
+            "anthropic":    "Claude API",
             "openai":       "GPT",
             "ollama":       "Ollama",
             "openai_compat":"Local/Compat",
+            "none":         "No AI",
         }
-        provider_name = _labels.get(self._cfg.ai.provider, self._cfg.ai.provider)
-        return f"{provider_name} ({self._cfg.ai.model})"
+        provider = self._cfg.ai.provider
+        name = _labels.get(provider, provider)
+        model = self._cfg.ai.model
+        # For claude_cli the model is internal; show just the provider name
+        if provider == "claude_cli":
+            return name
+        return f"{name} ({model})"
 
     def _pin_paths_to_repo(self, cfg: JSATConfig) -> JSATConfig:
         """Resolve all relative .jsat/* paths against self._repo.
@@ -359,8 +373,8 @@ class JSAT:
 
     def doctor(self) -> dict[str, Any]:
         """Full health check — what the CLI `jsat doctor` calls."""
-        from jsat._config import detect_system
-        sys_profile = detect_system(refresh=True)
+        from jsat._config import detect_system, detect_ai_providers
+        sys_profile = detect_system(refresh=True, repo_root=self._repo)
 
         graph_ok, graph_err = False, None
         try:
@@ -391,7 +405,12 @@ class JSAT:
                 "redis":  {"running": sys_profile.redis_up},
             },
             "graph": {"ok": graph_ok, "backend": self._cfg.graph.backend, "error": graph_err},
-            "ai":    {"ok": ai_ok, "provider": self._cfg.ai.provider,
-                      "model": self._cfg.ai.model, "error": ai_err},
+            "ai": {
+                "ok": ai_ok,
+                "provider": self._cfg.ai.provider,
+                "model": self._cfg.ai.model,
+                "error": ai_err,
+                "available_providers": detect_ai_providers(sys_profile),
+            },
             "index": self.index_status,
         }

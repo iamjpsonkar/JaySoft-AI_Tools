@@ -215,8 +215,153 @@ def _compute_profile(ram_gb: float, cpu_arch: str, is_ci: bool,
 
 # ── 3. auto_configure ────────────────────────────────────────────────────────
 
+def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
+    """Probe every AI provider and return a list of availability dicts.
+
+    Each entry: {name, provider_key, available, model, reason, free}
+    Ordered: available first, then by preference.
+    """
+    import os, shutil
+
+    results = []
+
+    # 1. Claude CLI (Claude Code) — no key needed if installed
+    claude_bin = shutil.which("claude")
+    results.append({
+        "name":         "Claude Code (CLI)",
+        "alias":        "claude-cli",
+        "provider_key": "claude_cli",
+        "available":    bool(claude_bin),
+        "model":        "claude-sonnet-4-6",
+        "reason":       "claude binary found" if claude_bin else "claude CLI not installed",
+        "free":         False,
+        "requires":     "Install Claude Code: claude.ai/code",
+    })
+
+    # 2. Anthropic API
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    results.append({
+        "name":         "Anthropic API",
+        "alias":        "claude-api",
+        "provider_key": "anthropic",
+        "available":    bool(anthropic_key),
+        "model":        "claude-sonnet-4-6",
+        "reason":       "ANTHROPIC_API_KEY set" if anthropic_key else "ANTHROPIC_API_KEY not set",
+        "free":         False,
+        "requires":     "export ANTHROPIC_API_KEY=sk-ant-...",
+    })
+
+    # 3. OpenAI API
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    results.append({
+        "name":         "OpenAI API",
+        "alias":        "gpt",
+        "provider_key": "openai",
+        "available":    bool(openai_key),
+        "model":        "gpt-4o",
+        "reason":       "OPENAI_API_KEY set" if openai_key else "OPENAI_API_KEY not set",
+        "free":         False,
+        "requires":     "export OPENAI_API_KEY=sk-...",
+    })
+
+    # 4. Gemini API
+    gemini_key = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("GOOGLE_API_KEY", "")
+    results.append({
+        "name":         "Google Gemini",
+        "alias":        "gemini",
+        "provider_key": "openai_compat",
+        "available":    bool(gemini_key),
+        "model":        "gemini-1.5-flash",
+        "reason":       "GEMINI_API_KEY set" if gemini_key else "GEMINI_API_KEY not set",
+        "free":         False,
+        "requires":     "export GEMINI_API_KEY=...",
+    })
+
+    # 5. Ollama (local)
+    ollama_up = sys_profile.ollama_up if sys_profile else False
+    if not sys_profile:
+        try:
+            import httpx
+            ollama_up = httpx.get("http://localhost:11434/api/tags", timeout=0.5).status_code < 400
+        except Exception:
+            ollama_up = False
+    ollama_models: list[str] = []
+    if ollama_up:
+        try:
+            import httpx
+            r = httpx.get("http://localhost:11434/api/tags", timeout=1.0)
+            ollama_models = [m["name"] for m in r.json().get("models", [])]
+        except Exception:
+            pass
+    results.append({
+        "name":         "Ollama (local)",
+        "alias":        "ollama",
+        "provider_key": "ollama",
+        "available":    ollama_up,
+        "model":        ollama_models[0] if ollama_models else "llama3.2",
+        "models":       ollama_models,
+        "reason":       f"running — {len(ollama_models)} model(s)" if ollama_up else "not running",
+        "free":         True,
+        "requires":     "brew install ollama && ollama serve && ollama pull llama3.2",
+    })
+
+    # 6. LM Studio / any OpenAI-compat local server
+    lm_up = False
+    lm_models: list[str] = []
+    try:
+        import httpx
+        r = httpx.get("http://localhost:1234/v1/models", timeout=0.5)
+        if r.status_code < 400:
+            lm_up = True
+            lm_models = [m["id"] for m in r.json().get("data", [])]
+    except Exception:
+        pass
+    results.append({
+        "name":         "LM Studio (local)",
+        "alias":        "lmstudio",
+        "provider_key": "openai_compat",
+        "available":    lm_up,
+        "model":        lm_models[0] if lm_models else "local-model",
+        "models":       lm_models,
+        "reason":       f"running at localhost:1234 — {len(lm_models)} model(s)" if lm_up else "not running",
+        "free":         True,
+        "requires":     "Download LM Studio from lmstudio.ai → load model → start server",
+    })
+
+    # Sort: available first
+    results.sort(key=lambda x: (not x["available"], x["name"]))
+    return results
+
+
+def _provider_reachable(provider_key: str, sys_profile: SystemProfile | None) -> bool:
+    """Quick check whether a provider is currently usable."""
+    import os, shutil
+    if provider_key == "claude_cli":
+        return bool(shutil.which("claude"))
+    if provider_key == "anthropic":
+        return bool(os.environ.get("ANTHROPIC_API_KEY"))
+    if provider_key == "openai":
+        return bool(os.environ.get("OPENAI_API_KEY"))
+    if provider_key == "openai_compat":
+        return True   # assume configured manually; don't block
+    if provider_key == "ollama":
+        return sys_profile.ollama_up if sys_profile else False
+    if provider_key == "none":
+        return False
+    return False
+
+
+def best_available_ai_provider(sys_profile: SystemProfile | None = None) -> str:
+    """Return the provider_key of the best available AI provider."""
+    for p in detect_ai_providers(sys_profile):
+        if p["available"]:
+            return p["provider_key"]
+    return "none"
+
+
 def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
     """Apply auto-selection matrix. Returns new JSATConfig; original unchanged."""
+    import shutil
     import structlog
     log = structlog.get_logger(__name__)
     p = sys_profile.detected_profile
@@ -233,6 +378,26 @@ def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
             raw[key] = val
 
     new_cfg = JSATConfig.model_validate(raw)
+
+    # Auto-select best available AI provider when the configured one is unreachable.
+    # Priority: claude_cli > anthropic API > openai API > gemini > ollama > lmstudio
+    configured = new_cfg.ai.provider
+    provider_is_up = _provider_reachable(configured, sys_profile)
+    if not provider_is_up:
+        providers = detect_ai_providers(sys_profile)
+        best_entry = next((p for p in providers if p["available"]), None)
+        if best_entry and best_entry["provider_key"] != configured:
+            new_cfg = new_cfg.model_copy(update={
+                "ai": new_cfg.ai.model_copy(update={
+                    "provider": best_entry["provider_key"],
+                    "model":    best_entry["model"],
+                })
+            })
+            log.info("auto_configure_ai_fallback",
+                     was=configured, now=best_entry["provider_key"],
+                     model=best_entry["model"],
+                     reason=f"'{configured}' not reachable, using {best_entry['name']}")
+
     log.info("auto_configured", profile=p,
              graph=new_cfg.graph.backend, ai=new_cfg.ai.provider, cache=new_cfg.cache.backend)
     return new_cfg

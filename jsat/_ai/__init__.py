@@ -41,6 +41,10 @@ def get_ai_provider(cfg: Any) -> AIProvider:
         from jsat._ai.none import NoOpProvider
         return NoOpProvider()
 
+    if provider_name == "claude_cli":
+        from jsat._ai.claude_cli import ClaudeCliProvider
+        return ClaudeCliProvider(cfg)
+
     if provider_name == "ollama":
         try:
             from jsat._ai.ollama import OllamaProvider

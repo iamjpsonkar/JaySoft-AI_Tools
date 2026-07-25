@@ -182,6 +182,87 @@ class JSATShell:
 
     # ── AI switching ──────────────────────────────────────────────────────────
 
+    # ── Key requirements per provider ────────────────────────────────────────
+
+    _KEY_REQUIREMENTS: dict[str, tuple[str, str]] = {
+        # alias → (env_var_name, display_name)
+        "claude":     ("ANTHROPIC_API_KEY", "Anthropic API key"),
+        "anthropic":  ("ANTHROPIC_API_KEY", "Anthropic API key"),
+        "haiku":      ("ANTHROPIC_API_KEY", "Anthropic API key"),
+        "opus":       ("ANTHROPIC_API_KEY", "Anthropic API key"),
+        "gpt":        ("OPENAI_API_KEY",    "OpenAI API key"),
+        "openai":     ("OPENAI_API_KEY",    "OpenAI API key"),
+        "chatgpt":    ("OPENAI_API_KEY",    "OpenAI API key"),
+        "gpt4":       ("OPENAI_API_KEY",    "OpenAI API key"),
+        "gpt4mini":   ("OPENAI_API_KEY",    "OpenAI API key"),
+        "codex":      ("OPENAI_API_KEY",    "OpenAI API key"),
+        "gemini":     ("GEMINI_API_KEY",    "Gemini API key"),
+        "gemini-pro": ("GEMINI_API_KEY",    "Gemini API key"),
+    }
+
+    def _ensure_key(self, provider: str) -> bool:
+        """If provider needs an API key and it's missing, prompt for it inline.
+        Returns True if the key is now available, False if the user skipped."""
+        import os, getpass
+
+        req = self._KEY_REQUIREMENTS.get(provider)
+        if req is None:
+            return True  # no key needed (ollama, lmstudio, etc.)
+
+        env_var, display_name = req
+        if os.environ.get(env_var):
+            return True  # already set
+
+        self._console.print(
+            f"\n[yellow]→ {display_name} required.[/]\n"
+            f"  Enter your key below (input hidden). "
+            f"Press Enter to skip.\n"
+        )
+        try:
+            key = getpass.getpass(f"  {env_var}: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            key = ""
+
+        if not key:
+            self._console.print("[dim]  Skipped — provider may not work without a key.[/dim]")
+            return False
+
+        # Set for the current process (survives this session only)
+        os.environ[env_var] = key
+
+        # Offer to persist to shell profile
+        self._console.print(f"\n  [green]✓ Key set for this session.[/]")
+        try:
+            save = input("  Save to ~/.zshrc / ~/.bashrc? [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            save = "n"
+
+        if save == "y":
+            self._save_key_to_profile(env_var, key)
+
+        return True
+
+    def _save_key_to_profile(self, env_var: str, key: str) -> None:
+        """Append export VAR=key to the user's shell profile."""
+        import os
+        shell = os.environ.get("SHELL", "")
+        candidates = []
+        if "zsh" in shell:
+            candidates = [Path.home() / ".zshrc"]
+        elif "bash" in shell:
+            candidates = [Path.home() / ".bashrc", Path.home() / ".bash_profile"]
+        else:
+            candidates = [Path.home() / ".profile"]
+
+        profile = next((p for p in candidates if p.exists()), candidates[0])
+        line = f'\nexport {env_var}="{key}"  # added by jsat\n'
+        try:
+            with profile.open("a") as f:
+                f.write(line)
+            self._console.print(f"  [green]✓ Saved to {profile}[/]  (run: source {profile})")
+        except Exception as e:
+            self._console.print(f"  [red]Could not write to {profile}:[/] {e}")
+
     def _cmd_switch(self, args: list[str]) -> None:
         """switch <provider> [model] [base_url]"""
         if not args:
@@ -195,6 +276,10 @@ class JSATShell:
         model    = args[1] if len(args) > 1 else None
         base_url = args[2] if len(args) > 2 else None
 
+        # Prompt for missing API key before attempting switch
+        if not self._ensure_key(provider):
+            self._console.print("[dim]  Continuing without key — switch will show unreachable.[/dim]\n")
+
         self._console.print(f"[dim]Switching to [bold]{provider}[/bold]...[/dim]", end=" ")
         try:
             _, chosen_model, ok = self._js.switch_ai(provider, model=model, base_url=base_url)
@@ -203,8 +288,7 @@ class JSATShell:
                 self._console.print(f"[green]✓ {label}[/]")
             else:
                 self._console.print(
-                    f"[yellow]⚠ {label} — not reachable[/]\n"
-                    f"  Set the API key or start the service, then try again.\n"
+                    f"[yellow]⚠ {label} — still not reachable.[/]\n"
                     + self._provider_hint(provider)
                 )
         except ValueError as e:
@@ -212,13 +296,8 @@ class JSATShell:
 
     def _provider_hint(self, provider: str) -> str:
         hints = {
-            "claude": "  [dim]export ANTHROPIC_API_KEY=sk-ant-...[/dim]",
-            "anthropic": "  [dim]export ANTHROPIC_API_KEY=sk-ant-...[/dim]",
-            "gpt": "  [dim]export OPENAI_API_KEY=sk-...[/dim]",
-            "openai": "  [dim]export OPENAI_API_KEY=sk-...[/dim]",
-            "ollama": "  [dim]brew install ollama && ollama serve && ollama pull llama3.2[/dim]",
-            "gemini": "  [dim]export GEMINI_API_KEY=... (or OPENAI_API_KEY)[/dim]",
-            "lmstudio": "  [dim]Open LM Studio → load a model → start server[/dim]",
+            "ollama":   "  [dim]Install: brew install ollama  →  ollama serve  →  ollama pull llama3.2[/dim]",
+            "lmstudio": "  [dim]Open LM Studio → load a model → Local Server → Start[/dim]",
         }
         return hints.get(provider, "")
 
