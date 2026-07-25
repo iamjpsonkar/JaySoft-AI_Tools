@@ -412,6 +412,34 @@ class JSAT:
         optimizer.save_to_history(result, response)
         return {"response": response, "prompt_result": result}
 
+    # ── Token optimizer ───────────────────────────────────────────────────────
+
+    def token_count(self, text: str) -> int:
+        """Estimate token count of any text. Offline, no LLM."""
+        from jsat.tools.token_optimizer import estimate_tokens
+        return estimate_tokens(text)
+
+    def token_compress(
+        self,
+        text: str,
+        target_tokens: int | None = None,
+        *,
+        model: str | None = None,
+        strip_comments: bool = False,
+        dedup: bool = True,
+    ) -> Any:
+        """Apply offline compression and return a TokenReport."""
+        from jsat.tools.token_optimizer import TokenOptimizer
+        opt = TokenOptimizer(graph=None, cfg=self._cfg, ai=None)
+        return opt.compress(text, target_tokens=target_tokens, model=model,
+                            strip_comments=strip_comments, dedup=dedup)
+
+    def token_budget(self, text: str, model: str) -> dict[str, Any]:
+        """Return token budget info: count, limit, pct used, headroom, status."""
+        from jsat.tools.token_optimizer import TokenOptimizer
+        opt = TokenOptimizer(graph=None, cfg=self._cfg, ai=None)
+        return opt.budget(text, model)
+
     @property
     def index_status(self) -> dict[str, Any]:
         """Quick snapshot: nodes, edges, commit, is_fresh."""

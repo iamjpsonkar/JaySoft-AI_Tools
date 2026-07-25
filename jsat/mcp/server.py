@@ -932,6 +932,64 @@ class MCPServer:
                     f"Estimated tokens: ~{max(500, len(a['task'].split()) * 120)} tokens"
                 ),
             },
+            # ── Token optimizer ──────────────────────────────────────────────
+            "token_count": {
+                "description": (
+                    "Estimate the token count of any text using JSAT's offline estimator "
+                    "(±12% vs BPE tokenization, no API call). Use to gauge context usage "
+                    "before sending a prompt."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["text"],
+                    "properties": {
+                        "text": {"type": "string"},
+                        "model": {"type": "string",
+                                  "description": "Optional model for budget context (e.g. gpt-4o, claude-cli)."},
+                    },
+                },
+                "handler": lambda a: _ser(_token_count_impl(js, a)),
+            },
+            "token_compress": {
+                "description": (
+                    "Compress text using offline strategies (whitespace, stop-phrase removal, "
+                    "import collapse, semantic dedup, recency pinning) to reduce token usage "
+                    "before sending to an LLM. Returns compressed text + savings stats."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["text"],
+                    "properties": {
+                        "text": {"type": "string"},
+                        "model": {"type": "string",
+                                  "description": "Target model — sets safe-zone ceiling (85% of context limit)."},
+                        "target_tokens": {"type": "integer",
+                                          "description": "Explicit token ceiling. Overrides model default."},
+                        "strip_comments": {"type": "boolean", "default": False,
+                                           "description": "Also strip code comment lines."},
+                        "dedup": {"type": "boolean", "default": True,
+                                  "description": "Apply semantic deduplication."},
+                    },
+                },
+                "handler": lambda a: _ser(_token_compress_impl(js, a)),
+            },
+            "token_budget": {
+                "description": (
+                    "Show how much of a model's context window a given text occupies. "
+                    "Returns tokens used, limit, percentage, headroom, and status "
+                    "(ok / warn / critical)."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["text", "model"],
+                    "properties": {
+                        "text": {"type": "string"},
+                        "model": {"type": "string",
+                                  "description": "Model name: claude-cli, gpt-4o, llama3.2, etc."},
+                    },
+                },
+                "handler": lambda a: _ser(_token_budget_impl(js, a)),
+            },
         }
 
 
@@ -1640,6 +1698,85 @@ def _run_knowledge_flag(js: object, entry_id: str) -> str:
     tool = KnowledgeTool(graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())  # type: ignore[attr-defined]
     tool.flag_stale(entry_id)
     return f"✓ Flagged entry {entry_id} as stale."
+
+
+def _token_count_impl(js: object, args: dict) -> dict:
+    """MCP handler: count tokens and optionally show model budget."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    text = args.get("text", "")
+    model = args.get("model")
+    log.info("mcp_token_count", text_len=len(text), model=model)
+    try:
+        from jsat.tools.token_optimizer import TokenOptimizer
+        opt = TokenOptimizer(graph=None, cfg=None, ai=None)
+        report = opt.analyze(text, model=model)
+        result: dict = {
+            "tokens": report.original_tokens,
+            "model": model,
+            "model_limit": report.model_limit,
+            "budget_used_pct": report.budget_used_pct,
+        }
+        if report.model_limit:
+            result["headroom_tokens"] = report.model_limit - report.original_tokens
+        log.info("mcp_token_count_done", tokens=report.original_tokens,
+                 budget_pct=report.budget_used_pct)
+        return result
+    except Exception as e:
+        log.error("mcp_token_count_error", error=str(e))
+        return {"error": str(e)}
+
+
+def _token_compress_impl(js: object, args: dict) -> dict:
+    """MCP handler: compress text using offline strategies."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    text = args.get("text", "")
+    model = args.get("model")
+    target = args.get("target_tokens")
+    strip = args.get("strip_comments", False)
+    dedup = args.get("dedup", True)
+    log.info("mcp_token_compress", text_len=len(text), model=model, target=target)
+    try:
+        from jsat.tools.token_optimizer import TokenOptimizer
+        opt = TokenOptimizer(graph=None, cfg=None, ai=None)
+        report = opt.compress(text, target_tokens=target, model=model,
+                              strip_comments=strip, dedup=dedup)
+        log.info("mcp_token_compress_done",
+                 original=report.original_tokens, final=report.compressed_tokens,
+                 savings_pct=report.savings_pct, strategies=report.strategies_applied)
+        return {
+            "compressed_text": report.compressed_text,
+            "original_tokens": report.original_tokens,
+            "compressed_tokens": report.compressed_tokens,
+            "savings_tokens": report.savings_tokens,
+            "savings_pct": report.savings_pct,
+            "strategies_applied": report.strategies_applied,
+            "model": model,
+            "budget_used_pct": report.budget_used_pct,
+        }
+    except Exception as e:
+        log.error("mcp_token_compress_error", error=str(e))
+        return {"error": str(e)}
+
+
+def _token_budget_impl(js: object, args: dict) -> dict:
+    """MCP handler: show token budget for a given model."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    text = args.get("text", "")
+    model = args.get("model", "")
+    log.info("mcp_token_budget", text_len=len(text), model=model)
+    try:
+        from jsat.tools.token_optimizer import TokenOptimizer
+        opt = TokenOptimizer(graph=None, cfg=None, ai=None)
+        result = opt.budget(text, model)
+        log.info("mcp_token_budget_done", **{k: v for k, v in result.items()
+                                             if k not in ("text",)})
+        return result
+    except Exception as e:
+        log.error("mcp_token_budget_error", error=str(e))
+        return {"error": str(e)}
 
 
 def _estimate_lock_impl(args: dict) -> str:

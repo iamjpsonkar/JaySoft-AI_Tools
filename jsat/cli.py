@@ -552,6 +552,120 @@ def cmd_prompt(
         pass
 
 
+# ── tokens ───────────────────────────────────────────────────────────────────
+
+@app.command("tokens")
+def cmd_tokens(
+    text: Optional[str] = typer.Argument(None, help="Text to analyze (or use --file / pipe stdin)"),
+    file: Optional[Path] = typer.Option(None, "--file", "-f", help="Read from file"),
+    model: Optional[str] = typer.Option(None, "--model", "-m",
+                                        help="Model for budget check (e.g. claude-cli, gpt-4o, llama3.2)"),
+    compress: bool = typer.Option(False, "--compress", "-c",
+                                  help="Compress the text and show savings"),
+    strip_comments: bool = typer.Option(False, "--strip-comments",
+                                        help="Also strip code comment lines"),
+    no_dedup: bool = typer.Option(False, "--no-dedup",
+                                  help="Skip semantic deduplication"),
+    target: Optional[int] = typer.Option(None, "--target", "-t",
+                                         help="Target token ceiling for compression"),
+    verbose: bool = typer.Option(False, "--verbose", "-v",
+                                 help="Show per-section token breakdown"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Count tokens, check model budget, and compress text for AI prompts.
+
+    \b
+    Count tokens in text:        jsat tokens "explain the payment service"
+    Count tokens in file:        jsat tokens --file README.md
+    Check budget against model:  jsat tokens --file context.txt --model gpt-4o
+    Compress and show diff:      jsat tokens --file context.txt --compress
+    Pipe stdin:                  cat myfile.py | jsat tokens --model claude-cli
+    """
+    import sys
+    from jsat.tools.token_optimizer import TokenOptimizer
+
+    # ── Resolve input ─────────────────────────────────────────────────────────
+    if file:
+        if not file.exists():
+            err.print(f"[red]File not found:[/] {file}")
+            raise typer.Exit(1)
+        content = file.read_text(encoding="utf-8", errors="replace")
+        label = str(file)
+    elif text:
+        content = text
+        label = "<argument>"
+    elif not sys.stdin.isatty():
+        content = sys.stdin.read()
+        label = "<stdin>"
+    else:
+        err.print("[yellow]Provide text as an argument, --file PATH, or pipe via stdin.[/]")
+        err.print("[dim]Example: jsat tokens --file README.md --model gpt-4o[/dim]")
+        raise typer.Exit(1)
+
+    js = _jsat(repo=repo)
+    opt = TokenOptimizer(graph=None, cfg=None, ai=None)
+
+    if compress:
+        report = opt.compress(content, target_tokens=target, model=model,
+                              strip_comments=strip_comments, dedup=not no_dedup)
+    else:
+        report = opt.analyze(content, model=model)
+
+    # ── Build display table ───────────────────────────────────────────────────
+    from rich.panel import Panel
+    from rich.table import Table
+
+    t = Table(show_header=False, box=None, padding=(0, 1))
+    t.add_column(style="dim", min_width=18)
+    t.add_column()
+
+    if label not in ("<argument>", "<stdin>"):
+        t.add_row("Source", label)
+
+    if compress and report.savings_tokens > 0:
+        t.add_row("Tokens before", f"{report.original_tokens:,}")
+        color = "green" if report.savings_pct >= 15 else "yellow"
+        t.add_row(
+            "Tokens after",
+            f"[{color}]{report.compressed_tokens:,}[/]  "
+            f"[dim](-{report.savings_tokens:,} tokens, {report.savings_pct:.1f}% saved)[/dim]",
+        )
+        t.add_row("Strategies", ", ".join(report.strategies_applied) or "none")
+    elif compress:
+        t.add_row("Tokens", f"{report.original_tokens:,}  [dim](already compact — no savings)[/dim]")
+    else:
+        t.add_row("Tokens", f"{report.original_tokens:,}")
+
+    if report.model:
+        t.add_row("Model", report.model)
+    if report.model_limit:
+        t.add_row("Context limit", f"{report.model_limit:,}")
+    if report.budget_used_pct is not None:
+        bpct = report.budget_used_pct
+        bar_fill = min(20, int(bpct / 5))
+        bar = "[green]" + "█" * bar_fill + "[/green]" + "░" * (20 - bar_fill)
+        color = "green" if bpct < 50 else ("yellow" if bpct < 85 else "red")
+        t.add_row("Budget used", f"{bar}  [{color}]{bpct:.2f}%[/]")
+    if report.elapsed_ms:
+        t.add_row("Analysis time", f"{report.elapsed_ms:.1f}ms")
+
+    console.print(Panel(t, title="[bold]Token Analysis[/]", border_style="blue"))
+
+    # ── Section breakdown (--verbose) ─────────────────────────────────────────
+    if verbose and report.section_breakdown:
+        from rich.table import Table as RTable
+        sec = RTable("Section", "Tokens", show_header=True, box=None)
+        for k, v in sorted(report.section_breakdown.items(), key=lambda x: -x[1]):
+            sec.add_row(k, f"{v:,}")
+        console.print(sec)
+
+    # ── Compressed output ─────────────────────────────────────────────────────
+    if compress and report.savings_tokens > 0:
+        console.print()
+        console.rule("[dim]Compressed output[/dim]")
+        console.print(report.compressed_text)
+
+
 # ── ai ────────────────────────────────────────────────────────────────────────
 
 ai_app = typer.Typer(help="Configure and test the AI provider JSAT uses internally.")

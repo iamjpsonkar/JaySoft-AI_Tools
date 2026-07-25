@@ -4,6 +4,48 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.1.9] — 2026-07-25
+
+### Added
+
+**Token Optimizer** (`jsat/tools/token_optimizer.py` — new Tool 15)
+- `estimate_tokens(text)` — character-based token estimator, ±12% vs BPE tokenization, no tiktoken dependency; adapts chars-per-token ratio based on code punctuation density (3.2 for code, 3.8 mixed, 4.2 prose)
+- `MODEL_LIMITS` — context window table for 35+ models: Claude (200K), GPT-4o (128K), Gemini 1.5 (1M), Ollama/llama3.2 (131K), and more
+- 6 offline compression strategies (all zero LLM, deterministic):
+  - `whitespace` — normalize blank lines, strip trailing spaces
+  - `stopphrase` — remove AI filler: "Certainly!", "As an AI...", "I hope this helps"
+  - `import_collapse` — merge consecutive `from X import A/B` → `from X import A, B`
+  - `dedup` — Jaccard-similarity sentence dedup (threshold 0.82) — removes near-duplicate context
+  - `comment_strip` — optional; strips Python `#`, JS/Go `//`, and `/* */` blocks
+  - `recency_pin` — last-resort: keep first 70% + last 30%, drop middle with marker
+- `TokenReport` dataclass: `original_tokens`, `compressed_tokens`, `savings_tokens`, `savings_pct`, `strategies_applied`, `model_limit`, `budget_used_pct`, `section_breakdown`, `elapsed_ms`
+- `section_breakdown(text)` — token count per XML tag, Markdown header, or paragraph
+- `TokenOptimizer.budget(text, model)` — returns `{tokens, limit, budget_pct, headroom_tokens, status: ok/warn/critical}`
+
+**`jsat tokens` CLI command**
+- `jsat tokens "text"` — count tokens in inline text
+- `jsat tokens --file PATH` — count tokens in a file
+- `jsat tokens --model gpt-4o` — show budget bar and percentage
+- `jsat tokens --compress` — apply compression pipeline and print compressed output
+- `jsat tokens --strip-comments` — also strip code comments
+- `jsat tokens --no-dedup` — skip semantic dedup (faster, less aggressive)
+- `jsat tokens --target N` — compress to explicit token ceiling
+- `jsat tokens --verbose` — show per-section token breakdown table
+- Reads from stdin when piped: `cat context.py | jsat tokens --model claude-cli`
+
+**SDK methods on `JSAT` class**
+- `JSAT.token_count(text)` → int
+- `JSAT.token_compress(text, target_tokens, model, strip_comments, dedup)` → TokenReport
+- `JSAT.token_budget(text, model)` → dict
+
+**MCP tools** (3 new, total now 55)
+- `jsat__token_count` — estimate token count with optional model budget context
+- `jsat__token_compress` — compress text and return savings stats + compressed result
+- `jsat__token_budget` — show budget status (ok/warn/critical) for a given model
+
+### Tests
+- 56 new CI-safe tests for `TokenOptimizer` — covers all 6 strategies, model limits, budget, analyze, compress, and section breakdown
+
 ## [0.1.8] — 2026-07-25
 
 ### Added
