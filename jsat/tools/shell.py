@@ -66,6 +66,7 @@ class JSATShell:
         self._running = False
         self._prompt_opt: bool = True          # optimizer on by default
         self._last_optimized: str | None = None
+        self._last_raw: str | None = None     # raw input before optimization
         self._setup_readline()
 
     # ── Readline setup ────────────────────────────────────────────────────────
@@ -415,6 +416,7 @@ class JSATShell:
 
     def _cmd_opt(self, args: list[str]) -> None:
         """opt on|off|show|history — toggle/inspect the prompt optimizer."""
+        from rich.panel import Panel
         sub = args[0].lower() if args else "show"
         if sub == "on":
             self._prompt_opt = True
@@ -423,9 +425,33 @@ class JSATShell:
             self._prompt_opt = False
             self._console.print("[dim]Prompt optimizer [bold]OFF[/dim]")
         elif sub == "show":
-            if self._last_optimized:
-                from rich.panel import Panel
-                self._console.print(Panel(self._last_optimized, title="Last optimized prompt", border_style="dim"))
+            raw = getattr(self, "_last_raw", None)
+            optimized = getattr(self, "_last_optimized", None)
+            if raw and optimized:
+                # Show BOTH sides side by side: what user typed vs what was sent
+                self._console.print()
+                self._console.print(Panel(
+                    f"[yellow]{raw}[/yellow]",
+                    title="[yellow bold]YOU SENT (raw input)[/yellow bold]",
+                    border_style="yellow",
+                    padding=(1, 2),
+                ))
+                self._console.print(Panel(
+                    f"[green]{optimized}[/green]",
+                    title="[green bold]AI RECEIVED (optimized prompt)[/green bold]",
+                    border_style="green",
+                    padding=(1, 2),
+                ))
+                raw_tokens = max(1, len(raw.split()))
+                opt_tokens = max(1, int(len(optimized.split()) * 1.3))
+                saved = max(0, round((raw_tokens - opt_tokens) / max(raw_tokens, 1) * 100))
+                self._console.print(
+                    f"[dim]Raw: {raw_tokens} tokens → Optimized: {opt_tokens} tokens "
+                    f"({'+'if opt_tokens > raw_tokens else ''}{opt_tokens-raw_tokens} "
+                    f"| {saved}% savings from compression after context injection)[/dim]"
+                )
+            elif optimized:
+                self._console.print(Panel(optimized, title="Last optimized prompt", border_style="dim"))
             else:
                 state = "ON" if self._prompt_opt else "OFF"
                 self._console.print(f"[dim]Optimizer is [bold]{state}[/bold]. No prompt optimized yet.[/dim]")
@@ -499,12 +525,17 @@ class JSATShell:
                 opt = PromptOptimizer(graph=self._js._get_graph(), cfg=self._js._cfg, ai=self._js._get_ai())
                 result = opt.optimize(message)
                 self._last_optimized = result.optimized_prompt
+                self._last_raw = message
                 prompt_to_send = result.optimized_prompt
                 saved = max(0, round((result.tokens_before - result.tokens_after) / max(result.tokens_before, 1) * 100))
+
+                # Compact one-liner showing what changed
                 self._console.print(
-                    f"[dim][Optimizer] {result.task_type} | "
-                    f"{result.tokens_before}→{result.tokens_after} tokens ({saved}% saved) | "
-                    f"{len(result.context_nodes)} context nodes[/dim]"
+                    f"[dim]✦ Optimized[/dim] [cyan]{result.task_type}[/cyan] "
+                    f"[dim]| {result.tokens_before}→{result.tokens_after} tokens "
+                    f"({saved}% saved) | {len(result.context_nodes)} ctx nodes | "
+                    f"format: {result.model_format} | "
+                    f"[bold]opt show[/bold] to see full diff[/dim]"
                 )
             except Exception:
                 prompt_to_send = message  # fallback silently

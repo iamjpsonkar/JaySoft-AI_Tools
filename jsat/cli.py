@@ -880,6 +880,13 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
             "Use the jsat__get_jsat_version MCP tool and jsat__get_index_status to "
             "show system status, version, and index health."
         ),
+        "jsat-prompt-diff": (
+            "Show what the user typed vs what JSAT sent to the AI after optimization.",
+            "Use the jsat__prompt_diff MCP tool with query=\"$ARGUMENTS\" to show "
+            "the before/after comparison: raw input vs fully optimized prompt with "
+            "injected context, constraints, few-shot examples, and model formatting. "
+            "Display both sides clearly — label one 'You sent' and the other 'AI received'."
+        ),
         "jsat-ithinking": (
             "Apply IThinking meta-cognitive reasoning before acting on a task.",
             "Use the jsat__ithinking_plan MCP tool with task=\"$ARGUMENTS\" to run "

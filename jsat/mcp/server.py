@@ -885,6 +885,22 @@ class MCPServer:
                            "properties": {"task": {"type": "string"}}},
                 "handler": lambda a: _ithinking_plan(js, a["task"]) + "\n\n*Phase 5 (execution) runs in your Claude session.*",
             },
+            "prompt_diff": {
+                "description": (
+                    "Show what the user typed vs what JSAT sent to the AI after optimization. "
+                    "Returns both the raw input and the full optimized prompt side by side, "
+                    "so you can see exactly how context, constraints, and formatting were injected."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["query"],
+                    "properties": {
+                        "query": {"type": "string", "description": "Raw user query to compare"},
+                        "ai_provider": {"type": "string"},
+                    },
+                },
+                "handler": lambda a: _ser(_prompt_diff_impl(js, a)),
+            },
             "prompt_optimize": {
                 "description": (
                     "Optimize any raw query into the best possible prompt using JSAT's "
@@ -1464,6 +1480,44 @@ def _run_knowledge_add(js: object, text: str, category: str) -> str:
                          ai=js._get_ai())  # type: ignore[attr-defined]
     tool.add(text, category=category)
     return f"Stored in knowledge base (category: {category})"
+
+
+def _prompt_diff_impl(js: object, args: dict) -> dict:
+    """Show raw input vs optimized prompt — the core 'before/after' transparency tool."""
+    query = args.get("query", "")
+    if not query.strip():
+        return {"error": "query must not be empty"}
+    try:
+        from jsat.tools.prompt_optimizer import PromptOptimizer
+        optimizer = PromptOptimizer(
+            graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())  # type: ignore[attr-defined]
+        result = optimizer.optimize(query, ai_provider=args.get("ai_provider"))
+        raw_tokens = max(1, int(len(query.split()) * 1.3))
+        saved = max(0, round((raw_tokens - result.tokens_after) / max(raw_tokens, 1) * 100))
+        return {
+            "you_sent": query,
+            "ai_received": result.optimized_prompt,
+            "task_type": result.task_type,
+            "model_format": result.model_format,
+            "context_nodes_injected": result.context_nodes[:10],
+            "examples_injected": result.examples_used,
+            "stages_applied": result.stages_applied,
+            "tokens": {
+                "raw": raw_tokens,
+                "optimized": result.tokens_after,
+                "context_added": max(0, result.tokens_after - raw_tokens),
+                "compression_saved": saved,
+            },
+            "summary": (
+                f"Your {raw_tokens}-token query was expanded to {result.tokens_after} tokens "
+                f"(+{max(0, result.tokens_after-raw_tokens)} from context injection, "
+                f"-{saved}% from compression). "
+                f"Task classified as '{result.task_type}'. "
+                f"Formatted as {result.model_format} for the target AI."
+            ),
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def _prompt_optimize_impl(js: object, args: dict) -> dict:
