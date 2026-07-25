@@ -187,3 +187,28 @@ All notable changes to JSAT.
 - `_decompose()` now routes tasks to all 7 agents: understanding, generation, test,
   documentation, review, security, conflict_resolver
 - All agents callable via `_run_agent()` using full K1-K7 system prompts
+
+## [0.1.7] — 2026-07-26
+
+### Added
+
+**Prompt diff — see exactly what you sent vs what AI received**
+- `opt show` in shell now displays both panels side by side:
+  `YOU SENT (raw)` vs `AI RECEIVED (optimized with context + constraints + formatting)`
+- Token breakdown: raw → optimized, context added, compression savings
+- One-liner after every optimized message: `✦ Optimized refactor | 6→847 tokens (35% saved) | 3 ctx nodes | opt show to see diff`
+- `jsat__prompt_diff` MCP tool — callable by Claude Code
+- `/jsat-prompt-diff <query>` Claude skill installed by `jsat connect claude`
+
+**Prompt Optimizer completions** (all feature.md items now implemented: 45/45)
+- `--self-critique` flag: runs a validation AI pass after response; shows violations or "✓ clean"
+- `JSAT.prompt_stream()`: generator that yields response chunks + auto-saves history
+- `noopt` shell command: alias for `opt off` (disable optimizer in one word)
+- `self_critique()` method on `PromptOptimizer`: validates AI response against task constraints
+
+### Documentation
+- README: Prompt Optimizer section, `/jsat-prompt-diff` slash command, updated MCP tool list
+- docs/cli-reference.md: full `jsat prompt` section with all flags
+- docs/claude-integration.md: `/jsat-prompt-diff` skill, Prompt Optimizer subsection
+- docs/tools.md: Prompt Optimizer tool entry (pipeline, CLI, SDK, MCP, config)
+- docs/configuration.md: `prompt:` config block with all 9 keys

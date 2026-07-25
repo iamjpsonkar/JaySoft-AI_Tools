@@ -445,7 +445,7 @@ class JSAT:
             ai_err = str(e)
 
         return {
-            "version": "0.1.6",
+            "version": "0.1.7",
             "system": {
                 "ram_gb": sys_profile.ram_gb,
                 "cpu_arch": sys_profile.cpu_arch,
