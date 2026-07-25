@@ -794,10 +794,65 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#jsat-connect-codex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect codex
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#jsat-connect-cursor" class="md-nav__link">
     <span class="md-ellipsis">
       
         jsat connect cursor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-windsurf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect windsurf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-continue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect continue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-zed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect zed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-gemini" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect gemini
       
     </span>
   </a>
@@ -828,23 +883,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="4. Disconnect Commands (jsat disconnect)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#jsat-disconnect-claude" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        jsat disconnect claude
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1503,10 +1541,65 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#jsat-connect-codex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect codex
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#jsat-connect-cursor" class="md-nav__link">
     <span class="md-ellipsis">
       
         jsat connect cursor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-windsurf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect windsurf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-continue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect continue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-zed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect zed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-gemini" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect gemini
       
     </span>
   </a>
@@ -1537,23 +1630,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="4. Disconnect Commands (jsat disconnect)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#jsat-disconnect-claude" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        jsat disconnect claude
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -2215,8 +2291,9 @@
 </code></pre></div>
 <hr />
 <h2 id="3-connect-commands-jsat-connect">3. Connect Commands (<code>jsat connect</code>)<a class="headerlink" href="#3-connect-commands-jsat-connect" title="Permanent link">&para;</a></h2>
+<p>JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — all 55 JSAT tools are immediately available to the AI.</p>
 <h3 id="jsat-connect-claude"><code>jsat connect claude</code><a class="headerlink" href="#jsat-connect-claude" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into Claude Code as an MCP server and install <code>/jsat-*</code> slash commands.</p>
+<p>Wire JSAT into Claude Code as an MCP server and install 28 <code>/jsat-*</code> slash commands.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>jsat connect claude [OPTIONS]
 </code></pre></div>
 <table>
@@ -2231,17 +2308,17 @@
 <tr>
 <td><code>--scope</code>, <code>-s</code></td>
 <td><code>project</code></td>
-<td><code>project</code> or <code>global</code></td>
+<td><code>project</code> → <code>.claude/settings.json</code> | <code>global</code> → <code>~/.claude/settings.json</code></td>
 </tr>
 <tr>
 <td><code>--repo</code>, <code>-r</code></td>
 <td><code>.</code></td>
-<td>Repo path for the MCP server</td>
+<td>Repo path passed to the MCP server</td>
 </tr>
 <tr>
 <td><code>--install-skills/--no-skills</code></td>
 <td><code>--install-skills</code></td>
-<td>Install <code>/jsat-*</code> commands</td>
+<td>Install <code>/jsat-*</code> slash commands</td>
 </tr>
 <tr>
 <td><code>--show</code></td>
@@ -2251,15 +2328,44 @@
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w">                         </span><span class="c1"># project scope</span>
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">          </span><span class="c1"># global scope (all sessions)</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">          </span><span class="c1"># global (all Claude Code sessions)</span>
 <a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--no-skills<span class="w">             </span><span class="c1"># MCP only, no slash commands</span>
 <a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--show<span class="w">                  </span><span class="c1"># print config after writing</span>
 </code></pre></div>
 <p>Restart Claude Code after running.</p>
 <hr />
+<h3 id="jsat-connect-codex"><code>jsat connect codex</code><a class="headerlink" href="#jsat-connect-codex" title="Permanent link">&para;</a></h3>
+<p>Wire JSAT into the OpenAI Codex CLI as an MCP server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>jsat connect codex [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--scope</code>, <code>-s</code></td>
+<td><code>project</code></td>
+<td><code>project</code> → <code>.codex/config.json</code> | <code>global</code> → <code>~/.codex/config.json</code></td>
+</tr>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repo path passed to the MCP server</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                          </span><span class="c1"># project scope</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">           </span><span class="c1"># global</span>
+</code></pre></div>
+<hr />
 <h3 id="jsat-connect-cursor"><code>jsat connect cursor</code><a class="headerlink" href="#jsat-connect-cursor" title="Permanent link">&para;</a></h3>
 <p>Wire JSAT into Cursor as an MCP server.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>jsat connect cursor [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>jsat connect cursor [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2277,25 +2383,161 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>cursor
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>cursor
 </code></pre></div>
 <p>Writes to <code>~/.cursor/mcp.json</code>. Restart Cursor after running.</p>
 <hr />
-<h3 id="jsat-connect-list"><code>jsat connect list</code><a class="headerlink" href="#jsat-connect-list" title="Permanent link">&para;</a></h3>
-<p>Show all Claude Code and Cursor MCP configs that include JSAT.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>list
+<h3 id="jsat-connect-windsurf"><code>jsat connect windsurf</code><a class="headerlink" href="#jsat-connect-windsurf" title="Permanent link">&para;</a></h3>
+<p>Wire JSAT into Windsurf (Codeium) as an MCP server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>jsat connect windsurf [OPTIONS]
 </code></pre></div>
-<p>Checks:</p>
-<ul>
-<li><code>~/.claude/settings.json</code> (global Claude Code)</li>
-<li><code>.claude/settings.json</code> (project Claude Code)</li>
-<li><code>~/.cursor/mcp.json</code> (Cursor)</li>
-</ul>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repo path for the MCP server</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>windsurf
+</code></pre></div>
+<p>Writes to <code>~/.codeium/windsurf/mcp_config.json</code>. Restart Windsurf after running.</p>
+<hr />
+<h3 id="jsat-connect-continue"><code>jsat connect continue</code><a class="headerlink" href="#jsat-connect-continue" title="Permanent link">&para;</a></h3>
+<p>Wire JSAT into Continue.dev as an MCP server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>jsat connect continue [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repo path for the MCP server</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span><span class="k">continue</span>
+</code></pre></div>
+<p>Writes to <code>~/.continue/config.json</code> using Continue's <code>mcpServers</code> array format. Reload Continue (Cmd/Ctrl+Shift+P → "Continue: Reload") to activate.</p>
+<hr />
+<h3 id="jsat-connect-zed"><code>jsat connect zed</code><a class="headerlink" href="#jsat-connect-zed" title="Permanent link">&para;</a></h3>
+<p>Wire JSAT into Zed editor as a context server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>jsat connect zed [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repo path for the MCP server</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>zed
+</code></pre></div>
+<p>Writes to <code>~/.config/zed/settings.json</code> using Zed's <code>context_servers</code> format. Restart Zed after running.</p>
+<hr />
+<h3 id="jsat-connect-gemini"><code>jsat connect gemini</code><a class="headerlink" href="#jsat-connect-gemini" title="Permanent link">&para;</a></h3>
+<p>Wire JSAT into the Google Gemini CLI as an MCP server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>jsat connect gemini [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repo path for the MCP server</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>gemini
+</code></pre></div>
+<p>Writes to <code>~/.gemini/settings.json</code>. Restart Gemini CLI after running.</p>
+<hr />
+<h3 id="jsat-connect-list"><code>jsat connect list</code><a class="headerlink" href="#jsat-connect-list" title="Permanent link">&para;</a></h3>
+<p>Show all AI tools that have JSAT wired as an MCP server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>list
+</code></pre></div>
+<p>Checks all 9 known config locations:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Config file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude Code (project)</td>
+<td><code>.claude/settings.json</code></td>
+</tr>
+<tr>
+<td>Claude Code (global)</td>
+<td><code>~/.claude/settings.json</code></td>
+</tr>
+<tr>
+<td>Codex (project)</td>
+<td><code>.codex/config.json</code></td>
+</tr>
+<tr>
+<td>Codex (global)</td>
+<td><code>~/.codex/config.json</code></td>
+</tr>
+<tr>
+<td>Cursor</td>
+<td><code>~/.cursor/mcp.json</code></td>
+</tr>
+<tr>
+<td>Windsurf</td>
+<td><code>~/.codeium/windsurf/mcp_config.json</code></td>
+</tr>
+<tr>
+<td>Continue</td>
+<td><code>~/.continue/config.json</code></td>
+</tr>
+<tr>
+<td>Zed</td>
+<td><code>~/.config/zed/settings.json</code></td>
+</tr>
+<tr>
+<td>Gemini CLI</td>
+<td><code>~/.gemini/settings.json</code></td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="4-disconnect-commands-jsat-disconnect">4. Disconnect Commands (<code>jsat disconnect</code>)<a class="headerlink" href="#4-disconnect-commands-jsat-disconnect" title="Permanent link">&para;</a></h2>
-<h3 id="jsat-disconnect-claude"><code>jsat disconnect claude</code><a class="headerlink" href="#jsat-disconnect-claude" title="Permanent link">&para;</a></h3>
-<p>Remove JSAT from Claude Code's MCP config and optionally remove skill files.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>jsat disconnect claude [OPTIONS]
+<p>Remove JSAT from one or all AI tools.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>jsat disconnect TOOL [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2309,32 +2551,39 @@
 <tr>
 <td><code>TOOL</code></td>
 <td><code>claude</code></td>
-<td>Tool to disconnect: <code>claude</code>, <code>cursor</code>, or <code>all</code></td>
+<td><code>claude</code> | <code>codex</code> | <code>cursor</code> | <code>windsurf</code> | <code>continue</code> | <code>zed</code> | <code>gemini</code> | <code>all</code></td>
 </tr>
 <tr>
 <td><code>--scope</code>, <code>-s</code></td>
 <td><code>project</code></td>
-<td><code>project</code>, <code>global</code>, or <code>all</code></td>
+<td><code>project</code>, <code>global</code>, or <code>all</code> (claude and codex only)</td>
 </tr>
 <tr>
 <td><code>--keep-skills</code></td>
 <td>false</td>
-<td>Keep <code>/jsat-*</code> skill files (default: remove them)</td>
+<td>Keep <code>/jsat-*</code> skill files when disconnecting from Claude Code</td>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w">                       </span><span class="c1"># project scope</span>
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">        </span><span class="c1"># global scope</span>
-<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all<span class="w">           </span><span class="c1"># both project and global</span>
-<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--keep-skills<span class="w">         </span><span class="c1"># remove MCP entry, keep skill files</span>
-<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w">                       </span><span class="c1"># disconnect from Cursor</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w">                       </span><span class="c1"># Claude Code project scope</span>
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">        </span><span class="c1"># Claude Code global</span>
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all<span class="w">           </span><span class="c1"># Claude Code everywhere</span>
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--keep-skills<span class="w">         </span><span class="c1"># remove MCP entry, keep slash commands</span>
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>codex<span class="w">                        </span><span class="c1"># Codex project scope</span>
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>codex<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">         </span><span class="c1"># Codex global</span>
+<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w">                       </span><span class="c1"># Cursor</span>
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>windsurf<span class="w">                     </span><span class="c1"># Windsurf</span>
+<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span><span class="k">continue</span><span class="w">                     </span><span class="c1"># Continue.dev</span>
+<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>zed<span class="w">                          </span><span class="c1"># Zed</span>
+<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>gemini<span class="w">                       </span><span class="c1"># Gemini CLI</span>
+<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>all<span class="w">                          </span><span class="c1"># every tool at once</span>
 </code></pre></div>
-<p>Restart Claude Code after running.</p>
+<p>Restart the relevant AI tool after disconnecting.</p>
 <hr />
 <h2 id="5-init-command">5. Init Command<a class="headerlink" href="#5-init-command" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-init"><code>jsat init</code><a class="headerlink" href="#jsat-init" title="Permanent link">&para;</a></h3>
 <p>Generate a starter <code>.jsat/config.yaml</code> for a given profile. Does not overwrite if the file already exists.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>jsat init [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>jsat init [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2357,16 +2606,16 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>solo
-<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>team
-<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>ci
-<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>raspberry-pi<span class="w"> </span>--output<span class="w"> </span>/etc/jsat/config.yaml
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>solo
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>team
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>ci
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>raspberry-pi<span class="w"> </span>--output<span class="w"> </span>/etc/jsat/config.yaml
 </code></pre></div>
 <hr />
 <h2 id="6-ci-setup-command">6. CI Setup Command<a class="headerlink" href="#6-ci-setup-command" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-ci-setup"><code>jsat ci-setup</code><a class="headerlink" href="#jsat-ci-setup" title="Permanent link">&para;</a></h3>
 <p>Write a CI workflow file for JSAT. By default targets GitHub Actions; use <code>--provider gitlab</code> for GitLab CI.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>jsat ci-setup [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>jsat ci-setup [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2389,8 +2638,8 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>jsat<span class="w"> </span>ci-setup<span class="w">                        </span><span class="c1"># writes .github/workflows/jsat.yml</span>
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>jsat<span class="w"> </span>ci-setup<span class="w"> </span>--provider<span class="w"> </span>gitlab<span class="w">      </span><span class="c1"># writes .gitlab-ci.yml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>jsat<span class="w"> </span>ci-setup<span class="w">                        </span><span class="c1"># writes .github/workflows/jsat.yml</span>
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>jsat<span class="w"> </span>ci-setup<span class="w"> </span>--provider<span class="w"> </span>gitlab<span class="w">      </span><span class="c1"># writes .gitlab-ci.yml</span>
 </code></pre></div>
 <p>The generated workflow runs <code>jsat index</code> and <code>jsat doctor --json</code> on every push and pull request. It uses the <code>ci</code> profile automatically (no AI calls, JSON logs, memory cache).</p>
 <hr />
@@ -2398,19 +2647,19 @@
 <p>Optimize any query through a 7-stage pipeline before sending it to the AI. Auto-optimization runs on every shell message by default.</p>
 <h3 id="jsat-prompt-query"><code>jsat prompt &lt;query&gt;</code><a class="headerlink" href="#jsat-prompt-query" title="Permanent link">&para;</a></h3>
 <p>Print the optimized prompt without sending it to the AI. Use this to inspect what would be sent.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
-<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span><span class="s2">&quot;explain the auth flow&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span><span class="s2">&quot;explain the auth flow&quot;</span>
 </code></pre></div>
 <hr />
 <h3 id="jsat-prompt-send"><code>jsat prompt --send</code><a class="headerlink" href="#jsat-prompt-send" title="Permanent link">&para;</a></h3>
 <p>Optimize the query and send it to the configured AI provider.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
-<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span><span class="s2">&quot;write a test for refund()&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
+<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span><span class="s2">&quot;write a test for refund()&quot;</span>
 </code></pre></div>
 <hr />
 <h3 id="jsat-prompt-diff"><code>jsat prompt --diff</code><a class="headerlink" href="#jsat-prompt-diff" title="Permanent link">&para;</a></h3>
 <p>Show a side-by-side comparison of the raw input and the full optimized prompt (with injected context, constraints, few-shot examples, and model formatting).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--diff<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--diff<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
 </code></pre></div>
 <hr />
 <h3 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h3>
@@ -2470,22 +2719,22 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--format<span class="w"> </span>code<span class="w"> </span>--ai<span class="w"> </span>claude<span class="w"> </span><span class="s2">&quot;write a test for refund()&quot;</span>
-<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--cot<span class="w"> </span>--verbose<span class="w"> </span><span class="s2">&quot;debug why checkout is returning 500&quot;</span>
-<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--dry-run<span class="w"> </span>--no-context<span class="w"> </span><span class="s2">&quot;what does the payment service do?&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--format<span class="w"> </span>code<span class="w"> </span>--ai<span class="w"> </span>claude<span class="w"> </span><span class="s2">&quot;write a test for refund()&quot;</span>
+<a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--cot<span class="w"> </span>--verbose<span class="w"> </span><span class="s2">&quot;debug why checkout is returning 500&quot;</span>
+<a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--dry-run<span class="w"> </span>--no-context<span class="w"> </span><span class="s2">&quot;what does the payment service do?&quot;</span>
 </code></pre></div>
 <hr />
 <h3 id="shell-commands-opt">Shell commands (<code>opt</code>)<a class="headerlink" href="#shell-commands-opt" title="Permanent link">&para;</a></h3>
 <p>Inside the JSAT shell, use the <code>opt</code> command to control optimization:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>opt on        # enable auto-optimization for all messages (default)
-<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>opt off       # disable for the current session
-<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>opt show      # show raw input vs full optimized prompt for the last message
-<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>opt history   # browse past optimization diffs
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>opt on        # enable auto-optimization for all messages (default)
+<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>opt off       # disable for the current session
+<a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>opt show      # show raw input vs full optimized prompt for the last message
+<a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a>opt history   # browse past optimization diffs
 </code></pre></div>
 <hr />
 <h2 id="8-token-optimizer-jsat-tokens">8. Token Optimizer (<code>jsat tokens</code>)<a class="headerlink" href="#8-token-optimizer-jsat-tokens" title="Permanent link">&para;</a></h2>
 <p>Count tokens, check model budget, and compress text for AI prompts. All offline — zero LLM calls.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>jsat tokens [TEXT] [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>jsat tokens [TEXT] [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2538,26 +2787,26 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="c1"># Count tokens</span>
-<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>jsat<span class="w"> </span>tokens<span class="w"> </span><span class="s2">&quot;explain the payment service&quot;</span>
-<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>README.md
-<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>
-<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a><span class="c1"># Budget check</span>
-<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--model<span class="w"> </span>gpt-4o
-<a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--model<span class="w"> </span>claude-cli
-<a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>
-<a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a><span class="c1"># Compress</span>
-<a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--compress
-<a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--compress<span class="w"> </span>--target<span class="w"> </span><span class="m">4000</span><span class="w"> </span>--strip-comments
-<a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a>
-<a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a><span class="c1"># Pipe stdin</span>
-<a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a>cat<span class="w"> </span>big_file.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>jsat<span class="w"> </span>tokens<span class="w"> </span>--model<span class="w"> </span>claude-cli<span class="w"> </span>--compress
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="c1"># Count tokens</span>
+<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>jsat<span class="w"> </span>tokens<span class="w"> </span><span class="s2">&quot;explain the payment service&quot;</span>
+<a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>README.md
+<a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>
+<a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a><span class="c1"># Budget check</span>
+<a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--model<span class="w"> </span>gpt-4o
+<a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--model<span class="w"> </span>claude-cli
+<a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a>
+<a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a><span class="c1"># Compress</span>
+<a id="__codelineno-47-10" name="__codelineno-47-10" href="#__codelineno-47-10"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--compress
+<a id="__codelineno-47-11" name="__codelineno-47-11" href="#__codelineno-47-11"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>context.py<span class="w"> </span>--compress<span class="w"> </span>--target<span class="w"> </span><span class="m">4000</span><span class="w"> </span>--strip-comments
+<a id="__codelineno-47-12" name="__codelineno-47-12" href="#__codelineno-47-12"></a>
+<a id="__codelineno-47-13" name="__codelineno-47-13" href="#__codelineno-47-13"></a><span class="c1"># Pipe stdin</span>
+<a id="__codelineno-47-14" name="__codelineno-47-14" href="#__codelineno-47-14"></a>cat<span class="w"> </span>big_file.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>jsat<span class="w"> </span>tokens<span class="w"> </span>--model<span class="w"> </span>claude-cli<span class="w"> </span>--compress
 </code></pre></div>
 <hr />
 <h2 id="8b-maintenance-commands">8b. Maintenance Commands<a class="headerlink" href="#8b-maintenance-commands" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-clean"><code>jsat clean</code><a class="headerlink" href="#jsat-clean" title="Permanent link">&para;</a></h3>
 <p>Remove cached data from <code>.jsat/</code> to free disk space or force a fresh start.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>jsat clean [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>jsat clean [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2589,12 +2838,12 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>jsat<span class="w"> </span>clean<span class="w"> </span>--cache<span class="w">          </span><span class="c1"># free cache only</span>
-<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>jsat<span class="w"> </span>clean<span class="w"> </span>--all<span class="w">            </span><span class="c1"># full reset</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>jsat<span class="w"> </span>clean<span class="w"> </span>--cache<span class="w">          </span><span class="c1"># free cache only</span>
+<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>jsat<span class="w"> </span>clean<span class="w"> </span>--all<span class="w">            </span><span class="c1"># full reset</span>
 </code></pre></div>
 <h3 id="jsat-update"><code>jsat update</code><a class="headerlink" href="#jsat-update" title="Permanent link">&para;</a></h3>
 <p>Self-upgrade JSAT via pip.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>jsat update [--pre]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>jsat update [--pre]
 </code></pre></div>
 <table>
 <thead>
@@ -2612,7 +2861,7 @@
 </table>
 <h3 id="jsat-knowledge-ingest"><code>jsat knowledge-ingest</code><a class="headerlink" href="#jsat-knowledge-ingest" title="Permanent link">&para;</a></h3>
 <p>Bulk-ingest markdown files (CLAUDE.md, ADRs, runbooks) into the knowledge base.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>jsat knowledge-ingest PATH [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>jsat knowledge-ingest PATH [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2645,14 +2894,14 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>docs/<span class="w">             </span><span class="c1"># ingest all .md files</span>
-<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>.<span class="w"> </span>--pattern<span class="w"> </span><span class="s2">&quot;**/*.md&quot;</span><span class="w"> </span>--dry-run
+<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>docs/<span class="w">             </span><span class="c1"># ingest all .md files</span>
+<a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>.<span class="w"> </span>--pattern<span class="w"> </span><span class="s2">&quot;**/*.md&quot;</span><span class="w"> </span>--dry-run
 </code></pre></div>
 <hr />
 <h2 id="9-export-and-import">9. Export and Import<a class="headerlink" href="#9-export-and-import" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-export"><code>jsat export</code><a class="headerlink" href="#jsat-export" title="Permanent link">&para;</a></h3>
 <p>Export the current index to a portable zip archive.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>jsat export OUTPUT [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>jsat export OUTPUT [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2675,13 +2924,13 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip
-<a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip<span class="w"> </span>--compress<span class="w"> </span><span class="m">9</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip
+<a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip<span class="w"> </span>--compress<span class="w"> </span><span class="m">9</span>
 </code></pre></div>
 <hr />
 <h3 id="jsat-import"><code>jsat import</code><a class="headerlink" href="#jsat-import" title="Permanent link">&para;</a></h3>
 <p>Restore an index from an exported archive.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>jsat import ARCHIVE [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>jsat import ARCHIVE [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2704,13 +2953,13 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>jsat<span class="w"> </span>import<span class="w"> </span>backup.jsat.zip
+<div class="highlight"><pre><span></span><code><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>jsat<span class="w"> </span>import<span class="w"> </span>backup.jsat.zip
 </code></pre></div>
 <hr />
 <h2 id="10-remove-command">10. Remove Command<a class="headerlink" href="#10-remove-command" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-remove"><code>jsat remove</code><a class="headerlink" href="#jsat-remove" title="Permanent link">&para;</a></h3>
 <p>Remove all JSAT artifacts from the current repository. Interactive confirmation by default.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>jsat remove [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>jsat remove [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2744,20 +2993,20 @@
 <li><code>mcpServers.jsat</code> entry in <code>.claude/settings.json</code></li>
 </ul>
 <p>Does not touch your source code, git history, or other Claude configuration.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>jsat<span class="w"> </span>remove
-<a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--yes<span class="w">              </span><span class="c1"># skip confirmation</span>
-<a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--keep-config<span class="w">      </span><span class="c1"># preserve config.yaml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>jsat<span class="w"> </span>remove
+<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--yes<span class="w">              </span><span class="c1"># skip confirmation</span>
+<a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--keep-config<span class="w">      </span><span class="c1"># preserve config.yaml</span>
 </code></pre></div>
 <hr />
 <h2 id="11-skills-commands-jsat-skills">11. Skills Commands (<code>jsat skills</code>)<a class="headerlink" href="#11-skills-commands-jsat-skills" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-skills-list"><code>jsat skills list</code><a class="headerlink" href="#jsat-skills-list" title="Permanent link">&para;</a></h3>
 <p>List installed JSAT skills (YAML manifests in the skills directory).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>list
+<div class="highlight"><pre><span></span><code><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>list
 </code></pre></div>
 <hr />
 <h3 id="jsat-skills-run"><code>jsat skills run</code><a class="headerlink" href="#jsat-skills-run" title="Permanent link">&para;</a></h3>
 <p>Run a named skill.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>jsat skills run NAME [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>jsat skills run NAME [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2777,14 +3026,14 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill
-<a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill<span class="w"> </span>--args<span class="w"> </span><span class="nv">target</span><span class="o">=</span>src/api.py<span class="w"> </span>--args<span class="w"> </span><span class="nv">depth</span><span class="o">=</span><span class="m">3</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill
+<a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill<span class="w"> </span>--args<span class="w"> </span><span class="nv">target</span><span class="o">=</span>src/api.py<span class="w"> </span>--args<span class="w"> </span><span class="nv">depth</span><span class="o">=</span><span class="m">3</span>
 </code></pre></div>
 <hr />
 <h2 id="12-mcp-server-internal">12. MCP Server (Internal)<a class="headerlink" href="#12-mcp-server-internal" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-mcp-server"><code>jsat mcp-server</code><a class="headerlink" href="#jsat-mcp-server" title="Permanent link">&para;</a></h3>
 <p>Start the JSAT MCP server on stdin/stdout. This is invoked automatically by Claude Code and Cursor when JSAT is connected. You do not normally run this directly.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>jsat mcp-server [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>jsat mcp-server [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -2808,7 +3057,7 @@
 </tbody>
 </table>
 <p>If you need to test the MCP server manually:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>jsat<span class="w"> </span>mcp-server<span class="w"> </span>--repo<span class="w"> </span>/path/to/project<span class="w"> </span>--verbose
+<div class="highlight"><pre><span></span><code><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>jsat<span class="w"> </span>mcp-server<span class="w"> </span>--repo<span class="w"> </span>/path/to/project<span class="w"> </span>--verbose
 </code></pre></div>
 <p>The server speaks JSON-RPC 2.0 over stdin/stdout. It starts immediately and loads JSAT lazily to avoid startup timeout errors in Claude Code.</p>
 <hr />
