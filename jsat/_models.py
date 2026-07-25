@@ -137,6 +137,21 @@ class SkillsConfig(BaseModel):
     clusters: dict[str, list[str]] = Field(default_factory=dict)
 
 
+class PromptConfig(BaseModel):
+    """Configuration for the 7-stage prompt optimisation pipeline."""
+    enabled: bool = True
+    mode: Literal["auto", "always", "never"] = "auto"
+    max_context_tokens: int = 8192
+    few_shot_k: int = 3
+    compress_threshold: int = 6000
+    compress_ratio: float = 0.5
+    context_depth: int = 2
+    cot_tasks: list[str] = Field(default_factory=lambda: ["debug", "plan", "security"])
+    self_critique_tasks: list[str] = Field(default_factory=lambda: ["security"])
+    history_path: str = ".jsat/prompt-history.jsonl"
+    history_max_entries: int = 10000
+
+
 class JSATConfig(BaseModel):
     """Root config model. Loaded from .jsat/config.yaml."""
     version: str = "1"
@@ -154,6 +169,7 @@ class JSATConfig(BaseModel):
     privacy: PrivacyConfig = Field(default_factory=PrivacyConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)
+    prompt: PromptConfig = Field(default_factory=PromptConfig)
 
 
 # ── Tool output models ────────────────────────────────────────────────────────

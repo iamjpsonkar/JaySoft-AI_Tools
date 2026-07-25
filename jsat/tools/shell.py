@@ -38,6 +38,7 @@ _COMMANDS: dict[str, str] = {
     "ai":             "ai — show current AI provider",
     "help":           "help — show this message",
     "exit":           "exit / quit — leave the shell",
+    "opt":            "opt on|off|show|history — toggle/inspect prompt optimizer",
 }
 
 _PROVIDERS = [
@@ -63,6 +64,8 @@ class JSATShell:
         self._console = Console()
         self._log = structlog.get_logger(__name__)
         self._running = False
+        self._prompt_opt: bool = True          # optimizer on by default
+        self._last_optimized: str | None = None
         self._setup_readline()
 
     # ── Readline setup ────────────────────────────────────────────────────────
@@ -156,6 +159,7 @@ class JSATShell:
             "quit":           lambda _: self._exit(),
             "switch":         self._cmd_switch,
             "ai":             lambda _: self._show_ai(),
+            "opt":            self._cmd_opt,
             "index":          self._cmd_index,
             "blast-radius":   self._cmd_blast_radius,
             "test-gaps":      self._cmd_test_gaps,
@@ -409,6 +413,65 @@ class JSATShell:
             "Your Claude session history is preserved.[/dim]\n"
         )
 
+    def _cmd_opt(self, args: list[str]) -> None:
+        """opt on|off|show|history — toggle/inspect the prompt optimizer."""
+        sub = args[0].lower() if args else "show"
+        if sub == "on":
+            self._prompt_opt = True
+            self._console.print("[green]✓[/] Prompt optimizer [bold]ON[/] — messages will be optimized")
+        elif sub == "off":
+            self._prompt_opt = False
+            self._console.print("[dim]Prompt optimizer [bold]OFF[/dim]")
+        elif sub == "show":
+            if self._last_optimized:
+                from rich.panel import Panel
+                self._console.print(Panel(self._last_optimized, title="Last optimized prompt", border_style="dim"))
+            else:
+                state = "ON" if self._prompt_opt else "OFF"
+                self._console.print(f"[dim]Optimizer is [bold]{state}[/bold]. No prompt optimized yet.[/dim]")
+        elif sub == "history":
+            self._show_opt_history()
+        else:
+            self._console.print("[dim]opt on | opt off | opt show | opt history[/dim]")
+
+    def _show_opt_history(self, limit: int = 10) -> None:
+        import json
+
+        from rich import box
+        from rich.table import Table
+        history_path = self._js._repo / ".jsat" / "prompt-history.jsonl"
+        if not history_path.exists():
+            self._console.print("[dim]No prompt history yet.[/dim]")
+            return
+        try:
+            lines = history_path.read_text(encoding="utf-8").splitlines()
+        except OSError as e:
+            self._console.print(f"[red]Cannot read history:[/] {e}")
+            return
+        entries = []
+        for raw in lines:
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                entries.append(json.loads(raw))
+            except Exception:
+                pass
+        recent = entries[-limit:]
+        if not recent:
+            self._console.print("[dim]No history entries.[/dim]")
+            return
+        t = Table(title=f"Prompt history (last {len(recent)})", box=box.SIMPLE, header_style="bold")
+        t.add_column("#", width=4, style="dim")
+        t.add_column("Task type", width=14)
+        t.add_column("Tokens", width=14)
+        t.add_column("Raw input")
+        for idx, e in enumerate(recent, 1):
+            before = e.get("tokens_before", "?")
+            after = e.get("tokens_after", "?")
+            t.add_row(str(idx), str(e.get("task_type", "?")), f"{before}→{after}", str(e.get("raw_input", ""))[:60])
+        self._console.print(t)
+
     def _provider_hint(self, provider: str) -> str:
         hints = {
             "ollama":   "  [dim]Install: brew install ollama  →  ollama serve  →  ollama pull llama3.2[/dim]",
@@ -427,7 +490,25 @@ class JSATShell:
     # ── AI chat (the main feature) ────────────────────────────────────────────
 
     def _chat(self, message: str) -> None:
-        """Send any message to the configured AI and stream the response."""
+        """Send a message to the AI, auto-optimizing when self._prompt_opt is True."""
+        # Auto-optimize through 7-stage pipeline
+        prompt_to_send = message
+        if self._prompt_opt:
+            try:
+                from jsat.tools.prompt_optimizer import PromptOptimizer
+                opt = PromptOptimizer(graph=self._js._get_graph(), cfg=self._js._cfg, ai=self._js._get_ai())
+                result = opt.optimize(message)
+                self._last_optimized = result.optimized_prompt
+                prompt_to_send = result.optimized_prompt
+                saved = max(0, round((result.tokens_before - result.tokens_after) / max(result.tokens_before, 1) * 100))
+                self._console.print(
+                    f"[dim][Optimizer] {result.task_type} | "
+                    f"{result.tokens_before}→{result.tokens_after} tokens ({saved}% saved) | "
+                    f"{len(result.context_nodes)} context nodes[/dim]"
+                )
+            except Exception:
+                prompt_to_send = message  # fallback silently
+
         try:
             ai = self._js._get_ai()
         except Exception as e:
@@ -446,8 +527,8 @@ class JSATShell:
             )
             return
 
-        # Build prompt — inject codebase context if graph has data
-        prompt = self._build_chat_prompt(message)
+        # Build prompt — use optimizer output if available, otherwise inject context
+        prompt = self._build_chat_prompt(prompt_to_send)
 
         # Stream response
         self._console.print(f"[dim]{self._ai_label()}:[/dim] ", end="")

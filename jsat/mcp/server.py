@@ -885,6 +885,27 @@ class MCPServer:
                            "properties": {"task": {"type": "string"}}},
                 "handler": lambda a: _ithinking_plan(js, a["task"]) + "\n\n*Phase 5 (execution) runs in your Claude session.*",
             },
+            "prompt_optimize": {
+                "description": (
+                    "Optimize any raw query into the best possible prompt using JSAT's "
+                    "7-stage pipeline: classify → context → constraints → examples → "
+                    "format spec → model formatting → compress. "
+                    "Set send=true to also call the AI and return the response."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["query"],
+                    "properties": {
+                        "query": {"type": "string"},
+                        "ai_provider": {"type": "string"},
+                        "format": {"type": "string"},
+                        "cot": {"type": "boolean", "default": False},
+                        "send": {"type": "boolean", "default": False},
+                        "no_context": {"type": "boolean", "default": False},
+                    },
+                },
+                "handler": lambda a: _ser(_prompt_optimize_impl(js, a)),
+            },
             "ithinking_token_estimate": {
                 "description": "Estimate local vs LLM token cost for a task without executing.",
                 "schema": {"type": "object", "required": ["task"],
@@ -1443,6 +1464,45 @@ def _run_knowledge_add(js: object, text: str, category: str) -> str:
                          ai=js._get_ai())  # type: ignore[attr-defined]
     tool.add(text, category=category)
     return f"Stored in knowledge base (category: {category})"
+
+
+def _prompt_optimize_impl(js: object, args: dict) -> dict:
+    """MCP handler: optimize (and optionally send) a query."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    query = args.get("query", "")
+    if not query.strip():
+        return {"error": "query must not be empty"}
+    try:
+        from jsat.tools.prompt_optimizer import PromptOptimizer
+        optimizer = PromptOptimizer(
+            graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())  # type: ignore[attr-defined]
+        result = optimizer.optimize(
+            query,
+            ai_provider=args.get("ai_provider"),
+            output_format=args.get("format"),
+            cot=bool(args.get("cot", False)),
+            no_context=bool(args.get("no_context", False)),
+        )
+        payload = {
+            "optimized_prompt": result.optimized_prompt,
+            "task_type": result.task_type,
+            "tokens_before": result.tokens_before,
+            "tokens_after": result.tokens_after,
+            "context_nodes": result.context_nodes[:10],
+        }
+        if args.get("send"):
+            ai = js._get_ai()  # type: ignore[attr-defined]
+            if ai.is_available():
+                response = ai.complete(result.optimized_prompt, max_tokens=2048)
+                optimizer.save_to_history(result, response)
+                payload["response"] = response
+            else:
+                payload["error"] = "AI not available"
+        return payload
+    except Exception as e:
+        log.error("mcp_prompt_optimize_error", error=str(e))
+        return {"error": str(e)}
 
 
 def _ithinking_plan(js: object, task: str) -> str:

@@ -420,6 +420,103 @@ def cmd_skills_run(
         raise typer.Exit(1) from e
 
 
+# ── prompt ────────────────────────────────────────────────────────────────────
+
+@app.command("prompt")
+def cmd_prompt(
+    input_text: str = typer.Argument(..., help="Raw query to optimize"),
+    send: bool = typer.Option(False, "--send", "-s", help="Send to AI and return response"),
+    ai: Optional[str] = typer.Option(None, "--ai", help="AI override: claude|gpt|ollama"),
+    format: Optional[str] = typer.Option(None, "--format", "-f", help="code|plan|json|prose"),
+    cot: bool = typer.Option(False, "--cot", help="Enable chain-of-thought"),
+    compress: bool = typer.Option(True, "--compress/--no-compress"),
+    no_context: bool = typer.Option(False, "--no-context"),
+    no_examples: bool = typer.Option(False, "--no-examples"),
+    diff: bool = typer.Option(False, "--diff", help="Show raw vs optimized"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+    max_tokens: int = typer.Option(8192, "--max-tokens"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Optimize any query into the best possible prompt for your AI.
+
+    \b
+    Print optimized prompt:     jsat prompt "improve the retry logic"
+    Send to AI:                 jsat prompt --send "improve the retry logic"
+    Specific AI + format:       jsat prompt --send --ai claude --format code "write test for refund()"
+    Show transformation:        jsat prompt --diff --verbose "refactor webhook handler"
+    """
+    js = _jsat(repo=repo, verbose=verbose)
+    try:
+        from jsat.tools.prompt_optimizer import PromptOptimizer
+        optimizer = PromptOptimizer(graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())
+    except Exception as e:
+        err.print(f"[red]PromptOptimizer error:[/] {e}")
+        raise typer.Exit(1) from e
+
+    console.print("[dim]Optimizing...[/dim]", end="\r")
+    try:
+        result = optimizer.optimize(
+            input_text, ai_provider=ai, output_format=format, cot=cot,
+            compress=compress, max_context_tokens=max_tokens,
+            no_context=no_context, no_examples=no_examples,
+        )
+    except Exception as e:
+        err.print(f"[red]Optimization failed:[/] {e}")
+        raise typer.Exit(1) from e
+
+    if verbose:
+        t = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
+        t.add_column("Stage", style="bold cyan")
+        t.add_column("Value")
+        t.add_row("Task type", result.task_type)
+        t.add_row("Context nodes", str(len(result.context_nodes)))
+        t.add_row("Examples", str(result.examples_used))
+        t.add_row("Tokens", f"{result.tokens_before} → {result.tokens_after}")
+        if result.tokens_before:
+            saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
+            t.add_row("Saved", f"{saved}%")
+        console.print(Panel(t, title="Pipeline", border_style="dim"))
+
+    if diff:
+        console.print(Panel(input_text, title="[yellow]Raw input[/]", border_style="yellow"))
+        console.print(Panel(result.optimized_prompt, title="[green]Optimized[/]", border_style="green"))
+
+    if result.tokens_before and result.tokens_after:
+        saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
+        console.print(f"[dim]Tokens: {result.tokens_before} → {result.tokens_after} ({saved}% saved) | Task: {result.task_type}[/dim]")
+
+    if not send or dry_run:
+        if not diff:
+            console.print(Panel(result.optimized_prompt, title="Optimized prompt", border_style="cyan"))
+        if dry_run:
+            console.print("[dim][dry-run] Not sending.[/dim]")
+        return
+
+    # Send to AI
+    console.print(f"\n[dim]Sending to {js.active_ai_label()}...[/dim]\n")
+    ai_provider = js._get_ai()
+    if not ai_provider.is_available():
+        err.print(f"[red]AI not reachable:[/] {js.active_ai_label()}")
+        raise typer.Exit(1)
+
+    response_text = ""
+    try:
+        console.print(f"[dim]{js.active_ai_label()}:[/dim] ", end="")
+        for chunk in ai_provider.stream(result.optimized_prompt, max_tokens=2048):
+            print(chunk, end="", flush=True)
+            response_text += chunk
+        print()
+    except Exception as e:
+        err.print(f"[red]AI error:[/] {e}")
+        raise typer.Exit(1) from e
+
+    try:
+        optimizer.save_to_history(result, response_text)
+    except Exception:
+        pass
+
+
 # ── ai ────────────────────────────────────────────────────────────────────────
 
 ai_app = typer.Typer(help="Configure and test the AI provider JSAT uses internally.")

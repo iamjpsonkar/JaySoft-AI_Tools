@@ -364,6 +364,37 @@ class JSAT:
         ExportTool(graph=instance._get_graph(), cfg=instance._cfg).restore(Path(archive))
         return instance
 
+    def prompt(
+        self,
+        raw_input: str,
+        ai_provider: str | None = None,
+        output_format: str | None = None,
+        cot: bool = False,
+        compress: bool = True,
+        max_context_tokens: int = 8192,
+        few_shot_k: int = 3,
+        no_context: bool = False,
+        no_examples: bool = False,
+    ) -> Any:
+        """Optimize a raw query into the best possible prompt via the 7-stage pipeline."""
+        from jsat.tools.prompt_optimizer import PromptOptimizer
+        optimizer = PromptOptimizer(graph=self._get_graph(), cfg=self._cfg, ai=self._get_ai())
+        return optimizer.optimize(
+            raw_input, ai_provider=ai_provider, output_format=output_format,
+            cot=cot, compress=compress, max_context_tokens=max_context_tokens,
+            few_shot_k=few_shot_k, no_context=no_context, no_examples=no_examples,
+        )
+
+    def prompt_and_send(self, raw_input: str, **kwargs: Any) -> dict[str, Any]:
+        """Optimize a query and send it to the configured AI. Returns {response, prompt_result}."""
+        from jsat.tools.prompt_optimizer import PromptOptimizer
+        result = self.prompt(raw_input, **kwargs)
+        ai = self._get_ai()
+        response = ai.complete(result.optimized_prompt, max_tokens=2048)
+        optimizer = PromptOptimizer(graph=self._get_graph(), cfg=self._cfg, ai=ai)
+        optimizer.save_to_history(result, response)
+        return {"response": response, "prompt_result": result}
+
     @property
     def index_status(self) -> dict[str, Any]:
         """Quick snapshot: nodes, edges, commit, is_fresh."""
@@ -397,7 +428,7 @@ class JSAT:
             ai_err = str(e)
 
         return {
-            "version": "0.1.5",
+            "version": "0.1.6",
             "system": {
                 "ram_gb": sys_profile.ram_gb,
                 "cpu_arch": sys_profile.cpu_arch,
