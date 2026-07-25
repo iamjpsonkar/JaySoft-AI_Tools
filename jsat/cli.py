@@ -176,45 +176,73 @@ def cmd_index(
 @app.command("shell")
 def cmd_shell(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
-    provider: str = typer.Option("auto", "--provider", "-p",
-                                  help="AI to launch: auto|claude|gpt|ollama|lmstudio"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
-    """Open an AI session with full JSAT tools available.
+    """Start the JSAT interactive shell (no AI by default).
 
     \b
-    By default launches the best available AI (Claude Code CLI if installed)
-    with JSAT's MCP tools wired in — so the AI can call:
-      jsat__query, jsat__blast_radius, jsat__security_review,
-      jsat__investigate_incident, jsat__index_repo, and more.
+    Use JSAT tools directly:
+      index .                    build the graph
+      blast-radius src/file.py   trace impact
+      security-review            scan for issues
+      incident "500 errors"      investigate
 
     \b
-    Inside Claude you can also use JSAT slash commands:
-      /jsat-query what does this service do?
-      /jsat-blast-radius src/payment.py
-      /jsat-security
-      /jsat-incident 500 errors on checkout
+    Launch an AI session from inside the shell:
+      switch claude    → Claude Code (full features + JSAT tools)
+      switch gpt       → GPT-4o
+      switch ollama    → local Ollama
 
     \b
-    Switch AI provider:
-      jsat shell --provider gpt
-      jsat shell --provider ollama
+    Or launch directly from the command line:
+      jsat claude      → open Claude with JSAT tools
+      jsat gpt         → open GPT with JSAT tools
+      jsat ollama      → open Ollama-powered session
     """
-    import shutil
-    from jsat.tools.shell import launch_ai_with_jsat_tools
-
+    from jsat.tools.shell import launch
     js = _jsat(repo=repo, verbose=verbose)
+    launch(js)
 
-    # Resolve which AI to launch
-    if provider == "auto":
-        # Prefer claude CLI, then fall back to custom JSAT shell
-        if shutil.which("claude"):
-            launch_ai_with_jsat_tools(js, ai="claude")
-        else:
-            from jsat.tools.shell import launch
-            launch(js)
-    else:
-        launch_ai_with_jsat_tools(js, ai=provider)
+
+def _launch_ai(ai: str, repo: str, verbose: bool) -> None:
+    """Shared helper: launch an AI with JSAT MCP tools."""
+    from jsat.tools.shell import launch_ai_with_jsat_tools
+    js = _jsat(repo=repo, verbose=verbose)
+    launch_ai_with_jsat_tools(js, ai=ai)
+
+
+@app.command("claude")
+def cmd_claude(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Open Claude Code with all JSAT tools available as MCP + /jsat-* skills."""
+    _launch_ai("claude", repo, verbose)
+
+
+@app.command("gpt")
+def cmd_gpt(
+    repo: str = typer.Option(".", "--repo", "-r"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Open a GPT session with JSAT tools (needs OPENAI_API_KEY)."""
+    _launch_ai("gpt", repo, verbose)
+
+
+@app.command("ollama")
+def cmd_ollama(
+    repo: str = typer.Option(".", "--repo", "-r"),
+    model: str = typer.Option("llama3.2", "--model", "-m", help="Ollama model name"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Open an Ollama session with JSAT tools (local, free, no API key)."""
+    from jsat.tools.shell import launch
+    js = _jsat(repo=repo, verbose=verbose)
+    try:
+        js.switch_ai("ollama", model=model)
+    except Exception:
+        pass
+    launch(js)
 
 
 # ── doctor ────────────────────────────────────────────────────────────────────

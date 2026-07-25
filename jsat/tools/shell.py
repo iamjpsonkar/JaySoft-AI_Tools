@@ -666,7 +666,7 @@ def launch_ai_with_jsat_tools(jsat: "JSAT", ai: str = "claude") -> None:
     nodes = idx.get("nodes", 0)
     edges = idx.get("edges", 0)
 
-    if ai == "claude" and shutil.which("claude"):
+    if ai in ("claude", "claude-cli") and shutil.which("claude"):
         jsat_bin = shutil.which("jsat") or sys.argv[0]
 
         mcp_config = {
