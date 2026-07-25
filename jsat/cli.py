@@ -25,6 +25,79 @@ connect_app = typer.Typer(help="Connect JSAT to AI tools (Claude, Cursor, etc.).
 app.add_typer(skills_app,  name="skills")
 app.add_typer(connect_app, name="connect")
 
+# ── disconnect ─────────────────────────────────────────────────────────────────
+
+@app.command("disconnect")
+def cmd_disconnect(
+    scope: str = typer.Option(
+        "project",
+        "--scope", "-s",
+        help="'project' → .claude/settings.json  |  'global' → ~/.claude/settings.json  |  'all' → both",
+    ),
+    keep_skills: bool = typer.Option(
+        False, "--keep-skills",
+        help="Keep /jsat-* slash command files (default: remove them too)",
+    ),
+) -> None:
+    """Remove JSAT from Claude Code — undo jsat connect claude.
+
+    \b
+    Remove from current project only:
+        jsat disconnect
+
+    \b
+    Remove globally:
+        jsat disconnect --scope global
+
+    \b
+    Remove everywhere:
+        jsat disconnect --scope all
+    """
+    scopes = ["project", "global"] if scope == "all" else [scope]
+    removed_any = False
+
+    for s in scopes:
+        # Determine settings file path
+        if s == "global":
+            settings_path = Path.home() / ".claude" / "settings.json"
+            commands_dir  = Path.home() / ".claude" / "commands"
+        else:
+            settings_path = Path.cwd() / ".claude" / "settings.json"
+            commands_dir  = Path.cwd() / ".claude" / "commands"
+
+        # Remove from mcpServers
+        settings = _read_json(settings_path)
+        if "jsat" in settings.get("mcpServers", {}):
+            del settings["mcpServers"]["jsat"]
+            # Remove empty mcpServers key to keep settings clean
+            if not settings["mcpServers"]:
+                del settings["mcpServers"]
+            _write_json(settings_path, settings)
+            console.print(f"[green]✓[/] Removed MCP config from [bold]{settings_path}[/]")
+            removed_any = True
+        else:
+            console.print(f"[dim]  JSAT not in {settings_path} — skipping[/]")
+
+        # Remove /jsat-* skill files
+        if not keep_skills and commands_dir.exists():
+            jsat_skills = list(commands_dir.glob("jsat-*.md"))
+            if jsat_skills:
+                for skill in jsat_skills:
+                    skill.unlink()
+                console.print(
+                    f"[green]✓[/] Removed {len(jsat_skills)} skill file(s) from "
+                    f"[bold]{commands_dir}[/]"
+                )
+                removed_any = True
+
+    if removed_any:
+        console.print("\n[bold yellow]→ Restart Claude Code[/] to apply changes.\n")
+    else:
+        console.print(
+            "[dim]Nothing to disconnect. "
+            "Run [bold]jsat connect list[/bold] to see active configs.[/dim]\n"
+        )
+
 console = Console()
 err = Console(stderr=True)
 
