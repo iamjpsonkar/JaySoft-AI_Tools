@@ -136,19 +136,23 @@ jsat connect list                          # show every active connection
 
 Restart the AI tool after connecting. JSAT's 55 MCP tools are immediately available.
 
-### Config files written per tool
+### Files written per tool
 
-| Tool | Config file |
-|---|---|
-| Claude Code (project) | `.claude/settings.json` |
-| Claude Code (global) | `~/.claude/settings.json` |
-| Codex CLI (project) | `.codex/config.json` |
-| Codex CLI (global) | `~/.codex/config.json` |
-| Cursor | `~/.cursor/mcp.json` |
-| Windsurf | `~/.codeium/windsurf/mcp_config.json` |
-| Continue | `~/.continue/config.json` |
-| Zed | `~/.config/zed/settings.json` |
-| Gemini CLI | `~/.gemini/settings.json` |
+Each connect command writes both an MCP config **and** a guidance file so the AI knows what JSAT tools exist and when to use them — without being asked.
+
+| Tool | MCP config | Guidance file | Guidance format |
+|---|---|---|---|
+| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (28 files) | Slash commands |
+| Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` | Slash commands |
+| Codex (project) | `.codex/config.json` | `.codex/instructions.md` | Agent instructions |
+| Codex (global) | `~/.codex/config.json` | `~/.codex/instructions.md` | Agent instructions |
+| Cursor | `~/.cursor/mcp.json` | — | — |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `.windsurfrules` | Rules file |
+| Continue | `~/.continue/config.json` | 10 `/jsat-*` custom commands | Slash commands |
+| Zed | `~/.config/zed/settings.json` | `.zed/JSAT.md` | Project context |
+| Gemini CLI | `~/.gemini/settings.json` | `GEMINI.md` | Project instructions |
+
+Pass `--no-instructions` to skip writing the guidance file (MCP only).
 
 ### Disconnect
 

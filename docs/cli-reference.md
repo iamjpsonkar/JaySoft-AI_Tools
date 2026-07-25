@@ -274,7 +274,7 @@ Restart Claude Code after running.
 
 ### `jsat connect codex`
 
-Wire JSAT into the OpenAI Codex CLI as an MCP server.
+Wire JSAT into the OpenAI Codex CLI as an MCP server and write agent instructions.
 
 ```
 jsat connect codex [OPTIONS]
@@ -282,13 +282,18 @@ jsat connect codex [OPTIONS]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--scope`, `-s` | `project` | `project` → `.codex/config.json` \| `global` → `~/.codex/config.json` |
+| `--scope`, `-s` | `project` | `project` → `.codex/` \| `global` → `~/.codex/` |
 | `--repo`, `-r` | `.` | Repo path passed to the MCP server |
+| `--no-instructions` | false | MCP config only — skip instructions.md |
 
 ```bash
 jsat connect codex                          # project scope
 jsat connect codex --scope global           # global
 ```
+
+Writes two files:
+- `.codex/config.json` — MCP server registration
+- `.codex/instructions.md` — JSAT tool guidance (Codex reads at startup)
 
 ---
 
@@ -310,11 +315,13 @@ jsat connect cursor
 
 Writes to `~/.cursor/mcp.json`. Restart Cursor after running.
 
+> **Note:** Cursor reads `.cursorrules` from the project root as agent instructions. You can copy the content from `.codex/instructions.md` or `.windsurfrules` if you want JSAT guidance in Cursor too.
+
 ---
 
 ### `jsat connect windsurf`
 
-Wire JSAT into Windsurf (Codeium) as an MCP server.
+Wire JSAT into Windsurf (Codeium) as an MCP server and write `.windsurfrules`.
 
 ```
 jsat connect windsurf [OPTIONS]
@@ -323,18 +330,23 @@ jsat connect windsurf [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--repo`, `-r` | `.` | Repo path for the MCP server |
+| `--no-instructions` | false | MCP config only — skip .windsurfrules |
 
 ```bash
 jsat connect windsurf
 ```
 
-Writes to `~/.codeium/windsurf/mcp_config.json`. Restart Windsurf after running.
+Writes two files:
+- `~/.codeium/windsurf/mcp_config.json` — MCP server registration
+- `.windsurfrules` — JSAT tool guidance (Windsurf reads from project root automatically)
+
+Restart Windsurf after running.
 
 ---
 
 ### `jsat connect continue`
 
-Wire JSAT into Continue.dev as an MCP server.
+Wire JSAT into Continue.dev as an MCP server and add 10 `/jsat-*` custom commands.
 
 ```
 jsat connect continue [OPTIONS]
@@ -343,18 +355,26 @@ jsat connect continue [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--repo`, `-r` | `.` | Repo path for the MCP server |
+| `--no-instructions` | false | MCP config only — skip custom commands |
 
 ```bash
 jsat connect continue
 ```
 
-Writes to `~/.continue/config.json` using Continue's `mcpServers` array format. Reload Continue (Cmd/Ctrl+Shift+P → "Continue: Reload") to activate.
+Writes to `~/.continue/config.json`:
+- `mcpServers` array entry — MCP server registration
+- `customCommands` entries — 10 `/jsat-*` slash commands:
+  `/jsat-query`, `/jsat-blast-radius`, `/jsat-security`, `/jsat-review`,
+  `/jsat-test-gaps`, `/jsat-knowledge`, `/jsat-incident`,
+  `/jsat-prompt-rewrite`, `/jsat-tokens`, `/jsat-ithinking`
+
+Reload Continue (Cmd/Ctrl+Shift+P → "Continue: Reload") to activate.
 
 ---
 
 ### `jsat connect zed`
 
-Wire JSAT into Zed editor as a context server.
+Wire JSAT into Zed editor as a context server and write `.zed/JSAT.md`.
 
 ```
 jsat connect zed [OPTIONS]
@@ -363,18 +383,23 @@ jsat connect zed [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--repo`, `-r` | `.` | Repo path for the MCP server |
+| `--no-instructions` | false | Context server only — skip .zed/JSAT.md |
 
 ```bash
 jsat connect zed
 ```
 
-Writes to `~/.config/zed/settings.json` using Zed's `context_servers` format. Restart Zed after running.
+Writes two files:
+- `~/.config/zed/settings.json` — `context_servers` registration
+- `.zed/JSAT.md` — JSAT tool guidance (project context for Zed)
+
+Restart Zed after running.
 
 ---
 
 ### `jsat connect gemini`
 
-Wire JSAT into the Google Gemini CLI as an MCP server.
+Wire JSAT into the Google Gemini CLI as an MCP server and write `GEMINI.md`.
 
 ```
 jsat connect gemini [OPTIONS]
@@ -383,12 +408,17 @@ jsat connect gemini [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--repo`, `-r` | `.` | Repo path for the MCP server |
+| `--no-instructions` | false | MCP config only — skip GEMINI.md |
 
 ```bash
 jsat connect gemini
 ```
 
-Writes to `~/.gemini/settings.json`. Restart Gemini CLI after running.
+Writes two files:
+- `~/.gemini/settings.json` — MCP server registration
+- `GEMINI.md` — JSAT tool guidance (Gemini CLI reads from project root automatically)
+
+Restart Gemini CLI after running.
 
 ---
 
