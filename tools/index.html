@@ -1,0 +1,1619 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="JSAT — JaySoft AI Tools. Open-source codebase intelligence shell and SDK.">
+      
+      
+        <meta name="author" content="Jay Prakash Sonkar">
+      
+      
+        <link rel="canonical" href="https://iamjpsonkar.github.io/JaySoft-AI-Tools/tools/">
+      
+      
+        <link rel="prev" href="../cli-reference/">
+      
+      
+        <link rel="next" href="../sdk/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Tools - JSAT Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tools" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="JSAT Docs" class="md-header__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            JSAT Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tools
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iamjpsonkar/JaySoft-AI_Tools
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../claude-integration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Claude Integration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ai-providers/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  AI Providers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../cli-reference/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  CLI Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Tools
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../sdk/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Python SDK
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../publishing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Publishing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="JSAT Docs" class="md-nav__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    JSAT Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iamjpsonkar/JaySoft-AI_Tools
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../claude-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tool-0-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 0 — Shell
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-1-indexer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 1 — Indexer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-2-testhelper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 2 — TestHelper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-3-featurehelper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 3 — FeatureHelper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-4-blastradius" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 4 — BlastRadius
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-5-contractvalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 5 — ContractValidator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-6-securityreview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 6 — SecurityReview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-7-incidenthelper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 7 — IncidentHelper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-8-migrationvalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 8 — MigrationValidator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-9-multimodelreview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 9 — MultiModelReview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-10-knowledgebase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 10 — KnowledgeBase
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-11-orchestrator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 11 — Orchestrator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-12-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 12 — Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-13-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 13 — SDK
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-14-ithinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 14 — IThinking
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sdk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../publishing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tool-0-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 0 — Shell
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-1-indexer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 1 — Indexer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-2-testhelper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 2 — TestHelper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-3-featurehelper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 3 — FeatureHelper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-4-blastradius" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 4 — BlastRadius
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-5-contractvalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 5 — ContractValidator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-6-securityreview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 6 — SecurityReview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-7-incidenthelper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 7 — IncidentHelper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-8-migrationvalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 8 — MigrationValidator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-9-multimodelreview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 9 — MultiModelReview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-10-knowledgebase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 10 — KnowledgeBase
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-11-orchestrator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 11 — Orchestrator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-12-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 12 — Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-13-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 13 — SDK
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-14-ithinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 14 — IThinking
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="tools">Tools<a class="headerlink" href="#tools" title="Permanent link">&para;</a></h1>
+<p>JSAT provides 15 tools. Each tool is a focused capability that can be called from the CLI, the Python SDK, or automatically by Claude Code via MCP.</p>
+<p>The 15 tools correspond to the Python modules in <code>jsat/tools/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Name</th>
+<th>Module</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Shell</td>
+<td><code>tools/shell.py</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>Indexer</td>
+<td><code>tools/indexer.py</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>TestHelper</td>
+<td><code>tools/test_helper.py</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>FeatureHelper</td>
+<td><code>tools/feature.py</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>BlastRadius</td>
+<td><code>tools/blast_radius.py</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>ContractValidator</td>
+<td><code>tools/contract.py</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>SecurityReview</td>
+<td><code>tools/security.py</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>IncidentHelper</td>
+<td><code>tools/incident.py</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>MigrationValidator</td>
+<td><code>tools/migration.py</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>MultiModelReview</td>
+<td><code>tools/review.py</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>KnowledgeBase</td>
+<td><code>tools/knowledge.py</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td>Orchestrator</td>
+<td><code>tools/orchestrator.py</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td>Export</td>
+<td><code>tools/export.py</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td>SDK</td>
+<td>(the <code>JSAT</code> class itself — <code>_core.py</code>)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>IThinking</td>
+<td><code>tools/ithinking.py</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tool-0-shell">Tool 0 — Shell<a class="headerlink" href="#tool-0-shell" title="Permanent link">&para;</a></h2>
+<p>The JSAT interactive shell. Provides a REPL with access to all JSAT tools, AI switching, and natural language queries over the indexed codebase.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>jsat<span class="w"> </span>shell
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>jsat<span class="w"> </span>shell<span class="w"> </span>--repo<span class="w"> </span>/path/to/project
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>jsat<span class="w"> </span>claude<span class="w">     </span><span class="c1"># shell preconfigured for Claude Code CLI</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>jsat<span class="w"> </span>gpt<span class="w">        </span><span class="c1"># shell preconfigured for OpenAI</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>jsat<span class="w"> </span>ollama<span class="w">     </span><span class="c1"># shell preconfigured for Ollama</span>
+</code></pre></div>
+<p><strong>Shell commands:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>&gt; what does this project do?           # natural language query
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>&gt; blast-radius src/payment/refund.py   # trace impact
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>&gt; security-review                      # OWASP scan
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&gt; incident &quot;500 errors since 14:00&quot;    # investigate
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>&gt; status                               # graph stats
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>&gt; switch ollama                        # change AI provider
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>&gt; switch claude                        # switch to Claude Code CLI
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>&gt; switch gpt                           # switch to GPT
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>&gt; help                                 # show all commands
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<p>The shell is not directly accessible via the Python SDK — use the individual tools instead.</p>
+<hr />
+<h2 id="tool-1-indexer">Tool 1 — Indexer<a class="headerlink" href="#tool-1-indexer" title="Permanent link">&para;</a></h2>
+<p>Parses source files using tree-sitter, extracts the AST, and stores nodes (files, functions, classes, endpoints, tables) and edges (calls, imports, inherits) in the graph database.</p>
+<p>Supports Python, JavaScript/TypeScript, Go, Java (standard), Ruby, and Rust (standard+). Incremental by default: only changed files are re-parsed.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--force
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>jsat<span class="w"> </span>index<span class="w"> </span>src/<span class="w"> </span>--languages<span class="w"> </span>python,go
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--branch<span class="w"> </span>feature/api-v2
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Indexed </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">nodes_indexed</span><span class="si">}</span><span class="s2"> nodes, </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">edges_indexed</span><span class="si">}</span><span class="s2"> edges&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Languages: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">languages</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Duration: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">duration_ms</span><span class="si">}</span><span class="s2">ms&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>Streaming progress events:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">js</span><span class="o">.</span><span class="n">index_stream</span><span class="p">():</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">phase</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">progress_pct</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">% — </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Example output:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>IndexResult(
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    nodes_indexed=1842,
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    edges_indexed=4391,
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    duration_ms=4218,
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    languages=[&#39;python&#39;, &#39;go&#39;],
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    commit=&#39;a3f91cc&#39;,
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    repo_path=&#39;/home/user/my-project&#39;
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>)
+</code></pre></div>
+<hr />
+<h2 id="tool-2-testhelper">Tool 2 — TestHelper<a class="headerlink" href="#tool-2-testhelper" title="Permanent link">&para;</a></h2>
+<p>Identifies test gaps in the codebase, generates unit tests, integration tests, and contract tests, and maps behaviors to coverage.</p>
+<p><strong>CLI usage:</strong></p>
+<p>Via MCP in Claude Code:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>/jsat-query find untested code paths in src/payment/
+</code></pre></div>
+<p>Or direct MCP tool call (Claude calls this automatically):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>jsat__get_test_gaps service=payment_service type=unit
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>jsat__generate_unit_test function=process_refund
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>jsat__generate_integration_test endpoint=POST /api/v1/orders
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>jsat__generate_contract_test producer=payment_service consumer=order_service
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># TestHelper is exposed via MCP tools; direct SDK access is via the graph</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what functions in src/payment/ have no tests?&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="tool-3-featurehelper">Tool 3 — FeatureHelper<a class="headerlink" href="#tool-3-featurehelper" title="Permanent link">&para;</a></h2>
+<p>Assists with feature development by providing codebase context, tracing where a feature is implemented across services, and suggesting integration points.</p>
+<p><strong>CLI usage:</strong></p>
+<p>Natural language queries in the shell or via <code>/jsat-query</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>/jsat-query<span class="w"> </span>where<span class="w"> </span>is<span class="w"> </span>the<span class="w"> </span>coupon<span class="w"> </span>system<span class="w"> </span>implemented?
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>/jsat-query<span class="w"> </span>what<span class="w"> </span>services<span class="w"> </span>would<span class="w"> </span>be<span class="w"> </span>affected<span class="w"> </span>by<span class="w"> </span>adding<span class="w"> </span>a<span class="w"> </span>new<span class="w"> </span>payment<span class="w"> </span>method?
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;where is the coupon system implemented?&quot;</span><span class="p">,</span> <span class="n">service</span><span class="o">=</span><span class="s2">&quot;promotions&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">sources</span><span class="p">:</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="tool-4-blastradius">Tool 4 — BlastRadius<a class="headerlink" href="#tool-4-blastradius" title="Permanent link">&para;</a></h2>
+<p>Traces the downstream impact of a change to a file, symbol, git diff, or Kafka topic. Groups impacted nodes by severity: breaking, degraded, warning, safe.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Via /jsat-blast-radius slash command in Claude Code:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>/jsat-blast-radius<span class="w"> </span>src/payment/refund.py
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>/jsat-blast-radius<span class="w"> </span>PaymentService.process_refund
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># Direct MCP tools (Claude calls these automatically):</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="c1"># jsat__blast_radius_file, jsat__blast_radius_symbol, jsat__blast_radius_diff</span>
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">&quot;src/payment/refund.py&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1"># Or for a symbol:</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">&quot;PaymentService.process_refund&quot;</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="c1"># Filter by severity:</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="s2">&quot;src/payment/refund.py&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">severity_filter</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;breaking&quot;</span><span class="p">,</span> <span class="s2">&quot;degraded&quot;</span><span class="p">]</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="p">)</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">impacts</span><span class="p">:</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">severity</span><span class="si">:</span><span class="s2">10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">node_name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">file</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">depth</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;           reason: </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">reason</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Summary: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">summary</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="c1"># Summary: {&#39;breaking&#39;: 2, &#39;degraded&#39;: 5, &#39;warning&#39;: 12, &#39;safe&#39;: 31}</span>
+</code></pre></div>
+<p><strong>Example output snippet:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>breaking   OrderService.cancel_order (src/orders/service.py, depth=1)
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>           reason: directly calls refund_payment() from process_refund
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>degraded   RefundNotificationJob (src/jobs/notify.py, depth=2)
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>           reason: depends on refund result dict shape
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>warning    AuditLogger (src/audit/logger.py, depth=3)
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>           reason: subscribes to order.status_change events
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>Summary: {&#39;breaking&#39;: 2, &#39;degraded&#39;: 1, &#39;warning&#39;: 1, &#39;safe&#39;: 8}
+</code></pre></div>
+<hr />
+<h2 id="tool-5-contractvalidator">Tool 5 — ContractValidator<a class="headerlink" href="#tool-5-contractvalidator" title="Permanent link">&para;</a></h2>
+<p>Validates API contracts between services. Diffs OpenAPI or AsyncAPI specs, classifies changes as breaking or non-breaking, scores backward compatibility 0-100, and identifies all consumers of a changed endpoint.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a># MCP tools in Claude Code (called automatically or via /jsat-query):
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>jsat__get_api_diff base=main head=feature/new-endpoints
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>jsat__check_breaking_changes base=main head=feature/new-endpoints
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>jsat__get_compat_score base=main head=feature/new-endpoints
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>jsat__get_consumers_of_endpoint endpoint=POST /api/v1/payments
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Via natural language query (ContractValidator backs the answer):</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;are there any breaking API changes between main and feature/payments-v2?&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+</code></pre></div>
+<p>Requires <code>pip install jsat[standard]</code> for OpenAPI/AsyncAPI validation (adds <code>openapi-spec-validator</code> and <code>prance</code>).</p>
+<hr />
+<h2 id="tool-6-securityreview">Tool 6 — SecurityReview<a class="headerlink" href="#tool-6-securityreview" title="Permanent link">&para;</a></h2>
+<p>Runs an OWASP-style security scan. Uses Semgrep rules (with <code>jsat[standard]</code>) plus graph-based checks: endpoints missing auth, hardcoded secrets, data flow from user input to SQL/shell, and CVEs in dependencies.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Via /jsat-security in Claude Code:</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>/jsat-security
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>/jsat-security<span class="w"> </span>src/api/
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="c1"># Or direct MCP tools:</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="c1"># jsat__security_scan_file, jsat__get_auth_coverage</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># jsat__list_secrets, jsat__get_dependency_cves, jsat__trace_data_flow</span>
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">security_review</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">severity_threshold</span><span class="o">=</span><span class="s2">&quot;medium&quot;</span><span class="p">,</span> <span class="n">include_deps</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">for</span> <span class="n">finding</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">findings</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">severity</span><span class="p">):</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">severity</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">file</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Fix: </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">remediation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="nb">print</span><span class="p">()</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Secrets detected: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">secrets_found</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CVEs: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">cves</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Example output snippet:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>[CRITICAL] SQL Injection in search endpoint
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  src/api/search.py:47
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>  User input flows directly into raw SQL query without parameterization.
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>  Fix: Use parameterized queries or an ORM.
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>[HIGH] Hardcoded API key
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>  src/integrations/stripe.py:12
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>  API key literal detected. Move to environment variables.
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>Secrets detected: 1
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>CVEs: 3 (CVSS &gt;= medium)
+</code></pre></div>
+<hr />
+<h2 id="tool-7-incidenthelper">Tool 7 — IncidentHelper<a class="headerlink" href="#tool-7-incidenthelper" title="Permanent link">&para;</a></h2>
+<p>Investigates production incidents by correlating the incident description with recent git commits, affected services, and code structure. Returns ranked hypotheses with evidence and recommended actions.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># Via /jsat-incident in Claude Code:</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>/jsat-incident<span class="w"> </span><span class="m">500</span><span class="w"> </span>errors<span class="w"> </span>on<span class="w"> </span>checkout<span class="w"> </span>since<span class="w"> </span><span class="m">14</span>:00
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>/jsat-incident<span class="w"> </span>payment<span class="w"> </span>gateway<span class="w"> </span>timeouts<span class="w"> </span>after<span class="w"> </span>the<span class="w"> </span>3pm<span class="w"> </span>deploy
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">investigate_incident</span><span class="p">(</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>    <span class="s2">&quot;500 errors on checkout endpoint since 14:00&quot;</span><span class="p">,</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="n">since</span><span class="o">=</span><span class="s2">&quot;72h&quot;</span><span class="p">,</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    <span class="n">services</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;checkout_service&quot;</span><span class="p">,</span> <span class="s2">&quot;payment_service&quot;</span><span class="p">]</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="p">)</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Top hypotheses for: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">hypotheses</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Score=</span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">commit_summary</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Commit: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">commit_hash</span><span class="si">}</span><span class="s2">  Author: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">author</span><span class="si">}</span><span class="s2">  At: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>    <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">evidence</span><span class="p">:</span>
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    - </span><span class="si">{</span><span class="n">ev</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Action: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">recommended_action</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>
+<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mitigation steps:&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">mitigation_steps</span><span class="p">:</span>
+<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Example output snippet:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>#1 Score=0.92  Add payment retries with exponential backoff
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>   Commit: a3f91cc  Author: alice  At: 2026-07-25T13:58:00Z
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>   - checkout_service/payment.py modified 2 hours before incident
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>   - retry loop introduced with incorrect exception type
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>   Action: Revert a3f91cc or hotfix exception handling in payment.py
+</code></pre></div>
+<hr />
+<h2 id="tool-8-migrationvalidator">Tool 8 — MigrationValidator<a class="headerlink" href="#tool-8-migrationvalidator" title="Permanent link">&para;</a></h2>
+<p>Validates database migration files for safety: table-locking operations, reversibility, estimated lock duration, and zero-downtime alternatives.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a># MCP tools (called by Claude automatically during code review):
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>jsat__validate_migration file=migrations/20260725_add_index_orders.sql
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>jsat__estimate_lock_duration operation=CREATE INDEX table=orders row_count=5000000
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>jsat__suggest_zero_downtime operation=ADD COLUMN
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;is migrations/add_index.sql safe to run on a live database?&quot;</span><span class="p">)</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+</code></pre></div>
+<p>Requires <code>pip install jsat[standard]</code> for full migration analysis.</p>
+<hr />
+<h2 id="tool-9-multimodelreview">Tool 9 — MultiModelReview<a class="headerlink" href="#tool-9-multimodelreview" title="Permanent link">&para;</a></h2>
+<p>Submits a diff to multiple AI models for independent code review, then merges findings. Bugs confirmed by two or more models are surfaced as high-confidence.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a># MCP tools in Claude Code:
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>jsat__submit_for_review diff=&quot;$(git diff main)&quot; base=main head=HEAD
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>jsat__get_review_findings min_confidence=high
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>jsat__get_high_confidence_bugs
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;review the changes in the current branch for bugs&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="tool-10-knowledgebase">Tool 10 — KnowledgeBase<a class="headerlink" href="#tool-10-knowledgebase" title="Permanent link">&para;</a></h2>
+<p>A persistent notes store for the project. Add architectural decisions, gotchas, runbooks, and on-call notes. Supports semantic search. Entries can be flagged as stale when code changes.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a># MCP tools in Claude Code:
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>jsat__knowledge_add text=&quot;The checkout service uses optimistic locking on order rows.&quot; category=architecture
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>jsat__knowledge_query question=&quot;how does checkout handle concurrent orders?&quot;
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>jsat__knowledge_search query=&quot;locking strategy&quot; limit=5
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>jsat__knowledge_list category=architecture
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>jsat__knowledge_flag_stale entry_id=kb_001
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what do we know about the checkout locking strategy?&quot;</span><span class="p">)</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+</code></pre></div>
+<p>Requires <code>pip install jsat[team]</code> for Qdrant-backed semantic search. SQLite-VSS is used with <code>jsat[standard]</code>.</p>
+<hr />
+<h2 id="tool-11-orchestrator">Tool 11 — Orchestrator<a class="headerlink" href="#tool-11-orchestrator" title="Permanent link">&para;</a></h2>
+<p>Coordinates multi-step JSAT workflows across tools. Routes complex requests to the right combination of tools: for example, "review this PR for security and blast radius" triggers SecurityReview and BlastRadius and merges the results.</p>
+<p><strong>CLI usage:</strong></p>
+<p>Orchestration happens automatically behind the scenes when you use <code>/jsat-query</code> with a complex request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>/jsat-query review the current branch for security issues and trace the blast radius of any changed files
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Orchestrator is invoked implicitly when a query spans multiple tools</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what is the blast radius and security risk of the changes in src/auth/&quot;</span><span class="p">)</span>
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="tool-12-export">Tool 12 — Export<a class="headerlink" href="#tool-12-export" title="Permanent link">&para;</a></h2>
+<p>Exports the JSAT graph, vectors, and cache to a portable zip archive, or restores from one. Used for sharing the indexed codebase with teammates or CI.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Export</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip<span class="w"> </span>--compress<span class="w"> </span><span class="m">9</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="c1"># Import</span>
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>jsat<span class="w"> </span>import<span class="w"> </span>backup.jsat.zip
+</code></pre></div>
+<p><strong>Python SDK usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="c1"># Export</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="n">manifest</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="s2">&quot;backup.jsat.zip&quot;</span><span class="p">,</span> <span class="n">compress_level</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exported </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">nodes</span><span class="si">}</span><span class="s2"> nodes, </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">edges</span><span class="si">}</span><span class="s2"> edges to </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Size: </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">size_mb</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> MB&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="c1"># Import / restore</span>
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="o">.</span><span class="n">from_import</span><span class="p">(</span><span class="s2">&quot;backup.jsat.zip&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">js</span><span class="o">.</span><span class="n">index_status</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Example output:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>ExportManifest(
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>    path=&#39;backup.jsat.zip&#39;,
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>    size_mb=4.2,
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>    nodes=1842,
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>    edges=4391,
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>    commit=&#39;a3f91cc&#39;,
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>    jsat_version=&#39;0.1.0&#39;,
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>    created_at=&#39;2026-07-25T12:00:00Z&#39;
+<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a>)
+</code></pre></div>
+<hr />
+<h2 id="tool-13-sdk">Tool 13 — SDK<a class="headerlink" href="#tool-13-sdk" title="Permanent link">&para;</a></h2>
+<p>The <code>JSAT</code> Python class (<code>jsat._core.JSAT</code>). This is the main entry point for all programmatic use. All other tools are accessible through it.</p>
+<p>See the <a href="../sdk/">Python SDK reference</a> for the full API.</p>
+<p><strong>Quick example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">ai_provider</span><span class="o">=</span><span class="s2">&quot;ollama&quot;</span><span class="p">)</span>
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="n">js</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what calls the refund endpoint?&quot;</span><span class="p">)</span>
+<a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+<a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>
+<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">&quot;src/payment/refund.py&quot;</span><span class="p">)</span>
+<a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">summary</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="tool-14-ithinking">Tool 14 — IThinking<a class="headerlink" href="#tool-14-ithinking" title="Permanent link">&para;</a></h2>
+<p>A structured thinking and planning framework. Before executing a complex task, IThinking decomposes it into phases, audits assumptions, estimates token cost (local vs LLM), and optionally pauses for human review before proceeding.</p>
+<p><strong>CLI usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a># MCP tools in Claude Code (called by Claude on complex requests):
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>jsat__ithinking_plan task=&quot;Refactor the authentication module to support OAuth2&quot;
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>jsat__ithinking_execute task=&quot;Refactor the authentication module to support OAuth2&quot;
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>jsat__ithinking_reflect task=&quot;...&quot; result=&quot;...&quot;
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>jsat__ithinking_token_estimate task=&quot;Generate tests for all uncovered paths&quot;
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>jsat__ithinking_audit_assumptions subtask=&quot;Update the user schema to add MFA fields&quot;
+</code></pre></div>
+<p>IThinking is controlled via <code>.jsat/config.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="nt">ithinking</span><span class="p">:</span>
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">interactive</span><span class="w">   </span><span class="c1"># interactive | silent | report-only</span>
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="w">  </span><span class="nt">gate_level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span><span class="w">  </span><span class="c1"># low | medium | high</span>
+<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="w">  </span><span class="nt">prompt_review</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="w">  </span><span class="nt">decomposition_review</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="w">  </span><span class="nt">assumption_audit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<p>Set <code>mode: silent</code> in CI to skip interactive prompts. Set <code>mode: report-only</code> to always show the plan but never pause.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

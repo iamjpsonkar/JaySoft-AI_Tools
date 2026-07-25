@@ -1,0 +1,2319 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="JSAT — JaySoft AI Tools. Open-source codebase intelligence shell and SDK.">
+      
+      
+        <meta name="author" content="Jay Prakash Sonkar">
+      
+      
+        <link rel="canonical" href="https://iamjpsonkar.github.io/JaySoft-AI-Tools/cli-reference/">
+      
+      
+        <link rel="prev" href="../ai-providers/">
+      
+      
+        <link rel="next" href="../tools/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>CLI Reference - JSAT Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cli-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="JSAT Docs" class="md-header__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            JSAT Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iamjpsonkar/JaySoft-AI_Tools
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../claude-integration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Claude Integration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ai-providers/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  AI Providers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  CLI Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../tools/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Tools
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../sdk/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Python SDK
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../publishing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Publishing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="JSAT Docs" class="md-nav__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    JSAT Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iamjpsonkar/JaySoft-AI_Tools
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../claude-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-core-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Core Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Core Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat shell
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-claude" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat claude
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-gpt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat gpt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ollama" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ollama
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-doctor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat doctor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat version
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-ai-commands-jsat-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. AI Commands (jsat ai)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. AI Commands (jsat ai)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai models
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-connect-commands-jsat-connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Connect Commands (jsat connect)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Connect Commands (jsat connect)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-claude" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect claude
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-cursor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect cursor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect list
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-disconnect-commands-jsat-disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Disconnect Commands (jsat disconnect)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Disconnect Commands (jsat disconnect)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-disconnect-claude" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat disconnect claude
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-init-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Init Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Init Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat init
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-export-and-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Export and Import
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Export and Import">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat import
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-remove-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Remove Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Remove Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-remove" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat remove
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-skills-commands-jsat-skills" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Skills Commands (jsat skills)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Skills Commands (jsat skills)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-skills-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat skills list
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-skills-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat skills run
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-mcp-server-internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. MCP Server (Internal)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. MCP Server (Internal)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-mcp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat mcp-server
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sdk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../publishing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-core-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Core Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Core Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat shell
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-claude" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat claude
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-gpt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat gpt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ollama" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ollama
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-doctor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat doctor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat version
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-ai-commands-jsat-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. AI Commands (jsat ai)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. AI Commands (jsat ai)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-ai-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat ai models
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-connect-commands-jsat-connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Connect Commands (jsat connect)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Connect Commands (jsat connect)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-claude" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect claude
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-cursor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect cursor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-connect-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat connect list
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-disconnect-commands-jsat-disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Disconnect Commands (jsat disconnect)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Disconnect Commands (jsat disconnect)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-disconnect-claude" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat disconnect claude
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-init-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Init Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Init Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat init
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-export-and-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Export and Import
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Export and Import">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat import
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-remove-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Remove Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Remove Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-remove" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat remove
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-skills-commands-jsat-skills" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Skills Commands (jsat skills)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Skills Commands (jsat skills)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-skills-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat skills list
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-skills-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat skills run
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-mcp-server-internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. MCP Server (Internal)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. MCP Server (Internal)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jsat-mcp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat mcp-server
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="cli-reference">CLI Reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h1>
+<p>All JSAT commands start with <code>jsat</code>. Run <code>jsat --help</code> or <code>jsat &lt;command&gt; --help</code> for any command.</p>
+<hr />
+<h2 id="1-core-commands">1. Core Commands<a class="headerlink" href="#1-core-commands" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-index"><code>jsat index</code><a class="headerlink" href="#jsat-index" title="Permanent link">&para;</a></h3>
+<p>Build or update the codebase graph.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>jsat index [PATH] [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PATH</code></td>
+<td>repo root</td>
+<td>Directory to index</td>
+</tr>
+<tr>
+<td><code>--branch</code>, <code>-b</code></td>
+<td><code>HEAD</code></td>
+<td>Git branch to index</td>
+</tr>
+<tr>
+<td><code>--force</code>, <code>-f</code></td>
+<td>false</td>
+<td>Re-index all files (ignore incremental cache)</td>
+</tr>
+<tr>
+<td><code>--languages</code>, <code>-l</code></td>
+<td>auto</td>
+<td>Comma-separated list, e.g. <code>python,go</code></td>
+</tr>
+<tr>
+<td><code>--incremental/--full</code></td>
+<td>incremental</td>
+<td>Use incremental or full index strategy</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jsat<span class="w"> </span>index<span class="w"> </span>src/payments/<span class="w"> </span>--force
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--branch<span class="w"> </span>feature/new-api<span class="w"> </span>--languages<span class="w"> </span>python,go
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--full
+</code></pre></div>
+<hr />
+<h3 id="jsat-shell"><code>jsat shell</code><a class="headerlink" href="#jsat-shell" title="Permanent link">&para;</a></h3>
+<p>Start the JSAT interactive shell.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jsat shell [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repository root</td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
+<td>false</td>
+<td>Enable DEBUG logging</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>shell
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>shell<span class="w"> </span>--repo<span class="w"> </span>/path/to/project
+</code></pre></div>
+<p>Inside the shell, type natural language questions or built-in commands:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>&gt; what does this project do?
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>&gt; blast-radius src/payment/refund.py
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>&gt; security-review
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>&gt; incident &quot;500 errors since 14:00&quot;
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>&gt; switch claude
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>&gt; status
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>&gt; help
+</code></pre></div>
+<hr />
+<h3 id="jsat-claude"><code>jsat claude</code><a class="headerlink" href="#jsat-claude" title="Permanent link">&para;</a></h3>
+<p>Open Claude Code with all JSAT MCP tools available.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>jsat claude [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repository root</td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
+<td>false</td>
+<td>Enable DEBUG logging</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>jsat<span class="w"> </span>claude
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>jsat<span class="w"> </span>claude<span class="w"> </span>--repo<span class="w"> </span>/path/to/project
+</code></pre></div>
+<p>Requires Claude Code CLI to be installed. JSAT must be connected first (<code>jsat connect claude</code>).</p>
+<hr />
+<h3 id="jsat-gpt"><code>jsat gpt</code><a class="headerlink" href="#jsat-gpt" title="Permanent link">&para;</a></h3>
+<p>Open a GPT-4o session with JSAT tools.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>jsat gpt [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repository root</td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
+<td>false</td>
+<td>Enable DEBUG logging</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>sk-...
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>jsat<span class="w"> </span>gpt
+</code></pre></div>
+<hr />
+<h3 id="jsat-ollama"><code>jsat ollama</code><a class="headerlink" href="#jsat-ollama" title="Permanent link">&para;</a></h3>
+<p>Open an Ollama-powered session (local, free, no API key).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>jsat ollama [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repository root</td>
+</tr>
+<tr>
+<td><code>--model</code>, <code>-m</code></td>
+<td><code>llama3.2</code></td>
+<td>Ollama model name</td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
+<td>false</td>
+<td>Enable DEBUG logging</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>jsat<span class="w"> </span>ollama
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>phi3:mini
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5-coder:7b
+</code></pre></div>
+<hr />
+<h3 id="jsat-doctor"><code>jsat doctor</code><a class="headerlink" href="#jsat-doctor" title="Permanent link">&para;</a></h3>
+<p>Run a system health check. Shows system, services, AI providers, and index status.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>jsat doctor [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--refresh</code></td>
+<td>false</td>
+<td>Re-detect system (ignore cached profile)</td>
+</tr>
+<tr>
+<td><code>--json</code></td>
+<td>false</td>
+<td>Output raw JSON</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>jsat<span class="w"> </span>doctor
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>jsat<span class="w"> </span>doctor<span class="w"> </span>--refresh
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>jsat<span class="w"> </span>doctor<span class="w"> </span>--json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.ai&#39;</span>
+</code></pre></div>
+<hr />
+<h3 id="jsat-version"><code>jsat version</code><a class="headerlink" href="#jsat-version" title="Permanent link">&para;</a></h3>
+<p>Print the installed JSAT version.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>jsat<span class="w"> </span>version
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="c1"># jsat 0.1.0</span>
+</code></pre></div>
+<hr />
+<h2 id="2-ai-commands-jsat-ai">2. AI Commands (<code>jsat ai</code>)<a class="headerlink" href="#2-ai-commands-jsat-ai" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-ai-status"><code>jsat ai status</code><a class="headerlink" href="#jsat-ai-status" title="Permanent link">&para;</a></h3>
+<p>Show which AI providers are available and which is currently configured.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>status
+</code></pre></div>
+<p>Output columns: Provider, Status, Free, Notes/Models.</p>
+<hr />
+<h3 id="jsat-ai-use"><code>jsat ai use</code><a class="headerlink" href="#jsat-ai-use" title="Permanent link">&para;</a></h3>
+<p>Configure JSAT to use a specific AI provider. Writes to <code>.jsat/config.yaml</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat ai use PROVIDER [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROVIDER</code></td>
+<td><code>ollama</code>, <code>anthropic</code>, <code>openai</code>, <code>lmstudio</code></td>
+</tr>
+<tr>
+<td><code>--model</code>, <code>-m</code></td>
+<td>Override the default model for this provider</td>
+</tr>
+<tr>
+<td><code>--config</code>, <code>-c</code></td>
+<td>Config file to write (default: <code>.jsat/config.yaml</code>)</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>phi3:mini
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>anthropic
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>anthropic<span class="w"> </span>--model<span class="w"> </span>claude-haiku-4-5-20251001
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>openai<span class="w"> </span>--model<span class="w"> </span>gpt-4o-mini
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>lmstudio
+</code></pre></div>
+<p>Runs a connectivity test after writing and reports whether the AI is reachable.</p>
+<hr />
+<h3 id="jsat-ai-test"><code>jsat ai test</code><a class="headerlink" href="#jsat-ai-test" title="Permanent link">&para;</a></h3>
+<p>Send a test prompt to the configured AI and print the response.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>jsat ai test [PROMPT]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROMPT</code></td>
+<td><code>"Say hello in one sentence."</code></td>
+<td>Prompt to send</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;what is 2 + 2?&quot;</span>
+</code></pre></div>
+<hr />
+<h3 id="jsat-ai-models"><code>jsat ai models</code><a class="headerlink" href="#jsat-ai-models" title="Permanent link">&para;</a></h3>
+<p>List available models for the configured provider.</p>
+<ul>
+<li>For <strong>Ollama</strong>: queries <code>http://localhost:11434/api/tags</code></li>
+<li>For <strong>LM Studio</strong>: queries <code>http://localhost:1234/v1/models</code></li>
+<li>For cloud providers: shows the currently configured model (no remote list)</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>models
+</code></pre></div>
+<hr />
+<h2 id="3-connect-commands-jsat-connect">3. Connect Commands (<code>jsat connect</code>)<a class="headerlink" href="#3-connect-commands-jsat-connect" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-connect-claude"><code>jsat connect claude</code><a class="headerlink" href="#jsat-connect-claude" title="Permanent link">&para;</a></h3>
+<p>Wire JSAT into Claude Code as an MCP server and install <code>/jsat-*</code> slash commands.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>jsat connect claude [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--scope</code>, <code>-s</code></td>
+<td><code>project</code></td>
+<td><code>project</code> or <code>global</code></td>
+</tr>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repo path for the MCP server</td>
+</tr>
+<tr>
+<td><code>--install-skills/--no-skills</code></td>
+<td><code>--install-skills</code></td>
+<td>Install <code>/jsat-*</code> commands</td>
+</tr>
+<tr>
+<td><code>--show</code></td>
+<td>false</td>
+<td>Print the written config</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w">                         </span><span class="c1"># project scope</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">          </span><span class="c1"># global scope (all sessions)</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--no-skills<span class="w">             </span><span class="c1"># MCP only, no slash commands</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--show<span class="w">                  </span><span class="c1"># print config after writing</span>
+</code></pre></div>
+<p>Restart Claude Code after running.</p>
+<hr />
+<h3 id="jsat-connect-cursor"><code>jsat connect cursor</code><a class="headerlink" href="#jsat-connect-cursor" title="Permanent link">&para;</a></h3>
+<p>Wire JSAT into Cursor as an MCP server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>jsat connect cursor [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repo path for the MCP server</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>cursor
+</code></pre></div>
+<p>Writes to <code>~/.cursor/mcp.json</code>. Restart Cursor after running.</p>
+<hr />
+<h3 id="jsat-connect-list"><code>jsat connect list</code><a class="headerlink" href="#jsat-connect-list" title="Permanent link">&para;</a></h3>
+<p>Show all Claude Code and Cursor MCP configs that include JSAT.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>list
+</code></pre></div>
+<p>Checks:</p>
+<ul>
+<li><code>~/.claude/settings.json</code> (global Claude Code)</li>
+<li><code>.claude/settings.json</code> (project Claude Code)</li>
+<li><code>~/.cursor/mcp.json</code> (Cursor)</li>
+</ul>
+<hr />
+<h2 id="4-disconnect-commands-jsat-disconnect">4. Disconnect Commands (<code>jsat disconnect</code>)<a class="headerlink" href="#4-disconnect-commands-jsat-disconnect" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-disconnect-claude"><code>jsat disconnect claude</code><a class="headerlink" href="#jsat-disconnect-claude" title="Permanent link">&para;</a></h3>
+<p>Remove JSAT from Claude Code's MCP config and optionally remove skill files.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>jsat disconnect claude [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TOOL</code></td>
+<td><code>claude</code></td>
+<td>Tool to disconnect: <code>claude</code>, <code>cursor</code>, or <code>all</code></td>
+</tr>
+<tr>
+<td><code>--scope</code>, <code>-s</code></td>
+<td><code>project</code></td>
+<td><code>project</code>, <code>global</code>, or <code>all</code></td>
+</tr>
+<tr>
+<td><code>--keep-skills</code></td>
+<td>false</td>
+<td>Keep <code>/jsat-*</code> skill files (default: remove them)</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w">                       </span><span class="c1"># project scope</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">        </span><span class="c1"># global scope</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all<span class="w">           </span><span class="c1"># both project and global</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--keep-skills<span class="w">         </span><span class="c1"># remove MCP entry, keep skill files</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w">                       </span><span class="c1"># disconnect from Cursor</span>
+</code></pre></div>
+<p>Restart Claude Code after running.</p>
+<hr />
+<h2 id="5-init-command">5. Init Command<a class="headerlink" href="#5-init-command" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-init"><code>jsat init</code><a class="headerlink" href="#jsat-init" title="Permanent link">&para;</a></h3>
+<p>Generate a starter <code>.jsat/config.yaml</code> for a given profile. Does not overwrite if the file already exists.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>jsat init [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--profile</code>, <code>-p</code></td>
+<td><code>solo</code></td>
+<td><code>solo</code>, <code>team</code>, <code>ci</code>, or <code>raspberry-pi</code></td>
+</tr>
+<tr>
+<td><code>--output</code>, <code>-o</code></td>
+<td><code>.jsat/config.yaml</code></td>
+<td>Output path</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>solo
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>team
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>ci
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>raspberry-pi<span class="w"> </span>--output<span class="w"> </span>/etc/jsat/config.yaml
+</code></pre></div>
+<hr />
+<h2 id="6-export-and-import">6. Export and Import<a class="headerlink" href="#6-export-and-import" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-export"><code>jsat export</code><a class="headerlink" href="#jsat-export" title="Permanent link">&para;</a></h3>
+<p>Export the current index to a portable zip archive.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>jsat export OUTPUT [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OUTPUT</code></td>
+<td>(required)</td>
+<td>Output path, e.g. <code>backup.jsat.zip</code></td>
+</tr>
+<tr>
+<td><code>--compress</code>, <code>-z</code></td>
+<td><code>6</code></td>
+<td>Compression level 0-9 (0 = no compression, 9 = max)</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip<span class="w"> </span>--compress<span class="w"> </span><span class="m">9</span>
+</code></pre></div>
+<hr />
+<h3 id="jsat-import"><code>jsat import</code><a class="headerlink" href="#jsat-import" title="Permanent link">&para;</a></h3>
+<p>Restore an index from an exported archive.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>jsat import ARCHIVE [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ARCHIVE</code></td>
+<td>(required)</td>
+<td>Path to <code>.jsat.zip</code> archive</td>
+</tr>
+<tr>
+<td><code>--migrate</code></td>
+<td>false</td>
+<td>Apply schema migrations if version differs</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>jsat<span class="w"> </span>import<span class="w"> </span>backup.jsat.zip
+</code></pre></div>
+<hr />
+<h2 id="7-remove-command">7. Remove Command<a class="headerlink" href="#7-remove-command" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-remove"><code>jsat remove</code><a class="headerlink" href="#jsat-remove" title="Permanent link">&para;</a></h3>
+<p>Remove all JSAT artifacts from the current repository. Interactive confirmation by default.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>jsat remove [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--yes</code>, <code>-y</code></td>
+<td>false</td>
+<td>Skip confirmation prompt</td>
+</tr>
+<tr>
+<td><code>--keep-config</code></td>
+<td>false</td>
+<td>Keep <code>.jsat/config.yaml</code> (preserve settings)</td>
+</tr>
+</tbody>
+</table>
+<p>Removes:</p>
+<ul>
+<li><code>.jsat/graph/</code> — codebase graph database</li>
+<li><code>.jsat/vectors/</code> — embedding vectors</li>
+<li><code>.jsat/cache/</code> — semantic cache</li>
+<li><code>.jsat/system-profile.json</code></li>
+<li><code>.jsat/config.yaml</code> (unless <code>--keep-config</code>)</li>
+<li><code>.claude/commands/jsat-*.md</code> — skill files</li>
+<li><code>mcpServers.jsat</code> entry in <code>.claude/settings.json</code></li>
+</ul>
+<p>Does not touch your source code, git history, or other Claude configuration.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>jsat<span class="w"> </span>remove
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--yes<span class="w">              </span><span class="c1"># skip confirmation</span>
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--keep-config<span class="w">      </span><span class="c1"># preserve config.yaml</span>
+</code></pre></div>
+<hr />
+<h2 id="8-skills-commands-jsat-skills">8. Skills Commands (<code>jsat skills</code>)<a class="headerlink" href="#8-skills-commands-jsat-skills" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-skills-list"><code>jsat skills list</code><a class="headerlink" href="#jsat-skills-list" title="Permanent link">&para;</a></h3>
+<p>List installed JSAT skills (YAML manifests in the skills directory).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>list
+</code></pre></div>
+<hr />
+<h3 id="jsat-skills-run"><code>jsat skills run</code><a class="headerlink" href="#jsat-skills-run" title="Permanent link">&para;</a></h3>
+<p>Run a named skill.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>jsat skills run NAME [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NAME</code></td>
+<td>Skill name</td>
+</tr>
+<tr>
+<td><code>--args</code>, <code>-a</code></td>
+<td><code>key=val</code> pairs (repeatable)</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill<span class="w"> </span>--args<span class="w"> </span><span class="nv">target</span><span class="o">=</span>src/api.py<span class="w"> </span>--args<span class="w"> </span><span class="nv">depth</span><span class="o">=</span><span class="m">3</span>
+</code></pre></div>
+<hr />
+<h2 id="9-mcp-server-internal">9. MCP Server (Internal)<a class="headerlink" href="#9-mcp-server-internal" title="Permanent link">&para;</a></h2>
+<h3 id="jsat-mcp-server"><code>jsat mcp-server</code><a class="headerlink" href="#jsat-mcp-server" title="Permanent link">&para;</a></h3>
+<p>Start the JSAT MCP server on stdin/stdout. This is invoked automatically by Claude Code and Cursor when JSAT is connected. You do not normally run this directly.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>jsat mcp-server [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Repository root to serve</td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
+<td>false</td>
+<td>Enable debug logging</td>
+</tr>
+</tbody>
+</table>
+<p>If you need to test the MCP server manually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>jsat<span class="w"> </span>mcp-server<span class="w"> </span>--repo<span class="w"> </span>/path/to/project<span class="w"> </span>--verbose
+</code></pre></div>
+<p>The server speaks JSON-RPC 2.0 over stdin/stdout. It starts immediately and loads JSAT lazily to avoid startup timeout errors in Claude Code.</p>
+<hr />
+<h2 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>JSAT_CONFIG</code></td>
+<td>Override config file path</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td>Anthropic API provider</td>
+</tr>
+<tr>
+<td><code>OPENAI_API_KEY</code></td>
+<td>OpenAI provider</td>
+</tr>
+<tr>
+<td><code>GEMINI_API_KEY</code> or <code>GOOGLE_API_KEY</code></td>
+<td>Gemini provider</td>
+</tr>
+<tr>
+<td><code>NEO4J_PASSWORD</code></td>
+<td>Neo4j graph backend</td>
+</tr>
+<tr>
+<td><code>QDRANT_API_KEY</code></td>
+<td>Qdrant vector store</td>
+</tr>
+<tr>
+<td><code>JSAT_MCP_TOKEN</code></td>
+<td>MCP server auth token (if <code>mcp.auth: true</code>)</td>
+</tr>
+<tr>
+<td><code>CI</code></td>
+<td>If <code>true</code>/<code>1</code>/<code>yes</code>, forces CI profile (no embeddings, memory cache)</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
