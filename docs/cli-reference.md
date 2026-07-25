@@ -349,7 +349,31 @@ jsat init --profile raspberry-pi --output /etc/jsat/config.yaml
 
 ---
 
-## 6. Export and Import
+## 6. CI Setup Command
+
+### `jsat ci-setup`
+
+Write a CI workflow file for JSAT. By default targets GitHub Actions; use `--provider gitlab` for GitLab CI.
+
+```
+jsat ci-setup [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--provider`, `-p` | `github` | CI provider: `github` or `gitlab` |
+| `--output`, `-o` | provider default | Output path for the workflow file |
+
+```bash
+jsat ci-setup                        # writes .github/workflows/jsat.yml
+jsat ci-setup --provider gitlab      # writes .gitlab-ci.yml
+```
+
+The generated workflow runs `jsat index` and `jsat doctor --json` on every push and pull request. It uses the `ci` profile automatically (no AI calls, JSON logs, memory cache).
+
+---
+
+## 7. Export and Import
 
 ### `jsat export`
 
@@ -390,7 +414,7 @@ jsat import backup.jsat.zip
 
 ---
 
-## 7. Remove Command
+## 8. Remove Command
 
 ### `jsat remove`
 
@@ -425,7 +449,7 @@ jsat remove --keep-config      # preserve config.yaml
 
 ---
 
-## 8. Skills Commands (`jsat skills`)
+## 9. Skills Commands (`jsat skills`)
 
 ### `jsat skills list`
 
@@ -457,7 +481,7 @@ jsat skills run my-skill --args target=src/api.py --args depth=3
 
 ---
 
-## 9. MCP Server (Internal)
+## 10. MCP Server (Internal)
 
 ### `jsat mcp-server`
 

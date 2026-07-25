@@ -132,6 +132,25 @@ skills:
   auto_discover: true
   override_builtins: true
   clusters: {}
+
+# ── Review ─────────────────────────────────────────────────────────────────────
+review:
+  models:
+    - {provider: claude_cli, model: claude-sonnet-4-6}
+    - {provider: ollama, model: qwen2.5-coder:7b}
+  parallel_timeout_seconds: 90   # wall-clock deadline per model; exceeded models are skipped
+  min_confidence: medium          # "low" | "medium" | "high"
+
+# ── Security ───────────────────────────────────────────────────────────────────
+security:
+  cvss_threshold: medium          # "low" | "medium" | "high" | "critical"
+  secret_entropy_threshold: 3.5   # Shannon entropy threshold for secret detection
+
+# ── Privacy ────────────────────────────────────────────────────────────────────
+privacy:
+  hash_pii: false                 # hash PII values before storing in the graph
+  audit_log: false                # write an audit log of all JSAT operations
+  audit_log_path: .jsat/audit.log
 ```
 
 ---
@@ -404,6 +423,42 @@ Controls structlog output.
 - `level: DEBUG` — verbose, useful for development
 - `format: json` — structured JSON logs, useful in CI and for log aggregation tools
 - `file: /var/log/jsat.log` — additionally write logs to a file
+
+---
+
+### `review`
+
+Controls multi-model parallel code review (Tool 9 — MultiModelReview).
+
+- `models` — list of provider/model pairs to dispatch the diff to simultaneously. Each entry must specify a `provider` (`claude_cli`, `ollama`, `anthropic`, `openai`, `openai_compat`) and a `model` name.
+- `parallel_timeout_seconds` — wall-clock deadline applied to every model dispatch. Models that exceed this are skipped; their timeout is recorded as a warning in the review output.
+- `min_confidence` — controls which findings are surfaced:
+  - `low` — any single model's finding
+  - `medium` — confirmed by 2 or more models (default)
+  - `high` — confirmed by all configured models
+
+Do not put API keys in the `models` list. Keys are read from environment variables as usual (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.).
+
+---
+
+### `security`
+
+Controls thresholds for the SecurityReview tool.
+
+- `cvss_threshold` — minimum CVSS severity level to report in dependency CVE scans: `low`, `medium`, `high`, or `critical`. Findings below this threshold are suppressed.
+- `secret_entropy_threshold` — Shannon entropy value above which a string literal is flagged as a potential hardcoded secret. The default of `3.5` catches most API keys, tokens, and base64-encoded values while reducing false positives on normal strings. Lower values increase sensitivity; higher values reduce noise.
+
+---
+
+### `privacy`
+
+Controls how JSAT handles potentially sensitive data in the graph and logs.
+
+- `hash_pii: true` — before storing any value extracted from source code that matches a PII pattern (email addresses, phone numbers, national IDs), JSAT replaces the raw value with a SHA-256 hash. This prevents PII from being stored in the graph or sent to an LLM.
+- `audit_log: true` — write a structured audit log of every JSAT operation (index, query, review, knowledge write, MCP tool call) to `audit_log_path`. Each entry includes a timestamp, operation type, user identity (if available), and a summary of inputs/outputs with sensitive values redacted.
+- `audit_log_path` — path to the audit log file (relative to repo root). Default: `.jsat/audit.log`.
+
+Neither setting is enabled by default. Enable both in regulated environments or wherever a record of AI-assisted operations is required for compliance.
 
 ---
 

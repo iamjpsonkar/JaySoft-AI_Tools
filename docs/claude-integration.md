@@ -1,6 +1,6 @@
 # Claude Integration
 
-JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get seven `/jsat-*` slash commands.
+JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get nine `/jsat-*` slash commands.
 
 ## How It Works
 
@@ -11,7 +11,7 @@ Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←�
 When you run `jsat connect claude`, JSAT:
 
 1. Writes an MCP server entry into `.claude/settings.json` (or `~/.claude/settings.json` for global scope)
-2. Installs seven `/jsat-*` slash command skill files in `.claude/commands/`
+2. Installs nine `/jsat-*` slash command skill files in `.claude/commands/`
 
 Claude Code reads these on startup, starts the `jsat mcp-server` process, and makes all JSAT tools available during your session.
 
@@ -63,7 +63,7 @@ jsat connect list
 
 ## Slash Commands
 
-Seven `/jsat-*` slash commands are installed into Claude Code when you run `jsat connect claude`.
+Nine `/jsat-*` slash commands are installed into Claude Code when you run `jsat connect claude`.
 
 ### `/jsat-query`
 
@@ -152,11 +152,32 @@ Run a system health check without leaving Claude Code.
 
 Claude calls `jsat__get_jsat_version` and `jsat__get_index_status` and shows version, system profile, and index health.
 
+### `/jsat-ithinking`
+
+Run the IThinking structured planning framework for a complex task. IThinking decomposes the task into phases, audits assumptions, estimates token cost, and (depending on `gate_level`) pauses for human review before execution.
+
+```
+/jsat-ithinking Refactor the authentication module to support OAuth2
+/jsat-ithinking add retry logic to the payment gateway client
+```
+
+Claude calls `jsat__ithinking_plan` followed by `jsat__ithinking_audit_assumptions`. With `gate_level: medium` or higher, Claude will present the plan and wait for your approval before proceeding.
+
+Installed by `jsat connect claude`. Controlled via the `ithinking` block in `.jsat/config.yaml`.
+
+### `/jsat-think`
+
+Shorthand alias for `/jsat-ithinking`. Identical behavior — use whichever is easier to type.
+
+```
+/jsat-think how should I migrate the orders table without downtime?
+```
+
 ---
 
 ## MCP Tools
 
-In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced `jsat__*`.
+In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced `jsat__*`. JSAT defines 47 tool slots; 17 are currently wired and active in the MCP server.
 
 ### Index and graph tools
 

@@ -144,10 +144,12 @@ jsat claude
 | `/jsat-index [path]` | Rebuild the codebase graph |
 | `/jsat-status` | Node and edge counts |
 | `/jsat-doctor` | Full health check |
+| `/jsat-ithinking <task>` | Run the IThinking structured planning framework for a task |
+| `/jsat-think <task>` | Alias for `/jsat-ithinking` — shorthand for quick invocation |
 
 ### MCP tools Claude can call automatically
 
-JSAT exposes 47 MCP tools across 12 categories. Highlights:
+JSAT defines 47 MCP tool slots across 12 categories; 17 are currently wired and active in the MCP server. Highlights:
 
 - `jsat__query` — answer any codebase question
 - `jsat__blast_radius_file`, `jsat__blast_radius_diff`, `jsat__blast_radius_symbol`, `jsat__blast_radius_topic`
@@ -237,6 +239,8 @@ jsat remove                                   # remove all JSAT artifacts from t
 |---|---|
 | `jsat skills list` | List installed JSAT skill manifests |
 | `jsat skills run <name>` | Run a named skill with optional `key=val` args |
+| `jsat ci-setup` | Write a GitHub Actions workflow for JSAT |
+| `jsat ci-setup --provider gitlab` | Write a GitLab CI pipeline for JSAT |
 
 ---
 
@@ -303,12 +307,28 @@ print(health["profile"], health["graph"]["backend"])
 | 6 | **Security Review Agent** | OWASP pattern scan, auth coverage gaps, hardcoded secret detection, dependency CVE lookup |
 | 7 | **Incident Investigation Helper** | Correlates an incident description against recent commits and graph topology; ranks root-cause hypotheses |
 | 8 | **Migration Safety Validator** | Validates migration files, estimates lock duration, generates zero-downtime migration plans |
-| 9 | **Multi-Model Code Review** | Submits a diff to multiple AI models independently; surfaces only bugs confirmed by two or more |
+| 9 | **Multi-Model Code Review (true parallel dispatch)** | Dispatches a diff to multiple AI models simultaneously via `ThreadPoolExecutor`; surfaces only bugs confirmed by two or more models |
 | 10 | **Knowledge Base Builder** | Persistent searchable store of architectural decisions, runbooks, and tribal knowledge |
 | 11 | **Multi-Agent Orchestrator** | Decomposes a task and runs specialized sub-agents (understanding, generation, review, test, security, docs) |
 | 12 | **Export / Import System** | Portable zip snapshots of the full graph — share between machines, cache in CI, restore in seconds |
 | 13 | **Python SDK** | Programmatic access to every tool via `from jsat import JSAT` |
 | 14 | **IThinking Meta-Cognitive Layer** | Structured seven-phase reasoning: clarify, plan, context, assumptions, execute, reflect — with human approval gates |
+
+### Multi-Model Review
+
+Tool 9 dispatches the diff to all configured models in parallel, collects findings, and surfaces only those confirmed by two or more models. Configure the model list and timeout in `.jsat/config.yaml`:
+
+```yaml
+review:
+  models:
+    - {provider: claude_cli, model: claude-sonnet-4-6}
+    - {provider: ollama, model: qwen2.5-coder:7b}
+  parallel_timeout_seconds: 90
+  min_confidence: medium
+```
+
+- `parallel_timeout_seconds` — per-review wall-clock deadline; any model that exceeds this is skipped and its absence is logged.
+- `min_confidence` — minimum agreement level to surface a finding: `low` (any model), `medium` (2+ models), `high` (all models).
 
 ---
 

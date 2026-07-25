@@ -363,7 +363,21 @@ Requires `pip install jsat[standard]` for full migration analysis.
 
 ## Tool 9 — MultiModelReview
 
-Submits a diff to multiple AI models for independent code review, then merges findings. Bugs confirmed by two or more models are surfaced as high-confidence.
+Dispatches a diff to multiple AI models simultaneously using `ThreadPoolExecutor`, collects findings independently from each model, and merges the results. Bugs confirmed by two or more models are surfaced as high-confidence. Models that exceed `parallel_timeout_seconds` are skipped and their omission is logged as a warning.
+
+**Configuration (`.jsat/config.yaml`):**
+
+```yaml
+review:
+  models:
+    - {provider: claude_cli, model: claude-sonnet-4-6}
+    - {provider: ollama, model: qwen2.5-coder:7b}
+  parallel_timeout_seconds: 90
+  min_confidence: medium
+```
+
+- `parallel_timeout_seconds` — per-review wall-clock deadline applied to every model dispatch.
+- `min_confidence` — `low` surfaces any finding, `medium` requires 2+ models to agree, `high` requires all models to agree.
 
 **CLI usage:**
 
