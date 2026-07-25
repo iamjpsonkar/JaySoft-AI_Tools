@@ -9,7 +9,7 @@ description = "JaySoft AI Tools — open-source codebase intelligence shell and 
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
-authors = [{ name = "JaySoft", email = "jay.sonkar@ril.com" }]
+authors = [{ name = "JaySoft", email = "iamjpsonkar@gmail.com" }]
 keywords = ["codebase", "intelligence", "ai", "sdk", "cli", "static-analysis"]
 classifiers = [
     "Development Status :: 3 - Alpha",
