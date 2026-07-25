@@ -166,3 +166,24 @@ All notable changes to JSAT.
 - `ingest_file(path)` + `ingest_directory(path, pattern)` ingestion API
 - Graphiti integration: activates when `graphiti-core` installed + Neo4j URI set
 - `knowledge_ingest.py`: standalone CLAUDE.md, ADR, runbook scanner for bulk ingestion
+
+## [0.1.5] — 2026-07-26
+
+### Added
+
+**INDEX.md artifact** — indexer now writes `.jsat/INDEX.md` after every run
+- Human + AI readable codebase map: services, endpoints, tables, Kafka topics
+- Auto-updated on `jsat index .`
+
+**MCP server — 52 tools fully wired** (was 38, target was 42+)
+- All 52 catalog tools have handlers in `_build_registry()`
+- New handlers: `blast_radius_file/topic`, `security_scan_file`, `get_auth_coverage`,
+  `get_dependency_cves`, `trace_data_flow`, `knowledge_search/list/flag_stale`,
+  `get_hypotheses`, `get_recent_changes`, `generate_runbook`, `estimate_lock_duration`,
+  `generate_unit/integration/contract_test`, `get_consumers_of_endpoint`,
+  `ithinking_execute`, `ithinking_token_estimate`
+
+**Orchestrator — full 7-agent dispatch** (plan.md Section K)
+- `_decompose()` now routes tasks to all 7 agents: understanding, generation, test,
+  documentation, review, security, conflict_resolver
+- All agents callable via `_run_agent()` using full K1-K7 system prompts

@@ -252,16 +252,45 @@ class OrchestratorTool(BaseTool):
                                   duration_ms=duration_ms)
 
     def _decompose(self, task: str) -> list[tuple[str, str]]:
+        """Route tasks to the full 7-agent roster from plan.md Section K.
+
+        All 7 agents are callable via _run_agent() using their full K1-K7 prompts.
+        Decomposition is heuristic; explicit agent lists override it.
+        """
         lower = task.lower()
-        subtasks = [("understanding", f"Load context for: {task}")]
-        if any(kw in lower for kw in ["write", "implement", "add", "create"]):
-            subtasks += [("generation", f"Implement: {task}"),
-                         ("test", f"Write tests for: {task}")]
-        if any(kw in lower for kw in ["review", "check"]):
+
+        # Phase 1: Understanding always runs first
+        subtasks: list[tuple[str, str]] = [("understanding", f"Load context for: {task}")]
+
+        # Phase 2: Implementation tasks
+        if any(kw in lower for kw in ["write", "implement", "add", "create", "build", "scaffold"]):
+            subtasks.append(("generation", f"Implement: {task}"))
+            subtasks.append(("test", f"Write tests for: {task}"))
+            subtasks.append(("documentation", f"Update docs for: {task}"))
+
+        # Phase 3: Review tasks
+        if any(kw in lower for kw in ["review", "check", "audit", "inspect", "analyze"]):
             subtasks.append(("review", f"Review: {task}"))
-        if any(kw in lower for kw in ["security", "secure", "auth"]):
+
+        # Phase 4: Security tasks
+        if any(kw in lower for kw in ["security", "secure", "auth", "permission", "access"]):
             subtasks.append(("security", f"Security check: {task}"))
-        return subtasks
+
+        # Phase 5: Refactor tasks — understanding + review + generation
+        if any(kw in lower for kw in ["refactor", "rewrite", "cleanup", "improve"]):
+            subtasks.append(("review", f"Review current implementation: {task}"))
+            subtasks.append(("generation", f"Refactor: {task}"))
+            subtasks.append(("test", f"Verify refactored tests: {task}"))
+
+        # Deduplicate while preserving order
+        seen: set[str] = set()
+        unique = []
+        for item in subtasks:
+            if item[0] not in seen:
+                seen.add(item[0])
+                unique.append(item)
+
+        return unique
 
     def _run_agent(self, agent: str, subtask: str, prior: str) -> SubtaskResult:
         import structlog

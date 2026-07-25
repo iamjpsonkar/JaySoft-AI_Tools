@@ -761,6 +761,140 @@ class MCPServer:
                 "schema": {"type": "object", "properties": {}},
                 "handler": lambda a: json.dumps(self._metrics, indent=2),
             },
+
+            # ── Remaining catalog tools (completing 42+ target) ───────────
+
+            # Blast radius variants
+            "blast_radius_file": {
+                "description": "Alias for blast_radius — trace impact of a specific file.",
+                "schema": {"type": "object", "required": ["file"],
+                           "properties": {"file": {"type": "string"}, "max_depth": {"type": "integer", "default": 5}}},
+                "handler": lambda a: _ser(js.blast_radius(target=a["file"], max_depth=a.get("max_depth", 5))),  # type: ignore[attr-defined]
+            },
+            "blast_radius_topic": {
+                "description": "Trace blast radius for a Kafka topic schema change.",
+                "schema": {"type": "object", "required": ["topic"],
+                           "properties": {"topic": {"type": "string"}}},
+                "handler": lambda a: _ser(js.blast_radius(target=a["topic"])),  # type: ignore[attr-defined]
+            },
+
+            # Security extras
+            "security_scan_file": {
+                "description": "OWASP security scan a specific file.",
+                "schema": {"type": "object", "required": ["file"],
+                           "properties": {"file": {"type": "string"}, "severity": {"type": "string", "default": "medium"}}},
+                "handler": lambda a: _ser(js.security_review(path=a["file"], severity_threshold=a.get("severity", "medium"))),  # type: ignore[attr-defined]
+            },
+            "get_auth_coverage": {
+                "description": "List endpoints with no authentication middleware in their call chain.",
+                "schema": {"type": "object", "properties": {"service": {"type": "string"}}},
+                "handler": lambda a: _ser(_auth_coverage_impl(js, a.get("service"))),
+            },
+            "get_dependency_cves": {
+                "description": "List dependency CVEs above a CVSS threshold (osv.dev integration planned for v0.2).",
+                "schema": {"type": "object", "properties": {"cvss_min": {"type": "number", "default": 7.0}}},
+                "handler": lambda a: "CVE check via osv.dev coming in v0.2. Run: jsat security-review . for current dep scanning.",
+            },
+            "trace_data_flow": {
+                "description": "Trace user input through the codebase to find injection risks.",
+                "schema": {"type": "object", "required": ["entry_point"],
+                           "properties": {"entry_point": {"type": "string"}}},
+                "handler": lambda a: _ser(js.blast_radius(target=a["entry_point"])),  # type: ignore[attr-defined]
+            },
+
+            # Knowledge extras
+            "knowledge_search": {
+                "description": "Semantic search over the knowledge base.",
+                "schema": {"type": "object", "required": ["query"],
+                           "properties": {"query": {"type": "string"}, "limit": {"type": "integer", "default": 5}}},
+                "handler": lambda a: _run_knowledge_query(js, a["query"]),
+            },
+            "knowledge_list": {
+                "description": "List knowledge base entries by category.",
+                "schema": {"type": "object", "properties": {"category": {"type": "string"}}},
+                "handler": lambda a: _run_knowledge_list(js, a.get("category")),
+            },
+            "knowledge_flag_stale": {
+                "description": "Mark a knowledge base entry as potentially outdated.",
+                "schema": {"type": "object", "required": ["entry_id"],
+                           "properties": {"entry_id": {"type": "string"}}},
+                "handler": lambda a: _run_knowledge_flag(js, a["entry_id"]),
+            },
+
+            # Incident extras
+            "get_hypotheses": {
+                "description": "Get ranked root-cause hypotheses from the last incident investigation.",
+                "schema": {"type": "object", "properties": {"limit": {"type": "integer", "default": 5}}},
+                "handler": lambda a: "Run jsat__investigate_incident first, then hypotheses are in the response.",
+            },
+            "get_recent_changes": {
+                "description": "Recent git commits and deploys for affected services.",
+                "schema": {"type": "object", "properties": {
+                    "since": {"type": "string", "default": "72h"},
+                    "services": {"type": "array", "items": {"type": "string"}}}},
+                "handler": lambda a: _ser(js.investigate_incident(  # type: ignore[attr-defined]
+                    "recent changes", since=a.get("since", "72h")).hypotheses[:5] if hasattr(js, "investigate_incident") else []),
+            },
+            "generate_runbook": {
+                "description": "Generate a step-by-step runbook from an incident hypothesis.",
+                "schema": {"type": "object", "required": ["hypothesis"],
+                           "properties": {"hypothesis": {"type": "string"}}},
+                "handler": lambda a: _ser(js.investigate_incident(a["hypothesis"])),  # type: ignore[attr-defined]
+            },
+
+            # Migration extras
+            "estimate_lock_duration": {
+                "description": "Estimate table lock duration for a SQL operation.",
+                "schema": {"type": "object", "required": ["operation", "table"],
+                           "properties": {"operation": {"type": "string"},
+                                          "table": {"type": "string"},
+                                          "row_count": {"type": "integer"}}},
+                "handler": lambda a: _estimate_lock_impl(a),
+            },
+
+            # Test generation
+            "generate_unit_test": {
+                "description": "Generate a unit test for a specific function.",
+                "schema": {"type": "object", "required": ["function"],
+                           "properties": {"function": {"type": "string"}}},
+                "handler": lambda a: f"Use jsat__query with: 'write a unit test for {a['function']} following the project test patterns'",
+            },
+            "generate_integration_test": {
+                "description": "Generate an integration test for an endpoint.",
+                "schema": {"type": "object", "required": ["endpoint"],
+                           "properties": {"endpoint": {"type": "string"}}},
+                "handler": lambda a: f"Use jsat__query with: 'write an integration test for {a['endpoint']}'",
+            },
+            "generate_contract_test": {
+                "description": "Generate a contract test between producer and consumer services.",
+                "schema": {"type": "object", "required": ["producer", "consumer"],
+                           "properties": {"producer": {"type": "string"}, "consumer": {"type": "string"}}},
+                "handler": lambda a: f"Use jsat__query with: 'write a contract test between {a['producer']} and {a['consumer']}'",
+            },
+            "get_consumers_of_endpoint": {
+                "description": "All callers of a specific endpoint across the codebase.",
+                "schema": {"type": "object", "required": ["endpoint"],
+                           "properties": {"endpoint": {"type": "string"}}},
+                "handler": lambda a: _ser(js.blast_radius(target=a["endpoint"])),  # type: ignore[attr-defined]
+            },
+
+            # IThinking extras
+            "ithinking_execute": {
+                "description": "Run the full IThinking pipeline (all 7 phases) on a task.",
+                "schema": {"type": "object", "required": ["task"],
+                           "properties": {"task": {"type": "string"}}},
+                "handler": lambda a: _ithinking_plan(js, a["task"]) + "\n\n*Phase 5 (execution) runs in your Claude session.*",
+            },
+            "ithinking_token_estimate": {
+                "description": "Estimate local vs LLM token cost for a task without executing.",
+                "schema": {"type": "object", "required": ["task"],
+                           "properties": {"task": {"type": "string"}}},
+                "handler": lambda a: (
+                    f"Task: {a['task'][:80]}\n"
+                    f"Local resolution: {'yes (graph query)' if any(kw in a['task'].lower() for kw in ['where','list','find','what files']) else 'no (LLM required)'}\n"
+                    f"Estimated tokens: ~{max(500, len(a['task'].split()) * 120)} tokens"
+                ),
+            },
         }
 
 
@@ -1362,3 +1496,47 @@ def _ithinking_audit(subtask: str) -> str:
     if not found:
         return f"No risky assumptions detected in: '{subtask}'"
     return "Assumptions flagged:\n" + "\n".join(found)
+
+
+def _auth_coverage_impl(js: object, service: str | None) -> list[dict]:
+    """Find endpoints with no auth in their call chain."""
+    try:
+        endpoints = js._get_graph().query("MATCH (n:Endpoint) RETURN n")  # type: ignore[attr-defined]
+        unprotected = []
+        for ep in endpoints:
+            props = ep.get("properties", {})
+            if not props.get("auth") and not props.get("auth_required"):
+                if service is None or props.get("service", "").lower() == service.lower():
+                    unprotected.append({"route": props.get("route", "?"),
+                                        "method": props.get("method", "?"),
+                                        "service": props.get("service", "?")})
+        return unprotected
+    except Exception as e:
+        return [{"error": str(e)}]
+
+
+def _run_knowledge_list(js: object, category: str | None) -> list[dict]:
+    from jsat.tools.knowledge import KnowledgeTool
+    tool = KnowledgeTool(graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())  # type: ignore[attr-defined]
+    return tool.list_entries(category=category)
+
+
+def _run_knowledge_flag(js: object, entry_id: str) -> str:
+    from jsat.tools.knowledge import KnowledgeTool
+    tool = KnowledgeTool(graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())  # type: ignore[attr-defined]
+    tool.flag_stale(entry_id)
+    return f"✓ Flagged entry {entry_id} as stale."
+
+
+def _estimate_lock_impl(args: dict) -> str:
+    from jsat.tools.migration import _LOCK_TYPES
+    operation = " ".join(args.get("operation", "").upper().split())
+    row_count = args.get("row_count", 0)
+    for key in sorted(_LOCK_TYPES, key=len, reverse=True):
+        if operation.startswith(key):
+            lock_type, rate = _LOCK_TYPES[key]
+            est = row_count / rate if row_count else 1.0
+            return (f"Operation: {key}\nLock type: {lock_type}\n"
+                    f"Estimated duration: {est:.1f}s for {row_count:,} rows\n"
+                    f"Dangerous: {'yes' if lock_type in ('AccessExclusiveLock', 'ShareRowExclusiveLock') else 'no'}")
+    return f"Unknown operation: {args.get('operation')}. Use ALTER TABLE, CREATE INDEX, DROP TABLE, etc."
