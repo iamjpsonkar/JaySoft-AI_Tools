@@ -101,7 +101,7 @@ jsat = "jsat.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/iamjpsonkar/JaySoft-AI_Tools"
-Documentation = "https://iamjpsonkar.github.io/JaySoft-AI_Tools"
+Documentation = "https://iamjpsonkar.github.io/JaySoft-AI_Tools/"
 Repository = "https://github.com/iamjpsonkar/JaySoft-AI_Tools"
 "Bug Tracker" = "https://github.com/iamjpsonkar/JaySoft-AI_Tools/issues"
 Changelog = "https://github.com/iamjpsonkar/JaySoft-AI_Tools/blob/main/CHANGELOG.md"
