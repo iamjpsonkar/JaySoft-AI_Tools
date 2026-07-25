@@ -6,17 +6,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Only one concurrent deployment
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  contents: write   # needed to push to gh-pages branch
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,23 +23,12 @@ jobs:
       - name: Install MkDocs Material
         run: pip install mkdocs-material
 
-      - name: Build docs
-        run: mkdocs build --strict --site-dir site
-
-      - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site/
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    # If this job fails with "branch not allowed", go to:
-    # Settings → Environments → github-pages → Deployment branches → add "main"
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Build and deploy to gh-pages branch
+        run: mkdocs gh-deploy --force --clean
+        # mkdocs gh-deploy:
+        #   1. Builds static HTML into a temp folder
+        #   2. Pushes it to the gh-pages branch (creates it if needed)
+        #   3. Automatically adds .nojekyll so GitHub Pages skips Jekyll
+        #
+        # Then set GitHub Pages to: Settings → Pages → Source:
+        #   "Deploy from a branch" → branch: gh-pages → folder: / (root)
