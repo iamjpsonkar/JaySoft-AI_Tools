@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # ── Command registry ──────────────────────────────────────────────────────────
 
 _COMMANDS: dict[str, str] = {
-    "switch":         "switch <ai> [model] — switch AI provider (claude/gpt/ollama/gemini/lmstudio/…)",
+    "switch":         "switch <ai> — switch AI  |  'switch claude-cli' opens full Claude + JSAT tools",
     "index":          "index [PATH] — build/update the codebase graph",
     "blast-radius":   "blast-radius <FILE> — trace downstream impact",
     "test-gaps":      "test-gaps [SERVICE] — find untested code paths",
@@ -120,8 +120,8 @@ class JSATShell:
             f"AI : [green]{ai}[/]\n"
             f"Repo: [dim]{self._js._repo}[/]\n"
             f"Index: [dim]{index_info}[/]\n\n"
-            "[dim]Ask anything · Tab-complete · type [bold]help[/bold] · "
-            "[bold]switch claude[/bold] to change AI[/dim]",
+            "[dim]Ask anything · Tab-complete · type [bold]help[/bold]\n"
+            "[bold]switch claude-cli[/bold] → full Claude Code + JSAT tools (all features)[/dim]",
             border_style="cyan",
         ))
 
@@ -264,15 +264,28 @@ class JSATShell:
             self._console.print(f"  [red]Could not write to {profile}:[/] {e}")
 
     def _cmd_switch(self, args: list[str]) -> None:
-        """switch <provider> [model] [base_url]"""
+        """switch <provider> [model]
+
+        switch claude-cli  → opens the real Claude Code with ALL JSAT tools as MCP
+        switch claude      → uses claude CLI for Q&A (session-based)
+        switch gpt         → OpenAI GPT
+        switch ollama      → local Ollama
+        """
         if not args:
             self._console.print(
                 "[yellow]Usage:[/] switch <provider> [model]\n"
-                "Providers: " + "  ".join(_PROVIDERS)
+                "  [cyan]switch claude-cli[/]  ← Full Claude Code + JSAT MCP tools (recommended)\n"
+                "  switch claude | gpt | ollama | gemini | lmstudio | anthropic"
             )
             return
 
         provider = args[0].lower()
+
+        # Special: launch full interactive Claude Code with JSAT as MCP tools
+        if provider in ("claude-cli", "claude-interactive", "claude-full", "full"):
+            self._launch_claude_with_jsat_tools()
+            return
+
         model    = args[1] if len(args) > 1 else None
         base_url = args[2] if len(args) > 2 else None
 
@@ -293,6 +306,107 @@ class JSATShell:
                 )
         except ValueError as e:
             self._console.print(f"\n[red]Error:[/] {e}")
+
+    def _launch_claude_with_jsat_tools(self) -> None:
+        """Launch the real Claude Code CLI with JSAT available as MCP tools.
+
+        This gives you EVERYTHING the claude CLI has:
+          ✓ Full multi-turn conversation with memory
+          ✓ Claude can read/write files, run bash (all Claude tools)
+          ✓ Claude slash commands (/help, /clear, /memory, etc.)
+          ✓ JSAT tools available to Claude via MCP:
+              query, blast_radius, security_review, investigate_incident,
+              index_repo, get_index_status, export_index, get_jsat_version
+          ✓ Type 'exit' or Ctrl+D to return to JSAT shell
+        """
+        import json
+        import os
+        import shutil
+        import subprocess
+        import tempfile
+
+        if not shutil.which("claude"):
+            self._console.print(
+                "[red]claude CLI not found.[/]\n"
+                "Install Claude Code: https://claude.ai/code"
+            )
+            return
+
+        # Find jsat binary
+        jsat_bin = shutil.which("jsat") or sys.argv[0]
+        repo = str(self._js._repo)
+        index_status = self._js.index_status
+        nodes = index_status.get("nodes", 0)
+        edges = index_status.get("edges", 0)
+
+        # MCP config pointing to JSAT server
+        mcp_config = {
+            "mcpServers": {
+                "jsat": {
+                    "command": jsat_bin,
+                    "args": ["mcp-server", "--repo", repo],
+                    "env": {},
+                }
+            }
+        }
+
+        # System prompt telling Claude about JSAT tools
+        jsat_context = (
+            f"You are working in the codebase at: {repo}\n"
+            f"JSAT graph: {nodes:,} nodes, {edges:,} edges indexed.\n\n"
+            "JSAT MCP tools available to you:\n"
+            "  jsat__query              — answer any codebase question using the graph\n"
+            "  jsat__blast_radius       — trace downstream impact of any file/symbol change\n"
+            "  jsat__security_review    — find OWASP issues and hardcoded secrets\n"
+            "  jsat__investigate_incident — score recent commits as root-cause hypotheses\n"
+            "  jsat__index_repo         — rebuild the codebase graph index\n"
+            "  jsat__get_index_status   — check how many nodes/edges are indexed\n"
+            "  jsat__export_index       — export the graph as a portable archive\n\n"
+            "Use these tools proactively when answering questions about the codebase. "
+            "You also have full access to the repo files via your built-in tools."
+        )
+
+        mcp_config_path = None
+        try:
+            # Write temp MCP config
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False, prefix="jsat-mcp-"
+            ) as f:
+                json.dump(mcp_config, f, indent=2)
+                mcp_config_path = f.name
+
+            self._console.print(
+                f"\n[bold cyan]Opening Claude Code with JSAT tools[/bold cyan] 🚀\n"
+                f"\n  Repo  : [cyan]{repo}[/cyan]"
+                f"\n  Index : [cyan]{nodes:,} nodes · {edges:,} edges[/cyan]"
+                f"\n  JSAT tools: [cyan]query · blast_radius · security_review · "
+                f"investigate_incident · index_repo · ...[/cyan]"
+                f"\n\n[dim]Type [bold]/help[/bold] inside Claude for commands. "
+                f"[bold]exit[/bold] or Ctrl+D to return here.[/dim]\n"
+            )
+
+            # Launch claude in fully interactive mode with JSAT MCP + file access
+            subprocess.run(
+                [
+                    "claude",
+                    "--mcp-config", mcp_config_path,
+                    "--add-dir", repo,
+                    "--append-system-prompt", jsat_context,
+                ],
+                # No capture_output — fully interactive, inherits terminal
+            )
+
+        finally:
+            if mcp_config_path:
+                try:
+                    os.unlink(mcp_config_path)
+                except Exception:
+                    pass
+
+        self._console.print(
+            "\n[dim]← Back in JSAT shell. "
+            "Your Claude session history is preserved.[/dim]\n"
+        )
 
     def _provider_hint(self, provider: str) -> str:
         hints = {
