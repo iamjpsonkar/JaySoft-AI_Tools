@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install jsat (core + standard, no AI backends)
+        run: uv pip install --system -e ".[standard]"
+
+      - name: Run CI-safe tests
+        run: pytest -m ci --tb=short -q
+        env:
+          CI: "true"
+
+      - name: Coverage report (Python 3.11 only)
+        if: matrix.python-version == '3.11'
+        run: |
+          uv pip install --system coverage
+          coverage run -m pytest -m ci -q
+          coverage report --fail-under=55
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check jsat/ --select E,F,I --ignore E501,E402

@@ -114,7 +114,7 @@ class JSATShell:
         self._running = True
         while self._running:
             try:
-                raw = input("[bold cyan]jsat>[/] ").strip()
+                raw = input("jsat> ").strip()
             except (EOFError, KeyboardInterrupt):
                 self._console.print("\n[dim]Goodbye.[/dim]")
                 break

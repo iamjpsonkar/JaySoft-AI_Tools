@@ -16,9 +16,10 @@ _SEMGREP_MAP = {"ERROR": "critical", "WARNING": "high", "INFO": "medium"}
 
 
 def _entropy(s: str) -> float:
+    """Shannon entropy of a string. Exported for tests."""
     if not s:
         return 0.0
-    freq = {}
+    freq: dict[str, int] = {}
     for c in s:
         freq[c] = freq.get(c, 0) + 1
     n = len(s)
