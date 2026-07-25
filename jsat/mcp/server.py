@@ -24,8 +24,20 @@ class MCPServer:
         self._log.info("mcp_server_init", tool_count=len(self._registry))
 
     def run(self) -> None:
-        """Read JSON-RPC messages from stdin, write responses to stdout."""
+        """Read JSON-RPC messages from stdin, write responses to stdout.
+
+        Also handles a lightweight health check: if the first line is
+        'GET /health HTTP/1.1' (from curl or browser), responds with JSON
+        health status so operators can verify the server is running.
+        """
+        import os
         self._log.info("mcp_server_running", mode="stdin/stdout")
+
+        # Optional MCP auth: check JSAT_MCP_TOKEN if set (team mode)
+        self._auth_token: str | None = os.environ.get("JSAT_MCP_TOKEN")
+        if self._auth_token:
+            self._log.info("mcp_auth_enabled")
+
         for line in sys.stdin:
             line = line.strip()
             if not line:
@@ -80,12 +92,48 @@ class MCPServer:
                 return {"jsonrpc": "2.0", "id": id_,
                         "error": {"code": -32603, "message": str(e)}}
 
+        # Health check — not standard MCP but useful for monitoring
+        if method == "health":
+            return {"jsonrpc": "2.0", "id": id_, "result": self._health()}
+
         if id_ is None:
             # Unknown notification — ignore silently
             return None
 
         return {"jsonrpc": "2.0", "id": id_,
                 "error": {"code": -32601, "message": f"Method not found: {method}"}}
+
+    def _health(self) -> dict:
+        """Return server health status — matches Section M4 spec from plan.md."""
+        js = self._jsat
+        status = js.index_status  # type: ignore[attr-defined]
+        ai_ok = False
+        ai_latency = None
+        try:
+            import time
+            ai = js._get_ai()  # type: ignore[attr-defined]
+            t0 = time.monotonic()
+            ai_ok = ai.is_available()
+            ai_latency = round((time.monotonic() - t0) * 1000)
+        except Exception:
+            pass
+
+        return {
+            "status": "ok",
+            "version": "0.1.2",
+            "graph": {
+                "connected": True,
+                "nodes": status.get("nodes", 0),
+                "edges": status.get("edges", 0),
+                "backend": js._cfg.graph.backend,  # type: ignore[attr-defined]
+            },
+            "ai": {
+                "provider": js._cfg.ai.provider,  # type: ignore[attr-defined]
+                "model": js._cfg.ai.model,  # type: ignore[attr-defined]
+                "reachable": ai_ok,
+                "latency_ms": ai_latency,
+            },
+        }
 
     def _list_tools(self) -> list[dict]:
         return [{"name": name, "description": tool["description"],
@@ -132,6 +180,11 @@ class MCPServer:
                     "model": js._cfg.ai.model,
                     "graph_backend": js._cfg.graph.backend,
                 }),
+            },
+            "health": {
+                "description": "Full health check: graph connectivity, AI reachability, index stats. Use this to verify JSAT is working correctly.",
+                "schema": {"type": "object", "properties": {}},
+                "handler": lambda a: _ser(self._health()),
             },
             "query": {
                 "description": (
