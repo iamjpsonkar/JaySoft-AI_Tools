@@ -230,32 +230,67 @@ jsat claude
 
 ## Prompt Optimizer
 
-JSAT automatically optimizes every query through a 7-stage pipeline before sending it to the AI:
+JSAT optimizes every query through a two-phase pipeline before sending to the AI.
+
+### Phase 1 — Offline pipeline (always runs, zero LLM calls)
 
 ```bash
-# Print the optimized prompt (inspect mode)
-jsat prompt "improve the retry logic"
-
-# Optimize + send to AI
-jsat prompt --send "improve the retry logic"
-
-# See what you typed vs what the AI actually received
-jsat prompt --diff "improve the retry logic"
-
-# Format, CoT, specific AI
+jsat prompt "improve the retry logic"              # inspect optimized prompt
+jsat prompt --send "improve the retry logic"       # optimize + send
+jsat prompt --diff "improve the retry logic"       # see raw vs optimized side by side
 jsat prompt --send --format code --ai claude "write a test for refund()"
 ```
 
-**Stages:**
-1. Task classification (code_gen / refactor / review / debug / question / plan / test / security)
-2. Context injection from the JSAT graph (BFS, 70/30 recency split)
-3. Constraint injection from the knowledge base (ADRs, coding standards)
-4. Few-shot example selection (kNN over prompt history)
-5. Output format specification (code only / JSON findings / prose / numbered steps)
-6. Model-specific formatting (XML for Claude, Markdown for GPT, plain for Ollama)
-7. Token compression (example shortening → block removal → docstring stripping)
+| Stage | What it does |
+|---|---|
+| Classify | Keyword-match task type: code_gen / refactor / debug / test / security / … |
+| Context | BFS graph traversal — injects relevant function signatures and call chains |
+| Constraints | KB lookup — injects project ADRs and coding standards (top-3 only) |
+| Few-shot | kNN over prompt history — injects the most similar past examples |
+| Format | Provider-aware: XML for Claude, Markdown for GPT, plain for Ollama |
+| Compress | Token pruning when prompt exceeds 4000 tokens |
 
-**In the shell** — every message is auto-optimized:
+### Phase 2 — LLM rewriting (optional, activated with a flag)
+
+After the offline pipeline structures the prompt, 1–3 specialist LLM agents rewrite the task description from different angles, then the best result is selected by a coverage + specificity scorer.
+
+```bash
+# 1 agent — fastest, rewrites for clarity and precision
+jsat prompt --rewrite "fix logger in this branch"
+
+# 3 agents in parallel — picks the best rewrite
+jsat prompt --agents "fix logger in this branch"
+
+# Combine with --send to optimize + rewrite + send in one step
+jsat prompt --agents --send "fix logger in ValidateVPAHandler.post"
+```
+
+**The 3 LLM agents:**
+
+| Agent | Temperature | Focus |
+|---|---|---|
+| `rewrite` | 0.2 | Replaces vague words with specific identifiers from context |
+| `context_expand` | 0.3 | Fills missing technical detail (function names, error messages, paths) |
+| `constraint_harden` | 0.1 | Makes success criteria measurable ("ensure X returns Y when Z") |
+
+Agents run in parallel. Winner is chosen by: `coverage × 0.45 + specificity × 0.40 + efficiency × 0.15`.
+
+**Example output with `--agents --verbose`:**
+```
+┌─────────────────────┬──────────────────────────────┐
+│ Task type           │ debug                        │
+│ Context nodes       │ 3                            │
+│ Tokens before       │ 6                            │
+│ Tokens after        │ 847                          │
+│ Rewrite agents run  │ 3                            │
+│ Winner              │ context_expand               │
+│ Rewrite time        │ 1843ms                       │
+└─────────────────────┴──────────────────────────────┘
+
+✦ 6→847 tokens | Task: debug | 3 agents → context_expand won
+```
+
+**In the shell** — every message is auto-optimized through Phase 1:
 ```
 jsat [Claude Code (CLI)]> improve the retry logic
 
@@ -272,11 +307,15 @@ opt show      # show raw input vs full optimized prompt side by side
 opt history   # browse past optimization diffs
 ```
 
-**See before/after:**
+**MCP tools:**
+- `jsat__prompt_optimize` — offline pipeline only
+- `jsat__prompt_rewrite` — offline + 1 LLM rewrite agent
+- `jsat__prompt_multi_agent` — offline + up to 3 parallel LLM agents
+
+**Claude Code slash command:**
 ```
-jsat> opt show
+/jsat-prompt-rewrite fix the logger missing extra= dict in ValidateVPAHandler.post
 ```
-Shows both panels: raw input vs full optimized prompt with injected context, constraints, and model formatting.
 
 ### Disconnect or remove
 

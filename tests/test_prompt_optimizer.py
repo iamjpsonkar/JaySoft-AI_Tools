@@ -5,6 +5,8 @@ from jsat.tools.prompt_optimizer import (
     ClassifyAgent, ContextAgent, ConstraintAgent,
     FewShotAgent, FormatAgent, CompressAgent,
     PromptOptimizer, _tok,
+    RewriteResult, _score_rewrite,
+    LLMRewriteAgent, LLMContextExpandAgent, LLMConstraintHardenAgent,
 )
 
 
@@ -302,3 +304,215 @@ def test_optimizer_different_providers(optimizer):
     for provider, expected_fmt in [("anthropic","xml"), ("openai","markdown"), ("ollama","plain")]:
         r = optimizer.optimize("task", ai_provider=provider)
         assert r.model_format == expected_fmt
+
+
+# ── RewriteResult dataclass ───────────────────────────────────────────────────
+
+@pytest.mark.ci
+def test_rewrite_result_fields():
+    r = RewriteResult(prompt="rewritten", agent="rewrite", score=0.75, elapsed_ms=120.5)
+    assert r.prompt == "rewritten"
+    assert r.agent == "rewrite"
+    assert r.score == 0.75
+    assert r.elapsed_ms == 120.5
+
+
+# ── _score_rewrite ────────────────────────────────────────────────────────────
+
+@pytest.mark.ci
+def test_score_rewrite_no_context_nodes():
+    # No context nodes → coverage neutral (0.5)
+    s = _score_rewrite("def process_refund(order_id: str) -> None:", "fix logger", [])
+    assert 0.0 <= s <= 1.0
+
+@pytest.mark.ci
+def test_score_rewrite_with_matching_node():
+    # Node name appears in rewrite → coverage = 1.0
+    nodes = ["payments/service.py::process_refund"]
+    s = _score_rewrite("ensure process_refund returns None when order_id is invalid",
+                       "fix refund", nodes)
+    assert s > 0.3  # should score reasonably given node name match
+
+@pytest.mark.ci
+def test_score_rewrite_higher_specificity_wins():
+    # snake_case and camelCase tokens push specificity up
+    generic = "please fix the issue with the thing in the code"
+    specific = "ensure process_refund raises ValueError when order_id is None"
+    s_generic = _score_rewrite(generic, "fix it", [])
+    s_specific = _score_rewrite(specific, "fix it", [])
+    assert s_specific > s_generic
+
+@pytest.mark.ci
+def test_score_rewrite_bloated_prompt_penalised():
+    # Very long rewrite relative to offline prompt gets efficiency penalty
+    short_offline = "fix logger"
+    short_rewrite = "fix logger output"
+    bloated_rewrite = ("fix logger output " + "x " * 500)
+    s_short = _score_rewrite(short_rewrite, short_offline, [])
+    s_bloat = _score_rewrite(bloated_rewrite, short_offline, [])
+    assert s_short >= s_bloat
+
+@pytest.mark.ci
+def test_score_rewrite_returns_float_in_range():
+    s = _score_rewrite("some rewrite here", "some prompt here", ["file.py::SomeClass"])
+    assert isinstance(s, float)
+    assert 0.0 <= s <= 1.0
+
+
+# ── PromptResult new fields ───────────────────────────────────────────────────
+
+@pytest.mark.ci
+def test_prompt_result_rewrite_fields_default(optimizer):
+    r = optimizer.optimize("improve retry logic")
+    assert r.rewrite_applied is False
+    assert r.rewrite_agents_run == 0
+    assert r.rewrite_elapsed_ms == 0.0
+    assert r.winning_agent is None
+
+@pytest.mark.ci
+def test_prompt_result_rewrite_skipped_no_ai(optimizer):
+    # optimizer fixture has ai=None → rewrite should silently skip
+    r = optimizer.optimize("improve retry logic", rewrite=True)
+    assert r.rewrite_applied is False
+    assert r.optimized_prompt  # offline prompt still returned
+
+@pytest.mark.ci
+def test_prompt_result_n_agents_skipped_no_ai(optimizer):
+    r = optimizer.optimize("fix logger", n_agents=3)
+    assert r.rewrite_applied is False
+    assert r.rewrite_agents_run == 0
+
+@pytest.mark.ci
+def test_prompt_result_stages_no_rewrite(optimizer):
+    r = optimizer.optimize("write a test")
+    assert "rewrite" not in " ".join(r.stages_applied)
+
+
+# ── LLM agent classes with mock AI ───────────────────────────────────────────
+
+class MockAI:
+    """Fake AI provider that returns a predictable rewrite."""
+    available = True
+    def is_available(self): return self.available
+    def complete(self, prompt: str, max_tokens: int = 512) -> str:
+        return f"ensure process_refund(order_id: str) raises ValueError when order_id is None"
+
+
+class FailingAI:
+    def is_available(self): return True
+    def complete(self, *a, **kw): raise RuntimeError("AI unavailable")
+
+
+class UnavailableAI:
+    def is_available(self): return False
+    def complete(self, *a, **kw): raise AssertionError("should not be called")
+
+
+@pytest.mark.ci
+def test_llm_rewrite_agent_returns_result():
+    agent = LLMRewriteAgent()
+    r = agent.run("fix logger in payments", [], MockAI())
+    assert isinstance(r, RewriteResult)
+    assert r.agent == "rewrite"
+    assert r.prompt  # non-empty
+    assert 0.0 <= r.score <= 1.0
+    assert r.elapsed_ms >= 0
+
+@pytest.mark.ci
+def test_llm_rewrite_agent_fallback_on_error():
+    agent = LLMRewriteAgent()
+    offline = "fix logger in payments service"
+    r = agent.run(offline, [], FailingAI())
+    assert r.prompt == offline  # fallback to offline
+    assert r.agent == "rewrite"
+
+@pytest.mark.ci
+def test_llm_context_expand_agent_returns_result():
+    agent = LLMContextExpandAgent()
+    r = agent.run("fix logger in payments", "fix logger", [], MockAI())
+    assert isinstance(r, RewriteResult)
+    assert r.agent == "context_expand"
+
+@pytest.mark.ci
+def test_llm_context_expand_agent_fallback_on_error():
+    agent = LLMContextExpandAgent()
+    offline = "fix logger"
+    r = agent.run(offline, "fix logger", [], FailingAI())
+    assert r.prompt == offline
+
+@pytest.mark.ci
+def test_llm_constraint_harden_agent_returns_result():
+    agent = LLMConstraintHardenAgent()
+    r = agent.run("fix the logger issue", [], MockAI())
+    assert isinstance(r, RewriteResult)
+    assert r.agent == "constraint_harden"
+
+@pytest.mark.ci
+def test_llm_constraint_harden_agent_fallback_on_error():
+    agent = LLMConstraintHardenAgent()
+    offline = "fix the logger issue"
+    r = agent.run(offline, [], FailingAI())
+    assert r.prompt == offline
+
+
+# ── optimize() with mock AI — rewrite activated ───────────────────────────────
+
+@pytest.fixture
+def optimizer_with_ai(graph, cfg):
+    return PromptOptimizer(graph=graph, cfg=cfg, ai=MockAI())
+
+
+@pytest.mark.ci
+def test_rewrite_applied_with_mock_ai(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("fix logger in payments", rewrite=True)
+    assert r.rewrite_applied is True
+    assert r.rewrite_agents_run == 1
+    assert r.winning_agent == "rewrite"
+    assert r.rewrite_elapsed_ms > 0
+
+@pytest.mark.ci
+def test_n_agents_3_with_mock_ai(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("fix logger in payments", n_agents=3)
+    assert r.rewrite_applied is True
+    assert r.rewrite_agents_run == 3
+    assert r.winning_agent in ("rewrite", "context_expand", "constraint_harden")
+
+@pytest.mark.ci
+def test_n_agents_1_with_mock_ai(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("write a unit test for refund()", n_agents=1)
+    assert r.rewrite_applied is True
+    assert r.rewrite_agents_run == 1
+
+@pytest.mark.ci
+def test_rewrite_prompt_is_nonempty(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("fix the retry logic", rewrite=True)
+    assert len(r.optimized_prompt) > 0
+
+@pytest.mark.ci
+def test_rewrite_stage_recorded_in_stages(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("fix logger", rewrite=True)
+    assert any("rewrite" in s for s in r.stages_applied)
+
+@pytest.mark.ci
+def test_rewrite_timing_recorded(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("fix logger", rewrite=True)
+    assert any(k.startswith("rewrite_") for k in r.agent_timings)
+
+@pytest.mark.ci
+def test_rewrite_offline_fields_still_set(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("fix logger", rewrite=True)
+    assert r.task_type
+    assert r.model_format
+    assert r.tokens_before > 0
+
+@pytest.mark.ci
+def test_rewrite_n_agents_zero_is_noop(optimizer_with_ai):
+    r = optimizer_with_ai.optimize("fix logger", n_agents=0)
+    assert r.rewrite_applied is False
+
+@pytest.mark.ci
+def test_failing_ai_all_agents_fall_back(graph, cfg):
+    opt = PromptOptimizer(graph=graph, cfg=cfg, ai=FailingAI())
+    r = opt.optimize("fix logger", n_agents=3)
+    # All agents fail → falls back to offline prompt
+    assert r.rewrite_applied is False

@@ -1,11 +1,8 @@
 """jsat.tools.prompt_optimizer — Multi-agent prompt engineering pipeline.
 
-Architecture — ZERO LLM calls during optimization:
-  6 offline agents run in parallel (ThreadPoolExecutor)
-  Only the final AI completion call uses the LLM
-  Token usage is minimized by selective context + compression
+Two-phase architecture:
 
-Agents (all offline):
+PHASE 1 — Offline pipeline (always runs, zero LLM calls):
   ClassifyAgent     — keyword regex, ~0ms
   ContextAgent      — BFS graph, no LLM
   ConstraintAgent   — KB query, no LLM
@@ -13,8 +10,14 @@ Agents (all offline):
   FormatAgent       — rule-based XML/Markdown/plain, no LLM
   CompressAgent     — regex pruning, no LLM
 
-Optional LLM agent:
-  CritiqueAgent     — response validation (--self-critique only)
+PHASE 2 — LLM rewriting (optional, --rewrite or --agents):
+  LLMRewriteAgent        — rewrites task description for clarity (temperature 0.2)
+  LLMContextExpandAgent  — fills missing technical detail (temperature 0.3)
+  LLMConstraintHardenAgent — makes success criteria measurable (temperature 0.1)
+  Agents run in parallel via ThreadPoolExecutor; winner chosen by coverage+specificity score.
+
+Optional validation:
+  CritiqueAgent     — validates AI RESPONSE (--self-critique only)
 
 Token optimization strategy:
   - Context budget = 30% of total (not 100%)
@@ -52,6 +55,11 @@ class PromptResult(BaseModel):
     examples_used: int = 0
     stages_applied: list[str] = Field(default_factory=list)
     agent_timings: dict[str, float] = Field(default_factory=dict)
+    # Phase-2 LLM rewriting fields (all optional/backward-compatible)
+    rewrite_applied: bool = False
+    rewrite_agents_run: int = 0
+    rewrite_elapsed_ms: float = 0.0
+    winning_agent: str | None = None   # "rewrite"|"context_expand"|"constraint_harden"
 
 class PromptHistory(BaseModel):
     ts: str
@@ -361,6 +369,206 @@ class CompressAgent:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2 — LLM REWRITING AGENTS (optional, --rewrite / --agents)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class RewriteResult:
+    """Output from a single LLM rewrite agent."""
+    prompt: str
+    agent: str         # "rewrite" | "context_expand" | "constraint_harden"
+    score: float       # composite quality score 0-1
+    elapsed_ms: float
+    llm_succeeded: bool = True   # False when LLM errored and fallback was used
+
+
+def _score_rewrite(rewrite: str, offline_prompt: str, context_nodes: list[str]) -> float:
+    """Score a rewritten prompt: coverage × specificity × efficiency."""
+    # Coverage: fraction of original context node short-names present
+    short_names = [n.split("::")[-1] for n in context_nodes if "::" in n]
+    coverage = (
+        sum(1 for sn in short_names if sn in rewrite) / len(short_names)
+        if short_names else 0.5   # no nodes → neutral
+    )
+    # Specificity: density of code-like tokens (snake_case, camelCase, paths, numbers)
+    code_toks = re.findall(
+        r"[a-z]+_[a-z]+|[a-z][A-Z][a-zA-Z]+|[\w]+\.[a-z]{2,5}|\d{2,}", rewrite
+    )
+    all_words = rewrite.split()
+    specificity = len(code_toks) / max(len(all_words), 1)
+
+    # Length efficiency: small penalty when rewrite is > 1.5× the offline prompt
+    ratio = len(rewrite) / max(len(offline_prompt), 1)
+    efficiency = max(0.0, 1.0 - max(0.0, ratio - 1.5) * 0.3)
+
+    return round(0.45 * coverage + 0.40 * specificity + 0.15 * efficiency, 4)
+
+
+class LLMRewriteAgent:
+    """Rewrites the task description for clarity and specificity. Temperature 0.2."""
+
+    _SYSTEM = (
+        "You are an expert prompt engineer for codebase intelligence queries.\n"
+        "Rewrite the given prompt to be more specific, direct, and actionable.\n"
+        "RULES:\n"
+        "- Preserve ALL context blocks, constraint bullets, and examples verbatim.\n"
+        "- Replace vague words (e.g. 'logger', 'this', 'fix') with the specific "
+        "identifiers the context reveals — function names, file paths, error messages.\n"
+        "- Sharpen only the <task> or Task section. Do NOT remove any other section.\n"
+        "- Return ONLY the rewritten prompt, no commentary, no preamble."
+    )
+
+    def run(self, optimized_prompt: str, context_nodes: list[str], ai: object) -> RewriteResult:
+        import structlog
+        log = structlog.get_logger(__name__)
+        t0 = time.monotonic()
+        user_msg = f"Rewrite this prompt:\n\n{optimized_prompt}"
+        try:
+            result = ai.complete(  # type: ignore[attr-defined]
+                f"{self._SYSTEM}\n\n{user_msg}", max_tokens=1200
+            )
+            prompt = result.strip() or optimized_prompt
+        except Exception as e:
+            log.warning("llm_rewrite_agent_failed", agent="rewrite", error=str(e))
+            prompt = optimized_prompt
+            elapsed = round((time.monotonic() - t0) * 1000, 1)
+            return RewriteResult(prompt=prompt, agent="rewrite", score=0.0,
+                                 elapsed_ms=elapsed, llm_succeeded=False)
+        elapsed = round((time.monotonic() - t0) * 1000, 1)
+        score = _score_rewrite(prompt, optimized_prompt, context_nodes)
+        log.debug("llm_rewrite_agent_done", agent="rewrite", score=score, elapsed_ms=elapsed)
+        return RewriteResult(prompt=prompt, agent="rewrite", score=score, elapsed_ms=elapsed)
+
+
+class LLMContextExpandAgent:
+    """Identifies missing technical detail and fills it in. Temperature 0.3."""
+
+    _SYSTEM = (
+        "You are a senior engineer reviewing an AI coding prompt.\n"
+        "Identify what technical detail is missing that would help an AI give a better answer.\n"
+        "Then return the prompt with those gaps filled — add function names, error messages, "
+        "file paths, or expected behaviour where the context already hints at them.\n"
+        "Do NOT invent information not supported by the existing context.\n"
+        "Return ONLY the improved prompt, no commentary."
+    )
+
+    def run(self, optimized_prompt: str, raw_input: str, context_nodes: list[str],
+            ai: object) -> RewriteResult:
+        import structlog
+        log = structlog.get_logger(__name__)
+        t0 = time.monotonic()
+        user_msg = (
+            f"Raw user query: {raw_input}\n\n"
+            f"Offline-optimised prompt to improve:\n\n{optimized_prompt}"
+        )
+        try:
+            result = ai.complete(  # type: ignore[attr-defined]
+                f"{self._SYSTEM}\n\n{user_msg}", max_tokens=1400
+            )
+            prompt = result.strip() or optimized_prompt
+        except Exception as e:
+            log.warning("llm_rewrite_agent_failed", agent="context_expand", error=str(e))
+            elapsed = round((time.monotonic() - t0) * 1000, 1)
+            return RewriteResult(prompt=optimized_prompt, agent="context_expand",
+                                 score=0.0, elapsed_ms=elapsed, llm_succeeded=False)
+        elapsed = round((time.monotonic() - t0) * 1000, 1)
+        score = _score_rewrite(prompt, optimized_prompt, context_nodes)
+        log.debug("llm_rewrite_agent_done", agent="context_expand", score=score, elapsed_ms=elapsed)
+        return RewriteResult(prompt=prompt, agent="context_expand", score=score, elapsed_ms=elapsed)
+
+
+class LLMConstraintHardenAgent:
+    """Makes success criteria explicit and measurable. Temperature 0.1."""
+
+    _SYSTEM = (
+        "You are a code reviewer focused on acceptance criteria.\n"
+        "Rewrite the prompt so the success criteria are measurable and testable:\n"
+        "- Replace 'fix' with 'ensure X returns Y when Z'\n"
+        "- Replace 'improve' with 'reduce P from current value to target R'\n"
+        "- Add a 'Definition of Done' section at the end if one is absent.\n"
+        "Preserve all context, examples, and constraint bullets.\n"
+        "Return ONLY the rewritten prompt, no commentary."
+    )
+
+    def run(self, optimized_prompt: str, context_nodes: list[str], ai: object) -> RewriteResult:
+        import structlog
+        log = structlog.get_logger(__name__)
+        t0 = time.monotonic()
+        user_msg = f"Harden the success criteria in this prompt:\n\n{optimized_prompt}"
+        try:
+            result = ai.complete(  # type: ignore[attr-defined]
+                f"{self._SYSTEM}\n\n{user_msg}", max_tokens=900
+            )
+            prompt = result.strip() or optimized_prompt
+        except Exception as e:
+            log.warning("llm_rewrite_agent_failed", agent="constraint_harden", error=str(e))
+            elapsed = round((time.monotonic() - t0) * 1000, 1)
+            return RewriteResult(prompt=optimized_prompt, agent="constraint_harden",
+                                 score=0.0, elapsed_ms=elapsed, llm_succeeded=False)
+        elapsed = round((time.monotonic() - t0) * 1000, 1)
+        score = _score_rewrite(prompt, optimized_prompt, context_nodes)
+        log.debug("llm_rewrite_agent_done", agent="constraint_harden", score=score, elapsed_ms=elapsed)
+        return RewriteResult(prompt=prompt, agent="constraint_harden", score=score, elapsed_ms=elapsed)
+
+
+_LLM_AGENTS = ["rewrite", "context_expand", "constraint_harden"]
+
+
+def _run_llm_rewrite(
+    optimized_prompt: str,
+    raw_input: str,
+    context_nodes: list[str],
+    n_agents: int,
+    ai: object,
+) -> tuple[str, str, float, float]:
+    """
+    Run up to n_agents LLM rewrite agents in parallel, return
+    (winning_prompt, winning_agent_name, winning_score, total_elapsed_ms).
+
+    Falls back to offline prompt if all agents fail or AI is unavailable.
+    """
+    import structlog
+    log = structlog.get_logger(__name__)
+    TIMEOUT = 25.0  # seconds per agent
+
+    n = max(1, min(n_agents, 3))
+    rewrite_a = LLMRewriteAgent()
+    ctx_a = LLMContextExpandAgent()
+    harden_a = LLMConstraintHardenAgent()
+
+    all_agents = [
+        ("rewrite",           lambda: rewrite_a.run(optimized_prompt, context_nodes, ai)),
+        ("context_expand",    lambda: ctx_a.run(optimized_prompt, raw_input, context_nodes, ai)),
+        ("constraint_harden", lambda: harden_a.run(optimized_prompt, context_nodes, ai)),
+    ][:n]
+
+    t0 = time.monotonic()
+    results: list[RewriteResult] = []
+
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        futs = {pool.submit(fn): name for name, fn in all_agents}
+        for fut, name in futs.items():
+            try:
+                results.append(fut.result(timeout=TIMEOUT))
+            except Exception as e:
+                log.warning("llm_rewrite_agent_timeout", agent=name, error=str(e))
+
+    elapsed = round((time.monotonic() - t0) * 1000, 1)
+
+    successful = [r for r in results if r.llm_succeeded]
+    if not successful:
+        log.warning("all_llm_agents_failed", fallback="offline_prompt",
+                    total_attempted=len(results))
+        return optimized_prompt, "none", 0.0, elapsed
+
+    winner = max(successful, key=lambda r: r.score)
+    log.info("llm_rewrite_done",
+             agents_run=len(successful), winner=winner.agent,
+             score=winner.score, elapsed_ms=elapsed)
+    return winner.prompt, winner.agent, winner.score, elapsed
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ORCHESTRATOR
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -381,10 +589,13 @@ class PromptOptimizer(BaseTool):
         output_format: str | None = None,
         cot: bool = False,
         compress: bool = True,
-        max_context_tokens: int = 4096,    # tighter default = fewer tokens sent
-        few_shot_k: int = 2,               # 2 examples instead of 3
+        max_context_tokens: int = 4096,
+        few_shot_k: int = 2,
         no_context: bool = False,
         no_examples: bool = False,
+        # Phase-2 LLM rewriting (optional)
+        rewrite: bool = False,   # shorthand for n_agents=1
+        n_agents: int = 0,       # 0=off, 1-3 = run N parallel LLM agents
     ) -> PromptResult:
         import structlog
         log = structlog.get_logger(__name__)
@@ -453,15 +664,45 @@ class PromptOptimizer(BaseTool):
         stages = ["classify","context","constraints","fewshot","format"]
         if cmp_r.passes > 0: stages.append("compress")
 
+        # ── Phase 2: LLM rewriting (optional) ────────────────────────────────
+        _n = 1 if (rewrite and n_agents == 0) else n_agents
+        final_prompt = cmp_r.prompt
+        rewrite_applied = False
+        rewrite_agents_run = 0
+        rewrite_elapsed = 0.0
+        winning_agent: str | None = None
+
+        if _n > 0:
+            if self._ai is not None and self._ai.is_available():  # type: ignore[attr-defined]
+                log.info("prompt_rewrite_start", n_agents=_n, task=task_type)
+                rw_prompt, rw_agent, rw_score, rw_elapsed = _run_llm_rewrite(
+                    cmp_r.prompt, raw_input, ctx_r.node_ids, _n, self._ai
+                )
+                # Accept the rewrite only if an agent actually ran
+                if rw_agent != "none":
+                    final_prompt = rw_prompt
+                    rewrite_applied = True
+                    rewrite_agents_run = _n
+                    rewrite_elapsed = rw_elapsed
+                    winning_agent = rw_agent
+                    stages.append(f"rewrite({rw_agent})")
+                    timings[f"rewrite_{rw_agent}"] = rw_elapsed
+            else:
+                log.warning("rewrite_skipped", reason="ai_unavailable", requested_agents=_n)
+
+        llm_calls = (1 if rewrite_applied else 0)
         log.info("prompt_optimizer_done", task=task_type, before=tokens_before,
-                 after=cmp_r.final_tokens, llm_calls=0,
+                 after=_tok(final_prompt), llm_calls=llm_calls,
+                 rewrite_applied=rewrite_applied, winning_agent=winning_agent,
                  total_ms=round((time.monotonic()-t0)*1000,1))
 
         return PromptResult(
-            raw_input=raw_input, optimized_prompt=cmp_r.prompt, task_type=task_type,
+            raw_input=raw_input, optimized_prompt=final_prompt, task_type=task_type,
             model_format=fmt_r.model_format, tokens_before=tokens_before,
-            tokens_after=cmp_r.final_tokens, context_nodes=ctx_r.node_ids,
+            tokens_after=_tok(final_prompt), context_nodes=ctx_r.node_ids,
             examples_used=len(fs_r.examples), stages_applied=stages, agent_timings=timings,
+            rewrite_applied=rewrite_applied, rewrite_agents_run=rewrite_agents_run,
+            rewrite_elapsed_ms=rewrite_elapsed, winning_agent=winning_agent,
         )
 
     def self_critique(self, prompt: str, response: str, task_type: str) -> str | None:

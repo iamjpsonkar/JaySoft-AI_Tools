@@ -494,20 +494,27 @@ def cmd_prompt(
     no_context: bool = typer.Option(False, "--no-context"),
     no_examples: bool = typer.Option(False, "--no-examples"),
     self_critique: bool = typer.Option(False, "--self-critique", help="Run critique pass on response (high-stakes tasks)"),
+    rewrite: bool = typer.Option(False, "--rewrite", help="Run 1 LLM rewrite agent after offline pipeline"),
+    n_agents: int = typer.Option(0, "--agents", help="Run N parallel LLM rewrite agents (1-3; omit N for 3)"),
     diff: bool = typer.Option(False, "--diff", help="Show raw vs optimized"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
-    max_tokens: int = typer.Option(8192, "--max-tokens"),
+    max_tokens: int = typer.Option(4096, "--max-tokens"),
     repo: str = typer.Option(".", "--repo", "-r"),
 ) -> None:
     """Optimize any query into the best possible prompt for your AI.
 
     \b
-    Print optimized prompt:     jsat prompt "improve the retry logic"
-    Send to AI:                 jsat prompt --send "improve the retry logic"
-    Specific AI + format:       jsat prompt --send --ai claude --format code "write test for refund()"
-    Show transformation:        jsat prompt --diff --verbose "refactor webhook handler"
+    Print optimized prompt:       jsat prompt "improve the retry logic"
+    Send to AI:                   jsat prompt --send "improve the retry logic"
+    LLM rewrite (1 agent):        jsat prompt --rewrite "fix logger in payments"
+    Multi-agent rewrite (3):      jsat prompt --agents "fix logger in payments"
+    Specific AI + format:         jsat prompt --send --ai claude --format code "write test for refund()"
+    Show transformation:          jsat prompt --diff --verbose "refactor webhook handler"
     """
+    # --agents without a value defaults to 3
+    if n_agents == 0 and rewrite:
+        n_agents = 1
     js = _jsat(repo=repo, verbose=verbose)
     try:
         from jsat.tools.prompt_optimizer import PromptOptimizer
@@ -516,12 +523,14 @@ def cmd_prompt(
         err.print(f"[red]PromptOptimizer error:[/] {e}")
         raise typer.Exit(1) from e
 
-    console.print("[dim]Optimizing...[/dim]", end="\r")
+    _rewrite_msg = " (+ LLM rewriting...)" if n_agents > 0 else ""
+    console.print(f"[dim]Optimizing{_rewrite_msg}[/dim]", end="\r")
     try:
         result = optimizer.optimize(
             input_text, ai_provider=ai, output_format=format, cot=cot,
             compress=compress, max_context_tokens=max_tokens,
             no_context=no_context, no_examples=no_examples,
+            rewrite=rewrite, n_agents=n_agents,
         )
     except Exception as e:
         err.print(f"[red]Optimization failed:[/] {e}")
@@ -529,7 +538,7 @@ def cmd_prompt(
 
     if verbose:
         t = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
-        t.add_column("Agent", style="bold cyan")
+        t.add_column("Metric", style="bold cyan")
         t.add_column("Value")
         t.add_row("Task type", result.task_type)
         t.add_row("Model format", result.model_format)
@@ -540,13 +549,19 @@ def cmd_prompt(
         if result.tokens_before:
             saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
             t.add_row("Compression", f"{saved}% saved")
-        # Show per-agent timings from multi-agent pipeline
+        if result.rewrite_applied:
+            t.add_row("", "")
+            t.add_row("[dim]LLM rewriting[/dim]", "[dim](phase 2)[/dim]")
+            t.add_row("  Agents run", str(result.rewrite_agents_run))
+            t.add_row("  Winner", result.winning_agent or "—")
+            t.add_row("  Rewrite time", f"{result.rewrite_elapsed_ms:.0f}ms")
         if result.agent_timings:
             t.add_row("", "")
-            t.add_row("[dim]Agent timings[/dim]", "[dim](offline, zero LLM)[/dim]")
+            t.add_row("[dim]Offline timings[/dim]", "[dim](zero LLM)[/dim]")
             for agent, ms in result.agent_timings.items():
-                t.add_row(f"  {agent}", f"  {ms}ms")
-        console.print(Panel(t, title="Multi-Agent Pipeline", border_style="dim"))
+                if not agent.startswith("rewrite_"):
+                    t.add_row(f"  {agent}", f"  {ms}ms")
+        console.print(Panel(t, title="Prompt Pipeline", border_style="dim"))
 
     if diff:
         console.print(Panel(input_text, title="[yellow]Raw input[/]", border_style="yellow"))
@@ -554,7 +569,8 @@ def cmd_prompt(
 
     if result.tokens_before and result.tokens_after:
         saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
-        console.print(f"[dim]Tokens: {result.tokens_before} → {result.tokens_after} ({saved}% saved) | Task: {result.task_type}[/dim]")
+        rewrite_tag = f" | {result.rewrite_agents_run} agents → {result.winning_agent} won" if result.rewrite_applied else ""
+        console.print(f"[dim]Tokens: {result.tokens_before} → {result.tokens_after} ({saved}% saved) | Task: {result.task_type}{rewrite_tag}[/dim]")
 
     if not send or dry_run:
         if not diff:
@@ -1182,6 +1198,13 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
             'Use jsat__token_budget with text="$ARGUMENTS" and model="claude-sonnet-4-6" '
             "(or the model currently in use) to show tokens used, limit, percentage, "
             "headroom, and status (ok / warn / critical)."
+        ),
+        "jsat-prompt-rewrite": (
+            "Rewrite a prompt using offline pipeline + parallel LLM agents for maximum clarity.",
+            'Use jsat__prompt_multi_agent with query="$ARGUMENTS" to run 3 specialist LLM agents '
+            "(rewrite for clarity, context-expand to fill gaps, constraint-harden for measurable "
+            "success criteria) in parallel. Show the winning rewrite with agent name and score. "
+            "If the user wants just one agent, use jsat__prompt_rewrite instead."
         ),
         # ── IThinking ─────────────────────────────────────────────────────────
         "jsat-ithinking": (

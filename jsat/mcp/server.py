@@ -922,6 +922,44 @@ class MCPServer:
                 },
                 "handler": lambda a: _ser(_prompt_optimize_impl(js, a)),
             },
+            "prompt_rewrite": {
+                "description": (
+                    "Optimize a query through the offline pipeline, then run 1 LLM rewrite agent "
+                    "to sharpen the task description for clarity and specificity. "
+                    "Returns the rewritten prompt with score and agent name."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["query"],
+                    "properties": {
+                        "query": {"type": "string"},
+                        "ai_provider": {"type": "string", "default": None,
+                                        "description": "Override AI provider for formatting."},
+                    },
+                },
+                "handler": lambda a: _ser(_prompt_rewrite_impl(js, a, n_agents=1)),
+            },
+            "prompt_multi_agent": {
+                "description": (
+                    "Optimize a query offline, then run up to 3 parallel LLM agents "
+                    "(rewrite for clarity, context-expand to fill gaps, constraint-harden "
+                    "for measurable success criteria). Winner is chosen by coverage + "
+                    "specificity score. Returns winning prompt, agent name, and score."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["query"],
+                    "properties": {
+                        "query": {"type": "string"},
+                        "n_agents": {"type": "integer", "default": 3,
+                                     "minimum": 1, "maximum": 3,
+                                     "description": "Number of parallel LLM agents (default 3)."},
+                        "ai_provider": {"type": "string", "default": None},
+                    },
+                },
+                "handler": lambda a: _ser(_prompt_rewrite_impl(js, a,
+                                          n_agents=int(a.get("n_agents", 3)))),
+            },
             "ithinking_token_estimate": {
                 "description": "Estimate local vs LLM token cost for a task without executing.",
                 "schema": {"type": "object", "required": ["task"],
@@ -1614,6 +1652,43 @@ def _prompt_optimize_impl(js: object, args: dict) -> dict:
         return payload
     except Exception as e:
         log.error("mcp_prompt_optimize_error", error=str(e))
+        return {"error": str(e)}
+
+
+def _prompt_rewrite_impl(js: object, args: dict, n_agents: int = 1) -> dict:
+    """MCP handler: offline optimize + LLM rewrite agents."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    query = args.get("query", "")
+    if not query.strip():
+        return {"error": "query must not be empty"}
+    log.info("mcp_prompt_rewrite", query_len=len(query), n_agents=n_agents)
+    try:
+        from jsat.tools.prompt_optimizer import PromptOptimizer
+        optimizer = PromptOptimizer(
+            graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())  # type: ignore[attr-defined]
+        result = optimizer.optimize(
+            query,
+            ai_provider=args.get("ai_provider"),
+            n_agents=n_agents,
+        )
+        log.info("mcp_prompt_rewrite_done",
+                 rewrite_applied=result.rewrite_applied,
+                 winning_agent=result.winning_agent,
+                 rewrite_elapsed_ms=result.rewrite_elapsed_ms)
+        return {
+            "optimized_prompt": result.optimized_prompt,
+            "task_type": result.task_type,
+            "tokens_before": result.tokens_before,
+            "tokens_after": result.tokens_after,
+            "rewrite_applied": result.rewrite_applied,
+            "rewrite_agents_run": result.rewrite_agents_run,
+            "winning_agent": result.winning_agent,
+            "rewrite_elapsed_ms": result.rewrite_elapsed_ms,
+            "context_nodes": result.context_nodes[:10],
+        }
+    except Exception as e:
+        log.error("mcp_prompt_rewrite_error", error=str(e))
         return {"error": str(e)}
 
 

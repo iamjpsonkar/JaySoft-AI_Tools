@@ -603,29 +603,72 @@ Set `mode: silent` in CI to skip interactive prompts. Set `mode: report-only` to
 
 ## Prompt Optimizer (`jsat prompt`)
 
-A 7-stage pipeline that converts any raw query into the best possible prompt for the configured AI model, then optionally sends it. Auto-optimization is enabled by default in the JSAT shell — every message you type passes through the pipeline before being sent to the AI.
+A two-phase pipeline that converts any raw query into the best possible prompt for the configured AI.
 
-**Pipeline stages:**
-1. Task classification — labels the query as one of: `code_gen`, `refactor`, `review`, `debug`, `question`, `plan`, `test`, `security`
-2. Context injection — BFS over the codebase graph (70/30 recency split) to pull relevant nodes
-3. Constraint injection — pulls ADRs and coding standards from the knowledge base
-4. Few-shot example selection — kNN over prompt history to find the most relevant past examples
-5. Output format specification — selects the right format: code only, JSON findings, prose, or numbered steps
-6. Model-specific formatting — XML wrapping for Claude, Markdown for GPT, plain text for Ollama
-7. Token compression — progressively shortens examples → removes blocks → strips docstrings to fit within the token budget
+### Phase 1 — Offline pipeline (always, zero LLM calls)
 
-**CLI usage:**
+| Stage | What it does | Cost |
+|---|---|---|
+| Classify | Keyword-match task type (8 types) | ~0ms |
+| Context | BFS graph traversal, 70/30 recency split | ~2ms |
+| Constraints | KB top-3 lookup (ADRs, coding standards) | ~1ms |
+| Few-shot | kNN over prompt history | ~3ms |
+| Format | XML (Claude) / Markdown (GPT) / plain (Ollama) | ~0ms |
+| Compress | Token pruning above 4000-token threshold | ~1ms |
+
+### Phase 2 — LLM rewriting (optional)
+
+After Phase 1 structures the prompt, 1–3 specialist LLM agents rewrite the task description in parallel, then the best result wins.
+
+| Agent | Temperature | Focus |
+|---|---|---|
+| `rewrite` | 0.2 | Replaces vague words with specific identifiers revealed by context |
+| `context_expand` | 0.3 | Fills missing technical detail (function names, error messages, paths) |
+| `constraint_harden` | 0.1 | Makes success criteria measurable ("ensure X returns Y when Z") |
+
+Winner is chosen by: **coverage × 0.45 + specificity × 0.40 + efficiency × 0.15**
+
+### CLI usage
 
 ```bash
-jsat prompt "improve the retry logic"              # inspect optimized prompt
-jsat prompt --send "improve the retry logic"       # optimize and send
-jsat prompt --diff "improve the retry logic"       # show raw vs optimized side by side
-jsat prompt --send --format code --ai claude "write a test for refund()"
+# Phase 1 only (offline)
+jsat prompt "improve the retry logic"
+jsat prompt --send "improve the retry logic"
+jsat prompt --diff "improve the retry logic"
 jsat prompt --send --cot --verbose "debug the 500 on checkout"
-jsat prompt --dry-run --no-context "what does the payment service do?"
+
+# Phase 1 + Phase 2: 1 LLM agent (fastest)
+jsat prompt --rewrite "fix logger in this branch"
+
+# Phase 1 + Phase 2: 3 parallel LLM agents (best quality)
+jsat prompt --agents "fix logger in this branch"
+
+# Rewrite + send in one step
+jsat prompt --agents --send "fix logger in ValidateVPAHandler.post"
+
+# All flags
+jsat prompt --send --agents --ai claude --format code --cot "write test for refund()"
 ```
 
-**Shell usage:**
+All flags:
+
+| Flag | Default | Description |
+|---|---|---|
+| `--send` / `-s` | false | Send to AI and stream response |
+| `--rewrite` | false | Run 1 LLM rewrite agent after offline pipeline |
+| `--agents N` | 0 | Run N parallel LLM rewrite agents (1-3; omit N for 3) |
+| `--ai` | config | Override AI provider: claude, openai, ollama, etc. |
+| `--format` / `-f` | auto | code, plan, json, prose |
+| `--cot` | false | Enable chain-of-thought |
+| `--diff` | false | Show raw vs optimized side by side |
+| `--verbose` / `-v` | false | Show per-agent timings + rewrite winner |
+| `--self-critique` | false | Validate AI response (1 extra LLM call) |
+| `--no-context` | false | Skip graph context injection |
+| `--no-examples` | false | Skip few-shot examples |
+| `--dry-run` | false | Optimize but don't send |
+| `--max-tokens` | 4096 | Token budget |
+
+### Shell usage
 
 ```
 jsat> improve the retry logic
@@ -635,41 +678,41 @@ opt on        # enable auto-optimization (default)
 opt off       # disable for the current session
 opt show      # show raw input vs full optimized prompt for the last message
 opt history   # browse past optimization diffs
+noopt         # alias for opt off
 ```
 
-**Python SDK usage:**
+### Python SDK usage
 
 ```python
 from jsat import JSAT
 
 js = JSAT(repo=".")
 
-# Return the optimized prompt string without sending
-optimized = js.prompt("improve the retry logic")
-print(optimized)
+# Phase 1 only
+result = js.prompt("improve the retry logic")
 
-# Optimize and send to the configured AI; returns a QueryResult
-result = js.prompt_and_send("improve the retry logic")
-print(result.answer)
+# Phase 1 + 1 LLM agent
+result = js.prompt("fix logger in payments", rewrite=True)
 
-# With options
-result = js.prompt_and_send(
-    "write a test for refund()",
-    format="code",
-    ai="claude",
-    cot=False,
-    no_context=False,
-)
+# Phase 1 + 3 parallel LLM agents
+result = js.prompt("fix logger in ValidateVPAHandler.post", n_agents=3)
+print(f"Winner: {result.winning_agent} (score: {result.winning_score:.2f})")
+
+# Optimize + send
+r = js.prompt_and_send("write a test for refund()", n_agents=3)
+print(r["response"])
 ```
 
-**MCP tools:**
+### MCP tools
 
 | Tool | Description |
 |------|-------------|
-| `jsat__prompt_optimize` | Return the optimized prompt for a query without sending it |
-| `jsat__prompt_diff` | Return raw input and optimized prompt as a structured diff |
+| `jsat__prompt_optimize` | Offline pipeline only — no LLM |
+| `jsat__prompt_diff` | Raw input vs fully optimized prompt as structured diff |
+| `jsat__prompt_rewrite` | Offline + 1 LLM rewrite agent |
+| `jsat__prompt_multi_agent` | Offline + up to 3 parallel LLM agents; returns winner |
 
-**Configuration** (`.jsat/config.yaml`):
+### Configuration (`.jsat/config.yaml`)
 
 ```yaml
 prompt:
@@ -684,13 +727,13 @@ prompt:
   history_max_entries: 10000
 ```
 
-**Claude Code slash command:**
+### Claude Code slash commands
 
 ```
-/jsat-prompt-diff <query>
+/jsat-prompt <query>          — offline pipeline only
+/jsat-prompt-diff <query>     — show raw vs optimized
+/jsat-prompt-rewrite <query>  — 3 parallel LLM agents, show winner
 ```
-
-Shows the raw input and the full optimized prompt side by side in Claude Code.
 
 ---
 
