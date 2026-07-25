@@ -783,6 +783,20 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
             "Use the jsat__get_jsat_version MCP tool and jsat__get_index_status to "
             "show system status, version, and index health."
         ),
+        "jsat-ithinking": (
+            "Apply IThinking meta-cognitive reasoning before acting on a task.",
+            "Use the jsat__ithinking_plan MCP tool with task=\"$ARGUMENTS\" to run "
+            "IThinking phases 0-4: intent clarification, local feasibility check, "
+            "prompt optimisation, task decomposition, and assumption audit. "
+            "Display the plan clearly. After the user approves, proceed with the task. "
+            "Then use jsat__ithinking_reflect to record what was done."
+        ),
+        "jsat-think": (
+            "Think carefully before acting — IThinking shortcut.",
+            "Before doing anything, use the jsat__ithinking_plan MCP tool with "
+            "task=\"$ARGUMENTS\" to clarify intent, check assumptions, and decompose "
+            "the work. Show the plan and ask for confirmation before proceeding."
+        ),
     }
 
     written = []
@@ -876,6 +890,8 @@ def cmd_connect_claude(
             "  [cyan]/jsat-index[/]          — rebuild the graph\n"
             "  [cyan]/jsat-status[/]         — graph stats\n"
             "  [cyan]/jsat-doctor[/]         — health check\n"
+            "  [cyan]/jsat-ithinking[/]      — IThinking: plan before acting\n"
+            "  [cyan]/jsat-think[/]          — think carefully before any task\n"
         )
 
     console.print(

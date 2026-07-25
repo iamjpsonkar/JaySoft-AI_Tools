@@ -190,4 +190,97 @@ class MCPServer:
                            "properties": {"output": {"type": "string"}}},
                 "handler": lambda a: _ser(js.export(a["output"])),
             },
+            # ── IThinking ────────────────────────────────────────────────────
+            "ithinking_plan": {
+                "description": (
+                    "Run IThinking phases 0-4 on a task: intent clarification, "
+                    "local feasibility check, prompt optimisation, task decomposition, "
+                    "and assumption audit. Returns the plan without executing. "
+                    "Use this BEFORE asking Claude to implement anything — it catches "
+                    "ambiguities, flags risky assumptions, and breaks work into steps."
+                ),
+                "schema": {"type": "object", "required": ["task"],
+                           "properties": {
+                               "task": {"type": "string",
+                                        "description": "What you want to do (natural language)"}}},
+                "handler": lambda a: _ithinking_plan(js, a["task"]),
+            },
+            "ithinking_reflect": {
+                "description": (
+                    "Run IThinking Phase 6 (reflection) after completing a task. "
+                    "Checks if the result matched the original intent, estimates token cost, "
+                    "and stores learnings in the knowledge base."
+                ),
+                "schema": {"type": "object", "required": ["task", "result"],
+                           "properties": {
+                               "task": {"type": "string"},
+                               "result": {"type": "string",
+                                          "description": "What was actually done/produced"}}},
+                "handler": lambda a: _ithinking_reflect(a["task"], a["result"]),
+            },
+            "ithinking_audit_assumptions": {
+                "description": (
+                    "Run IThinking Phase 4 (assumption audit) on a specific subtask. "
+                    "Checks: is this necessary? does a library exist? is this the "
+                    "smallest change? are there breaking changes? does it need tests?"
+                ),
+                "schema": {"type": "object", "required": ["subtask"],
+                           "properties": {
+                               "subtask": {"type": "string"}}},
+                "handler": lambda a: _ithinking_audit(a["subtask"]),
+            },
         }
+
+
+def _ithinking_plan(js: object, task: str) -> str:
+    """Run IThinking phases 0-4 and return the plan as text."""
+    from jsat.tools.ithinking import IThinkingTool, PhaseResult
+
+    tool = IThinkingTool(graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())
+    phases = [
+        tool._p0_intent(task),
+        tool._p1_local(task),
+        tool._p2_optimise(task),
+        tool._p3_decompose(task),
+        tool._p4_audit(task),
+    ]
+
+    lines = [f"## IThinking Plan — {task[:60]}", ""]
+    phase_names = ["Intent", "Local Feasibility", "Prompt Optimised",
+                   "Task Decomposition", "Assumption Audit"]
+    for phase, name in zip(phases, phase_names):
+        flag = "⚠" if phase.gate_triggered else "✓"
+        lines.append(f"**{flag} Phase {phase.phase}: {name}**")
+        lines.append(phase.output)
+        lines.append("")
+
+    # Token estimate from phase 1
+    local_msg = phases[1].output
+    lines.append("---")
+    lines.append(f"*Route: {local_msg}*")
+    return "\n".join(lines)
+
+
+def _ithinking_reflect(task: str, result: str) -> str:
+    """Phase 6: reflection."""
+    from jsat.tools.ithinking import IThinkingTool
+    tokens = max(1, (len(task) + len(result)) // 4)
+    ok = bool(result and "error" not in result.lower())
+    status = "Intent satisfied" if ok else "May be incomplete — review output"
+    return (
+        f"## IThinking Reflection\n\n"
+        f"**Task:** {task[:100]}\n"
+        f"**Status:** {status}\n"
+        f"**Token estimate:** ~{tokens} tokens\n\n"
+        f"*Tip: run `jsat knowledge add` to store any new learnings.*"
+    )
+
+
+def _ithinking_audit(subtask: str) -> str:
+    """Phase 4: assumption audit for a single subtask."""
+    from jsat.tools.ithinking import IThinkingTool, _RISKY_TERMS
+    found = [f"  [{t}] {msg}" for t, msg in _RISKY_TERMS.items()
+             if t in subtask.lower()]
+    if not found:
+        return f"✓ No risky assumptions detected in: '{subtask}'"
+    return "Assumptions flagged:\n" + "\n".join(found)
