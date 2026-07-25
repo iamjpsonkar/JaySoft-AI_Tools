@@ -54,6 +54,14 @@ _PROVIDERS = [
 _COMPLETIONS = sorted(list(_COMMANDS.keys()) + _PROVIDERS + ["quit"])
 
 
+def _jsat_version() -> str:
+    try:
+        from jsat import __version__
+        return __version__
+    except Exception:
+        return "0.1.x"
+
+
 class JSATShell:
     """Universal AI shell backed by a JSAT instance."""
 
@@ -111,7 +119,16 @@ class JSATShell:
     # ── Main loop ─────────────────────────────────────────────────────────────
 
     def run(self) -> None:
+        import sys
         from rich.panel import Panel
+
+        # Non-interactive / piped mode — process stdin line by line without prompts
+        if not sys.stdin.isatty():
+            for line in sys.stdin:
+                line = line.strip()
+                if line:
+                    self._dispatch(line)
+            return
 
         # Banner
         ai = self._ai_label()
@@ -121,12 +138,13 @@ class JSATShell:
             if status.get("nodes", 0) > 0 else "no index — run: index ."
         )
         self._console.print(Panel(
-            f"[bold cyan]JSAT Universal AI Shell[/]  v0.1.0\n"
+            f"[bold cyan]JSAT Universal AI Shell[/]  v{_jsat_version()}\n"
             f"AI : [green]{ai}[/]\n"
             f"Repo: [dim]{self._js._repo}[/]\n"
             f"Index: [dim]{index_info}[/]\n\n"
-            "[dim]Ask anything · Tab-complete · type [bold]help[/bold]\n"
-            "[bold]switch claude-cli[/bold] → full Claude Code + JSAT tools (all features)[/dim]",
+            f"[dim]Ask anything · Tab-complete · type [bold]help[/bold]\n"
+            f"[bold]switch claude-cli[/bold] → full Claude Code + JSAT tools | "
+            f"[bold]opt show[/bold] → prompt diff[/dim]",
             border_style="cyan",
         ))
 

@@ -147,6 +147,7 @@ def cmd_index(
     languages: Optional[str] = typer.Option(None, "--languages", "-l",
                                             help="Comma-separated, e.g. python,go"),
     incremental: bool = typer.Option(True, "--incremental/--full"),
+    watch: bool = typer.Option(False, "--watch", "-w", help="Re-index on file changes (needs: brew install entr)"),
 ) -> None:
     """Index a codebase and build the graph."""
     langs = [l.strip() for l in languages.split(",")] if languages else None
@@ -169,6 +170,17 @@ def cmd_index(
         f"[green]✓[/] Indexed [bold]{result.nodes_indexed}[/] nodes, "
         f"[bold]{result.edges_indexed}[/] edges in [bold]{elapsed:.1f}s[/]"
     )
+    if watch:
+        import shutil, subprocess
+        if not shutil.which("entr"):
+            err.print("[yellow]⚠ --watch needs entr:[/] brew install entr")
+            raise typer.Exit(1)
+        console.print("[dim]Watching for changes... Ctrl+C to stop.[/dim]")
+        target = Path(path or ".").resolve()
+        jsat_bin = shutil.which("jsat") or "jsat"
+        find_cmd = (f'find {target} -name "*.py" -o -name "*.go" -o -name "*.ts" '
+                    f'-o -name "*.java" -o -name "*.rb" -o -name "*.rs"')
+        subprocess.run(f'{find_cmd} | entr -c {jsat_bin} index {target} --incremental', shell=True)
 
 
 # ── shell ─────────────────────────────────────────────────────────────────────
@@ -468,16 +480,24 @@ def cmd_prompt(
 
     if verbose:
         t = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
-        t.add_column("Stage", style="bold cyan")
+        t.add_column("Agent", style="bold cyan")
         t.add_column("Value")
         t.add_row("Task type", result.task_type)
+        t.add_row("Model format", result.model_format)
         t.add_row("Context nodes", str(len(result.context_nodes)))
-        t.add_row("Examples", str(result.examples_used))
-        t.add_row("Tokens", f"{result.tokens_before} → {result.tokens_after}")
+        t.add_row("Examples used", str(result.examples_used))
+        t.add_row("Tokens before", str(result.tokens_before))
+        t.add_row("Tokens after", str(result.tokens_after))
         if result.tokens_before:
             saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
-            t.add_row("Saved", f"{saved}%")
-        console.print(Panel(t, title="Pipeline", border_style="dim"))
+            t.add_row("Compression", f"{saved}% saved")
+        # Show per-agent timings from multi-agent pipeline
+        if result.agent_timings:
+            t.add_row("", "")
+            t.add_row("[dim]Agent timings[/dim]", "[dim](offline, zero LLM)[/dim]")
+            for agent, ms in result.agent_timings.items():
+                t.add_row(f"  {agent}", f"  {ms}ms")
+        console.print(Panel(t, title="Multi-Agent Pipeline", border_style="dim"))
 
     if diff:
         console.print(Panel(input_text, title="[yellow]Raw input[/]", border_style="yellow"))
@@ -1368,6 +1388,139 @@ def cmd_mcp_server(
     from jsat.mcp.server import MCPServer
     server = MCPServer(js)  # type: ignore[arg-type]
     server.run()  # blocks until stdin closes
+
+
+# ── clean ────────────────────────────────────────────────────────────────────
+
+@app.command("clean")
+def cmd_clean(
+    cache: bool = typer.Option(False, "--cache", help="Remove semantic cache only"),
+    graph: bool = typer.Option(False, "--graph", help="Remove graph database only"),
+    vectors: bool = typer.Option(False, "--vectors", help="Remove vector store only"),
+    history: bool = typer.Option(False, "--history", help="Remove prompt history only"),
+    all_: bool = typer.Option(False, "--all", "-a", help="Remove all generated files"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Remove generated JSAT files (cache, graph, vectors, history).
+
+    \b
+    jsat clean --cache      remove .jsat/cache/
+    jsat clean --graph      remove .jsat/graph/
+    jsat clean --vectors    remove .jsat/vectors/
+    jsat clean --history    remove .jsat/prompt-history.jsonl
+    jsat clean --all        remove all of the above
+    """
+    import shutil
+    root = Path(repo).resolve() / ".jsat"
+    targets: list[tuple[str, Path]] = []
+
+    if all_ or cache:   targets.append(("cache",   root / "cache"))
+    if all_ or graph:   targets.append(("graph",   root / "graph"))
+    if all_ or vectors: targets.append(("vectors", root / "vectors"))
+    if all_ or history: targets.append(("history", root / "prompt-history.jsonl"))
+
+    if not targets:
+        console.print("[dim]Specify what to clean: --cache | --graph | --vectors | --history | --all[/dim]")
+        return
+
+    removed = 0
+    for name, p in targets:
+        if p.exists():
+            if p.is_dir():
+                shutil.rmtree(p, ignore_errors=True)
+            else:
+                p.unlink(missing_ok=True)
+            console.print(f"[green]✓[/] Removed [bold].jsat/{name}[/]")
+            removed += 1
+        else:
+            console.print(f"[dim]  .jsat/{name} — not found[/dim]")
+
+    if removed:
+        console.print(f"\n[bold green]Done.[/] {removed} item(s) removed.")
+
+
+# ── update ─────────────────────────────────────────────────────────────────────
+
+@app.command("update")
+def cmd_update(
+    pre: bool = typer.Option(False, "--pre", help="Include pre-release versions"),
+) -> None:
+    """Upgrade JSAT to the latest version from PyPI."""
+    import subprocess, sys
+    console.print("[dim]Checking for updates...[/dim]")
+    try:
+        cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "jsat"]
+        if pre:
+            cmd.append("--pre")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            # Extract new version from pip output
+            for line in result.stdout.splitlines():
+                if "Successfully installed" in line:
+                    console.print(f"[green]✓[/] {line}")
+                    console.print("[dim]Restart your terminal for changes to take effect.[/dim]")
+                    return
+            console.print(f"[green]✓[/] Already up to date.")
+        else:
+            err.print(f"[red]Update failed:[/] {result.stderr[:300]}")
+            raise typer.Exit(1)
+    except Exception as e:
+        err.print(f"[red]Error:[/] {e}")
+        raise typer.Exit(1) from e
+
+
+# ── knowledge-ingest ──────────────────────────────────────────────────────────
+
+@app.command("knowledge-ingest")
+def cmd_knowledge_ingest(
+    path: str = typer.Argument(".", help="Directory or file to ingest"),
+    pattern: str = typer.Option("*.md", "--pattern", "-p", help="File glob pattern"),
+    category: str = typer.Option("general", "--category", "-c"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be ingested"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Bulk-ingest markdown files (CLAUDE.md, ADRs, runbooks) into the knowledge base.
+
+    \b
+    jsat knowledge-ingest docs/          ingest all .md in docs/
+    jsat knowledge-ingest docs/adr/      ingest ADR files
+    jsat knowledge-ingest --dry-run .    see what would be ingested
+    """
+    from jsat.tools.knowledge_ingest import scan_repo, IngestRecord
+    target = Path(path).resolve()
+
+    if target.is_file():
+        from jsat.tools.knowledge_ingest import ingest_markdown
+        records = ingest_markdown(target, category=category)
+    else:
+        records = scan_repo(target)
+
+    if not records:
+        console.print("[dim]No files found to ingest.[/dim]")
+        return
+
+    console.print(f"\nFound [bold]{len(records)}[/] entries to ingest from [cyan]{target}[/]\n")
+    for r in records[:10]:
+        console.print(f"  [dim]{r.category:15}[/] {r.source_file.name}: {r.text[:60]}...")
+    if len(records) > 10:
+        console.print(f"  [dim]... and {len(records)-10} more[/dim]")
+
+    if dry_run:
+        console.print("\n[dim][dry-run] Not ingesting.[/dim]")
+        return
+
+    js = _jsat(repo=repo)
+    from jsat.tools.knowledge import KnowledgeTool
+    tool = KnowledgeTool(graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())
+    ingested = 0
+    for r in records:
+        try:
+            tool.add(r.text, category=r.category)
+            ingested += 1
+        except Exception as e:
+            err.print(f"[yellow]Skip {r.source_file.name}:[/] {e}")
+
+    console.print(f"\n[green]✓[/] Ingested [bold]{ingested}[/] entries into knowledge base.")
 
 
 # ── remove ────────────────────────────────────────────────────────────────────

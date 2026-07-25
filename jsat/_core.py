@@ -371,7 +371,7 @@ class JSAT:
         output_format: str | None = None,
         cot: bool = False,
         compress: bool = True,
-        max_context_tokens: int = 8192,
+        max_context_tokens: int = 4096,
         few_shot_k: int = 3,
         no_context: bool = False,
         no_examples: bool = False,

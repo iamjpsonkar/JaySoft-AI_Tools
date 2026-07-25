@@ -4,6 +4,40 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.1.8] — 2026-07-25
+
+### Added
+
+**Multi-agent parallel Prompt Optimizer** (complete rewrite, zero LLM calls)
+- 6 offline agents run in `ThreadPoolExecutor(max_workers=3)`: `ClassifyAgent`, `ContextAgent`, `ConstraintAgent`, `FewShotAgent`, `FormatAgent`, `CompressAgent`
+- `ClassifyAgent`: keyword-matching task classification in <1ms, returns `task_type` + `matched_keyword` + `confidence`
+- `ContextAgent`: BFS graph traversal with 30% token budget cap — no LLM, returns `ContextResult`
+- `ConstraintAgent`: KB top-3 query, no LLM, returns `ConstraintResult`
+- `FewShotAgent`: kNN word-overlap history ranking, filters by `task_type`, returns `FewShotResult`
+- `FormatAgent`: provider-aware formatting — XML (Claude), Markdown (GPT), plain (Ollama) — returns `FormatResult`
+- `CompressAgent`: regex-based compression at 4000-token threshold, multi-pass, returns `CompressResult`
+- `PromptResult.agent_timings` dict: per-agent wall-clock milliseconds for performance profiling
+- `self_critique()` is the ONLY LLM call — explicit, optional, separate from the pipeline
+
+**CLI additions**
+- `jsat clean [--cache|--graph|--vectors|--history|--all]` — prune `.jsat/` subdirectories
+- `jsat update [--pre]` — self-upgrade via `pip install --upgrade jsat`
+- `jsat knowledge-ingest <path> [--pattern|--category|--dry-run]` — bulk markdown ingestion
+- `jsat index --watch` (`-w`) — re-index on file change via `entr` (install: `brew install entr`)
+- `jsat prompt --verbose` — shows per-agent timing breakdown in ms
+
+**JSAT Shell improvements**
+- `_jsat_version()` helper: banner reads version from installed package instead of `"v0.1.0"` hardcode
+- Piped stdin support: `echo "explain this" | jsat shell` dispatches without TTY prompts
+- `noopt` alias for `opt off`
+
+### Fixed
+- Token default mismatch: CLI and optimizer both now default to `max_context_tokens=4096` (was 8192 in CLI)
+- Shell crash on piped input: `input()` hangs when stdin is not TTY — fixed with `sys.stdin.isatty()` check
+
+### Tests
+- 43 new CI-safe tests for `PromptOptimizer` — covers all 6 agents individually plus integration scenarios
+
 ## [0.1.3] — 2026-07-26
 
 ### Added
