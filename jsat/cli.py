@@ -29,30 +29,40 @@ app.add_typer(connect_app, name="connect")
 
 @app.command("disconnect")
 def cmd_disconnect(
+    tool: str = typer.Argument(
+        "claude",
+        help="AI tool to disconnect from: claude | cursor | all",
+    ),
     scope: str = typer.Option(
         "project",
         "--scope", "-s",
-        help="'project' → .claude/settings.json  |  'global' → ~/.claude/settings.json  |  'all' → both",
+        help="'project' | 'global' | 'all'",
     ),
     keep_skills: bool = typer.Option(
         False, "--keep-skills",
         help="Keep /jsat-* slash command files (default: remove them too)",
     ),
 ) -> None:
-    """Remove JSAT from Claude Code — undo jsat connect claude.
+    """Remove JSAT from an AI tool — undo jsat connect.
 
     \b
-    Remove from current project only:
-        jsat disconnect
-
-    \b
-    Remove globally:
-        jsat disconnect --scope global
-
-    \b
-    Remove everywhere:
-        jsat disconnect --scope all
+    jsat disconnect claude                 ← project-level
+    jsat disconnect claude --scope global  ← global
+    jsat disconnect claude --scope all     ← everywhere
+    jsat disconnect cursor                 ← from Cursor
     """
+    # Cursor uses a different settings file
+    if tool.lower() == "cursor":
+        cursor_path = Path.home() / ".cursor" / "mcp.json"
+        settings = _read_json(cursor_path)
+        if "jsat" in settings.get("mcpServers", {}):
+            del settings["mcpServers"]["jsat"]
+            _write_json(cursor_path, settings)
+            console.print(f"[green]✓[/] Removed JSAT from Cursor: [bold]{cursor_path}[/]")
+            console.print("[bold yellow]→ Restart Cursor[/] to apply.\n")
+        else:
+            console.print("[dim]JSAT not found in Cursor config.[/]")
+        return
     scopes = ["project", "global"] if scope == "all" else [scope]
     removed_any = False
 
