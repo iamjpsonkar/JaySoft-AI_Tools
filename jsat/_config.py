@@ -22,7 +22,7 @@ from jsat._models import (
     IndexerConfig, JSATConfig, LogConfig, SystemProfile, VectorStoreConfig,
 )
 
-_PROFILE_CACHE = Path(".jsat/system-profile.json")
+_PROFILE_CACHE_NAME = Path(".jsat/system-profile.json")  # relative; resolved per-repo at runtime
 
 _PRESETS: dict[str, dict[str, Any]] = {
     "solo": {
@@ -64,8 +64,18 @@ _PRESETS: dict[str, dict[str, Any]] = {
 
 # ── 1. load_config ────────────────────────────────────────────────────────────
 
-def load_config(config_path: str | Path | None = None) -> JSATConfig:
-    """Load config from file (search order documented in prompt.md Section C)."""
+def load_config(config_path: str | Path | None = None,
+                repo: Path | None = None) -> JSATConfig:
+    """Load config. Search order (first found wins):
+    1. explicit config_path argument
+    2. $JSAT_CONFIG env var
+    3. {repo}/.jsat/config.yaml   ← canonical location (everything under .jsat/)
+    4. {repo}/.jsat.yaml          ← legacy fallback
+    5. ./.jsat/config.yaml        ← CWD canonical
+    6. ./.jsat.yaml               ← CWD legacy
+    7. ~/.config/jsat/config.yaml
+    8. /etc/jsat/config.yaml
+    """
     import structlog
     log = structlog.get_logger(__name__)
 
@@ -75,8 +85,13 @@ def load_config(config_path: str | Path | None = None) -> JSATConfig:
     env = os.environ.get("JSAT_CONFIG")
     if env:
         candidates.append(Path(env))
+
+    root = repo or Path.cwd()
     candidates += [
-        Path(".jsat.yaml"),
+        root / ".jsat" / "config.yaml",     # canonical: everything inside .jsat/
+        root / ".jsat.yaml",                 # legacy: project root
+        Path(".jsat") / "config.yaml",       # CWD canonical
+        Path(".jsat.yaml"),                  # CWD legacy
         Path.home() / ".config" / "jsat" / "config.yaml",
         Path("/etc/jsat/config.yaml"),
     ]
@@ -107,10 +122,14 @@ def load_config(config_path: str | Path | None = None) -> JSATConfig:
 
 # ── 2. detect_system ──────────────────────────────────────────────────────────
 
-def detect_system(refresh: bool = False) -> SystemProfile:
-    """Probe hardware/services. Result cached in .jsat/system-profile.json."""
+def detect_system(refresh: bool = False, repo_root: Path | None = None) -> SystemProfile:
+    """Probe hardware/services. Result cached in {repo}/.jsat/system-profile.json."""
     import structlog
     log = structlog.get_logger(__name__)
+
+    # Resolve cache path to repo root so it never lands in CWD when indexing elsewhere
+    _root = repo_root or Path.cwd()
+    _PROFILE_CACHE = _root / _PROFILE_CACHE_NAME
 
     if not refresh and _PROFILE_CACHE.exists():
         try:
@@ -222,7 +241,7 @@ def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
 # ── 4. write_profile_preset ──────────────────────────────────────────────────
 
 def write_profile_preset(profile: str, output_path: Path) -> None:
-    """Write a .jsat.yaml preset for solo | team | ci | raspberry-pi."""
+    """Write JSAT config for a given profile. Default path: .jsat/config.yaml."""
     import structlog
     log = structlog.get_logger(__name__)
 

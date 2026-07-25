@@ -156,9 +156,10 @@ def cmd_doctor(
 def cmd_init(
     profile: str = typer.Option("solo", "--profile", "-p",
                                 help="Profile: solo | team | ci | raspberry-pi"),
-    output: str = typer.Option(".jsat.yaml", "--output", "-o"),
+    output: str = typer.Option(".jsat/config.yaml", "--output", "-o",
+                               help="Config file path (default: .jsat/config.yaml)"),
 ) -> None:
-    """Generate a starter .jsat.yaml config."""
+    """Generate a starter JSAT config inside .jsat/ (keeps your repo root clean)."""
     from jsat._config import write_profile_preset
     valid = {"solo", "team", "ci", "raspberry-pi"}
     if profile not in valid:
@@ -366,8 +367,8 @@ def cmd_ai_use(
         help="Provider: ollama | anthropic | openai | lmstudio"),
     model: Optional[str] = typer.Option(None, "--model", "-m",
         help="Model name (auto-selected if omitted)"),
-    config_path: str = typer.Option(".jsat.yaml", "--config", "-c",
-        help="Config file to write"),
+    config_path: str = typer.Option(".jsat/config.yaml", "--config", "-c",
+        help="Config file to write (default: .jsat/config.yaml)"),
 ) -> None:
     """Configure JSAT to use a specific AI provider.
 

@@ -46,7 +46,13 @@ class JSAT:
 
         self._repo = Path(repo).resolve()
         self._cfg: JSATConfig = load_config(config)
-        self._sys: SystemProfile = detect_system()
+
+        # ── Pin all .jsat/* paths to repo root ───────────────────────────────
+        # Without this, SQLiteGraph and system-profile.json are created relative
+        # to CWD, which scatters files when indexing a different directory.
+        self._cfg = self._pin_paths_to_repo(self._cfg)
+
+        self._sys: SystemProfile = detect_system(repo_root=self._repo)
         self._cfg = auto_configure(self._cfg, self._sys)
 
         # Caller overrides win over auto-configure
@@ -70,9 +76,43 @@ class JSAT:
 
         log = structlog.get_logger(__name__)
         log.info("jsat_init", repo=str(self._repo),
+                 jsat_dir=str(self._repo / ".jsat"),
                  profile=self._sys.detected_profile,
                  ai_provider=self._cfg.ai.provider,
                  graph_backend=self._cfg.graph.backend)
+
+    def _pin_paths_to_repo(self, cfg: JSATConfig) -> JSATConfig:
+        """Resolve all relative .jsat/* paths against self._repo.
+
+        Prevents files being scattered in CWD when indexing a different directory.
+        All JSAT state lives exclusively inside {repo}/.jsat/.
+        """
+        root = self._repo
+
+        def _abs(p: str) -> str:
+            """Make p absolute, rooted at repo if it starts with .jsat."""
+            path = Path(p)
+            if path.is_absolute():
+                return p
+            # Re-root .jsat/* paths (and plain relative paths) under the repo
+            return str(root / path)
+
+        return cfg.model_copy(update={
+            "graph": cfg.graph.model_copy(update={
+                "path": _abs(cfg.graph.path),
+            }),
+            "embeddings": cfg.embeddings.model_copy(update={
+                "vector_store": cfg.embeddings.vector_store.model_copy(update={
+                    "path": _abs(cfg.embeddings.vector_store.path),
+                }),
+            }),
+            "cache": cfg.cache.model_copy(update={
+                "disk_path": _abs(cfg.cache.disk_path),
+            }),
+            "skills": cfg.skills.model_copy(update={
+                "dir": _abs(cfg.skills.dir),
+            }),
+        })
 
     # ── Lazy backend accessors ────────────────────────────────────────────────
 
