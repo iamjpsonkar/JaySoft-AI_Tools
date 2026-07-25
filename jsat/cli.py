@@ -31,12 +31,12 @@ app.add_typer(connect_app, name="connect")
 def cmd_disconnect(
     tool: str = typer.Argument(
         "claude",
-        help="AI tool to disconnect from: claude | cursor | all",
+        help="Tool to disconnect: claude | codex | cursor | windsurf | continue | zed | gemini | all",
     ),
     scope: str = typer.Option(
         "project",
         "--scope", "-s",
-        help="'project' | 'global' | 'all'",
+        help="'project' | 'global' | 'all'  (claude and codex only)",
     ),
     keep_skills: bool = typer.Option(
         False, "--keep-skills",
@@ -46,66 +46,115 @@ def cmd_disconnect(
     """Remove JSAT from an AI tool — undo jsat connect.
 
     \b
-    jsat disconnect claude                 ← project-level
-    jsat disconnect claude --scope global  ← global
-    jsat disconnect claude --scope all     ← everywhere
-    jsat disconnect cursor                 ← from Cursor
+    jsat disconnect claude                  ← Claude Code project-level
+    jsat disconnect claude --scope global   ← Claude Code global
+    jsat disconnect claude --scope all      ← Claude Code everywhere
+    jsat disconnect codex                   ← OpenAI Codex CLI (project)
+    jsat disconnect cursor                  ← Cursor
+    jsat disconnect windsurf                ← Windsurf
+    jsat disconnect continue                ← Continue.dev
+    jsat disconnect zed                     ← Zed editor
+    jsat disconnect gemini                  ← Gemini CLI
+    jsat disconnect all                     ← every tool at once
     """
-    # Cursor uses a different settings file
-    if tool.lower() == "cursor":
-        cursor_path = Path.home() / ".cursor" / "mcp.json"
-        settings = _read_json(cursor_path)
-        if "jsat" in settings.get("mcpServers", {}):
-            del settings["mcpServers"]["jsat"]
-            _write_json(cursor_path, settings)
-            console.print(f"[green]✓[/] Removed JSAT from Cursor: [bold]{cursor_path}[/]")
-            console.print("[bold yellow]→ Restart Cursor[/] to apply.\n")
-        else:
-            console.print("[dim]JSAT not found in Cursor config.[/]")
-        return
-    scopes = ["project", "global"] if scope == "all" else [scope]
+    import json as _json
+
+    tool_lower = tool.lower()
     removed_any = False
 
-    for s in scopes:
-        # Determine settings file path
-        if s == "global":
-            settings_path = Path.home() / ".claude" / "settings.json"
-            commands_dir  = Path.home() / ".claude" / "commands"
-        else:
-            settings_path = Path.cwd() / ".claude" / "settings.json"
-            commands_dir  = Path.cwd() / ".claude" / "commands"
+    def _remove_from_standard(label: str, config_path: Path, key: str = "mcpServers") -> bool:
+        data = _read_json(config_path)
+        if "jsat" in data.get(key, {}):
+            del data[key]["jsat"]
+            if not data[key]:
+                del data[key]
+            _write_json(config_path, data)
+            console.print(f"[green]✓[/] Removed JSAT from [bold]{label}[/] ({config_path})")
+            return True
+        return False
 
-        # Remove from mcpServers
-        settings = _read_json(settings_path)
-        if "jsat" in settings.get("mcpServers", {}):
-            del settings["mcpServers"]["jsat"]
-            # Remove empty mcpServers key to keep settings clean
-            if not settings["mcpServers"]:
-                del settings["mcpServers"]
-            _write_json(settings_path, settings)
-            console.print(f"[green]✓[/] Removed MCP config from [bold]{settings_path}[/]")
+    # ── claude ────────────────────────────────────────────────────────────────
+    if tool_lower in ("claude", "all"):
+        scopes = ["project", "global"] if scope == "all" else [scope]
+        if tool_lower == "all":
+            scopes = ["project", "global"]
+        for s in scopes:
+            if s == "global":
+                sp = Path.home() / ".claude" / "settings.json"
+                cd = Path.home() / ".claude" / "commands"
+            else:
+                sp = Path.cwd() / ".claude" / "settings.json"
+                cd = Path.cwd() / ".claude" / "commands"
+            removed_any |= _remove_from_standard("Claude Code", sp)
+            if not keep_skills and cd.exists():
+                skills = list(cd.glob("jsat-*.md"))
+                for f in skills:
+                    f.unlink()
+                if skills:
+                    console.print(f"[green]✓[/] Removed {len(skills)} skill file(s) from [bold]{cd}[/]")
+                    removed_any = True
+
+    # ── codex ─────────────────────────────────────────────────────────────────
+    if tool_lower in ("codex", "all"):
+        scopes = ["project", "global"] if (scope == "all" or tool_lower == "all") else [scope]
+        for s in scopes:
+            p = Path.cwd() / ".codex" / "config.json" if s == "project" \
+                else Path.home() / ".codex" / "config.json"
+            removed_any |= _remove_from_standard("Codex", p)
+
+    # ── cursor ────────────────────────────────────────────────────────────────
+    if tool_lower in ("cursor", "all"):
+        removed_any |= _remove_from_standard("Cursor", Path.home() / ".cursor" / "mcp.json")
+
+    # ── windsurf ──────────────────────────────────────────────────────────────
+    if tool_lower in ("windsurf", "all"):
+        removed_any |= _remove_from_standard(
+            "Windsurf", Path.home() / ".codeium" / "windsurf" / "mcp_config.json"
+        )
+
+    # ── continue ──────────────────────────────────────────────────────────────
+    if tool_lower in ("continue", "all"):
+        continue_path = Path.home() / ".continue" / "config.json"
+        try:
+            if continue_path.exists():
+                cfg = _json.loads(continue_path.read_text(encoding="utf-8"))
+                before = len(cfg.get("mcpServers", []))
+                cfg["mcpServers"] = [s for s in cfg.get("mcpServers", []) if s.get("name") != "jsat"]
+                if len(cfg["mcpServers"]) < before:
+                    continue_path.write_text(_json.dumps(cfg, indent=2), encoding="utf-8")
+                    console.print(f"[green]✓[/] Removed JSAT from [bold]Continue.dev[/] ({continue_path})")
+                    removed_any = True
+        except Exception as e:
+            console.print(f"[dim]Continue: {e}[/]")
+
+    # ── zed ───────────────────────────────────────────────────────────────────
+    if tool_lower in ("zed", "all"):
+        zed_path = Path.home() / ".config" / "zed" / "settings.json"
+        data = _read_json(zed_path)
+        if "jsat" in data.get("context_servers", {}):
+            del data["context_servers"]["jsat"]
+            _write_json(zed_path, data)
+            console.print(f"[green]✓[/] Removed JSAT from [bold]Zed[/] ({zed_path})")
             removed_any = True
-        else:
-            console.print(f"[dim]  JSAT not in {settings_path} — skipping[/]")
 
-        # Remove /jsat-* skill files
-        if not keep_skills and commands_dir.exists():
-            jsat_skills = list(commands_dir.glob("jsat-*.md"))
-            if jsat_skills:
-                for skill in jsat_skills:
-                    skill.unlink()
-                console.print(
-                    f"[green]✓[/] Removed {len(jsat_skills)} skill file(s) from "
-                    f"[bold]{commands_dir}[/]"
-                )
-                removed_any = True
+    # ── gemini ────────────────────────────────────────────────────────────────
+    if tool_lower in ("gemini", "all"):
+        removed_any |= _remove_from_standard(
+            "Gemini CLI", Path.home() / ".gemini" / "settings.json"
+        )
+
+    if tool_lower not in ("claude", "codex", "cursor", "windsurf",
+                          "continue", "zed", "gemini", "all"):
+        err.print(f"[red]Unknown tool:[/] {tool}. "
+                  "Choose: claude | codex | cursor | windsurf | continue | zed | gemini | all")
+        raise typer.Exit(1)
 
     if removed_any:
-        console.print("\n[bold yellow]→ Restart Claude Code[/] to apply changes.\n")
+        console.print("\n[bold yellow]→ Restart the AI tool[/] to apply changes.\n")
     else:
         console.print(
-            "[dim]Nothing to disconnect. "
-            "Run [bold]jsat connect list[/bold] to see active configs.[/dim]\n"
+            "[dim]Nothing disconnected — JSAT was not found in those configs.[/]\n"
+            "Run [bold]jsat connect list[/bold] to see active connections.\n"
         )
 
 console = Console()
@@ -1284,52 +1333,225 @@ def cmd_connect_claude(
     )
 
 
-@connect_app.command("cursor")
-def cmd_connect_cursor(
-    repo: str = typer.Option(".", "--repo", "-r"),
+def _connect_mcp_tool(
+    tool_label: str,
+    config_path: Path,
+    binary: str,
+    repo_path: str,
+    restart_msg: str,
 ) -> None:
-    """Wire JSAT into Cursor as an MCP server.
-
-    Writes to ~/.cursor/mcp.json (Cursor's MCP config file).
-    """
-    binary = _jsat_binary()
-    repo_path = str(Path(repo).resolve())
-    settings_path = Path.home() / ".cursor" / "mcp.json"
-
-    settings = _read_json(settings_path)
+    """Write JSAT into a standard {mcpServers: {jsat: {command, args}}} config."""
+    settings = _read_json(config_path)
     settings.setdefault("mcpServers", {})
+    already = "jsat" in settings["mcpServers"]
     settings["mcpServers"]["jsat"] = {
         "command": binary,
         "args": ["mcp-server", "--repo", repo_path],
     }
-    _write_json(settings_path, settings)
+    _write_json(config_path, settings)
+    action = "Updated" if already else "Added"
+    console.print(f"\n[green]✓[/] {action} JSAT in {tool_label} config: [cyan]{config_path}[/]")
+    console.print(f"[bold yellow]→ {restart_msg}[/] to activate JSAT tools.\n")
 
-    console.print(f"\n[green]✓[/] Added JSAT to Cursor MCP config: [cyan]{settings_path}[/]")
-    console.print("[bold yellow]→ Restart Cursor[/] to activate JSAT tools.\n")
+
+@connect_app.command("cursor")
+def cmd_connect_cursor(
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Wire JSAT into Cursor as an MCP server (~/.cursor/mcp.json)."""
+    _connect_mcp_tool(
+        "Cursor", Path.home() / ".cursor" / "mcp.json",
+        _jsat_binary(), str(Path(repo).resolve()),
+        "Restart Cursor",
+    )
+
+
+@connect_app.command("codex")
+def cmd_connect_codex(
+    repo: str = typer.Option(".", "--repo", "-r"),
+    scope: str = typer.Option(
+        "project", "--scope", "-s",
+        help="'project' → .codex/config.json  |  'global' → ~/.codex/config.json",
+    ),
+) -> None:
+    """Wire JSAT into OpenAI Codex CLI as an MCP server.
+
+    \b
+    Project level (just this repo):
+        jsat connect codex
+
+    \b
+    Global level (all Codex sessions):
+        jsat connect codex --scope global
+    """
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+    if scope == "global":
+        config_path = Path.home() / ".codex" / "config.json"
+    else:
+        config_path = Path.cwd() / ".codex" / "config.json"
+    _connect_mcp_tool("Codex", config_path, binary, repo_path, "Restart Codex")
+
+
+@connect_app.command("windsurf")
+def cmd_connect_windsurf(
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Wire JSAT into Windsurf (Codeium) as an MCP server.
+
+    Writes to ~/.codeium/windsurf/mcp_config.json
+    """
+    _connect_mcp_tool(
+        "Windsurf",
+        Path.home() / ".codeium" / "windsurf" / "mcp_config.json",
+        _jsat_binary(), str(Path(repo).resolve()),
+        "Restart Windsurf",
+    )
+
+
+@connect_app.command("continue")
+def cmd_connect_continue(
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Wire JSAT into Continue.dev as an MCP server.
+
+    Writes to ~/.continue/config.json (Continue v0.9+ mcpServers format).
+    """
+    import json as _json
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+    config_path = Path.home() / ".continue" / "config.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Continue uses an array of mcpServers entries
+    try:
+        cfg = _json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    except Exception:
+        cfg = {}
+
+    servers: list = cfg.get("mcpServers", [])
+    # Remove any existing jsat entry then re-add
+    servers = [s for s in servers if s.get("name") != "jsat"]
+    servers.append({
+        "name": "jsat",
+        "command": binary,
+        "args": ["mcp-server", "--repo", repo_path],
+        "type": "stdio",
+    })
+    cfg["mcpServers"] = servers
+    config_path.write_text(_json.dumps(cfg, indent=2), encoding="utf-8")
+
+    console.print(f"\n[green]✓[/] Added JSAT to Continue config: [cyan]{config_path}[/]")
+    console.print("[bold yellow]→ Reload Continue[/] (Cmd/Ctrl+Shift+P → 'Continue: Reload') to activate.\n")
+
+
+@connect_app.command("zed")
+def cmd_connect_zed(
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Wire JSAT into Zed editor as a context server.
+
+    Writes to ~/.config/zed/settings.json (Zed context_servers format).
+    """
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+    config_path = Path.home() / ".config" / "zed" / "settings.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    settings = _read_json(config_path)
+    settings.setdefault("context_servers", {})
+    already = "jsat" in settings["context_servers"]
+    settings["context_servers"]["jsat"] = {
+        "command": {
+            "path": binary,
+            "args": ["mcp-server", "--repo", repo_path],
+        }
+    }
+    _write_json(config_path, settings)
+
+    action = "Updated" if already else "Added"
+    console.print(f"\n[green]✓[/] {action} JSAT in Zed config: [cyan]{config_path}[/]")
+    console.print("[bold yellow]→ Restart Zed[/] to activate JSAT context server.\n")
+
+
+@connect_app.command("gemini")
+def cmd_connect_gemini(
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Wire JSAT into Google Gemini CLI as an MCP server.
+
+    Writes to ~/.gemini/settings.json
+    """
+    _connect_mcp_tool(
+        "Gemini CLI",
+        Path.home() / ".gemini" / "settings.json",
+        _jsat_binary(), str(Path(repo).resolve()),
+        "Restart Gemini CLI",
+    )
+
+
+# ── All known JSAT config locations ───────────────────────────────────────────
+
+_CONNECT_LOCATIONS: list[tuple[str, Path, str]] = [
+    # (label, config_path, mcpServers_key)
+    ("Claude Code (project)", Path.cwd() / ".claude" / "settings.json", "mcpServers"),
+    ("Claude Code (global)",  Path.home() / ".claude" / "settings.json", "mcpServers"),
+    ("Cursor",                Path.home() / ".cursor" / "mcp.json",      "mcpServers"),
+    ("Codex (project)",       Path.cwd() / ".codex" / "config.json",     "mcpServers"),
+    ("Codex (global)",        Path.home() / ".codex" / "config.json",    "mcpServers"),
+    ("Windsurf",              Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
+    ("Gemini CLI",            Path.home() / ".gemini" / "settings.json", "mcpServers"),
+]
 
 
 @connect_app.command("list")
 def cmd_connect_list() -> None:
-    """Show all Claude Code and Cursor MCP configs that include JSAT."""
-    candidates = [
-        Path.home() / ".claude" / "settings.json",
-        Path.cwd() / ".claude" / "settings.json",
-        Path.home() / ".cursor" / "mcp.json",
-    ]
+    """Show all AI tools that have JSAT wired as an MCP server."""
+    import json as _json
     found_any = False
-    for p in candidates:
-        data = _read_json(p)
-        jsat_cfg = data.get("mcpServers", {}).get("jsat")
+
+    for label, path, key in _CONNECT_LOCATIONS:
+        data = _read_json(path)
+        jsat_cfg = data.get(key, {}).get("jsat")
         if jsat_cfg:
             found_any = True
-            console.print(f"[green]✓[/] [bold]{p}[/]")
+            console.print(f"[green]✓[/] [bold]{label}[/]  ({path})")
             console.print(f"   command: {jsat_cfg.get('command')}")
             console.print(f"   args:    {jsat_cfg.get('args')}\n")
+
+    # Continue uses an array format
+    continue_path = Path.home() / ".continue" / "config.json"
+    try:
+        if continue_path.exists():
+            cfg = _json.loads(continue_path.read_text(encoding="utf-8"))
+            jsat = next((s for s in cfg.get("mcpServers", []) if s.get("name") == "jsat"), None)
+            if jsat:
+                found_any = True
+                console.print(f"[green]✓[/] [bold]Continue.dev[/]  ({continue_path})")
+                console.print(f"   command: {jsat.get('command')}\n")
+    except Exception:
+        pass
+
+    # Zed uses context_servers key
+    zed_path = Path.home() / ".config" / "zed" / "settings.json"
+    zed_cfg = _read_json(zed_path).get("context_servers", {}).get("jsat")
+    if zed_cfg:
+        found_any = True
+        console.print(f"[green]✓[/] [bold]Zed[/]  ({zed_path})")
+        console.print(f"   command: {zed_cfg.get('command',{}).get('path')}\n")
+
     if not found_any:
         console.print(
-            "[dim]No JSAT MCP configs found. Run:[/]\n"
-            "  [bold]jsat connect claude[/]           ← project-level\n"
-            "  [bold]jsat connect claude --scope global[/]  ← global\n"
+            "[dim]No JSAT MCP configs found.[/]\n\n"
+            "Connect to any AI tool:\n"
+            "  [bold]jsat connect claude[/]     ← Claude Code (project)\n"
+            "  [bold]jsat connect claude --scope global[/]  ← Claude Code (global)\n"
+            "  [bold]jsat connect codex[/]      ← OpenAI Codex CLI\n"
+            "  [bold]jsat connect cursor[/]     ← Cursor\n"
+            "  [bold]jsat connect windsurf[/]   ← Windsurf\n"
+            "  [bold]jsat connect continue[/]   ← Continue.dev\n"
+            "  [bold]jsat connect zed[/]        ← Zed editor\n"
+            "  [bold]jsat connect gemini[/]     ← Gemini CLI\n"
         )
 
 
