@@ -149,7 +149,7 @@ jsat claude
 
 ### MCP tools Claude can call automatically
 
-JSAT defines 47 MCP tool slots across 12 categories; 17 are currently wired and active in the MCP server. Highlights:
+JSAT defines 47 MCP tool slots across 12 categories; 38 are currently wired and active in the MCP server. Highlights:
 
 - `jsat__query` — answer any codebase question
 - `jsat__blast_radius_file`, `jsat__blast_radius_diff`, `jsat__blast_radius_symbol`, `jsat__blast_radius_topic`

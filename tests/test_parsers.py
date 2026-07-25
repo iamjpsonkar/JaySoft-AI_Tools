@@ -136,3 +136,102 @@ def test_go_language(tmp_path):
     f = tmp_path/"l.go"; f.write_text("package main\n")
     fn = next(n for n in GoParser().parse(f, tmp_path).nodes if n["label"]=="File")
     assert fn["properties"].get("language") == "go"
+
+# Java / Ruby / Rust — require jsat[standard] tree-sitter grammars
+# These tests skip automatically if the grammar package is not installed.
+
+@pytest.mark.ci
+def test_java_file_node(tmp_path):
+    pytest.importorskip("tree_sitter_java", reason="tree-sitter-java not installed (pip install 'jsat[standard]')")
+    f = tmp_path / "Hello.java"; f.write_text("public class Hello {}\n")
+    from jsat._parsers.java import JavaParser
+    assert any(n["label"] == "File" for n in JavaParser().parse(f, tmp_path).nodes)
+
+@pytest.mark.ci
+def test_java_class(tmp_path):
+    pytest.importorskip("tree_sitter_java")
+    f = tmp_path / "Foo.java"; f.write_text("public class Foo { public void bar(){} }\n")
+    from jsat._parsers.java import JavaParser
+    r = JavaParser().parse(f, tmp_path)
+    assert any(n["label"] == "Class" for n in r.nodes)
+
+@pytest.mark.ci
+def test_java_import(tmp_path):
+    pytest.importorskip("tree_sitter_java")
+    f = tmp_path / "A.java"; f.write_text("import java.util.List;\npublic class A {}\n")
+    from jsat._parsers.java import JavaParser
+    targets = [e["target"] for e in JavaParser().parse(f, tmp_path).edges if e["type"] == "IMPORTS"]
+    assert "java.util.List" in targets or any("java" in t for t in targets)
+
+# Ruby
+@pytest.mark.ci
+def test_ruby_file_node(tmp_path):
+    pytest.importorskip("tree_sitter_ruby")
+    f = tmp_path / "app.rb"; f.write_text("puts 'hello'\n")
+    from jsat._parsers.ruby import RubyParser
+    assert any(n["label"] == "File" for n in RubyParser().parse(f, tmp_path).nodes)
+
+@pytest.mark.ci
+def test_ruby_method(tmp_path):
+    pytest.importorskip("tree_sitter_ruby")
+    f = tmp_path / "svc.rb"; f.write_text("def greet\n  'hi'\nend\n")
+    from jsat._parsers.ruby import RubyParser
+    names = [n["properties"]["name"] for n in RubyParser().parse(f, tmp_path).nodes if n["label"] == "Function"]
+    assert "greet" in names
+
+@pytest.mark.ci
+def test_ruby_require(tmp_path):
+    pytest.importorskip("tree_sitter_ruby")
+    f = tmp_path / "app.rb"; f.write_text("require 'json'\n")
+    from jsat._parsers.ruby import RubyParser
+    targets = [e["target"] for e in RubyParser().parse(f, tmp_path).edges if e["type"] == "IMPORTS"]
+    assert any("json" in t for t in targets)
+
+# Rust
+@pytest.mark.ci
+def test_rust_file_node(tmp_path):
+    pytest.importorskip("tree_sitter_rust")
+    f = tmp_path / "main.rs"; f.write_text("fn main() {}\n")
+    from jsat._parsers.rust import RustParser
+    assert any(n["label"] == "File" for n in RustParser().parse(f, tmp_path).nodes)
+
+@pytest.mark.ci
+def test_rust_function(tmp_path):
+    pytest.importorskip("tree_sitter_rust")
+    f = tmp_path / "lib.rs"; f.write_text("pub fn add(a: i32, b: i32) -> i32 { a + b }\n")
+    from jsat._parsers.rust import RustParser
+    names = [n["properties"]["name"] for n in RustParser().parse(f, tmp_path).nodes if n["label"] == "Function"]
+    assert "add" in names
+
+@pytest.mark.ci
+def test_rust_use(tmp_path):
+    pytest.importorskip("tree_sitter_rust")
+    f = tmp_path / "lib.rs"; f.write_text("use std::collections::HashMap;\nfn main(){}\n")
+    from jsat._parsers.rust import RustParser
+    targets = [e["target"] for e in RustParser().parse(f, tmp_path).edges if e["type"] == "IMPORTS"]
+    assert any("std" in t or "HashMap" in t for t in targets)
+
+# Parser factory — new languages
+@pytest.mark.ci
+def test_get_parser_java():
+    assert get_parser("java") is not None
+
+@pytest.mark.ci
+def test_get_parser_ruby():
+    assert get_parser("ruby") is not None
+
+@pytest.mark.ci
+def test_get_parser_rust():
+    assert get_parser("rust") is not None
+
+@pytest.mark.ci
+def test_detect_java():
+    assert detect_language(Path("Foo.java")) == "java"
+
+@pytest.mark.ci
+def test_detect_ruby():
+    assert detect_language(Path("app.rb")) == "ruby"
+
+@pytest.mark.ci
+def test_detect_rust():
+    assert detect_language(Path("lib.rs")) == "rust"

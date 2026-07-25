@@ -14,7 +14,7 @@ class ParseResult:
 
 
 class BaseParser(ABC):
-    language: str  # "python" | "javascript" | "go"
+    language: str  # "python" | "javascript" | "go" | "java" | "ruby" | "rust"
 
     @abstractmethod
     def parse(self, file_path: Path, repo_root: Path) -> ParseResult: ...
@@ -31,6 +31,15 @@ def get_parser(language: str) -> BaseParser | None:
     if language == "go":
         from jsat._parsers.go import GoParser
         return GoParser()
+    if language == "java":
+        from jsat._parsers.java import JavaParser
+        return JavaParser()
+    if language == "ruby":
+        from jsat._parsers.ruby import RubyParser
+        return RubyParser()
+    if language == "rust":
+        from jsat._parsers.rust import RustParser
+        return RustParser()
     return None
 
 
