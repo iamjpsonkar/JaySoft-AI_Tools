@@ -22,7 +22,6 @@ import json
 import shutil
 import subprocess
 import time
-import uuid
 from typing import Iterator
 
 from jsat._ai import AIProvider
@@ -39,11 +38,14 @@ class ClaudeCliProvider(AIProvider):
         self._model = getattr(getattr(cfg, "ai", None), "model", None) or "claude-sonnet-4-6"
         self._timeout = getattr(getattr(cfg, "ai", None), "timeout_seconds", None) or 180
 
-        # Session state — persists across multiple calls in the same JSAT session
-        self._session_id: str | None = None   # set on first call; reused thereafter
-        self._call_count: int = 0              # tracks whether this is first call
-        self._repo_dir: str | None = None      # injected by shell for file access
-        self._system_prompt: str | None = None # injected by shell for codebase context
+        # Session state
+        self._session_id: str | None = None
+        self._call_count: int = 0
+        self._repo_dir: str | None = None
+        self._system_prompt: str | None = None
+        # stateful=False (default): each call independent — for MCP server
+        # stateful=True: uses --continue for multi-turn — for interactive shell
+        self._stateful: bool = False
 
         if not shutil.which("claude"):
             self._log.warning(
@@ -56,10 +58,16 @@ class ClaudeCliProvider(AIProvider):
     # ── Configuration (called by JSATShell before first message) ─────────────
 
     def configure(self, repo_dir: str | None = None,
-                  system_prompt: str | None = None) -> None:
-        """Inject repo context. Call once after init, before first complete()."""
+                  system_prompt: str | None = None,
+                  stateful: bool = True) -> None:
+        """Inject repo context and enable stateful (multi-turn) mode.
+
+        Call this from the interactive shell before the first complete().
+        Do NOT call from the MCP server — MCP uses stateless mode by default.
+        """
         self._repo_dir = repo_dir
         self._system_prompt = system_prompt
+        self._stateful = stateful
 
     def new_session(self) -> None:
         """Start a fresh conversation (clears history)."""
@@ -85,40 +93,55 @@ class ClaudeCliProvider(AIProvider):
         return bool(shutil.which("claude"))
 
     def _build_args(self, prompt: str, stream: bool = False) -> list[str]:
-        """Build the full claude CLI command for this call."""
+        """Build the full claude CLI command for this call.
+
+        Two modes:
+          stateless (default, used by MCP server): each call is independent.
+            Claude Code maintains conversation context itself.
+          stateful (enabled by configure()): uses --continue to resume the
+            last conversation. Used by the interactive jsat shell.
+        """
         args = [self._binary]
 
         # Print mode (non-interactive)
         args += ["-p", prompt]
 
-        # Output format — stream-json for streaming, text for simple
+        # Output format
         if stream:
             args += ["--output-format", "stream-json"]
         else:
             args += ["--output-format", "text"]
 
-        # Model selection
-        if self._model and self._model != "claude-sonnet-4-6":
+        # Model selection — only pass --model for known Claude model names.
+        # Never pass Ollama/GPT model names (e.g. "llama3.2") to the claude CLI.
+        _CLAUDE_MODELS = {
+            "claude-sonnet-4-6", "claude-haiku-4-5-20251001", "claude-opus-4-8",
+            "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022",
+            "claude-3-opus-20240229",
+        }
+        if self._model and self._model in _CLAUDE_MODELS and self._model != "claude-sonnet-4-6":
             args += ["--model", self._model]
 
-        # Session continuity
-        if self._call_count == 0:
-            # First call: generate a session ID so subsequent calls can resume
-            self._session_id = f"jsat-{uuid.uuid4().hex[:12]}"
-            args += ["--session-id", self._session_id]
-
-            # System prompt with codebase context (first call only)
+        if self._stateful:
+            # Stateful mode (interactive shell): maintain conversation history.
+            # Use --continue on calls after the first to resume the last session.
+            if self._call_count == 0:
+                # First call: inject context
+                if self._system_prompt:
+                    args += ["--system-prompt", self._system_prompt]
+                if self._repo_dir:
+                    args += ["--add-dir", self._repo_dir]
+            else:
+                # Continue the last conversation in this directory
+                args += ["--continue"]
+        else:
+            # Stateless mode (MCP server default): each call is independent.
+            # Claude Code handles conversation context via its own history.
+            # Do NOT use --session-id or --resume — they cause "Invalid session ID".
             if self._system_prompt:
-                args += ["--system-prompt", self._system_prompt]
-
-            # File access — claude can read/write project files
+                args += ["--append-system-prompt", self._system_prompt]
             if self._repo_dir:
                 args += ["--add-dir", self._repo_dir]
-
-        else:
-            # Subsequent calls: resume the same session (full history preserved)
-            if self._session_id:
-                args += ["--resume", self._session_id]
 
         return args
 

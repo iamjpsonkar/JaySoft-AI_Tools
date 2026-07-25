@@ -1028,7 +1028,15 @@ def cmd_mcp_server(
                 def _try_claude_cli():
                     if shutil.which("claude"):
                         from jsat._ai.claude_cli import ClaudeCliProvider
-                        p = ClaudeCliProvider(self._cfg)
+                        # Use a clean config with claude model, not whatever
+                        # the original config says (e.g. "llama3.2" from Ollama profile)
+                        clean_cfg = self._cfg.model_copy(update={
+                            "ai": self._cfg.ai.model_copy(update={
+                                "provider": "claude_cli",
+                                "model": "claude-sonnet-4-6",
+                            })
+                        })
+                        p = ClaudeCliProvider(clean_cfg)
                         if p.is_available():
                             return p
                     return None
