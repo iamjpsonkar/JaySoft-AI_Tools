@@ -32,7 +32,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-        # To set the secret:
-        # 1. pypi.org → Account Settings → API tokens → Add token (Entire account)
-        # 2. GitHub repo → Settings → Secrets and variables → Actions → New secret
-        #    Name: PYPI_API_TOKEN   Value: pypi-AgEI...
+          skip-existing: true   # don't fail if this version was already uploaded
