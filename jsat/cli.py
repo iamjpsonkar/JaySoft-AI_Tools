@@ -303,9 +303,19 @@ def _launch_ai(ai: str, repo: str, verbose: bool) -> None:
 def cmd_claude(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
+    resume: Optional[str] = typer.Option(None, "--resume", help="Resume a Claude session by ID"),
+    continue_: bool = typer.Option(False, "--continue", "-c", help="Continue the most recent Claude session"),
 ) -> None:
-    """Open Claude Code with all JSAT tools available as MCP + /jsat-* skills."""
-    _launch_ai("claude", repo, verbose)
+    """Open Claude Code with all JSAT tools available as MCP + /jsat-* skills.
+
+    \b
+    Fresh session:                jsat claude
+    Resume a named session:       jsat claude --resume <session-id>
+    Continue most recent session: jsat claude --continue
+    """
+    from jsat.tools.shell import launch_ai_with_jsat_tools
+    js = _jsat(repo=repo, verbose=verbose)
+    launch_ai_with_jsat_tools(js, ai="claude", resume=resume, continue_session=continue_)
 
 
 @app.command("gpt")

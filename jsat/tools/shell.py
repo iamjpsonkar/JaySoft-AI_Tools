@@ -323,7 +323,16 @@ class JSATShell:
 
         # ── Native tool launchers (open the actual AI tool with JSAT pre-loaded)
         if provider in ("claude-cli", "claude-interactive", "claude-full", "full"):
-            self._launch_claude_with_jsat_tools()
+            # switch claude-cli [--resume <id> | --continue]
+            resume_id = None
+            cont = False
+            if "--resume" in args:
+                idx = args.index("--resume")
+                resume_id = args[idx + 1] if idx + 1 < len(args) else None
+            elif "--continue" in args or "-c" in args:
+                cont = True
+            launch_ai_with_jsat_tools(self._js, ai="claude",
+                                       resume=resume_id, continue_session=cont)
             return
 
         if provider in ("codex",):
@@ -864,11 +873,17 @@ def launch(jsat: JSAT) -> None:
 
 # ── Standalone launcher (called from CLI) ─────────────────────────────────────
 
-def launch_ai_with_jsat_tools(jsat: "JSAT", ai: str = "claude") -> None:
+def launch_ai_with_jsat_tools(
+    jsat: "JSAT",
+    ai: str = "claude",
+    resume: str | None = None,
+    continue_session: bool = False,
+) -> None:
     """Launch an AI session with JSAT tools wired in as MCP.
 
     ai: "claude" | "gpt" | "ollama" | ... — which AI CLI to launch.
-    For now only "claude" is supported; others fall back to JSAT REPL.
+    resume: Claude session ID to resume (passes --resume <id>).
+    continue_session: if True, passes --continue to resume the most recent session.
     """
     import json
     import os
@@ -894,9 +909,16 @@ def launch_ai_with_jsat_tools(jsat: "JSAT", ai: str = "claude") -> None:
             }
         }
 
+        session_note = ""
+        if resume:
+            session_note = f"Resuming session: {resume}\n"
+        elif continue_session:
+            session_note = "Continuing most recent session.\n"
+
         jsat_context = (
             f"You are working in the codebase at: {repo}\n"
-            f"JSAT graph: {nodes:,} nodes, {edges:,} edges.\n\n"
+            f"JSAT graph: {nodes:,} nodes, {edges:,} edges.\n"
+            f"{session_note}\n"
             "JSAT MCP tools available to you (use proactively for codebase questions):\n"
             "  jsat__query              — answer any codebase question from the graph\n"
             "  jsat__blast_radius       — trace downstream impact of any file/symbol change\n"
@@ -906,8 +928,7 @@ def launch_ai_with_jsat_tools(jsat: "JSAT", ai: str = "claude") -> None:
             "  jsat__get_index_status   — graph stats\n"
             "  jsat__export_index       — export graph as zip\n"
             "  jsat__get_jsat_version   — JSAT version info\n\n"
-            "You also have /jsat-* slash commands available if skills are installed.\n"
-            "Run 'jsat connect claude --install-skills' to install them."
+            "You also have /jsat-* slash commands — type / to see them."
         )
 
         mcp_path = None
@@ -918,12 +939,17 @@ def launch_ai_with_jsat_tools(jsat: "JSAT", ai: str = "claude") -> None:
                 json.dump(mcp_config, f, indent=2)
                 mcp_path = f.name
 
-            subprocess.run([
+            cmd = [
                 "claude",
                 "--mcp-config", mcp_path,
                 "--add-dir", repo,
                 "--append-system-prompt", jsat_context,
-            ])
+            ]
+            if resume:
+                cmd += ["--resume", resume]
+            elif continue_session:
+                cmd += ["--continue"]
+            subprocess.run(cmd)
         finally:
             if mcp_path:
                 try:
