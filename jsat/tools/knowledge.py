@@ -36,11 +36,16 @@ _REL_LABEL = "KnowledgeRelation"
 
 # ── Stop-words excluded from keyword index ────────────────────────────────────
 _STOP_WORDS = frozenset(
-    "a an the is are was were be been being have has had do does did "
-    "will would could should may might must shall can not no nor and or "
-    "but if then else for of to in on at with by from as its it this that "
-    "these those i we you he she they what which who when where how why "
-    "our their your all any some more most".split()
+    [
+        "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
+        "have", "has", "had", "do", "does", "did", "will", "would", "could",
+        "should", "may", "might", "must", "shall", "can", "not", "no", "nor",
+        "and", "or", "but", "if", "then", "else", "for", "of", "to", "in",
+        "on", "at", "with", "by", "from", "as", "its", "it", "this", "that",
+        "these", "those", "i", "we", "you", "he", "she", "they", "what",
+        "which", "who", "when", "where", "how", "why", "our", "their", "your",
+        "all", "any", "some", "more", "most",
+    ]
 )
 
 
@@ -126,8 +131,10 @@ def _ai_extract_entities(ai: Any, text: str) -> tuple[list[Entity], list[Relatio
     prompt = (
         "Extract structured knowledge from the text below.\n"
         "Return ONLY valid JSON in this exact shape (no markdown fences):\n"
-        '{"entities": [{"name": str, "type": "SERVICE|FILE|FUNCTION|CONCEPT|PERSON|TEAM|OTHER", "raw": str}], '
-        '"relations": [{"source": str, "target": str, "rel": "USES|OWNS|CALLS|DOCUMENTS|RELATED_TO|DEPENDS_ON"}]}\n'
+        '{"entities": [{"name": str, "type": '
+        '"SERVICE|FILE|FUNCTION|CONCEPT|PERSON|TEAM|OTHER", "raw": str}], '
+        '"relations": [{"source": str, "target": str, '
+        '"rel": "USES|OWNS|CALLS|DOCUMENTS|RELATED_TO|DEPENDS_ON"}]}\n'
         "Focus on technical terms, services, files, functions, people, and teams.\n"
         f"TEXT:\n{text[:2000]}"
     )
@@ -734,7 +741,6 @@ class KnowledgeTool(BaseTool):
         log = structlog.get_logger(__name__)
 
         try:
-            from graphiti_core import Graphiti  # type: ignore[import]
 
             if self._graphiti_client is None:
                 log.debug("knowledge_graphiti_add_skip",
@@ -797,7 +803,7 @@ class KnowledgeTool(BaseTool):
             return "adr"
         if "incident" in parent or "incident" in name:
             return "incident"
-        if "claude" in name or "claude.md" == name:
+        if "claude" in name or name == "claude.md":
             return "claude_md"
         if "decision" in parent or "decision" in name:
             return "decision"
@@ -823,7 +829,7 @@ class KnowledgeTool(BaseTool):
         # Reassemble: parts alternate between heading and content
         sections: list[tuple[str, str]] = []
         heading = ""
-        for i, part in enumerate(parts):
+        for _i, part in enumerate(parts):
             if re.match(r"^#{1,2} ", part):
                 heading = part
             else:

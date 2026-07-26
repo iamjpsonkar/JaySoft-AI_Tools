@@ -296,7 +296,11 @@ class OrchestratorTool(BaseTool):
         import structlog
         log = structlog.get_logger(__name__)
         system = _AGENT_PROMPTS.get(agent, f"You are the {agent.title()} Agent.")
-        prompt = f"{system}\n\n" + (f"CONTEXT:\n{prior[:2000]}\n\n" if prior else "") + f"TASK: {subtask}"
+        prompt = (
+            f"{system}\n\n"
+            + (f"CONTEXT:\n{prior[:2000]}\n\n" if prior else "")
+            + f"TASK: {subtask}"
+        )
 
         if self._ai is None:
             return SubtaskResult(subtask=subtask, agent=agent,

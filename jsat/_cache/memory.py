@@ -41,11 +41,19 @@ class MemoryCache:
         self._log.debug("cache_hit", key=key[:32])
         return entry["result"]
 
-    def set(self, query: str, context_hash: str, result: str, affected_files: list[str] = []) -> None:
+    def set(
+        self, query: str, context_hash: str, result: str, affected_files: list[str] = None
+    ) -> None:
+        if affected_files is None:
+            affected_files = []
         key = self._key(query, context_hash)
         expires_at = time.monotonic() + self._ttl
         if key in self._store:
-            self._store[key] = {"result": result, "expires_at": expires_at, "affected_files": list(affected_files)}
+            self._store[key] = {
+                "result": result,
+                "expires_at": expires_at,
+                "affected_files": list(affected_files),
+            }
             self._store.move_to_end(key)
             return
         # Evict expired entries first
@@ -55,7 +63,11 @@ class MemoryCache:
         # LRU eviction if still full
         if len(self._store) >= self._max_size:
             self._store.popitem(last=False)
-        self._store[key] = {"result": result, "expires_at": expires_at, "affected_files": list(affected_files)}
+        self._store[key] = {
+            "result": result,
+            "expires_at": expires_at,
+            "affected_files": list(affected_files),
+        }
         self._store.move_to_end(key)
         self._log.debug("cache_set", key=key[:32], size=len(self._store))
 

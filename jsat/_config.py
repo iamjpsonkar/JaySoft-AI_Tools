@@ -336,7 +336,8 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "available":    lm_up,
         "model":        lm_models[0] if lm_models else "local-model",
         "models":       lm_models,
-        "reason":       f"running at localhost:1234 — {len(lm_models)} model(s)" if lm_up else "not running",
+        "reason":       (f"running at localhost:1234 — {len(lm_models)} model(s)"
+                         if lm_up else "not running"),
         "free":         True,
         "requires":     "Download LM Studio from lmstudio.ai → load model → start server",
     })

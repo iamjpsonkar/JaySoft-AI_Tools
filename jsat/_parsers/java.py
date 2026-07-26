@@ -88,7 +88,9 @@ def _extract_annotations(node: Any, src: bytes) -> list[str]:
     anns: list[str] = []
     for ch in mods.children:
         if ch.type in ("annotation", "marker_annotation"):
-            ann_n = ch.child_by_field_name("name") or (ch.children[1] if len(ch.children) > 1 else None)
+            ann_n = ch.child_by_field_name("name") or (
+                ch.children[1] if len(ch.children) > 1 else None
+            )
             if ann_n:
                 anns.append(_text(ann_n, src).strip())
     return anns
@@ -256,7 +258,11 @@ class JavaParser(BaseParser):
                     parts.append(_text(ch, src).strip())
                 elif ch.type == "asterisk":
                     parts.append("*")
-            target = ".".join(parts) if parts else _text(imp, src).strip().removeprefix("import ").rstrip(";").strip()
+            target = (
+                ".".join(parts)
+                if parts
+                else _text(imp, src).strip().removeprefix("import ").rstrip(";").strip()
+            )
             if target:
                 result.edges.append({"source": fid, "target": target,
                                      "type": "IMPORTS", "properties": {}})

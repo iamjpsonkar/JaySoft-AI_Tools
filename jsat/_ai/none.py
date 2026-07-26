@@ -1,7 +1,7 @@
 """jsat._ai.none — No-op AIProvider for CI mode."""
 from __future__ import annotations
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from jsat._ai import AIProvider
 
@@ -47,7 +47,9 @@ class NoOpProvider(AIProvider):
         _warn_once()
         raise _ai_error()(_MSG)
 
-    async def complete_async(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str:
+    async def complete_async(
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1
+    ) -> str:
         _warn_once()
         raise _ai_error()(_MSG)
 

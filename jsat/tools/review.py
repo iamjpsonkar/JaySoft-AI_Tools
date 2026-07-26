@@ -14,7 +14,6 @@ from jsat.tools import BaseTool
 
 if TYPE_CHECKING:
     from jsat._ai import AIProvider
-    from jsat._models import JSATConfig
 
 
 # ── Data models ───────────────────────────────────────────────────────────────

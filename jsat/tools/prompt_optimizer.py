@@ -32,7 +32,7 @@ import json
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -108,13 +108,13 @@ class CompressResult:
 # ── Keyword tables ────────────────────────────────────────────────────────────
 
 _TASK_KEYWORDS: dict[str, list[str]] = {
-    "security":  ["secure","vulnerability","auth","permission","injection","owasp","xss","exploit","attack","bypass"],
+    "security":  ["secure","vulnerability","auth","permission","injection","owasp","xss","exploit","attack","bypass"],  # noqa: E501
     "test":      ["test","spec","verify","assert","unit test","pytest","coverage","fixture","mock"],
-    "debug":     ["why","broken","error","crash","fix","not working","failing","traceback","exception","bug"],
+    "debug":     ["why","broken","error","crash","fix","not working","failing","traceback","exception","bug"],  # noqa: E501
     "review":    ["review","check","audit","find bugs","inspect","analyse","analyze","evaluate"],
     "refactor":  ["refactor","rewrite","improve","cleanup","clean up","restructure","simplify"],
-    "code_gen":  ["write","implement","add","create","build","scaffold","generate","develop","make"],
-    "plan":      ["design","plan","architecture","approach","strategy","how should","how do i","best way"],
+    "code_gen":  ["write","implement","add","create","build","scaffold","generate","develop","make"],  # noqa: E501
+    "plan":      ["design","plan","architecture","approach","strategy","how should","how do i","best way"],  # noqa: E501
     "question":  ["what","how","explain","describe","understand","tell me","why does","when does"],
 }
 _TASK_PRIORITY = ["security","test","debug","review","refactor","code_gen","plan","question"]
@@ -122,7 +122,7 @@ _TASK_PRIORITY = ["security","test","debug","review","refactor","code_gen","plan
 # Compact output specs — minimize tokens
 _FORMAT_INSTRUCTIONS: dict[str, str] = {
     "code_gen":  "Return ONLY valid code. No prose.",
-    "review":    'Return JSON array: [{"file":"","line":null,"severity":"high|medium|low","title":"","description":""}]',
+    "review":    'Return JSON array: [{"file":"","line":null,"severity":"high|medium|low","title":"","description":""}]',  # noqa: E501
     "question":  "Answer in ≤ 3 paragraphs.",
     "plan":      "Numbered steps: what, where, why.",
     "debug":     "Root cause in 1 sentence. Then the fix.",
@@ -165,7 +165,11 @@ class ContextAgent:
             rows = self._graph.query("MATCH (n) RETURN n LIMIT 2000")
             for r in rows:
                 nid = r.get("id","")
-                name = r.get("properties",{}).get("name","") or r.get("properties",{}).get("file","") or ""
+                name = (
+                    r.get("properties",{}).get("name","")
+                    or r.get("properties",{}).get("file","")
+                    or ""
+                )
                 if any(tok.lower() in nid.lower() or tok.lower() in name.lower() for tok in tokens):
                     matched.append(nid)
         except Exception:
@@ -176,7 +180,9 @@ class ContextAgent:
 
         snippets, used = [], []
         try:
-            for nid, depth, _ in self._graph.bfs(list(dict.fromkeys(matched)), max_depth=self._depth):
+            for nid, _depth, _ in self._graph.bfs(
+                list(dict.fromkeys(matched)), max_depth=self._depth
+            ):
                 node = self._graph.get_node(nid)
                 if not node:
                     continue
@@ -189,7 +195,8 @@ class ContextAgent:
                 snippets.append(snippet)
                 used.append(nid)
                 if _tok("\n".join(snippets)) > self._max_tokens:
-                    snippets.pop(); used.pop()
+                    snippets.pop()
+                    used.pop()
                     break
         except Exception:
             pass
@@ -219,12 +226,16 @@ class ConstraintAgent:
             scored = []
             for r in rows:
                 props = r.get("properties",{})
-                if props.get("stale"): continue
+                if props.get("stale"):
+                    continue
                 text = props.get("text","")
-                if not text: continue
+                if not text:
+                    continue
                 cat = props.get("category","")
                 overlap = sum(1 for w in q_words if w in text.lower())
-                score = overlap/max(len(q_words),1) + (0.3 if cat in ("adr","decision","standards") else 0)
+                score = overlap/max(len(q_words),1) + (
+                    0.3 if cat in ("adr","decision","standards") else 0
+                )
                 if score > 0:
                     scored.append((score, text.strip().splitlines()[0][:150]))
             scored.sort(reverse=True)
@@ -301,7 +312,8 @@ class FewShotAgent:
 class FormatAgent:
     """Rule-based model-specific formatting. No LLM."""
     def run(self, raw: str, task_type: str, ctx: ContextResult, con: ConstraintResult,
-            fs: FewShotResult, output_format: str | None, ai_provider: str, cot: bool) -> FormatResult:
+            fs: FewShotResult, output_format: str | None, ai_provider: str,
+            cot: bool) -> FormatResult:
         spec = output_format or _FORMAT_INSTRUCTIONS.get(task_type, "Be specific and concise.")
         p = (ai_provider or "").lower()
         if p in ("anthropic","claude_cli","claude"):
@@ -313,7 +325,8 @@ class FormatAgent:
     def _xml(self, raw, ctx, con, fs, spec, cot) -> str:
         parts = []
         sys = "Expert software engineer."
-        if con.text: sys += f"\n<constraints>\n{con.text}\n</constraints>"
+        if con.text:
+            sys += f"\n<constraints>\n{con.text}\n</constraints>"
         parts.append(f"<system>\n{sys}\n</system>")
 
         if ctx.text:
@@ -328,19 +341,28 @@ class FormatAgent:
             ex = []
             for e in fs.examples:
                 resp = "\n".join(e.response.splitlines()[:10])  # 10 lines max
-                ex.append(f"<example>\n<input>{e.raw_input}</input>\n<output>\n{resp}\n</output>\n</example>")
+                ex.append(
+                    f"<example>\n<input>{e.raw_input}</input>\n"
+                    f"<output>\n{resp}\n</output>\n</example>"
+                )
             parts.append("<examples>\n" + "\n".join(ex) + "\n</examples>")
 
         parts.append(f"<task>\n{raw}\n</task>")
-        if ctx_end: parts.append(f"<context>\n{ctx_end}\n</context>")
+        if ctx_end:
+            parts.append(f"<context>\n{ctx_end}\n</context>")
         parts.append(f"<output_format>{spec}</output_format>")
-        if cot: parts.append("<instruction>Think step by step inside <thinking> tags.</instruction>")
+        if cot:
+            parts.append(
+                "<instruction>Think step by step inside <thinking> tags.</instruction>"
+            )
         return "\n\n".join(parts)
 
     def _md(self, raw, ctx, con, fs, spec, cot) -> str:
         parts = ["# System\nExpert software engineer."]
-        if con.text: parts[-1] += f"\n\n**Rules:**\n{con.text}"
-        if ctx.text: parts.append(f"# Context\n```\n{ctx.text}\n```")
+        if con.text:
+            parts[-1] += f"\n\n**Rules:**\n{con.text}"
+        if ctx.text:
+            parts.append(f"# Context\n```\n{ctx.text}\n```")
         if fs.examples:
             ex = ["# Examples"]
             for e in fs.examples:
@@ -348,13 +370,16 @@ class FormatAgent:
                 ex.append(f"**Input:** {e.raw_input}\n```\n{resp}\n```")
             parts.append("\n\n".join(ex))
         parts.extend([f"# Task\n{raw}", f"# Format\n{spec}"])
-        if cot: parts.append("Think step by step.")
+        if cot:
+            parts.append("Think step by step.")
         return "\n\n".join(parts)
 
     def _plain(self, raw, ctx, con, fs, spec, cot) -> str:
         parts = []
-        if con.text: parts.append(f"Rules:\n{con.text}")
-        if ctx.text: parts.append(f"Context:\n{ctx.text}")
+        if con.text:
+            parts.append(f"Rules:\n{con.text}")
+        if ctx.text:
+            parts.append(f"Context:\n{ctx.text}")
         if fs.examples:
             ex = ["Examples:"]
             for e in fs.examples:
@@ -362,7 +387,8 @@ class FormatAgent:
                 ex.append(f"In: {e.raw_input}\nOut:\n{resp}")
             parts.append("\n\n".join(ex))
         parts.extend([f"Task: {raw}", spec])
-        if cot: parts.append("Think step by step.")
+        if cot:
+            parts.append("Think step by step.")
         return "\n\n".join(parts)
 
 
@@ -378,18 +404,28 @@ class CompressAgent:
         # Pass 1: shorten <output> blocks to signatures
         def shorten(m: re.Match) -> str:
             lines = m.group(1).splitlines()
-            sigs = [l for l in lines if re.match(r"^\s*(def |class |async def |@|pub fn |func )", l)]
-            return f"<output>\n{chr(10).join(sigs[:2]) if sigs else lines[0] if lines else ''}\n</output>"
-        c = re.sub(r"<output>(.*?)</output>", shorten, c, flags=re.DOTALL); passes += 1
+            sigs = [
+                ln for ln in lines
+                if re.match(r"^\s*(def |class |async def |@|pub fn |func )", ln)
+            ]
+            body = chr(10).join(sigs[:2]) if sigs else lines[0] if lines else ""
+            return f"<output>\n{body}\n</output>"
+        c = re.sub(r"<output>(.*?)</output>", shorten, c, flags=re.DOTALL)
+        passes += 1
         if _tok(c) <= max_tokens:
-            return CompressResult(prompt=c, original_tokens=orig, final_tokens=_tok(c), passes=passes)
+            return CompressResult(
+                prompt=c, original_tokens=orig, final_tokens=_tok(c), passes=passes
+            )
 
         # Pass 2: drop middle context blocks
         blocks = re.findall(r"<context>.*?</context>", c, flags=re.DOTALL)
-        for b in blocks[1:-1]: c = c.replace(b,"",1)
+        for b in blocks[1:-1]:
+            c = c.replace(b,"",1)
         passes += 1
         if _tok(c) <= max_tokens:
-            return CompressResult(prompt=c, original_tokens=orig, final_tokens=_tok(c), passes=passes)
+            return CompressResult(
+                prompt=c, original_tokens=orig, final_tokens=_tok(c), passes=passes
+            )
 
         # Pass 3: strip docstrings
         c = re.sub(r'""".*?"""','"""..."""',c,flags=re.DOTALL)
@@ -537,8 +573,13 @@ class LLMConstraintHardenAgent:
                                  score=0.0, elapsed_ms=elapsed, llm_succeeded=False)
         elapsed = round((time.monotonic() - t0) * 1000, 1)
         score = _score_rewrite(prompt, optimized_prompt, context_nodes)
-        log.debug("llm_rewrite_agent_done", agent="constraint_harden", score=score, elapsed_ms=elapsed)
-        return RewriteResult(prompt=prompt, agent="constraint_harden", score=score, elapsed_ms=elapsed)
+        log.debug(
+            "llm_rewrite_agent_done", agent="constraint_harden",
+            score=score, elapsed_ms=elapsed,
+        )
+        return RewriteResult(
+            prompt=prompt, agent="constraint_harden", score=score, elapsed_ms=elapsed
+        )
 
 
 _LLM_AGENTS = ["rewrite", "context_expand", "constraint_harden"]
@@ -652,7 +693,8 @@ class PromptOptimizer(BaseTool):
         context_budget = max(500, int(max_context_tokens * 0.30))  # 30% for context
 
         def run_ctx() -> ContextResult:
-            if no_context: return ContextResult(text="",node_ids=[],tokens=0)
+            if no_context:
+                return ContextResult(text="",node_ids=[],tokens=0)
             t = time.monotonic()
             r = ContextAgent(self._graph, depth=depth, max_tokens=context_budget).run(raw_input)
             timings["context"] = round((time.monotonic()-t)*1000,1)
@@ -665,7 +707,8 @@ class PromptOptimizer(BaseTool):
             return r
 
         def run_fs() -> FewShotResult:
-            if no_examples: return FewShotResult(examples=[],scores=[])
+            if no_examples:
+                return FewShotResult(examples=[],scores=[])
             t = time.monotonic()
             r = FewShotAgent(history_path, max_history).run(raw_input, task_type, few_shot_k)
             timings["fewshot"] = round((time.monotonic()-t)*1000,1)
@@ -679,7 +722,9 @@ class PromptOptimizer(BaseTool):
 
         # Stage 5: Format (offline)
         t = time.monotonic()
-        fmt_r = FormatAgent().run(raw_input, task_type, ctx_r, con_r, fs_r, output_format, provider, cot)
+        fmt_r = FormatAgent().run(
+            raw_input, task_type, ctx_r, con_r, fs_r, output_format, provider, cot
+        )
         timings["format"] = round((time.monotonic()-t)*1000,1)
 
         # Stage 6: Compress (offline, aggressive threshold)
@@ -692,7 +737,8 @@ class PromptOptimizer(BaseTool):
         timings["compress"] = round((time.monotonic()-t)*1000,1)
 
         stages = ["classify","context","constraints","fewshot","format"]
-        if cmp_r.passes > 0: stages.append("compress")
+        if cmp_r.passes > 0:
+            stages.append("compress")
 
         # ── Phase 2: LLM rewriting (optional) ────────────────────────────────
         _n = 1 if (rewrite and n_agents == 0) else n_agents
@@ -759,25 +805,32 @@ class PromptOptimizer(BaseTool):
             if result.strip().upper().startswith("CLEAN"):
                 return None
             lines = result.splitlines()
-            start = next((i for i,l in enumerate(lines) if "VIOLATIONS" in l.upper()), 0)
+            start = next((i for i,ln in enumerate(lines) if "VIOLATIONS" in ln.upper()), 0)
             return "\n".join(lines[start+1:]).strip() or response
         except Exception as e:
             log.error("self_critique_failed", error=str(e))
             return None
 
-    def save_to_history(self, result: PromptResult, response: str, quality_score: float = 0.8) -> None:
+    def save_to_history(
+        self, result: PromptResult, response: str, quality_score: float = 0.8
+    ) -> None:
         from datetime import datetime, timezone
 
         import structlog
         log = structlog.get_logger(__name__)
-        history_path = Path(getattr(getattr(self._cfg,"prompt",None),"history_path",".jsat/prompt-history.jsonl"))
+        history_path = Path(
+            getattr(getattr(self._cfg,"prompt",None),"history_path",".jsat/prompt-history.jsonl")
+        )
         max_entries = getattr(getattr(self._cfg,"prompt",None),"history_max_entries",10000)
         entry = PromptHistory(ts=datetime.now(timezone.utc).isoformat(), task_type=result.task_type,
                               raw_input=result.raw_input, optimized_prompt=result.optimized_prompt,
                               response=response, quality_score=max(0.0,min(1.0,quality_score)))
         try:
             history_path.parent.mkdir(parents=True, exist_ok=True)
-            existing = history_path.read_text(encoding="utf-8").splitlines() if history_path.exists() else []
+            existing = (
+                history_path.read_text(encoding="utf-8").splitlines()
+                if history_path.exists() else []
+            )
             existing.append(entry.model_dump_json())
             if len(existing) > max_entries:
                 existing = existing[len(existing)-max_entries:]

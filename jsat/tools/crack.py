@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +36,8 @@ _ROLE_PROMPTS: dict[str, str] = {
     "architect": (
         "You are a senior software architect in a design meeting.\n"
         "Your focus: system design, scalability, patterns, data flow, and long-term tradeoffs.\n"
-        "Be concrete. Reference specific architectural patterns (CQRS, event sourcing, etc.) when relevant.\n"
+        "Be concrete. Reference specific architectural patterns "
+        "(CQRS, event sourcing, etc.) when relevant.\n"
         "State your position clearly in 3-5 sentences. No hedging — commit to a recommendation."
     ),
     "security": (
@@ -195,7 +196,10 @@ def _offline_statement(role: str, round_num: int, task: str, context: str) -> Cr
     templates = {
         "architect": "Consider the system design tradeoffs for: {task}. Context: {ctx}",
         "security": "Security review needed for: {task}. Key risk areas: auth, data integrity.",
-        "implementer": "Existing code context:\n{ctx}\nImplementation complexity: unknown without AI.",
+        "implementer": (
+            "Existing code context:\n{ctx}\n"
+            "Implementation complexity: unknown without AI."
+        ),
         "tester": "Test coverage gaps for: {task} require investigation.",
         "skeptic": "Challenging assumption: is {task} the right problem to solve?",
         "moderator": "Consensus synthesis requires AI. Run: jsat ai use claude-cli to enable.",

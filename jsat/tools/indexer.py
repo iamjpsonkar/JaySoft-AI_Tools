@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING
 
 from jsat.tools import BaseTool
 
@@ -45,7 +46,7 @@ class IndexerTool(BaseTool):
         branch: str = "HEAD",
         force: bool = False,
         languages: list[str] | None = None,
-    ) -> "IndexResult":
+    ) -> IndexResult:
         import structlog
 
         from jsat._models import IndexResult
@@ -268,7 +269,7 @@ class IndexerTool(BaseTool):
 
     def run_stream(
         self, path: Path, branch: str = "HEAD"
-    ) -> Generator["IndexEvent", None, "IndexResult"]:
+    ) -> Generator[IndexEvent, None, IndexResult]:
         from jsat._models import IndexEvent
         yield IndexEvent(phase="parsing", progress_pct=0.0, message="Starting indexer…",
                          files_done=0, files_total=0)
@@ -301,7 +302,7 @@ class IndexerTool(BaseTool):
                 files.append(p)
         return files
 
-    def _write_index_md(self, path: Path, result: "IndexResult") -> None:
+    def _write_index_md(self, path: Path, result: IndexResult) -> None:
         """Write a rich INDEX.md with parser-derived content."""
         import datetime
         import json
@@ -357,13 +358,19 @@ class IndexerTool(BaseTool):
                         "AND json_extract(properties,'$.language') = ?", [lang]
                     ))
                     if fn_count + cls_count + file_count > 0:
-                        lang_stats[lang] = {"files": file_count, "functions": fn_count, "classes": cls_count}
+                        lang_stats[lang] = {
+                            "files": file_count,
+                            "functions": fn_count,
+                            "classes": cls_count,
+                        }
                 if lang_stats:
                     lines += ["## Language Breakdown", "",
                               "| Language | Files | Functions | Classes |",
                               "|----------|-------|-----------|---------|"]
                     for lang, s in sorted(lang_stats.items()):
-                        lines.append(f"| {lang} | {s['files']:,} | {s['functions']:,} | {s['classes']:,} |")
+                        lines.append(
+                            f"| {lang} | {s['files']:,} | {s['functions']:,} | {s['classes']:,} |"
+                        )
                     lines.append("")
             except Exception:
                 pass
@@ -457,7 +464,8 @@ class IndexerTool(BaseTool):
                 dead = [f for f in all_fns if f.get("id") not in called_targets][:20]
                 if dead:
                     lines += ["## Dead Code Candidates",
-                              "> Public functions with no incoming CALLS edges (verify manually)", "",
+                              "> Public functions with no incoming CALLS edges (verify manually)",
+                              "",
                               "| Function | File |",
                               "|----------|------|"]
                     for f in dead:
@@ -493,7 +501,8 @@ class IndexerTool(BaseTool):
 
             lines += [
                 "---",
-                "*Re-run `jsat index .` to refresh. Incremental mode: only changed files re-parsed.*",
+                "*Re-run `jsat index .` to refresh. "
+                "Incremental mode: only changed files re-parsed.*",
             ]
 
             index_path = jsat_dir / "INDEX.md"

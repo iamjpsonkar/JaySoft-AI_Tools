@@ -57,5 +57,6 @@ class OpenAIEmbedder(Embedder):
             resp = self._client.embeddings.create(model=self._model, input=chunk)
             for item in sorted(resp.data, key=lambda d: d.index):
                 results.append(item.embedding)
-        self._log.info("openai_embed_batch", n=len(texts), batches=len(texts) // self._batch_size + 1)
+        self._log.info("openai_embed_batch", n=len(texts),
+                       batches=len(texts) // self._batch_size + 1)
         return results

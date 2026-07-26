@@ -17,7 +17,8 @@ MCP_TOOLS: list[dict] = [
      "inputSchema": {"type": "object", "properties": {"language": {"type": "string"}}}},
     {"name": "list_endpoints", "description": "List API endpoints.",
      "inputSchema": {"type": "object", "properties": {
-         "service": {"type": "string"}, "method": {"type": "string"}, "auth": {"type": "boolean"}}}},
+         "service": {"type": "string"}, "method": {"type": "string"},
+         "auth": {"type": "boolean"}}}},
     {"name": "list_tables", "description": "List database tables.",
      "inputSchema": {"type": "object", "properties": {}}},
     {"name": "trace_call_chain", "description": "Trace call chain from entry to target.",
@@ -57,7 +58,8 @@ MCP_TOOLS: list[dict] = [
                      "properties": {"endpoint": {"type": "string"}}}},
     {"name": "generate_contract_test", "description": "Generate contract test between services.",
      "inputSchema": {"type": "object", "required": ["producer", "consumer"],
-                     "properties": {"producer": {"type": "string"}, "consumer": {"type": "string"}}}},
+                     "properties": {"producer": {"type": "string"},
+                                    "consumer": {"type": "string"}}}},
     # ── Category 4: Security (5) ─────────────────────────────────────
     {"name": "security_scan_file", "description": "OWASP scan a file.",
      "inputSchema": {"type": "object", "required": ["file"],
@@ -75,7 +77,8 @@ MCP_TOOLS: list[dict] = [
     {"name": "get_api_diff", "description": "Diff OpenAPI/AsyncAPI specs between branches.",
      "inputSchema": {"type": "object", "properties": {
          "base": {"type": "string"}, "head": {"type": "string"}}}},
-    {"name": "check_breaking_changes", "description": "Classify API changes as breaking/non-breaking.",
+    {"name": "check_breaking_changes",
+     "description": "Classify API changes as breaking/non-breaking.",
      "inputSchema": {"type": "object", "properties": {
          "base": {"type": "string"}, "head": {"type": "string"}}}},
     {"name": "get_consumers_of_endpoint", "description": "All callers of a specific endpoint.",
@@ -87,7 +90,8 @@ MCP_TOOLS: list[dict] = [
     # ── Category 6: Knowledge (5) ────────────────────────────────────
     {"name": "knowledge_query", "description": "Answer a question from the knowledge base.",
      "inputSchema": {"type": "object", "required": ["question"],
-                     "properties": {"question": {"type": "string"}, "service": {"type": "string"}}}},
+                     "properties": {"question": {"type": "string"},
+                                    "service": {"type": "string"}}}},
     {"name": "knowledge_add", "description": "Add a note to the knowledge base.",
      "inputSchema": {"type": "object", "required": ["text"],
                      "properties": {"text": {"type": "string"}, "category": {"type": "string"}}}},
@@ -102,7 +106,8 @@ MCP_TOOLS: list[dict] = [
     # ── Category 7: Incident (4) ─────────────────────────────────────
     {"name": "investigate_incident", "description": "Ranked root-cause hypotheses for an incident.",
      "inputSchema": {"type": "object", "required": ["description"],
-                     "properties": {"description": {"type": "string"}, "since": {"type": "string"}}}},
+                     "properties": {"description": {"type": "string"},
+                                    "since": {"type": "string"}}}},
     {"name": "get_hypotheses", "description": "Get current ranked hypotheses.",
      "inputSchema": {"type": "object", "properties": {"limit": {"type": "integer"}}}},
     {"name": "get_recent_changes", "description": "Recent commits for affected services.",
@@ -134,7 +139,8 @@ MCP_TOOLS: list[dict] = [
     # ── Category 10: Export (2) ──────────────────────────────────────
     {"name": "export_index", "description": "Export current index to .jsat.zip.",
      "inputSchema": {"type": "object", "required": ["output"],
-                     "properties": {"output": {"type": "string"}, "compress": {"type": "integer"}}}},
+                     "properties": {"output": {"type": "string"},
+                                    "compress": {"type": "integer"}}}},
     {"name": "import_index", "description": "Import index from .jsat.zip.",
      "inputSchema": {"type": "object", "required": ["archive"],
                      "properties": {"archive": {"type": "string"}}}},

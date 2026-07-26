@@ -361,7 +361,8 @@ class TokenOptimizer(BaseTool):
             return TokenReport(
                 original_text=text, original_tokens=0, compressed_text=text,
                 compressed_tokens=0, savings_tokens=0, savings_pct=0.0,
-                strategies_applied=[], model=model, model_limit=self.model_limit(model) if model else None,
+                strategies_applied=[], model=model,
+                model_limit=self.model_limit(model) if model else None,
                 budget_used_pct=None,
             )
         log.info("token_compress_start",

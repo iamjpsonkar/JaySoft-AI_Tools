@@ -77,7 +77,11 @@ def _extract_params(fn_node: Any, src: bytes) -> list[dict]:
             # *args, **kwargs, &block
             inner = p.children[-1] if p.children else None
             if inner and inner.type == "identifier":
-                prefix = "**" if t == "hash_splat_parameter" else ("&" if t == "block_parameter" else "*")
+                prefix = (
+                    "**"
+                    if t == "hash_splat_parameter"
+                    else ("&" if t == "block_parameter" else "*")
+                )
                 params.append({"name": prefix + _text(inner, src)})
         elif t == "keyword_parameter":
             name_n = p.child_by_field_name("name")
@@ -244,7 +248,11 @@ class RubyParser(BaseParser):
             if callee_name in ("require", "require_relative"):
                 continue
             receiver_node = call.child_by_field_name("receiver")
-            callee = f"{_text(receiver_node, src).strip()}.{callee_name}" if receiver_node else callee_name
+            callee = (
+                f"{_text(receiver_node, src).strip()}.{callee_name}"
+                if receiver_node
+                else callee_name
+            )
             if not callee:
                 continue
             enc = _enclosing_fn(call)

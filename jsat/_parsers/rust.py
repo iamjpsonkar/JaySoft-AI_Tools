@@ -124,9 +124,7 @@ def _extract_doc_comment(node: Any, src: bytes) -> str:
     doc_lines: list[str] = []
     for line in reversed(lines):
         stripped = line.strip()
-        if stripped.startswith("///"):
-            doc_lines.insert(0, stripped[3:].strip())
-        elif stripped.startswith("//!"):
+        if stripped.startswith("///") or stripped.startswith("//!"):
             doc_lines.insert(0, stripped[3:].strip())
         elif stripped.startswith("//"):
             break

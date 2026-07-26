@@ -5,8 +5,9 @@ Thin shell: all tool logic lives in jsat/tools/. Every heavy import is lazy.
 """
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jsat._ai import AIProvider

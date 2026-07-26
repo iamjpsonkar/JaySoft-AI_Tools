@@ -22,7 +22,7 @@ import json
 import shutil
 import subprocess
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 from jsat._ai import AIProvider
 
@@ -51,7 +51,7 @@ class BobCliProvider(AIProvider):
         if not shutil.which("bob"):
             self._log.warning(
                 "bob_cli_not_found",
-                message="'bob' binary not in PATH. Install Bob Shell from npm or your package manager",
+                message="'bob' binary not in PATH — install Bob Shell (npm i -g @ibm/bob-shell)",
             )
         else:
             self._log.info("bob_cli_init", binary=self._binary, model=self._model, mode=self._mode)
@@ -161,12 +161,12 @@ class BobCliProvider(AIProvider):
                 capture_output=True, text=True, timeout=self._timeout,
                 cwd=self._repo_dir,
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             from jsat._exceptions import AITimeoutError
             raise AITimeoutError(
                 f"bob timed out after {self._timeout}s",
                 provider="bob_cli", timeout_seconds=self._timeout,
-            )
+            ) from e
 
         elapsed = round((time.monotonic() - t0) * 1000)
 
@@ -267,13 +267,13 @@ class BobCliProvider(AIProvider):
 
             proc.wait(timeout=10)
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             proc.kill()
             from jsat._exceptions import AITimeoutError
             raise AITimeoutError(
                 f"bob stream timed out after {self._timeout}s",
                 provider="bob_cli", timeout_seconds=self._timeout,
-            )
+            ) from e
         except Exception as e:
             log.error("bob_cli_stream_error", error=str(e))
             raise

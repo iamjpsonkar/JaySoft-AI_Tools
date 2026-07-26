@@ -40,7 +40,11 @@ class FeatureTool(BaseTool):
 
         plan = self._parse(response)
         duration_ms = round((time.monotonic() - t0) * 1000)
-        log.info("feature_done", complexity=plan.get("estimated_complexity"), duration_ms=duration_ms)
+        log.info(
+            "feature_done",
+            complexity=plan.get("estimated_complexity"),
+            duration_ms=duration_ms,
+        )
 
         return FeaturePlan(
             description=description,

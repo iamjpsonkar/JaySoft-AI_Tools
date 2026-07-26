@@ -74,7 +74,9 @@ def _extract_params(fn_node: Any, src: bytes) -> list[dict]:
     if not params_node:
         return []
     params: list[dict] = []
-    for param_decl in _collect(params_node, {"parameter_declaration", "variadic_parameter_declaration"}):
+    for param_decl in _collect(
+        params_node, {"parameter_declaration", "variadic_parameter_declaration"}
+    ):
         type_n = param_decl.child_by_field_name("type")
         type_str = _text(type_n, src).strip() if type_n else ""
         has_name = False

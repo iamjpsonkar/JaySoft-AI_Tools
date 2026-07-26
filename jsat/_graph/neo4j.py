@@ -1,7 +1,8 @@
 """jsat._graph.neo4j — Neo4j graph backend (jsat[team] extra)."""
 from __future__ import annotations
 
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from jsat._graph import GraphClient
 
@@ -90,7 +91,8 @@ class Neo4jGraph(GraphClient):
 
     def outgoing_edges(self, node_id: str) -> list[tuple[str, str, dict[str, Any]]]:
         rows = self._run(
-            "MATCH (a {id: $id})-[r]->(b) RETURN type(r) AS type, b.id AS target, properties(r) AS props",
+            "MATCH (a {id: $id})-[r]->(b) "
+            "RETURN type(r) AS type, b.id AS target, properties(r) AS props",
             {"id": node_id},
         )
         return [(r["type"], r["target"], r.get("props", {})) for r in rows if r.get("target")]

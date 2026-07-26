@@ -4,7 +4,8 @@ from __future__ import annotations
 import asyncio
 import os
 import time
-from typing import TYPE_CHECKING, Iterator
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 from jsat._ai import AIProvider
 from jsat._exceptions import AIAuthError, AIRateLimitError, AITimeoutError, ProfileError
@@ -61,7 +62,9 @@ class OpenAIProvider(AIProvider):
         self._log.info("openai_complete_done", response_len=len(text), duration_ms=elapsed)
         return text
 
-    async def complete_async(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str:
+    async def complete_async(
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1
+    ) -> str:
         return await asyncio.to_thread(self.complete, prompt, max_tokens, temperature)
 
     def stream(self, prompt: str, max_tokens: int = 2048) -> Iterator[str]:

@@ -44,7 +44,7 @@ from jsat._exceptions import (
     UnsupportedLanguage,
 )
 
-__version__ = "0.3.5"
+__version__ = "0.3.6"
 __author__ = "Jay Prakash Sonkar"
 __email__ = "iamjpsonkar@gmail.com"
 __license__ = "MIT"
@@ -53,6 +53,34 @@ __all__ = [
     "JSAT",
     "load_config",
     "JSATError",
+    "AIAuthError",
+    "AIContextLengthError",
+    "AIError",
+    "AIProviderError",
+    "AIRateLimitError",
+    "AITimeoutError",
+    "ConfigError",
+    "ConfigFileNotFound",
+    "ConfigSchemaError",
+    "ExportError",
+    "ExportPermissionError",
+    "GraphCapacityError",
+    "GraphConnectionError",
+    "GraphError",
+    "GraphQueryError",
+    "ImportCorrupted",
+    "ImportVersionMismatch",
+    "IndexCorrupted",
+    "IndexError",
+    "IndexNotFound",
+    "IndexOutOfDate",
+    "MissingRequiredConfig",
+    "ProfileError",
+    "SkillError",
+    "SkillExecutionError",
+    "SkillManifestError",
+    "SkillNotFound",
+    "UnsupportedLanguage",
     "__version__",
     "__author__",
     "__email__",

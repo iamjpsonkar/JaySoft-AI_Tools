@@ -42,7 +42,10 @@ class DiskCache:
         self._log.debug("cache_hit", path=path.name)
         return entry.get("result")
 
-    def set(self, query: str, context_hash: str, result: str, affected_files: list[str] = []) -> None:
+    def set(self, query: str, context_hash: str, result: str,
+            affected_files: list[str] = None) -> None:
+        if affected_files is None:
+            affected_files = []
         path = self._path(query, context_hash)
         tmp = path.with_suffix(".json.tmp")
         payload = {

@@ -1,13 +1,15 @@
 """jsat._graph.lightgraph — Pure-Python SQLite graph. No sqlean.py required."""
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import re
 import sqlite3
 from collections import deque
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from jsat._graph import GraphClient
 
@@ -31,8 +33,11 @@ class LightGraph(GraphClient):
 
     def _create_schema(self) -> None:
         stmts = [
-            "CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY, label TEXT NOT NULL, properties TEXT NOT NULL)",
-            "CREATE TABLE IF NOT EXISTS edges (id TEXT PRIMARY KEY, type TEXT NOT NULL, source_id TEXT NOT NULL, target_id TEXT NOT NULL, properties TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS nodes "
+            "(id TEXT PRIMARY KEY, label TEXT NOT NULL, properties TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS edges "
+            "(id TEXT PRIMARY KEY, type TEXT NOT NULL, source_id TEXT NOT NULL, "
+            "target_id TEXT NOT NULL, properties TEXT NOT NULL)",
             "CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source_id)",
             "CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target_id)",
             "CREATE INDEX IF NOT EXISTS idx_edges_type ON edges(type)",
@@ -51,7 +56,8 @@ class LightGraph(GraphClient):
                  properties: dict[str, Any] | None = None) -> None:
         eid = hashlib.sha256(f"{source}→{target}→{type}".encode()).hexdigest()[:16]
         self._conn.execute(
-            "INSERT OR REPLACE INTO edges (id, type, source_id, target_id, properties) VALUES (?,?,?,?,?)",
+            "INSERT OR REPLACE INTO edges (id, type, source_id, target_id, properties) "
+            "VALUES (?,?,?,?,?)",
             (eid, type, source, target, json.dumps(properties or {})),
         )
 
@@ -107,12 +113,10 @@ class LightGraph(GraphClient):
         cols = [d[0] for d in cur.description] if cur.description else []
         results = []
         for row in cur.fetchall():
-            rec = dict(zip(cols, row))
+            rec = dict(zip(cols, row, strict=False))
             if "properties" in rec and isinstance(rec["properties"], str):
-                try:
+                with contextlib.suppress(Exception):
                     rec["properties"] = json.loads(rec["properties"])
-                except Exception:
-                    pass
             results.append(rec)
         return results
 
@@ -129,7 +133,8 @@ class LightGraph(GraphClient):
             eid = hashlib.sha256(f"{src}→{tgt}→{typ}".encode()).hexdigest()[:16]
             rows.append((eid, typ, src, tgt, json.dumps(e.get("properties", {}))))
         self._conn.executemany(
-            "INSERT OR REPLACE INTO edges (id, type, source_id, target_id, properties) VALUES (?,?,?,?,?)",
+            "INSERT OR REPLACE INTO edges (id, type, source_id, target_id, properties) "
+            "VALUES (?,?,?,?,?)",
             rows,
         )
 

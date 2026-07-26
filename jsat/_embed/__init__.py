@@ -26,7 +26,7 @@ class Embedder(ABC):
         """Pure-Python cosine similarity. No numpy required."""
         if len(a) != len(b):
             raise ValueError(f"Vector length mismatch: {len(a)} vs {len(b)}")
-        dot = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b, strict=False))
         mag_a = math.sqrt(sum(x * x for x in a))
         mag_b = math.sqrt(sum(y * y for y in b))
         if mag_a == 0.0 or mag_b == 0.0:

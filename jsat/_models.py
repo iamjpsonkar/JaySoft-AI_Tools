@@ -57,7 +57,9 @@ class EmbeddingsConfig(BaseModel):
 
 
 class AIConfig(BaseModel):
-    provider: Literal["ollama", "anthropic", "openai", "openai_compat", "claude_cli", "bob_cli", "none"] = "ollama"
+    provider: Literal[
+        "ollama", "anthropic", "openai", "openai_compat", "claude_cli", "bob_cli", "none"
+    ] = "ollama"
     model: str = "llama3.2"
     api_key_env: str | None = None
     base_url: str | None = None

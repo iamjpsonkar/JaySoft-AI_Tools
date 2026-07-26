@@ -18,9 +18,12 @@ SEVERITY_ORDER = {"breaking": 0, "degraded": 1, "warning": 2, "safe": 3}
 
 
 def _classify(edge_type: str) -> str:
-    if edge_type in _BREAKING:  return "breaking"
-    if edge_type in _DEGRADED:  return "degraded"
-    if edge_type in _WARNING:   return "warning"
+    if edge_type in _BREAKING:
+        return "breaking"
+    if edge_type in _DEGRADED:
+        return "degraded"
+    if edge_type in _WARNING:
+        return "warning"
     return "safe"
 
 
@@ -48,7 +51,7 @@ class BlastRadiusTool(BaseTool):
             log.warning("blast_radius_no_start_nodes", target=target)
 
         impacts: list[ImpactItem] = []
-        seen: set[str] = set(start_ids)
+        set(start_ids)
 
         for node_id, depth, edge_path in self._graph.bfs(start_ids, max_depth):
             if node_id in start_ids:

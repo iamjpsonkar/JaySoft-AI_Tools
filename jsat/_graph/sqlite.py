@@ -1,11 +1,13 @@
 """jsat._graph.sqlite — SQLite + sqlite-vss graph backend. Always available."""
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import re
 from collections import deque
-from typing import TYPE_CHECKING, Any, Iterator
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 from jsat._graph import GraphClient
 
@@ -66,7 +68,8 @@ class SQLiteGraph(GraphClient):
                  properties: dict[str, Any] | None = None) -> None:
         edge_id = hashlib.sha256(f"{source}→{target}→{type}".encode()).hexdigest()[:16]
         self._conn.execute(
-            "INSERT OR REPLACE INTO edges (id, type, source_id, target_id, properties) VALUES (?,?,?,?,?)",
+            "INSERT OR REPLACE INTO edges (id, type, source_id, target_id, properties) "
+            "VALUES (?,?,?,?,?)",
             (edge_id, type, source, target, json.dumps(properties or {})),
         )
 
@@ -121,11 +124,15 @@ class SQLiteGraph(GraphClient):
                 "SELECT id, label, properties FROM nodes WHERE label=?", [m.group(1)]
             )
         # MATCH (n) WHERE n.id = $id RETURN n
-        m2 = re.fullmatch(r"MATCH\s+\(n\)\s+WHERE\s+n\.id\s*=\s*\$id\s+RETURN\s+n", s, re.IGNORECASE)
+        m2 = re.fullmatch(
+            r"MATCH\s+\(n\)\s+WHERE\s+n\.id\s*=\s*\$id\s+RETURN\s+n", s, re.IGNORECASE
+        )
         if m2:
             nid = (params or {}).get("id")
             if nid:
-                return self.execute_sql("SELECT id, label, properties FROM nodes WHERE id=?", [nid])
+                return self.execute_sql(
+                    "SELECT id, label, properties FROM nodes WHERE id=?", [nid]
+                )
 
         self._log.warning("sqlite_graph_unsupported_query", query=s)
         return []
@@ -135,12 +142,10 @@ class SQLiteGraph(GraphClient):
         cols = [d[0] for d in cur.description] if cur.description else []
         results = []
         for row in cur.fetchall():
-            rec = dict(zip(cols, row))
+            rec = dict(zip(cols, row, strict=False))
             if "properties" in rec and isinstance(rec["properties"], str):
-                try:
+                with contextlib.suppress(json.JSONDecodeError, TypeError):
                     rec["properties"] = json.loads(rec["properties"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
             results.append(rec)
         return results
 

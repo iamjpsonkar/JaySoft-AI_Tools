@@ -1,6 +1,7 @@
 """jsat.mcp.server — MCP (Model Context Protocol) server. v0.2: 30+ tools, RBAC, metrics."""
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import sys
@@ -136,7 +137,7 @@ class MCPServer:
 
     def _handle(self, msg: dict) -> dict | None:
         method = msg.get("method", "")
-        id_ = msg.get("id", None)
+        id_ = msg.get("id")
         params = msg.get("params") or {}
 
         # ── Legacy single-token auth (JSAT_MCP_TOKEN) ───────────────────────
@@ -172,7 +173,10 @@ class MCPServer:
                     if id_ is not None:
                         return {"jsonrpc": "2.0", "id": id_,
                                 "error": {"code": -32600,
-                                          "message": f"Forbidden: role '{role}' cannot call '{tool_name}'"}}
+                                          "message": (
+                                              f"Forbidden: role '{role}' "
+                                              f"cannot call '{tool_name}'"
+                                          )}}
                     return None
 
         # ── Protocol methods ─────────────────────────────────────────────────
@@ -506,7 +510,9 @@ class MCPServer:
                 ),
             },
             "blast_radius_symbol": {
-                "description": "Compute blast radius for a specific symbol (function, class, const).",
+                "description": (
+                    "Compute blast radius for a specific symbol (function, class, const)."
+                ),
                 "schema": {"type": "object", "required": ["symbol"],
                            "properties": {
                                "symbol": {"type": "string",
@@ -652,8 +658,9 @@ class MCPServer:
                 ),
                 "schema": {"type": "object", "required": ["operation"],
                            "properties": {
-                               "operation": {"type": "string",
-                                             "description": "SQL string or path to migration file"}}},
+                               "operation": {
+                                   "type": "string",
+                                   "description": "SQL string or path to migration file"}}},
                 "handler": lambda a: _ser(
                     _suggest_zero_downtime_impl(js, a["operation"])
                 ),
@@ -676,7 +683,9 @@ class MCPServer:
                 ),
             },
             "get_review_findings": {
-                "description": "Get code review findings, optionally filtered by minimum confidence.",
+                "description": (
+                    "Get code review findings, optionally filtered by minimum confidence."
+                ),
                 "schema": {"type": "object", "properties": {
                     "min_confidence": {
                         "type": "string",
@@ -792,8 +801,11 @@ class MCPServer:
             "blast_radius_file": {
                 "description": "Alias for blast_radius — trace impact of a specific file.",
                 "schema": {"type": "object", "required": ["file"],
-                           "properties": {"file": {"type": "string"}, "max_depth": {"type": "integer", "default": 5}}},
-                "handler": lambda a: _ser(js.blast_radius(target=a["file"], max_depth=a.get("max_depth", 5))),  # type: ignore[attr-defined]
+                           "properties": {"file": {"type": "string"},
+                                          "max_depth": {"type": "integer", "default": 5}}},
+                "handler": lambda a: _ser(
+                    js.blast_radius(  # type: ignore[attr-defined]
+                        target=a["file"], max_depth=a.get("max_depth", 5))),
             },
             "blast_radius_topic": {
                 "description": "Trace blast radius for a Kafka topic schema change.",
@@ -806,20 +818,31 @@ class MCPServer:
             "security_scan_file": {
                 "description": "OWASP security scan a specific file.",
                 "schema": {"type": "object", "required": ["file"],
-                           "properties": {"file": {"type": "string"}, "severity": {"type": "string", "default": "medium"}}},
-                "handler": lambda a: _ser(js.security_review(path=a["file"], severity_threshold=a.get("severity", "medium"))),  # type: ignore[attr-defined]
+                           "properties": {"file": {"type": "string"},
+                                          "severity": {"type": "string", "default": "medium"}}},
+                "handler": lambda a: _ser(
+                    js.security_review(  # type: ignore[attr-defined]
+                        path=a["file"], severity_threshold=a.get("severity", "medium"))),
             },
             "get_auth_coverage": {
-                "description": "List endpoints with no authentication middleware in their call chain.",
+                "description": (
+                    "List endpoints with no authentication middleware in their call chain."
+                ),
                 "schema": {"type": "object", "properties": {"service": {"type": "string"}}},
                 "handler": lambda a: _ser(_auth_coverage_impl(js, a.get("service"))),
             },
             "get_dependency_cves": {
-                "description": "List dependency CVEs above a CVSS threshold (osv.dev integration planned for v0.3).",
-                "schema": {"type": "object", "properties": {"cvss_min": {"type": "number", "default": 7.0}}},
-                "handler": lambda a: _ser({"status": "not_implemented", "tool": "get_dependency_cves",
-                                           "message": "CVE scanning planned for v0.3. Use jsat__security_review for now.",
-                                           "alternative": "jsat__security_review"}),
+                "description": (
+                    "List dependency CVEs above a CVSS threshold "
+                    "(osv.dev integration planned for v0.3)."
+                ),
+                "schema": {"type": "object",
+                           "properties": {"cvss_min": {"type": "number", "default": 7.0}}},
+                "handler": lambda a: _ser({
+                    "status": "not_implemented",
+                    "tool": "get_dependency_cves",
+                    "message": "CVE scanning planned for v0.3. Use jsat__security_review for now.",
+                    "alternative": "jsat__security_review"}),
             },
             "trace_data_flow": {
                 "description": "Trace user input through the codebase to find injection risks.",
@@ -832,7 +855,8 @@ class MCPServer:
             "knowledge_search": {
                 "description": "Semantic search over the knowledge base.",
                 "schema": {"type": "object", "required": ["query"],
-                           "properties": {"query": {"type": "string"}, "limit": {"type": "integer", "default": 5}}},
+                           "properties": {"query": {"type": "string"},
+                                          "limit": {"type": "integer", "default": 5}}},
                 "handler": lambda a: _run_knowledge_query(js, a["query"]),
             },
             "knowledge_list": {
@@ -849,19 +873,29 @@ class MCPServer:
 
             # Incident extras
             "get_hypotheses": {
-                "description": "Get ranked root-cause hypotheses from the last incident investigation.",
-                "schema": {"type": "object", "properties": {"limit": {"type": "integer", "default": 5}}},
-                "handler": lambda a: _ser({"status": "not_implemented", "tool": "get_hypotheses",
-                                           "message": "Call jsat__investigate_incident first; hypotheses are returned in that response.",
-                                           "alternative": "jsat__investigate_incident"}),
+                "description": (
+                    "Get ranked root-cause hypotheses from the last incident investigation."
+                ),
+                "schema": {"type": "object",
+                           "properties": {"limit": {"type": "integer", "default": 5}}},
+                "handler": lambda a: _ser({
+                    "status": "not_implemented",
+                    "tool": "get_hypotheses",
+                    "message": (
+                        "Call jsat__investigate_incident first; "
+                        "hypotheses are returned in that response."
+                    ),
+                    "alternative": "jsat__investigate_incident"}),
             },
             "get_recent_changes": {
                 "description": "Recent git commits and deploys for affected services.",
                 "schema": {"type": "object", "properties": {
                     "since": {"type": "string", "default": "72h"},
                     "services": {"type": "array", "items": {"type": "string"}}}},
-                "handler": lambda a: _ser(js.investigate_incident(  # type: ignore[attr-defined]
-                    "recent changes", since=a.get("since", "72h")).hypotheses[:5] if hasattr(js, "investigate_incident") else []),
+                "handler": lambda a: _ser(
+                    js.investigate_incident(  # type: ignore[attr-defined]
+                        "recent changes", since=a.get("since", "72h")).hypotheses[:5]
+                    if hasattr(js, "investigate_incident") else []),
             },
             "generate_runbook": {
                 "description": "Generate a step-by-step runbook from an incident hypothesis.",
@@ -882,7 +916,9 @@ class MCPServer:
 
             # Test generation
             "generate_unit_test": {
-                "description": "Generate a unit test for a specific function using JSAT graph context.",
+                "description": (
+                    "Generate a unit test for a specific function using JSAT graph context."
+                ),
                 "schema": {"type": "object", "required": ["function"],
                            "properties": {"function": {"type": "string"}}},
                 "handler": lambda a: _ser(_generate_test_impl(js, "unit", a.get("function", ""))),
@@ -891,12 +927,14 @@ class MCPServer:
                 "description": "Generate an integration test for an endpoint.",
                 "schema": {"type": "object", "required": ["endpoint"],
                            "properties": {"endpoint": {"type": "string"}}},
-                "handler": lambda a: _ser(_generate_test_impl(js, "integration", a.get("endpoint", ""))),
+                "handler": lambda a: _ser(
+                    _generate_test_impl(js, "integration", a.get("endpoint", ""))),
             },
             "generate_contract_test": {
                 "description": "Generate a contract test between producer and consumer services.",
                 "schema": {"type": "object", "required": ["producer", "consumer"],
-                           "properties": {"producer": {"type": "string"}, "consumer": {"type": "string"}}},
+                           "properties": {"producer": {"type": "string"},
+                                          "consumer": {"type": "string"}}},
                 "handler": lambda a: _ser(_generate_test_impl(
                     js, "contract", f"{a.get('producer','')} and {a.get('consumer','')}")),
             },
@@ -912,7 +950,9 @@ class MCPServer:
                 "description": "Run the full IThinking pipeline (all 7 phases) on a task.",
                 "schema": {"type": "object", "required": ["task"],
                            "properties": {"task": {"type": "string"}}},
-                "handler": lambda a: _ithinking_plan(js, a["task"]) + "\n\n*Phase 5 (execution) runs in your Claude session.*",
+                "handler": lambda a: (
+                    _ithinking_plan(js, a["task"])
+                    + "\n\n*Phase 5 (execution) runs in your Claude session.*"),
             },
             "prompt_diff": {
                 "description": (
@@ -995,8 +1035,13 @@ class MCPServer:
                            "properties": {"task": {"type": "string"}}},
                 "handler": lambda a: (
                     f"Task: {a['task'][:80]}\n"
-                    f"Local resolution: {'yes (graph query)' if any(kw in a['task'].lower() for kw in ['where','list','find','what files']) else 'no (LLM required)'}\n"
-                    f"Estimated tokens: ~{max(500, len(a['task'].split()) * 120)} tokens"
+                    "Local resolution: "
+                    + ("yes (graph query)"
+                       if any(kw in a['task'].lower()
+                              for kw in ['where', 'list', 'find', 'what files'])
+                       else "no (LLM required)")
+                    + "\nEstimated tokens: "
+                    f"~{max(500, len(a['task'].split()) * 120)} tokens"
                 ),
             },
             # ── Token optimizer ──────────────────────────────────────────────
@@ -1011,8 +1056,12 @@ class MCPServer:
                     "required": ["text"],
                     "properties": {
                         "text": {"type": "string"},
-                        "model": {"type": "string",
-                                  "description": "Optional model for budget context (e.g. gpt-4o, claude-cli)."},
+                        "model": {
+                            "type": "string",
+                            "description": (
+                                "Optional model for budget context "
+                                "(e.g. gpt-4o, claude-cli)."
+                            )},
                     },
                 },
                 "handler": lambda a: _ser(_token_count_impl(js, a)),
@@ -1028,10 +1077,15 @@ class MCPServer:
                     "required": ["text"],
                     "properties": {
                         "text": {"type": "string"},
-                        "model": {"type": "string",
-                                  "description": "Target model — sets safe-zone ceiling (85% of context limit)."},
-                        "target_tokens": {"type": "integer",
-                                          "description": "Explicit token ceiling. Overrides model default."},
+                        "model": {
+                            "type": "string",
+                            "description": (
+                                "Target model — sets safe-zone ceiling "
+                                "(85% of context limit)."
+                            )},
+                        "target_tokens": {
+                            "type": "integer",
+                            "description": "Explicit token ceiling. Overrides model default."},
                         "strip_comments": {"type": "boolean", "default": False,
                                            "description": "Also strip code comment lines."},
                         "dedup": {"type": "boolean", "default": True,
@@ -1226,10 +1280,8 @@ def _trace_call_chain_impl(js: object, source: str, target: str) -> dict:
         # Resolve start node IDs by name match
         all_nodes = []
         for label in ("Function", "Service", "Endpoint", "Class"):
-            try:
+            with contextlib.suppress(Exception):
                 all_nodes.extend(g.nodes_by_label(label))  # type: ignore[attr-defined]
-            except Exception:
-                pass
 
         def _match(n: dict, query: str) -> bool:
             props = n.get("properties", n) if isinstance(n, dict) else {}
@@ -1270,7 +1322,8 @@ def _trace_call_chain_impl(js: object, source: str, target: str) -> dict:
                 pass
 
         log.warning("trace_call_chain_not_found", source=source, target=target)
-        return {"found": False, "message": f"No path from '{source}' to '{target}' within depth {max_depth}"}
+        return {"found": False,
+                "message": f"No path from '{source}' to '{target}' within depth {max_depth}"}
     except Exception as e:
         log.error("trace_call_chain_error", error=str(e))
         return {"error": str(e)}
@@ -1353,7 +1406,6 @@ def _get_consumers_impl(js: object, target: str) -> list[dict]:
 
 def _get_behavioral_coverage_impl(js: object, service: str | None) -> dict:
     """Coverage stats via TestHelperTool, returned as a structured dict."""
-    from pathlib import Path
 
     import structlog
     log = structlog.get_logger(__name__)
@@ -1804,7 +1856,7 @@ def _ithinking_plan(js: object, task: str) -> str:
     lines = [f"## IThinking Plan — {task[:60]}", ""]
     phase_names = ["Intent", "Local Feasibility", "Prompt Optimised",
                    "Task Decomposition", "Assumption Audit"]
-    for phase, name in zip(phases, phase_names):
+    for phase, name in zip(phases, phase_names, strict=False):
         flag = "! " if phase.gate_triggered else "OK"
         lines.append(f"**[{flag}] Phase {phase.phase}: {name}**")
         lines.append(phase.output)
@@ -1847,11 +1899,12 @@ def _auth_coverage_impl(js: object, service: str | None) -> list[dict]:
         unprotected = []
         for ep in endpoints:
             props = ep.get("properties", {})
-            if not props.get("auth") and not props.get("auth_required"):
-                if service is None or props.get("service", "").lower() == service.lower():
-                    unprotected.append({"route": props.get("route", "?"),
-                                        "method": props.get("method", "?"),
-                                        "service": props.get("service", "?")})
+            if (not props.get("auth") and not props.get("auth_required")
+                    and (service is None
+                         or props.get("service", "").lower() == service.lower())):
+                unprotected.append({"route": props.get("route", "?"),
+                                    "method": props.get("method", "?"),
+                                    "service": props.get("service", "?")})
         return unprotected
     except Exception as e:
         return [{"error": str(e)}]
@@ -2018,7 +2071,10 @@ def _generate_test_impl(js: object, test_type: str, target: str) -> dict:
     """MCP handler: delegate test generation to jsat__query with context."""
     prompts = {
         "unit": f"Write a unit test for `{target}` following existing project test patterns.",
-        "integration": f"Write an integration test for `{target}` covering happy path and error cases.",
+        "integration": (
+            f"Write an integration test for `{target}` "
+            "covering happy path and error cases."
+        ),
         "contract": f"Write a contract test between {target} verifying the API contract is upheld.",
     }
     prompt = prompts.get(test_type, f"Write a {test_type} test for `{target}`.")
@@ -2026,7 +2082,7 @@ def _generate_test_impl(js: object, test_type: str, target: str) -> dict:
         "status": "delegated",
         "tool": f"generate_{test_type}_test",
         "suggested_query": prompt,
-        "note": f"Pass this query to jsat__query for AI-generated test code.",
+        "note": "Pass this query to jsat__query for AI-generated test code.",
     }
 
 
@@ -2038,7 +2094,10 @@ def _estimate_lock_impl(args: dict) -> str:
         if operation.startswith(key):
             lock_type, rate = _LOCK_TYPES[key]
             est = row_count / rate if row_count else 1.0
+            danger = "yes" if lock_type in (
+                "AccessExclusiveLock", "ShareRowExclusiveLock") else "no"
             return (f"Operation: {key}\nLock type: {lock_type}\n"
                     f"Estimated duration: {est:.1f}s for {row_count:,} rows\n"
-                    f"Dangerous: {'yes' if lock_type in ('AccessExclusiveLock', 'ShareRowExclusiveLock') else 'no'}")
-    return f"Unknown operation: {args.get('operation')}. Use ALTER TABLE, CREATE INDEX, DROP TABLE, etc."
+                    f"Dangerous: {danger}")
+    return (f"Unknown operation: {args.get('operation')}. "
+            "Use ALTER TABLE, CREATE INDEX, DROP TABLE, etc.")

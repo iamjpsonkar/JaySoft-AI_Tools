@@ -121,7 +121,7 @@ def _extract_jsdoc(fn_node: Any, src: bytes) -> str:
     preceding = src[max(0, start - 500):start].decode("utf-8", errors="replace")
     lines = preceding.strip().splitlines()
     for line in reversed(lines):
-        stripped = line.strip().lstrip("/*").lstrip("//").strip()
+        stripped = line.strip().lstrip("/*").lstrip("//").strip()  # noqa: B005
         if stripped and not stripped.startswith("*"):
             return stripped[:200]
         if stripped.startswith("*") and stripped.lstrip("*").strip():

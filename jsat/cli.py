@@ -6,10 +6,10 @@ No tool logic here — pure CLI wiring.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich import box
@@ -31,7 +31,8 @@ app.add_typer(connect_app, name="connect")
 def cmd_disconnect(
     tool: str = typer.Argument(
         "claude",
-        help="Tool to disconnect: claude | codex | cursor | windsurf | continue | zed | gemini | bob | all",
+        help="Tool to disconnect: claude | codex | cursor | windsurf | continue "
+             "| zed | gemini | bob | all",
     ),
     scope: str = typer.Option(
         "project",
@@ -40,7 +41,8 @@ def cmd_disconnect(
     ),
     keep_skills: bool = typer.Option(
         False, "--keep-guidance", "--keep-skills",
-        help="Keep skill files, instruction blocks, and guidance docs after disconnecting (--keep-skills is a backward-compatible alias)",
+        help="Keep skill files, instruction blocks, and guidance docs after "
+             "disconnecting (--keep-skills is a backward-compatible alias)",
     ),
 ) -> None:
     """Remove JSAT from an AI tool — undo jsat connect.
@@ -62,7 +64,8 @@ def cmd_disconnect(
     tool_lower = tool.lower()
 
     # Validate tool name upfront (L7 fix: was previously checked at the end)
-    _valid_tools = ("claude", "codex", "cursor", "windsurf", "continue", "zed", "gemini", "bob", "all")
+    _valid_tools = ("claude", "codex", "cursor", "windsurf", "continue", "zed",
+                    "gemini", "bob", "all")
     if tool_lower not in _valid_tools:
         err.print(f"[red]Unknown tool:[/] {tool}. "
                   f"Choose: {' | '.join(_valid_tools)}")
@@ -99,7 +102,9 @@ def cmd_disconnect(
                 for f in skills:
                     f.unlink()
                 if skills:
-                    console.print(f"[green]✓[/] Removed {len(skills)} skill file(s) from [bold]{cd}[/]")
+                    console.print(
+                        f"[green]✓[/] Removed {len(skills)} skill file(s) from [bold]{cd}[/]"
+                    )
                     removed_any = True
 
     # ── codex ─────────────────────────────────────────────────────────────────
@@ -134,7 +139,9 @@ def cmd_disconnect(
             if continue_path.exists():
                 cfg = _json.loads(continue_path.read_text(encoding="utf-8"))
                 before_srv = len(cfg.get("mcpServers", []))
-                cfg["mcpServers"] = [s for s in cfg.get("mcpServers", []) if s.get("name") != "jsat"]
+                cfg["mcpServers"] = [
+                    s for s in cfg.get("mcpServers", []) if s.get("name") != "jsat"
+                ]
                 if not keep_skills:
                     cfg["customCommands"] = [
                         c for c in cfg.get("customCommands", [])
@@ -142,7 +149,9 @@ def cmd_disconnect(
                     ]
                 if len(cfg["mcpServers"]) < before_srv:
                     continue_path.write_text(_json.dumps(cfg, indent=2), encoding="utf-8")
-                    console.print(f"[green]✓[/] Removed JSAT from [bold]Continue.dev[/] ({continue_path})")
+                    console.print(
+                        f"[green]✓[/] Removed JSAT from [bold]Continue.dev[/] ({continue_path})"
+                    )
                     removed_any = True
         except Exception as e:
             console.print(f"[dim]Continue: {e}[/]")
@@ -212,8 +221,10 @@ def _jsat(repo: str = ".", verbose: bool = False):
 
 
 def _ok(v: bool | None) -> str:
-    if v is True:  return "[green]✓[/]"
-    if v is False: return "[red]✗[/]"
+    if v is True:
+        return "[green]✓[/]"
+    if v is False:
+        return "[red]✗[/]"
     return "[yellow]~[/]"
 
 
@@ -230,16 +241,18 @@ def cmd_version() -> None:
 
 @app.command("index")
 def cmd_index(
-    path: Optional[str] = typer.Argument(None, help="Directory to index (default: repo root)"),
+    path: str | None = typer.Argument(None, help="Directory to index (default: repo root)"),
     branch: str = typer.Option("HEAD", "--branch", "-b"),
     force: bool = typer.Option(False, "--force", "-f", help="Re-index all files"),
-    languages: Optional[str] = typer.Option(None, "--languages", "-l",
+    languages: str | None = typer.Option(None, "--languages", "-l",
                                             help="Comma-separated, e.g. python,go"),
     incremental: bool = typer.Option(True, "--incremental/--full"),
-    watch: bool = typer.Option(False, "--watch", "-w", help="Re-index on file changes (needs: brew install entr)"),
+    watch: bool = typer.Option(
+        False, "--watch", "-w", help="Re-index on file changes (needs: brew install entr)"
+    ),
 ) -> None:
     """Index a codebase and build the graph."""
-    langs = [l.strip() for l in languages.split(",")] if languages else None
+    langs = [lang.strip() for lang in languages.split(",")] if languages else None
     js = _jsat(repo=path or ".")
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"),
@@ -327,8 +340,10 @@ def _launch_ai(ai: str, repo: str, verbose: bool) -> None:
 def cmd_claude(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
-    resume: Optional[str] = typer.Option(None, "--resume", help="Resume a Claude session by ID"),
-    continue_: bool = typer.Option(False, "--continue", "-c", help="Continue the most recent Claude session"),
+    resume: str | None = typer.Option(None, "--resume", help="Resume a Claude session by ID"),
+    continue_: bool = typer.Option(
+        False, "--continue", "-c", help="Continue the most recent Claude session"
+    ),
 ) -> None:
     """Open Claude Code with all JSAT tools available as MCP + /jsat-* skills.
 
@@ -348,9 +363,13 @@ def cmd_claude(
 def cmd_bob(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
-    resume: Optional[str] = typer.Option(None, "--resume", help="Resume a Bob session by ID"),
-    continue_: bool = typer.Option(False, "--continue", "-c", help="Continue the most recent Bob session"),
-    mode: Optional[str] = typer.Option(None, "--mode", "-m", help="Bob Shell mode: plan, code, advanced, ask"),
+    resume: str | None = typer.Option(None, "--resume", help="Resume a Bob session by ID"),
+    continue_: bool = typer.Option(
+        False, "--continue", "-c", help="Continue the most recent Bob session"
+    ),
+    mode: str | None = typer.Option(
+        None, "--mode", "-m", help="Bob Shell mode: plan, code, advanced, ask"
+    ),
 ) -> None:
     """Open Bob Shell with all JSAT tools available as MCP.
 
@@ -382,10 +401,8 @@ def cmd_ollama(
     """Open an Ollama session with JSAT tools (local, free, no API key)."""
     from jsat.tools.shell import launch
     js = _jsat(repo=repo, verbose=verbose)
-    try:
+    with contextlib.suppress(Exception):
         js.switch_ai("ollama", model=model)
-    except Exception:
-        pass
     launch(js)
 
 
@@ -603,12 +620,12 @@ def cmd_zed(
 @app.command("crack")
 def cmd_crack(
     task: str = typer.Argument(..., help="The complex engineering task to discuss"),
-    roles: Optional[str] = typer.Option(
+    roles: str | None = typer.Option(
         None, "--roles", "-r",
         help="Comma-separated subset: architect,security,implementer,tester,skeptic",
     ),
     rounds: int = typer.Option(3, "--rounds", "-n", help="Discussion rounds (default 3)"),
-    file: Optional[str] = typer.Option(None, "--file", "-f", help="Write output to file"),
+    file: str | None = typer.Option(None, "--file", "-f", help="Write output to file"),
     repo: str = typer.Option(".", "--repo"),
 ) -> None:
     """Run a multi-agent war room on a complex engineering decision.
@@ -641,11 +658,13 @@ def cmd_crack(
         err.print("[dim]  Run: jsat ai use claude-cli   (or any provider)[/dim]\n")
 
     # Print discussion summary
-    from rich.table import Table as _Table
     for r in range(1, result.rounds_run + 1):
         console.print(f"\n[bold]Round {r}[/]")
         for s in (st for st in result.statements if st.round_num == r and st.role != "moderator"):
-            emoji = {"architect":"🏛","security":"🔒","implementer":"⚙️","tester":"🧪","skeptic":"😈"}.get(s.role,"•")
+            emoji = {
+                "architect": "🏛", "security": "🔒", "implementer": "⚙️",
+                "tester": "🧪", "skeptic": "😈",
+            }.get(s.role, "•")
             console.print(f"\n  {emoji} [bold]{s.role.upper()}[/]")
             console.print(f"  {s.text[:300]}{'…' if len(s.text)>300 else ''}")
 
@@ -655,7 +674,10 @@ def cmd_crack(
 
     if result.output_path:
         console.print(f"\n[dim]Full discussion saved to [cyan]{result.output_path}[/][/dim]")
-    console.print(f"[dim]{result.rounds_run} rounds · {len(result.roles)} agents · {result.elapsed_ms:.0f}ms[/dim]")
+    console.print(
+        f"[dim]{result.rounds_run} rounds · {len(result.roles)} agents · "
+        f"{result.elapsed_ms:.0f}ms[/dim]"
+    )
 
 
 # ── short ─────────────────────────────────────────────────────────────────────
@@ -731,8 +753,10 @@ def cmd_doctor(
     for svc, info in report.get("services", {}).items():
         svc_t.add_row(svc, _ok(info.get("running")), "")
     g = report.get("graph", {})
-    svc_t.add_row("graph", _ok(g.get("ok")),
-                  f"backend={g.get('backend','?')}" + (f" err={g['error']}" if g.get("error") else ""))
+    svc_t.add_row(
+        "graph", _ok(g.get("ok")),
+        f"backend={g.get('backend','?')}" + (f" err={g['error']}" if g.get("error") else ""),
+    )
     idx = report.get("index", {})
     svc_t.add_row("index", _ok(idx.get("is_fresh")),
                   f"nodes={idx.get('nodes',0)} edges={idx.get('edges',0)}")
@@ -758,8 +782,11 @@ def cmd_doctor(
         ai_t.add_row(label, status, free, switch_cmd)
     if not ai.get("available_providers"):
         ai_t.add_row("[dim]none detected[/]", "[red]✗[/]", "", "")
-    console.print(Panel(ai_t, title=f"AI Providers  (active: {active_provider}/{ai.get('model','?')})",
-                        border_style="blue"))
+    console.print(Panel(
+        ai_t,
+        title=f"AI Providers  (active: {active_provider}/{ai.get('model','?')})",
+        border_style="blue",
+    ))
 
     # Connected AI tools
     tool_t = Table(box=box.ROUNDED, header_style="bold magenta")
@@ -781,8 +808,12 @@ def cmd_doctor(
     try:
         _cont_cfg = _json2.loads(_cont.read_text()) if _cont.exists() else {}
         _jsat_cont = any(s.get("name") == "jsat" for s in _cont_cfg.get("mcpServers", []))
-        tool_t.add_row("Continue", "[green]✓ connected[/]" if _jsat_cont else "[dim]✗ not wired[/]",
-                       str(_cont) if _jsat_cont else "", "" if _jsat_cont else "[dim]jsat connect continue[/]")
+        tool_t.add_row(
+            "Continue",
+            "[green]✓ connected[/]" if _jsat_cont else "[dim]✗ not wired[/]",
+            str(_cont) if _jsat_cont else "",
+            "" if _jsat_cont else "[dim]jsat connect continue[/]",
+        )
     except Exception:
         pass
     console.print(Panel(tool_t, title="Connected AI Tools", border_style="blue"))
@@ -874,7 +905,7 @@ def cmd_skills_list() -> None:
 @skills_app.command("run")
 def cmd_skills_run(
     name: str = typer.Argument(...),
-    args: Optional[list[str]] = typer.Option(None, "--args", "-a", help="key=val pairs"),
+    args: list[str] | None = typer.Option(None, "--args", "-a", help="key=val pairs"),  # noqa: B008
 ) -> None:
     """Run a named skill."""
     from jsat.skills.registry import SkillsRegistry
@@ -899,15 +930,21 @@ def cmd_skills_run(
 def cmd_prompt(
     input_text: str = typer.Argument(..., help="Raw query to optimize"),
     send: bool = typer.Option(False, "--send", "-s", help="Send to AI and return response"),
-    ai: Optional[str] = typer.Option(None, "--ai", help="AI override: claude|gpt|ollama"),
-    format: Optional[str] = typer.Option(None, "--format", "-f", help="code|plan|json|prose"),
+    ai: str | None = typer.Option(None, "--ai", help="AI override: claude|gpt|ollama"),
+    format: str | None = typer.Option(None, "--format", "-f", help="code|plan|json|prose"),
     cot: bool = typer.Option(False, "--cot", help="Enable chain-of-thought"),
     compress: bool = typer.Option(True, "--compress/--no-compress"),
     no_context: bool = typer.Option(False, "--no-context"),
     no_examples: bool = typer.Option(False, "--no-examples"),
-    self_critique: bool = typer.Option(False, "--self-critique", help="Run critique pass on response (high-stakes tasks)"),
-    rewrite: bool = typer.Option(False, "--rewrite", help="Run 1 LLM rewrite agent after offline pipeline"),
-    n_agents: int = typer.Option(0, "--agents", help="Run N parallel LLM rewrite agents (1-3; omit N for 3)"),
+    self_critique: bool = typer.Option(
+        False, "--self-critique", help="Run critique pass on response (high-stakes tasks)"
+    ),
+    rewrite: bool = typer.Option(
+        False, "--rewrite", help="Run 1 LLM rewrite agent after offline pipeline"
+    ),
+    n_agents: int = typer.Option(
+        0, "--agents", help="Run N parallel LLM rewrite agents (1-3; omit N for 3)"
+    ),
     diff: bool = typer.Option(False, "--diff", help="Show raw vs optimized"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -921,7 +958,7 @@ def cmd_prompt(
     Send to AI:                   jsat prompt --send "improve the retry logic"
     LLM rewrite (1 agent):        jsat prompt --rewrite "fix logger in payments"
     Multi-agent rewrite (3):      jsat prompt --agents "fix logger in payments"
-    Specific AI + format:         jsat prompt --send --ai claude --format code "write test for refund()"
+    Specific AI + format:         jsat prompt --send --ai claude --format code "test refund()"
     Show transformation:          jsat prompt --diff --verbose "refactor webhook handler"
     """
     # --agents without a value defaults to 3
@@ -959,7 +996,10 @@ def cmd_prompt(
         t.add_row("Tokens before", str(result.tokens_before))
         t.add_row("Tokens after", str(result.tokens_after))
         if result.tokens_before:
-            saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
+            saved = max(
+                0,
+                round((result.tokens_before - result.tokens_after) / result.tokens_before * 100),
+            )
             t.add_row("Compression", f"{saved}% saved")
         if result.rewrite_applied:
             t.add_row("", "")
@@ -977,24 +1017,41 @@ def cmd_prompt(
 
     if diff:
         console.print(Panel(input_text, title="[yellow]Raw input[/]", border_style="yellow"))
-        console.print(Panel(result.optimized_prompt, title="[green]Optimized[/]", border_style="green"))
+        console.print(
+            Panel(result.optimized_prompt, title="[green]Optimized[/]", border_style="green")
+        )
 
     if getattr(result, "rewrite_skip_reason", None):
         reason = result.rewrite_skip_reason
         if reason == "ai_unavailable":
-            err.print("[yellow]⚠ LLM rewrite requested but skipped — no AI provider configured.[/]")
+            err.print(
+                "[yellow]⚠ LLM rewrite requested but skipped — "
+                "no AI provider configured.[/]"
+            )
             err.print("[dim]  Configure one with: jsat ai use <provider>[/dim]")
         else:
             err.print(f"[yellow]⚠ LLM rewrite skipped: {reason}[/]")
 
     if result.tokens_before and result.tokens_after:
-        saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
-        rewrite_tag = f" | {result.rewrite_agents_run} agents → {result.winning_agent} won" if result.rewrite_applied else ""
-        console.print(f"[dim]Tokens: {result.tokens_before} → {result.tokens_after} ({saved}% saved) | Task: {result.task_type}{rewrite_tag}[/dim]")
+        saved = max(
+            0,
+            round((result.tokens_before - result.tokens_after) / result.tokens_before * 100),
+        )
+        rewrite_tag = (
+            f" | {result.rewrite_agents_run} agents → {result.winning_agent} won"
+            if result.rewrite_applied
+            else ""
+        )
+        console.print(
+            f"[dim]Tokens: {result.tokens_before} → {result.tokens_after} ({saved}% saved) "
+            f"| Task: {result.task_type}{rewrite_tag}[/dim]"
+        )
 
     if not send or dry_run:
         if not diff:
-            console.print(Panel(result.optimized_prompt, title="Optimized prompt", border_style="cyan"))
+            console.print(
+                Panel(result.optimized_prompt, title="Optimized prompt", border_style="cyan")
+            )
         if dry_run:
             console.print("[dim][dry-run] Not sending.[/dim]")
         return
@@ -1021,9 +1078,14 @@ def cmd_prompt(
     if self_critique:
         console.print("[dim]Running self-critique pass...[/dim]")
         try:
-            corrected = optimizer.self_critique(result.optimized_prompt, response_text, result.task_type)
+            corrected = optimizer.self_critique(
+                result.optimized_prompt, response_text, result.task_type
+            )
             if corrected:
-                console.print("\n[yellow]⚠ Self-critique found issues — showing corrected version:[/yellow]\n")
+                console.print(
+                    "\n[yellow]⚠ Self-critique found issues — "
+                    "showing corrected version:[/yellow]\n"
+                )
                 console.print(corrected)
                 response_text = corrected
             else:
@@ -1031,27 +1093,27 @@ def cmd_prompt(
         except Exception as e:
             console.print(f"[dim]Self-critique skipped: {e}[/dim]")
 
-    try:
+    with contextlib.suppress(Exception):
         optimizer.save_to_history(result, response_text)
-    except Exception:
-        pass
 
 
 # ── tokens ───────────────────────────────────────────────────────────────────
 
 @app.command("tokens")
 def cmd_tokens(
-    text: Optional[str] = typer.Argument(None, help="Text to analyze (or use --file / pipe stdin)"),
-    file: Optional[Path] = typer.Option(None, "--file", "-f", help="Read from file"),
-    model: Optional[str] = typer.Option(None, "--model", "-m",
-                                        help="Model for budget check (e.g. claude-cli, gpt-4o, llama3.2)"),
+    text: str | None = typer.Argument(None, help="Text to analyze (or use --file / pipe stdin)"),
+    file: Path | None = typer.Option(None, "--file", "-f", help="Read from file"),  # noqa: B008
+    model: str | None = typer.Option(
+        None, "--model", "-m",
+        help="Model for budget check (e.g. claude-cli, gpt-4o, llama3.2)",
+    ),
     compress: bool = typer.Option(False, "--compress", "-c",
                                   help="Compress the text and show savings"),
     strip_comments: bool = typer.Option(False, "--strip-comments",
                                         help="Also strip code comment lines"),
     no_dedup: bool = typer.Option(False, "--no-dedup",
                                   help="Skip semantic deduplication"),
-    target: Optional[int] = typer.Option(None, "--target", "-t",
+    target: int | None = typer.Option(None, "--target", "-t",
                                          help="Target token ceiling for compression"),
     verbose: bool = typer.Option(False, "--verbose", "-v",
                                  help="Show per-section token breakdown"),
@@ -1088,7 +1150,7 @@ def cmd_tokens(
         err.print("[dim]Example: jsat tokens --file README.md --model gpt-4o[/dim]")
         raise typer.Exit(1)
 
-    js = _jsat(repo=repo)
+    _jsat(repo=repo)
     opt = TokenOptimizer(graph=None, cfg=None, ai=None)
 
     if compress:
@@ -1118,7 +1180,9 @@ def cmd_tokens(
         )
         t.add_row("Strategies", ", ".join(report.strategies_applied) or "none")
     elif compress:
-        t.add_row("Tokens", f"{report.original_tokens:,}  [dim](already compact — no savings)[/dim]")
+        t.add_row(
+            "Tokens", f"{report.original_tokens:,}  [dim](already compact — no savings)[/dim]"
+        )
     else:
         t.add_row("Tokens", f"{report.original_tokens:,}")
 
@@ -1263,7 +1327,7 @@ def cmd_ai_status() -> None:
 def cmd_ai_use(
     provider: str = typer.Argument(...,
         help="Provider: ollama | anthropic | openai | lmstudio"),
-    model: Optional[str] = typer.Option(None, "--model", "-m",
+    model: str | None = typer.Option(None, "--model", "-m",
         help="Model name (auto-selected if omitted)"),
     config_path: str = typer.Option(".jsat/config.yaml", "--config", "-c",
         help="Config file to write (default: .jsat/config.yaml)"),
@@ -1384,7 +1448,7 @@ def cmd_ai_test(
         console.print(f"[green]Response:[/] {result}")
     except Exception as e:
         err.print(f"[red]Error:[/] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @ai_app.command("models")
@@ -1429,7 +1493,7 @@ def cmd_ai_models() -> None:
             )
     except Exception as e:
         err.print(f"[red]Could not list models:[/] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ── connect ───────────────────────────────────────────────────────────────────
@@ -1588,7 +1652,8 @@ Group findings by severity. Highlight Critical and High first. Show file, line, 
         "jsat-contract": (
             "Check API contract compatibility between branches.",
             'Use jsat__get_api_diff with diff="$ARGUMENTS" to detect breaking changes '
-            "in OpenAPI/AsyncAPI specs. Show compatibility score and breaking vs non-breaking changes."
+            "in OpenAPI/AsyncAPI specs. Show compatibility score and "
+            "breaking vs non-breaking changes."
         ),
         # ── Code quality ──────────────────────────────────────────────────────
         "jsat-review": (
@@ -1848,7 +1913,8 @@ Display plan clearly. After the user approves, proceed. Then reflect on what was
         ),
         # ── New features ──────────────────────────────────────────────────────
         "jsat-crack": (
-            "Multi-agent war room: architect, security, implementer, tester, skeptic + moderator discuss a complex task.",
+            "Multi-agent war room: architect, security, implementer, tester, "
+            "skeptic + moderator discuss a complex task.",
             """Use jsat__crack with task="$ARGUMENTS" to run a multi-agent engineering discussion.
 
 Agents run in rounds, responding to each other's arguments:
@@ -2018,7 +2084,8 @@ def cmd_connect_claude(
     if install_skills:
         skills_dir = _write_jsat_skills(scope)
         console.print(
-            f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands in [bold]{skills_dir}[/]\n"
+            f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands "
+            f"in [bold]{skills_dir}[/]\n"
             "\n[bold]Graph exploration[/]\n"
             "  [cyan]/jsat-query[/]           — ask anything about the codebase\n"
             "  [cyan]/jsat-find-function[/]   — look up a function by name\n"
@@ -2069,15 +2136,19 @@ def _connect_mcp_tool(
     binary: str,
     repo_path: str,
     restart_msg: str,
+    env: dict[str, str] | None = None,
 ) -> None:
     """Write JSAT into a standard {mcpServers: {jsat: {command, args}}} config."""
     settings = _read_json(config_path)
     settings.setdefault("mcpServers", {})
     already = "jsat" in settings["mcpServers"]
-    settings["mcpServers"]["jsat"] = {
+    entry: dict = {
         "command": binary,
         "args": ["mcp-server", "--repo", repo_path],
     }
+    if env:
+        entry["env"] = env
+    settings["mcpServers"]["jsat"] = entry
     _write_json(config_path, settings)
     action = "Updated" if already else "Added"
     console.print(f"\n[green]✓[/] {action} JSAT in {tool_label} config: [cyan]{config_path}[/]")
@@ -2114,8 +2185,10 @@ def cmd_connect_cursor(
     if not no_instructions:
         rules_path = Path(repo).resolve() / ".cursorrules"
         _write_instructions_file(rules_path)
-        _print_instructions_written(rules_path, "Cursor",
-                                    "Cursor reads .cursorrules from the project root automatically.")
+        _print_instructions_written(
+            rules_path, "Cursor",
+            "Cursor reads .cursorrules from the project root automatically.",
+        )
 
 
 def _jsat_instructions_block() -> str:
@@ -2213,7 +2286,9 @@ def cmd_connect_codex(
     if not no_instructions:
         inst_path = _write_codex_instructions(scope)
         console.print(f"[green]✓[/] JSAT tool guidance written to [cyan]{inst_path}[/]")
-        console.print("[dim]  Codex reads this file at startup — no restart needed for instructions.[/dim]\n")
+        console.print(
+            "[dim]  Codex reads this file at startup — no restart needed for instructions.[/dim]\n"
+        )
 
 
 def _write_instructions_file(file_path: Path) -> None:
@@ -2281,8 +2356,10 @@ def cmd_connect_windsurf(
     if not no_instructions:
         rules_path = Path(repo).resolve() / ".windsurfrules"
         _write_instructions_file(rules_path)
-        _print_instructions_written(rules_path, "Windsurf",
-                                    "Windsurf reads .windsurfrules from the project root automatically.")
+        _print_instructions_written(
+            rules_path, "Windsurf",
+            "Windsurf reads .windsurfrules from the project root automatically.",
+        )
 
 
 @connect_app.command("continue")
@@ -2337,8 +2414,12 @@ def cmd_connect_continue(
 
     console.print(f"\n[green]✓[/] Added JSAT to Continue config: [cyan]{config_path}[/]")
     if not no_instructions:
-        console.print(f"[green]✓[/] Added {len(_JSAT_SKILLS)} [cyan]/jsat-*[/] custom commands to Continue")
-    console.print("[bold yellow]→ Reload Continue[/] (Cmd/Ctrl+Shift+P → 'Continue: Reload') to activate.\n")
+        console.print(
+            f"[green]✓[/] Added {len(_JSAT_SKILLS)} [cyan]/jsat-*[/] custom commands to Continue"
+        )
+    console.print(
+        "[bold yellow]→ Reload Continue[/] (Cmd/Ctrl+Shift+P → 'Continue: Reload') to activate.\n"
+    )
 
 
 @connect_app.command("zed")
@@ -2385,8 +2466,10 @@ def cmd_connect_zed(
             encoding="utf-8"
         )
         _write_json(zed_proj, proj_settings)
-        _print_instructions_written(system_md, "Zed",
-                                    "Place this file in .zed/ — Zed picks it up as project context.")
+        _print_instructions_written(
+            system_md, "Zed",
+            "Place this file in .zed/ — Zed picks it up as project context.",
+        )
 
 
 @connect_app.command("gemini")
@@ -2453,12 +2536,17 @@ def cmd_connect_bob(
         config_path = Path.cwd() / ".bob" / "settings.json"
         label = "Bob Shell (project)"
 
-    _connect_mcp_tool(label, config_path, binary, repo_path, "Restart Bob Shell")
+    # Point the MCP server's AI-backed tools (jsat__query, prompt_rewrite, …) at
+    # Bob itself — guaranteed available under `jsat bob`, no API key required — so
+    # they work out of the box instead of falling back to the no-op provider.
+    _connect_mcp_tool(label, config_path, binary, repo_path, "Restart Bob Shell",
+                      env={"JSAT_AI_PROVIDER": "bob_cli"})
 
     if install_commands:
         cmds_dir = _write_bob_commands(scope)
         console.print(
-            f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands in [bold]{cmds_dir}[/]\n"
+            f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands "
+            f"in [bold]{cmds_dir}[/]\n"
             "  Type [cyan]/[/] in Bob Shell to browse them — e.g. "
             "[cyan]/jsat-query[/], [cyan]/jsat-blast-radius[/], [cyan]/jsat-security[/].\n"
         )
@@ -2479,7 +2567,7 @@ _CONNECT_LOCATIONS: list[tuple[str, Path, str]] = [
     ("Cursor",                Path.home() / ".cursor" / "mcp.json",      "mcpServers"),
     ("Codex (project)",       Path.cwd() / ".codex" / "config.json",     "mcpServers"),
     ("Codex (global)",        Path.home() / ".codex" / "config.json",    "mcpServers"),
-    ("Windsurf",              Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
+    ("Windsurf",              Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),  # noqa: E501
     ("Gemini CLI",            Path.home() / ".gemini" / "settings.json", "mcpServers"),
     ("Bob Shell (project)",   Path.cwd() / ".bob" / "settings.json",     "mcpServers"),
     ("Bob Shell (global)",    Path.home() / ".bob" / "settings.json",    "mcpServers"),
@@ -2742,10 +2830,8 @@ def cmd_mcp_server(
     from jsat._models import JSATConfig
 
     cfg: JSATConfig = JSATConfig()  # safe defaults
-    try:
+    with contextlib.suppress(Exception):  # use defaults if config loading fails
         cfg = load_config(repo=repo_path)
-    except Exception:
-        pass  # use defaults if config loading fails
 
     # Pin paths to repo root
     class _MinimalJSAT:
@@ -2826,6 +2912,7 @@ def cmd_mcp_server(
                 if provider is None:
                     provider = (
                         _try_claude_cli() or
+                        _try_provider("bob_cli") or
                         _try_provider("anthropic") or
                         _try_provider("openai") or
                         _try_provider("ollama")
@@ -2902,13 +2989,19 @@ def cmd_clean(
     root = Path(repo).resolve() / ".jsat"
     targets: list[tuple[str, Path]] = []
 
-    if all_ or cache:   targets.append(("cache",   root / "cache"))
-    if all_ or graph:   targets.append(("graph",   root / "graph"))
-    if all_ or vectors: targets.append(("vectors", root / "vectors"))
-    if all_ or history: targets.append(("history", root / "prompt-history.jsonl"))
+    if all_ or cache:
+        targets.append(("cache",   root / "cache"))
+    if all_ or graph:
+        targets.append(("graph",   root / "graph"))
+    if all_ or vectors:
+        targets.append(("vectors", root / "vectors"))
+    if all_ or history:
+        targets.append(("history", root / "prompt-history.jsonl"))
 
     if not targets:
-        console.print("[dim]Specify what to clean: --cache | --graph | --vectors | --history | --all[/dim]")
+        console.print(
+            "[dim]Specify what to clean: --cache | --graph | --vectors | --history | --all[/dim]"
+        )
         return
 
     removed = 0
@@ -2975,7 +3068,7 @@ def cmd_knowledge_ingest(
     jsat knowledge-ingest docs/adr/      ingest ADR files
     jsat knowledge-ingest --dry-run .    see what would be ingested
     """
-    from jsat.tools.knowledge_ingest import IngestRecord, scan_repo
+    from jsat.tools.knowledge_ingest import scan_repo
     target = Path(path).resolve()
 
     if target.is_file():
@@ -3142,7 +3235,9 @@ def cmd_remove(
     for skill in jsat_skills:
         skill.unlink(missing_ok=True)
     if jsat_skills:
-        console.print(f"[green]✓[/] Removed {len(jsat_skills)} JSAT skill file(s) from .claude/commands/")
+        console.print(
+            f"[green]✓[/] Removed {len(jsat_skills)} JSAT skill file(s) from .claude/commands/"
+        )
         removed += len(jsat_skills)
 
     # Claude MCP entry

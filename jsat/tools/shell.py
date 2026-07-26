@@ -8,12 +8,14 @@ Launch: jsat shell
 """
 from __future__ import annotations
 
+import contextlib
 import readline
 import shlex
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jsat._core import JSAT
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 # ── Command registry ──────────────────────────────────────────────────────────
 
 _COMMANDS: dict[str, str] = {
-    "switch":         "switch <ai> — switch AI  |  'switch claude-cli' opens full Claude + JSAT tools",
+    "switch":         "switch <ai> — switch AI  |  'switch claude-cli' opens full Claude + JSAT tools",  # noqa: E501
     "index":          "index [PATH] — build/update the codebase graph",
     "blast-radius":   "blast-radius <FILE> — trace downstream impact",
     "test-gaps":      "test-gaps [SERVICE] — find untested code paths",
@@ -40,7 +42,7 @@ _COMMANDS: dict[str, str] = {
     "exit":           "exit / quit — leave the shell",
     "opt":            "opt on|off|show|history — toggle/inspect prompt optimizer",
     "noopt":          "noopt — disable prompt optimizer for this session (alias: opt off)",
-    "crack":          "crack <TASK> — multi-agent war room discussion (architect/security/tester/...)",
+    "crack":          "crack <TASK> — multi-agent war room discussion (architect/security/tester/...)",  # noqa: E501
     "short":          "short <QUESTION> — get the briefest possible answer",
 }
 
@@ -118,10 +120,8 @@ class JSATShell:
 
     def _save_history(self) -> None:
         if self._history_path:
-            try:
+            with contextlib.suppress(Exception):
                 readline.write_history_file(str(self._history_path))
-            except Exception:
-                pass
 
     # ── AI label ──────────────────────────────────────────────────────────────
 
@@ -401,7 +401,9 @@ class JSATShell:
 
         # Prompt for missing API key before attempting switch
         if not self._ensure_key(provider):
-            self._console.print("[dim]  Continuing without key — switch will show unreachable.[/dim]\n")
+            self._console.print(
+                "[dim]  Continuing without key — switch will show unreachable.[/dim]\n"
+            )
 
         self._console.print(f"[dim]Switching to [bold]{provider}[/bold]...[/dim]", end=" ")
         try:
@@ -508,10 +510,8 @@ class JSATShell:
 
         finally:
             if mcp_config_path:
-                try:
+                with contextlib.suppress(Exception):
                     os.unlink(mcp_config_path)
-                except Exception:
-                    pass
 
         self._console.print(
             "\n[dim]← Back in JSAT shell. "
@@ -524,7 +524,9 @@ class JSATShell:
         sub = args[0].lower() if args else "show"
         if sub == "on":
             self._prompt_opt = True
-            self._console.print("[green]✓[/] Prompt optimizer [bold]ON[/] — messages will be optimized")
+            self._console.print(
+                "[green]✓[/] Prompt optimizer [bold]ON[/] — messages will be optimized"
+            )
         elif sub == "off":
             self._prompt_opt = False
             self._console.print("[dim]Prompt optimizer [bold]OFF[/dim]")
@@ -555,10 +557,14 @@ class JSATShell:
                     f"| {saved}% savings from compression after context injection)[/dim]"
                 )
             elif optimized:
-                self._console.print(Panel(optimized, title="Last optimized prompt", border_style="dim"))
+                self._console.print(
+                    Panel(optimized, title="Last optimized prompt", border_style="dim")
+                )
             else:
                 state = "ON" if self._prompt_opt else "OFF"
-                self._console.print(f"[dim]Optimizer is [bold]{state}[/bold]. No prompt optimized yet.[/dim]")
+                self._console.print(
+                    f"[dim]Optimizer is [bold]{state}[/bold]. No prompt optimized yet.[/dim]"
+                )
         elif sub == "history":
             self._show_opt_history()
         else:
@@ -583,10 +589,8 @@ class JSATShell:
             raw = raw.strip()
             if not raw:
                 continue
-            try:
+            with contextlib.suppress(Exception):
                 entries.append(json.loads(raw))
-            except Exception:
-                pass
         recent = entries[-limit:]
         if not recent:
             self._console.print("[dim]No history entries.[/dim]")
@@ -599,12 +603,15 @@ class JSATShell:
         for idx, e in enumerate(recent, 1):
             before = e.get("tokens_before", "?")
             after = e.get("tokens_after", "?")
-            t.add_row(str(idx), str(e.get("task_type", "?")), f"{before}→{after}", str(e.get("raw_input", ""))[:60])
+            t.add_row(
+                str(idx), str(e.get("task_type", "?")), f"{before}→{after}",
+                str(e.get("raw_input", ""))[:60],
+            )
         self._console.print(t)
 
     def _provider_hint(self, provider: str) -> str:
         hints = {
-            "ollama":   "  [dim]Install: brew install ollama  →  ollama serve  →  ollama pull llama3.2[/dim]",
+            "ollama":   "  [dim]Install: brew install ollama  →  ollama serve  →  ollama pull llama3.2[/dim]",  # noqa: E501
             "lmstudio": "  [dim]Open LM Studio → load a model → Local Server → Start[/dim]",
         }
         return hints.get(provider, "")
@@ -658,7 +665,8 @@ class JSATShell:
         self._console.print(
             f"  Provider: [cyan]{self._js._cfg.ai.provider}[/]\n"
             f"  Model:    [cyan]{self._js._cfg.ai.model}[/]\n"
-            "  Switch:   [dim]switch claude-cli | switch bob | switch codex | switch gemini | switch cursor | switch gpt[/dim]"
+            "  Switch:   [dim]switch claude-cli | switch bob | switch codex | "
+            "switch gemini | switch cursor | switch gpt[/dim]"
         )
 
     # ── AI chat (the main feature) ────────────────────────────────────────────
@@ -670,12 +678,17 @@ class JSATShell:
         if self._prompt_opt:
             try:
                 from jsat.tools.prompt_optimizer import PromptOptimizer
-                opt = PromptOptimizer(graph=self._js._get_graph(), cfg=self._js._cfg, ai=self._js._get_ai())
+                opt = PromptOptimizer(
+                    graph=self._js._get_graph(), cfg=self._js._cfg, ai=self._js._get_ai()
+                )
                 result = opt.optimize(message)
                 self._last_optimized = result.optimized_prompt
                 self._last_raw = message
                 prompt_to_send = result.optimized_prompt
-                saved = max(0, round((result.tokens_before - result.tokens_after) / max(result.tokens_before, 1) * 100))
+                saved = max(0, round(
+                    (result.tokens_before - result.tokens_after)
+                    / max(result.tokens_before, 1) * 100
+                ))
 
                 # Compact one-liner showing what changed
                 self._console.print(
@@ -835,14 +848,19 @@ class JSATShell:
         from jsat.tools.contract import ContractTool
         r = ContractTool(graph=self._js._get_graph(), cfg=self._js._cfg).run(base=base)
         color = "red" if r.breaking_count else "green"
-        self._console.print(f"Compat: [{color}]{r.compat_score}/100[/{color}]  Breaking: [{color}]{r.breaking_count}[/{color}]")
+        self._console.print(
+            f"Compat: [{color}]{r.compat_score}/100[/{color}]  "
+            f"Breaking: [{color}]{r.breaking_count}[/{color}]"
+        )
 
     def _cmd_security(self, args: list[str]) -> None:
         path = Path(args[0]) if args else Path(".")
         self._console.print("[dim]Scanning...[/dim]")
         r = self._js.security_review(path=path)
         crit = sum(1 for f in r.findings if f.severity == "critical")
-        self._console.print(f"[red]Critical: {crit}[/]  Total: {len(r.findings)}  Secrets: {r.secrets_found}")
+        self._console.print(
+            f"[red]Critical: {crit}[/]  Total: {len(r.findings)}  Secrets: {r.secrets_found}"
+        )
         for f in r.findings[:5]:
             color = "red" if f.severity == "critical" else "yellow"
             self._console.print(f"  [{color}]{f.severity}[/{color}] {f.title} — {f.file}:{f.line}")
@@ -854,7 +872,9 @@ class JSATShell:
         r = self._js.investigate_incident(" ".join(args))
         for i, h in enumerate(r.hypotheses[:3], 1):
             bar = "█" * int(h.score * 10)
-            self._console.print(f"  [bold]{i}.[/] ({h.score:.2f}) [cyan]{bar}[/]  {h.commit_summary[:60]}")
+            self._console.print(
+                f"  [bold]{i}.[/] ({h.score:.2f}) [cyan]{bar}[/]  {h.commit_summary[:60]}"
+            )
 
     def _cmd_migrate(self, args: list[str]) -> None:
         if not args:
@@ -863,14 +883,23 @@ class JSATShell:
         from jsat.tools.migration import MigrationTool
         r = MigrationTool(graph=self._js._get_graph(), cfg=self._js._cfg).run(Path(args[0]))
         color = {"safe":"green","warning":"yellow","dangerous":"red"}.get(r.risk_level, "white")
-        self._console.print(f"Risk: [{color}]{r.risk_level}[/{color}]  Lock: {r.lock_estimate_seconds:.1f}s  Rollback: {'yes' if r.has_rollback else 'no'}")
+        self._console.print(
+            f"Risk: [{color}]{r.risk_level}[/{color}]  "
+            f"Lock: {r.lock_estimate_seconds:.1f}s  "
+            f"Rollback: {'yes' if r.has_rollback else 'no'}"
+        )
 
     def _cmd_review(self, args: list[str]) -> None:
         base = args[0] if args else "main"
         self._console.print(f"[dim]Reviewing vs {base}...[/dim]")
         from jsat.tools.review import ReviewTool
-        r = ReviewTool(graph=self._js._get_graph(), cfg=self._js._cfg, ai=self._js._get_ai()).run(base=base)
-        self._console.print(f"Findings: [bold]{len(r.findings)}[/]  High confidence: [red]{len(r.high_confidence)}[/]")
+        r = ReviewTool(
+            graph=self._js._get_graph(), cfg=self._js._cfg, ai=self._js._get_ai()
+        ).run(base=base)
+        self._console.print(
+            f"Findings: [bold]{len(r.findings)}[/]  "
+            f"High confidence: [red]{len(r.high_confidence)}[/]"
+        )
         for f in r.high_confidence[:5]:
             self._console.print(f"  [red]●[/] {f.title} ({f.file}:{f.line})")
 
@@ -880,9 +909,11 @@ class JSATShell:
         sub = args[0].lower() if args else "help"
         rest = " ".join(args[1:])
         if sub == "add":
-            tool.add(rest); self._console.print("[green]✓[/] Stored.")
+            tool.add(rest)
+            self._console.print("[green]✓[/] Stored.")
         elif sub == "query":
-            r = tool.query(rest); self._console.print(f"[green]→[/] {r.answer}")
+            r = tool.query(rest)
+            self._console.print(f"[green]→[/] {r.answer}")
         elif sub == "list":
             for e in tool.list_entries()[:8]:
                 self._console.print(f"  [dim]{e['category']}[/] {e['text'][:60]}")
@@ -899,19 +930,33 @@ class JSATShell:
     def _cmd_doctor(self, _: list[str]) -> None:
         r = self._js.doctor()
         g, ai, idx = r.get("graph",{}), r.get("ai",{}), r.get("index",{})
-        self._console.print(f"Profile: [bold]{r.get('profile','?')}[/]  AI: {'[green]✓[/]' if ai.get('ok') else '[red]✗[/]'} {ai.get('provider')}/{ai.get('model')}  Graph: {'[green]✓[/]' if g.get('ok') else '[red]✗[/]'} {g.get('backend')}")
-        self._console.print(f"Index: [bold]{idx.get('nodes',0):,}[/] nodes · [bold]{idx.get('edges',0):,}[/] edges")
+        self._console.print(
+            f"Profile: [bold]{r.get('profile','?')}[/]  "
+            f"AI: {'[green]✓[/]' if ai.get('ok') else '[red]✗[/]'} "
+            f"{ai.get('provider')}/{ai.get('model')}  "
+            f"Graph: {'[green]✓[/]' if g.get('ok') else '[red]✗[/]'} {g.get('backend')}"
+        )
+        self._console.print(
+            f"Index: [bold]{idx.get('nodes',0):,}[/] nodes · "
+            f"[bold]{idx.get('edges',0):,}[/] edges"
+        )
 
     def _cmd_status(self, _: list[str]) -> None:
         s = self._js.index_status
-        self._console.print(f"Nodes: [bold]{s.get('nodes',0):,}[/]  Edges: [bold]{s.get('edges',0):,}[/]  AI: [bold]{self._ai_label()}[/]")
+        self._console.print(
+            f"Nodes: [bold]{s.get('nodes',0):,}[/]  "
+            f"Edges: [bold]{s.get('edges',0):,}[/]  "
+            f"AI: [bold]{self._ai_label()}[/]"
+        )
 
     def _cmd_crack(self, args: list[str]) -> None:
         """crack <task> — multi-agent war room discussion."""
         task = " ".join(args).strip()
         if not task:
             self._console.print("[yellow]Usage:[/] crack <task description>")
-            self._console.print("[dim]Example: crack should we use async or sync for webhooks[/dim]")
+            self._console.print(
+                "[dim]Example: crack should we use async or sync for webhooks[/dim]"
+            )
             return
         self._console.print(f"[dim]Starting war room for: {task[:60]}…[/dim]")
         try:
@@ -922,7 +967,9 @@ class JSATShell:
                 ai=self._js._get_ai(),
             ).run(task, repo_path=self._js._repo)
             if not result.ai_available:
-                self._console.print("[yellow]⚠ AI not configured — showing structural placeholders.[/]")
+                self._console.print(
+                    "[yellow]⚠ AI not configured — showing structural placeholders.[/]"
+                )
             self._console.print("\n[bold green]🎯 Synthesis[/]\n")
             self._console.print(result.synthesis or "[dim]No synthesis — AI unavailable.[/dim]")
             if result.output_path:
@@ -958,7 +1005,7 @@ def launch(jsat: JSAT) -> None:
 # ── Standalone launcher (called from CLI) ─────────────────────────────────────
 
 def launch_ai_with_jsat_tools(
-    jsat: "JSAT",
+    jsat: JSAT,
     ai: str = "claude",
     resume: str | None = None,
     continue_session: bool = False,
@@ -1037,7 +1084,8 @@ def launch_ai_with_jsat_tools(
             "  jsat__prompt_optimize    — offline 6-agent prompt pipeline (zero LLM cost)\n"
             "  jsat__prompt_multi_agent — 3 parallel LLM rewrite agents, pick best\n"
             "  jsat__token_count        — count tokens in any text\n"
-            "  jsat__token_compress     — offline compression (dedup, whitespace, import collapse)\n"
+            "  jsat__token_compress     — offline compression "
+            "(dedup, whitespace, import collapse)\n"
             "  jsat__token_budget       — check context budget vs model limit\n"
             "\n"
             "Planning:\n"
@@ -1086,10 +1134,8 @@ def launch_ai_with_jsat_tools(
             subprocess.run(cmd)
         finally:
             if mcp_path:
-                try:
+                with contextlib.suppress(Exception):
                     os.unlink(mcp_path)
-                except Exception:
-                    pass
 
     elif ai in ("bob", "bob-cli") and shutil.which("bob"):
         # Bob Shell has no --mcp-config flag: it auto-loads MCP servers from

@@ -79,4 +79,4 @@ class SkillsRegistry:
 
         except Exception as e:
             self._log.error("skill_run_error", name=name, error=str(e))
-            raise SkillExecutionError(f"Skill '{name}' failed", name=name, detail=str(e))
+            raise SkillExecutionError(f"Skill '{name}' failed", name=name, detail=str(e)) from e

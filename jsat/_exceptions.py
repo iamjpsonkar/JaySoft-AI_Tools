@@ -46,7 +46,9 @@ class ConfigFileNotFound(ConfigError):
 
 
 class ConfigSchemaError(ConfigError):
-    def __init__(self, message: str, *, field: str, expected: str, got: object, **ctx: object) -> None:
+    def __init__(
+        self, message: str, *, field: str, expected: str, got: object, **ctx: object
+    ) -> None:
         super().__init__(message, field=field, expected=expected, got=got, **ctx)
         self.field = field
         self.expected = expected
@@ -83,7 +85,9 @@ class IndexCorrupted(IndexError):
 
 
 class IndexOutOfDate(IndexError):
-    def __init__(self, message: str = "", *, current_commit: str, index_commit: str, **ctx: object) -> None:
+    def __init__(
+        self, message: str = "", *, current_commit: str, index_commit: str, **ctx: object
+    ) -> None:
         if not message:
             message = (
                 f"Index is stale (indexed at {index_commit[:8]}, HEAD is {current_commit[:8]}). "
@@ -117,7 +121,9 @@ class AIProviderError(AIError):
 
 
 class AIRateLimitError(AIError):
-    def __init__(self, message: str = "", *, provider: str, retry_after: int | None = None, **ctx: object) -> None:
+    def __init__(
+        self, message: str = "", *, provider: str, retry_after: int | None = None, **ctx: object
+    ) -> None:
         if not message:
             message = f"Rate limited by {provider}. Retry after {retry_after}s."
         super().__init__(message, provider=provider, retry_after=retry_after, **ctx)
@@ -126,7 +132,9 @@ class AIRateLimitError(AIError):
 
 
 class AITimeoutError(AIError):
-    def __init__(self, message: str = "", *, provider: str, timeout_seconds: float, **ctx: object) -> None:
+    def __init__(
+        self, message: str = "", *, provider: str, timeout_seconds: float, **ctx: object
+    ) -> None:
         if not message:
             message = f"{provider} request timed out after {timeout_seconds}s."
         super().__init__(message, provider=provider, timeout_seconds=timeout_seconds, **ctx)
@@ -135,10 +143,14 @@ class AITimeoutError(AIError):
 
 
 class AIContextLengthError(AIError):
-    def __init__(self, message: str = "", *, model: str, tokens_used: int, max_tokens: int, **ctx: object) -> None:
+    def __init__(
+        self, message: str = "", *, model: str, tokens_used: int, max_tokens: int, **ctx: object
+    ) -> None:
         if not message:
             message = f"{model}: {tokens_used} tokens exceeds {max_tokens} limit."
-        super().__init__(message, model=model, tokens_used=tokens_used, max_tokens=max_tokens, **ctx)
+        super().__init__(
+            message, model=model, tokens_used=tokens_used, max_tokens=max_tokens, **ctx
+        )
         self.model = model
         self.tokens_used = tokens_used
         self.max_tokens = max_tokens
@@ -207,13 +219,17 @@ class ExportPermissionError(ExportError):
 
 
 class ImportVersionMismatch(ExportError):
-    def __init__(self, message: str = "", *, export_version: str, current_version: str, **ctx: object) -> None:
+    def __init__(
+        self, message: str = "", *, export_version: str, current_version: str, **ctx: object
+    ) -> None:
         if not message:
             message = (
                 f"Archive from JSAT {export_version}, installed is {current_version}. "
                 "Use: jsat import --migrate"
             )
-        super().__init__(message, export_version=export_version, current_version=current_version, **ctx)
+        super().__init__(
+            message, export_version=export_version, current_version=current_version, **ctx
+        )
         self.export_version = export_version
         self.current_version = current_version
 

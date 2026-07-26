@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 
 class AIProvider(ABC):
@@ -12,7 +13,9 @@ class AIProvider(ABC):
     def complete(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str: ...
 
     @abstractmethod
-    async def complete_async(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str: ...
+    async def complete_async(
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1
+    ) -> str: ...
 
     @abstractmethod
     def stream(self, prompt: str, max_tokens: int = 2048) -> Iterator[str]: ...

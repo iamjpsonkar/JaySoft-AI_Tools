@@ -4,6 +4,26 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.3.6] — 2026-07-26
+
+### Fixed
+
+- **Bob Shell: JSAT MCP tools that need an LLM (`jsat__query`, `prompt_rewrite`, …)
+  no longer fail with "No AI provider configured".** The MCP server's provider
+  fallback now includes `bob_cli`, and `jsat connect bob` pins
+  `JSAT_AI_PROVIDER=bob_cli` in `.bob/settings.json` — so under `jsat bob` the
+  tools use Bob itself (no API key needed) instead of the no-op provider.
+- F541 in `jsat/mcp/server.py` (extraneous f-string prefix) and 4 findings in
+  `jsat/_ai/bob_cli.py` (import, line length, exception chaining).
+
+### Changed
+
+- **Ruff-clean the whole codebase**: all 312 findings under the project config
+  (E, F, I, UP, B, SIM; line-length 100) resolved — behavior-preserving line
+  wraps, import cleanups, `raise ... from e` chaining, `contextlib.suppress`,
+  and public re-exports moved into `__all__`. No `ruff format` (column alignment
+  preserved).
+
 ## [0.3.5] — 2026-07-26
 
 ### Added — Bob Shell integration

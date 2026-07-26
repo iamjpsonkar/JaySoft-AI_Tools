@@ -50,7 +50,9 @@ class IncidentTool(BaseTool):
                 author=commit["author"],
                 timestamp=commit["timestamp"],
                 evidence=self._evidence(commit, description),
-                recommended_action=f"Investigate commit {commit['hash'][:8]}: {commit['summary'][:60]}",
+                recommended_action=(
+                    f"Investigate commit {commit['hash'][:8]}: {commit['summary'][:60]}"
+                ),
             ))
 
         hypotheses.sort(key=lambda h: h.score, reverse=True)

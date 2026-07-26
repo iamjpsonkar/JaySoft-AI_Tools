@@ -65,7 +65,9 @@ class SecurityTool(BaseTool):
             raw = json.loads(result.stdout or "{}")
             findings = []
             for item in raw.get("results", []):
-                sev = _SEMGREP_MAP.get(item.get("extra", {}).get("severity", "INFO").upper(), "medium")
+                sev = _SEMGREP_MAP.get(
+                    item.get("extra", {}).get("severity", "INFO").upper(), "medium"
+                )
                 if _SEVERITY_ORDER.get(sev, 0) >= _SEVERITY_ORDER.get(threshold, 0):
                     findings.append(SecurityFinding(
                         file=item.get("path", ""), line=item.get("start", {}).get("line", 0),

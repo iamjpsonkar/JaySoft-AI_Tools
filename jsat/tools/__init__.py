@@ -1,7 +1,7 @@
 """jsat.tools — Tool base class and registry."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jsat._ai import AIProvider

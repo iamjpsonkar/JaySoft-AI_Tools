@@ -22,7 +22,7 @@ import json
 import shutil
 import subprocess
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 from jsat._ai import AIProvider
 
@@ -166,12 +166,12 @@ class ClaudeCliProvider(AIProvider):
                 args,
                 capture_output=True, text=True, timeout=self._timeout,
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             from jsat._exceptions import AITimeoutError
             raise AITimeoutError(
                 f"claude timed out after {self._timeout}s",
                 provider="claude_cli", timeout_seconds=self._timeout,
-            )
+            ) from e
 
         elapsed = round((time.monotonic() - t0) * 1000)
 
@@ -260,13 +260,13 @@ class ClaudeCliProvider(AIProvider):
 
             proc.wait(timeout=10)
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             proc.kill()
             from jsat._exceptions import AITimeoutError
             raise AITimeoutError(
                 f"claude stream timed out after {self._timeout}s",
                 provider="claude_cli", timeout_seconds=self._timeout,
-            )
+            ) from e
         except Exception as e:
             log.error("claude_cli_stream_error", error=str(e))
             raise

@@ -99,7 +99,7 @@ class ExportTool(BaseTool):
                     manifest = json.loads(manifest_raw)
                 except Exception as e:
                     raise ImportCorrupted(f"Manifest unreadable: {e}",
-                                          path=str(archive), detail=str(e))
+                                          path=str(archive), detail=str(e)) from e
 
                 # Version check
                 export_ver = manifest.get("jsat_version", "unknown")
@@ -129,7 +129,7 @@ class ExportTool(BaseTool):
             raise
         except Exception as e:
             raise ImportCorrupted(f"Failed to read archive: {e}",
-                                  path=str(archive), detail=str(e))
+                                  path=str(archive), detail=str(e)) from e
 
         log.info("import_done", archive=str(archive),
                  nodes=manifest.get("nodes", 0), edges=manifest.get("edges", 0))

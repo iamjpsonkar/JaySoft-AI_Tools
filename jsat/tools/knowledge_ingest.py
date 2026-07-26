@@ -14,9 +14,9 @@ An IngestRecord is a (text, category) pair ready to pass to KnowledgeTool.add().
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
 
 
 @dataclass
@@ -146,8 +146,11 @@ def ingest_adr(path: Path) -> list[IngestRecord]:
         section_cat = "adr_section"
         if any(s in heading_lower for s in adr_sections):
             section_cat = f"adr_{heading_lower.split()[0]}"
-        entry_title = f"ADR-{adr_num}: {adr_title} — {heading.strip('# ').strip()}" if adr_num else \
-                      f"{adr_title} — {heading.strip('# ').strip()}"
+        entry_title = (
+            f"ADR-{adr_num}: {adr_title} — {heading.strip('# ').strip()}"
+            if adr_num
+            else f"{adr_title} — {heading.strip('# ').strip()}"
+        )
         records.append(IngestRecord(
             text=section_text,
             category=section_cat,
