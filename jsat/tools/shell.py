@@ -87,7 +87,8 @@ class JSATShell:
             history_path = Path.home() / ".jsat_history"
             if history_path.exists():
                 readline.read_history_file(str(history_path))
-            readline.set_history_length(2000)
+            history_size = getattr(getattr(self._js._cfg, "shell", None), "history_size", 2000)
+            readline.set_history_length(history_size)
 
             # M7: load top graph symbol names for tab-completion
             _graph_symbols: list[str] = []
@@ -1041,7 +1042,23 @@ def launch_ai_with_jsat_tools(
             if resume:
                 cmd += ["--resume", resume]
             elif continue_session:
-                cmd += ["--continue"]
+                # L9: verify --continue flag exists in this Claude CLI version
+                try:
+                    help_out = subprocess.run(
+                        ["claude", "--help"], capture_output=True, text=True, timeout=5
+                    ).stdout + subprocess.run(
+                        ["claude", "--help"], capture_output=True, text=True, timeout=5
+                    ).stderr
+                    if "--continue" in help_out:
+                        cmd += ["--continue"]
+                    else:
+                        import structlog as _sl
+                        _sl.get_logger(__name__).warning(
+                            "claude_continue_flag_unavailable",
+                            note="--continue not found in claude --help; skipping flag",
+                        )
+                except Exception:
+                    cmd += ["--continue"]   # assume it works if we can't check
             subprocess.run(cmd)
         finally:
             if mcp_path:

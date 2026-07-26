@@ -1,4 +1,12 @@
-"""jsat._models — All Pydantic models. No circular imports. Import from here."""
+"""jsat._models — All Pydantic models. No circular imports. Import from here.
+
+Pydantic v2 compliance (L1 audit):
+  - No orm_mode / from_attributes workarounds (not needed)
+  - No .dict() calls (use .model_dump())
+  - No root_validator / @validator (use @model_validator / @field_validator)
+  - Field defaults use Field(default=...) or Field(default_factory=...)
+  - All models inherit from pydantic.BaseModel (v2)
+"""
 from __future__ import annotations
 
 from typing import Literal

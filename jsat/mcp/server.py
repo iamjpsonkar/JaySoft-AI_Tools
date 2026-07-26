@@ -80,8 +80,10 @@ class MCPServer:
         try:
             self._token_roles: dict[str, str] = json.loads(_raw) if _raw.strip() else {}
         except json.JSONDecodeError:
-            self._log.warning("mcp_rbac_parse_error",
-                              note="JSAT_MCP_TOKEN_ROLES is not valid JSON — RBAC disabled")
+            self._log.error("mcp_rbac_parse_error",
+                            env_var="JSAT_MCP_TOKEN_ROLES",
+                            note="Value is not valid JSON — RBAC silently disabled. "
+                                 "Fix the env var to restore access control.")
             self._token_roles = {}
 
         if self._token_roles:
