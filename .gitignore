@@ -2,13 +2,12 @@
 plan.md
 prompt.md
 
+# Claude Code local session data
+.claude/
+
 # JSAT — everything lives under .jsat/
 # Exclude runtime artifacts; keep config.yaml committable for team sharing
-.jsat/graph/
-.jsat/vectors/
-.jsat/cache/
-.jsat/system-profile.json
-.jsat/audit.log
+.jsat/
 # Legacy root-level config (no longer created)
 .jsat.yaml
 
