@@ -259,8 +259,10 @@ class CrackTool(BaseTool):
         rounds: int = 3,
         output_file: str | None = None,
         repo_path: Path | None = None,
+        progress_fn=None,
     ) -> CrackResult:
         t0 = time.monotonic()
+        _notify = progress_fn or (lambda *a, **kw: None)
         active_roles = [r for r in (roles or _DEFAULT_ROLES) if r in _ROLE_PROMPTS]
         if "moderator" not in active_roles:
             active_roles.append("moderator")
@@ -274,6 +276,7 @@ class CrackTool(BaseTool):
 
         # Load codebase context (reuse ContextAgent from prompt_optimizer)
         context = ""
+        _notify("Loading codebase context…", 0, rounds * 2 + 1)
         try:
             from jsat.tools.prompt_optimizer import ContextAgent
             context = ContextAgent(self._graph, depth=2, max_tokens=1500).run(task).text
@@ -284,8 +287,14 @@ class CrackTool(BaseTool):
         # Run rounds
         all_statements: list[CrackStatement] = []
         non_moderator = [r for r in active_roles if r != "moderator"]
+        total_steps = rounds * 2 + 1  # context + (agents + moderator) per round
+
+        _round_labels = {1: "Opening statements", 2: "Cross-examination", 3: "Consensus"}
 
         for round_num in range(1, rounds + 1):
+            step = (round_num - 1) * 2 + 1
+            label = _round_labels.get(round_num, f"Round {round_num}")
+            _notify(f"Round {round_num}/{rounds}: {label}…", step, total_steps)
             log.info("crack_round_start", round=round_num, agents=len(non_moderator))
             history = _format_history(all_statements)
 
@@ -304,6 +313,8 @@ class CrackTool(BaseTool):
                                   round=round_num, chars=len(stmt.text))
 
                 # Moderator always runs last (sees all non-moderator statements this round)
+                _notify(f"Round {round_num}/{rounds}: Moderator synthesising…",
+                        step + 1, total_steps)
                 if "moderator" in active_roles:
                     full_history = _format_history(all_statements)
                     mod_stmt = _agent_turn(
@@ -325,6 +336,7 @@ class CrackTool(BaseTool):
         )
 
         # Render and write output
+        _notify("Writing discussion document…", total_steps, total_steps)
         md = _render_markdown(task, all_statements, synthesis)
         resolved_output: str | None = None
 

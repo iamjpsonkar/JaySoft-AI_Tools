@@ -194,10 +194,30 @@ class MCPServer:
             name = params.get("name", "")
             args = params.get("arguments", {})
             self._log.info("mcp_tool_call", name=name)
+
+            # ── MCP progress notifications (spec: params._meta.progressToken) ──
+            _progress_token = params.get("_meta", {}).get("progressToken")
+
+            def _notify(message: str, progress: int = 0, total: int = 100) -> None:
+                """Emit a notifications/progress message to the client."""
+                if not _progress_token:
+                    return
+                notif = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/progress",
+                    "params": {
+                        "progressToken": _progress_token,
+                        "progress": progress,
+                        "total": total,
+                        "message": message,
+                    },
+                }
+                print(json.dumps(notif), flush=True)
+
             t0 = time.monotonic()
             error_occurred = False
             try:
-                result = self._call(name, args)
+                result = self._call(name, args, _notify=_notify)
                 text = result if isinstance(result, str) else json.dumps(result, default=str)
                 return {"jsonrpc": "2.0", "id": id_,
                         "result": {"content": [{"type": "text", "text": text}]}}
@@ -278,9 +298,12 @@ class MCPServer:
                  "inputSchema": tool["schema"]}
                 for name, tool in self._registry.items()]
 
-    def _call(self, name: str, args: dict) -> Any:
+    def _call(self, name: str, args: dict, _notify=None) -> Any:
         if name not in self._registry:
             raise ValueError(f"Unknown tool: {name}")
+        # Inject _notify so handlers that support progress can call it
+        if _notify is not None:
+            args = dict(args, _notify=_notify)
         return self._registry[name]["handler"](args)
 
     # ── Registry ──────────────────────────────────────────────────────────────
@@ -451,8 +474,7 @@ class MCPServer:
                                "question": {"type": "string"},
                                "service": {"type": "string",
                                            "description": "Scope to a service"}}},
-                "handler": lambda a: js.query(  # type: ignore[attr-defined]
-                    a["question"], service=a.get("service")).answer,
+                "handler": lambda a: _query_impl(js, a),
             },
 
             # ── Blast radius ──────────────────────────────────────────────
@@ -1702,6 +1724,27 @@ def _prompt_optimize_impl(js: object, args: dict) -> dict:
         return {"error": str(e)}
 
 
+def _query_impl(js: object, args: dict) -> str:
+    """MCP handler: natural language codebase query with progress notifications."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    question = args.get("question", "")
+    service = args.get("service")
+    notify = args.get("_notify", lambda *a, **kw: None)
+    log.info("mcp_query", question_len=len(question), service=service)
+    notify("Searching codebase graph…", 0, 3)
+    try:
+        result = js.query(question, service=service)  # type: ignore[attr-defined]
+        notify("Generating answer…", 2, 3)
+        answer = result.answer
+        notify("Done.", 3, 3)
+        log.info("mcp_query_done", answer_len=len(answer))
+        return answer
+    except Exception as e:
+        log.error("mcp_query_error", error=str(e))
+        return f"Error: {e}"
+
+
 def _prompt_rewrite_impl(js: object, args: dict, n_agents: int = 1) -> dict:
     """MCP handler: offline optimize + LLM rewrite agents."""
     import structlog
@@ -1709,16 +1752,21 @@ def _prompt_rewrite_impl(js: object, args: dict, n_agents: int = 1) -> dict:
     query = args.get("query", "")
     if not query.strip():
         return {"error": "query must not be empty"}
+    notify = args.get("_notify", lambda *a, **kw: None)
     log.info("mcp_prompt_rewrite", query_len=len(query), n_agents=n_agents)
     try:
         from jsat.tools.prompt_optimizer import PromptOptimizer
+        notify("Running offline pipeline (classify → context → format → compress)…", 0, 3)
         optimizer = PromptOptimizer(
             graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai())  # type: ignore[attr-defined]
+        if n_agents > 0:
+            notify(f"Running {n_agents} LLM rewrite agent(s) in parallel…", 1, 3)
         result = optimizer.optimize(
             query,
             ai_provider=args.get("ai_provider"),
             n_agents=n_agents,
         )
+        notify("Rewrite complete.", 3, 3)
         log.info("mcp_prompt_rewrite_done",
                  rewrite_applied=result.rewrite_applied,
                  winning_agent=result.winning_agent,
@@ -1910,6 +1958,7 @@ def _crack_impl(js: object, args: dict) -> dict:
         return {"error": "task must not be empty"}
     roles = args.get("roles")
     rounds = int(args.get("rounds", 3))
+    notify = args.get("_notify", lambda *a, **kw: None)
     log.info("mcp_crack_start", task=task[:80], roles=roles, rounds=rounds)
     try:
         from jsat.tools.crack import CrackTool
@@ -1918,7 +1967,7 @@ def _crack_impl(js: object, args: dict) -> dict:
             cfg=js._cfg,            # type: ignore[attr-defined]
             ai=js._get_ai(),        # type: ignore[attr-defined]
         )
-        result = tool.run(task, roles=roles, rounds=rounds)
+        result = tool.run(task, roles=roles, rounds=rounds, progress_fn=notify)
         log.info("mcp_crack_done", rounds=result.rounds_run,
                  statements=len(result.statements), ai=result.ai_available)
         return {
@@ -1946,6 +1995,7 @@ def _short_impl(js: object, args: dict) -> dict:
     query = args.get("query", "")
     max_words = int(args.get("max_words", 50))
     one_line = bool(args.get("one_line", False))
+    notify = args.get("_notify", lambda *a, **kw: None)
     if not query.strip():
         return {"error": "query must not be empty"}
     constraint = "One sentence only." if one_line else f"Answer in ≤{max_words} words."
@@ -1955,6 +2005,7 @@ def _short_impl(js: object, args: dict) -> dict:
         ai = js._get_ai()  # type: ignore[attr-defined]
         if not ai.is_available():
             return {"error": "AI not available. Configure with: jsat ai use <provider>"}
+        notify("Asking AI for the shortest possible answer…", 0, 1)
         response = ai.complete(full_query, max_tokens=256)
         log.info("mcp_short_done", response_len=len(response))
         return {"query": query, "answer": response.strip(), "constraint": constraint}
