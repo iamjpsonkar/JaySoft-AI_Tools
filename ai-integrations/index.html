@@ -815,6 +815,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#bob-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bob Shell
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -901,6 +912,7 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <th>Continue</th>
 <th>Zed</th>
 <th>Gemini CLI</th>
+<th>Bob Shell</th>
 </tr>
 </thead>
 <tbody>
@@ -913,6 +925,7 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <td>—</td>
 <td>✅</td>
 <td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>Auto-connect on launch</td>
@@ -923,9 +936,11 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <td>—</td>
 <td>✅</td>
 <td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td><code>jsat connect &lt;tool&gt;</code></td>
+<td>✅</td>
 <td>✅</td>
 <td>✅</td>
 <td>✅</td>
@@ -943,16 +958,18 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <td>— (global)</td>
 <td>— (global)</td>
 <td>— (global)</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>Skills / custom commands</td>
-<td>28 slash cmds</td>
+<td>31 slash cmds</td>
 <td>instructions.md</td>
 <td>.cursorrules</td>
 <td>.windsurfrules</td>
-<td>28 slash cmds</td>
+<td>31 slash cmds</td>
 <td>.zed/JSAT.md</td>
 <td>GEMINI.md</td>
+<td>31 slash cmds + BOB.md</td>
 </tr>
 <tr>
 <td><code>switch &lt;tool&gt;</code> in shell</td>
@@ -963,9 +980,11 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <td>—</td>
 <td>✅</td>
 <td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td><code>--keep-guidance</code> on disconnect</td>
+<td>✅</td>
 <td>✅</td>
 <td>✅</td>
 <td>✅</td>
@@ -983,6 +1002,7 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <td>IDE ext</td>
 <td>GUI</td>
 <td>CLI</td>
+<td>CLI</td>
 </tr>
 </tbody>
 </table>
@@ -998,6 +1018,7 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>jsat<span class="w"> </span>windsurf<span class="w">    </span><span class="c1"># Windsurf</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>jsat<span class="w"> </span>gemini<span class="w">      </span><span class="c1"># Gemini CLI</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>jsat<span class="w"> </span>zed<span class="w">         </span><span class="c1"># Zed editor</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>jsat<span class="w"> </span>bob<span class="w">         </span><span class="c1"># Bob Shell</span>
 </code></pre></div>
 <p>Each launcher auto-connects JSAT if not already wired and opens the tool with 55 MCP tools ready.</p>
 <hr />
@@ -1010,10 +1031,10 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 </code></pre></div>
 <p><strong>What gets installed:</strong>
 - <code>.claude/settings.json</code> — MCP server config
-- <code>.claude/commands/jsat-*.md</code> — 28 slash commands</p>
+- <code>.claude/commands/jsat-*.md</code> — 31 slash commands</p>
 <p><strong>Slash commands:</strong> <code>/jsat-query</code>, <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>,
-<code>/jsat-test-gaps</code>, <code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt-rewrite</code>,
-<code>/jsat-tokens</code>, <code>/jsat-ithinking</code>, and 18 more.</p>
+<code>/jsat-test-gaps</code>, <code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt</code>,
+<code>/jsat-tokens</code>, <code>/jsat-ithinking</code>, and 21 more.</p>
 <p><strong>In the JSAT shell:</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>switch claude-cli    → launch full Claude Code session
 </code></pre></div></p>
@@ -1059,14 +1080,14 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <h3 id="continuedev">Continue.dev<a class="headerlink" href="#continuedev" title="Permanent link">&para;</a></h3>
 <p>Continue is an IDE extension (VS Code, JetBrains). There's no <code>jsat continue</code> launcher since it
 runs inside your IDE.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span><span class="k">continue</span><span class="w">                    </span><span class="c1"># wire JSAT in + install 28 /jsat-* commands</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span><span class="k">continue</span><span class="w">                    </span><span class="c1"># wire JSAT in + install 31 /jsat-* commands</span>
 </code></pre></div>
 <p><strong>What gets installed:</strong>
-- <code>~/.continue/config.json</code> — MCP server + 28 <code>customCommands</code></p>
-<p><strong>Custom commands (same 28 as Claude's slash commands):</strong>
+- <code>~/.continue/config.json</code> — MCP server + 31 <code>customCommands</code></p>
+<p><strong>Custom commands (same 31 as Claude's slash commands):</strong>
 <code>/jsat-query</code>, <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>, <code>/jsat-test-gaps</code>,
-<code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt-rewrite</code>, <code>/jsat-tokens</code>, <code>/jsat-ithinking</code>,
-and 18 more.</p>
+<code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt</code>, <code>/jsat-tokens</code>, <code>/jsat-ithinking</code>,
+and 21 more.</p>
 <p>After connecting, reload Continue: <code>Cmd/Ctrl+Shift+P → Continue: Reload</code>.</p>
 <hr />
 <h3 id="zed">Zed<a class="headerlink" href="#zed" title="Permanent link">&para;</a></h3>
@@ -1092,38 +1113,67 @@ and 18 more.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>switch gemini    → launch Gemini CLI session
 </code></pre></div></p>
 <p><strong>Install Gemini CLI</strong> (all platforms): <code>npm install -g @google/gemini-cli</code></p>
+<h3 id="bob-shell">Bob Shell<a class="headerlink" href="#bob-shell" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>jsat<span class="w"> </span>bob<span class="w">                                 </span><span class="c1"># open Bob Shell with JSAT pre-loaded</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>jsat<span class="w"> </span>bob<span class="w"> </span>--mode<span class="w"> </span>advanced<span class="w">                 </span><span class="c1"># open in specific mode (plan, code, advanced, ask)</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w">                         </span><span class="c1"># project scope + install /jsat-* slash commands</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">          </span><span class="c1"># global</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w"> </span>--no-commands<span class="w">           </span><span class="c1"># MCP + BOB.md only, skip slash commands</span>
+</code></pre></div>
+<p><code>jsat bob</code> opens a clean <strong>interactive</strong> Bob session; JSAT tools and guidance are
+loaded from <code>.bob/</code> and <code>BOB.md</code>, so nothing is injected as a throwaway prompt.</p>
+<p><strong>What gets installed:</strong>
+- <code>.bob/settings.json</code> (project) or <code>~/.bob/settings.json</code> (global) — MCP server config
+- <code>.bob/commands/jsat-*.md</code> (or <code>~/.bob/commands/</code>) — 31 <code>/jsat-*</code> slash commands
+- <code>BOB.md</code> — JSAT tool guidance (Bob Shell reads from project root)</p>
+<p><strong>Slash commands:</strong> type <code>/</code> in Bob Shell to browse them — <code>/jsat-query</code>,
+<code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>, <code>/jsat-test-gaps</code>,
+<code>/jsat-prompt</code>, <code>/jsat-ithinking</code>, and 24 more. <code>/jsat-prompt</code> optimizes your
+query and then answers it (use <code>--optimize-only</code> to just see the rewrite).</p>
+<p><strong>In the JSAT shell:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>switch bob    → launch Bob Shell session
+</code></pre></div></p>
+<p><strong>Install Bob Shell</strong> (all platforms): <code>npm install -g @ibm/bob-shell</code></p>
+<p><strong>Bob Shell modes:</strong>
+- <code>plan</code> — Planning and design mode
+- <code>code</code> — Code implementation mode
+- <code>advanced</code> — Advanced code mode with more tools
+- <code>ask</code> — Question and answer mode</p>
+<hr />
 <hr />
 <h2 id="jsat-shell-switch-reference">JSAT Shell — <code>switch</code> Reference<a class="headerlink" href="#jsat-shell-switch-reference" title="Permanent link">&para;</a></h2>
 <p>From inside <code>jsat shell</code>, you can switch to any tool:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>switch claude-cli   → full Claude Code + JSAT MCP (recommended for Claude)
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>switch codex        → Codex CLI (reads .codex/config.json)
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>switch gemini       → Gemini CLI (reads ~/.gemini/settings.json + GEMINI.md)
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>switch cursor       → open Cursor IDE in background
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>switch windsurf     → open Windsurf IDE in background
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>switch zed          → open Zed in background
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>switch gpt          → GPT-4o in JSAT shell (needs OPENAI_API_KEY)
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>switch ollama       → local Ollama in JSAT shell
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>switch anthropic    → Claude API in JSAT shell (needs ANTHROPIC_API_KEY)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>switch claude-cli   → full Claude Code + JSAT MCP (recommended for Claude)
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>switch codex        → Codex CLI (reads .codex/config.json)
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>switch gemini       → Gemini CLI (reads ~/.gemini/settings.json + GEMINI.md)
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>switch cursor       → open Cursor IDE in background
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>switch windsurf     → open Windsurf IDE in background
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>switch zed          → open Zed in background
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>switch bob          → Bob Shell session
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>switch gpt          → GPT-4o in JSAT shell (needs OPENAI_API_KEY)
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>switch ollama       → local Ollama in JSAT shell
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>switch anthropic    → Claude API in JSAT shell (needs ANTHROPIC_API_KEY)
 </code></pre></div>
 <hr />
 <h2 id="disconnect">Disconnect<a class="headerlink" href="#disconnect" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w">                   </span><span class="c1"># Claude project scope</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all<span class="w">       </span><span class="c1"># Claude everywhere</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>codex<span class="w">                    </span><span class="c1"># Codex</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w">                   </span><span class="c1"># Cursor (global + project)</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>windsurf<span class="w">                 </span><span class="c1"># Windsurf</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span><span class="k">continue</span><span class="w">                 </span><span class="c1"># Continue (removes commands too)</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>zed<span class="w">                      </span><span class="c1"># Zed</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>gemini<span class="w">                   </span><span class="c1"># Gemini</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>all<span class="w">                      </span><span class="c1"># every tool at once</span>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="c1"># Keep guidance files (instructions.md, .cursorrules, etc.)</span>
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w"> </span>--keep-guidance
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w">                   </span><span class="c1"># Claude project scope</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all<span class="w">       </span><span class="c1"># Claude everywhere</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>codex<span class="w">                    </span><span class="c1"># Codex</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w">                   </span><span class="c1"># Cursor (global + project)</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>windsurf<span class="w">                 </span><span class="c1"># Windsurf</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span><span class="k">continue</span><span class="w">                 </span><span class="c1"># Continue (removes commands too)</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>zed<span class="w">                      </span><span class="c1"># Zed</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>gemini<span class="w">                   </span><span class="c1"># Gemini</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>bob<span class="w">                      </span><span class="c1"># Bob Shell</span>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>all<span class="w">                      </span><span class="c1"># every tool at once</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="c1"># Keep guidance files (instructions.md, .cursorrules, etc.)</span>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w"> </span>--keep-guidance
 </code></pre></div>
 <hr />
 <h2 id="list-active-connections">List Active Connections<a class="headerlink" href="#list-active-connections" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>list<span class="w">       </span><span class="c1"># show every tool that has JSAT wired</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>jsat<span class="w"> </span>doctor<span class="w">             </span><span class="c1"># full health check including connected tools</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>list<span class="w">       </span><span class="c1"># show every tool that has JSAT wired</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>jsat<span class="w"> </span>doctor<span class="w">             </span><span class="c1"># full health check including connected tools</span>
 </code></pre></div>
 <hr />
 <h2 id="mcp-tools-available-in-every-tool">MCP Tools Available in Every Tool<a class="headerlink" href="#mcp-tools-available-in-every-tool" title="Permanent link">&para;</a></h2>
