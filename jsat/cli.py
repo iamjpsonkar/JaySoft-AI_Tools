@@ -1425,11 +1425,33 @@ _JSAT_SKILLS: dict[str, tuple[str, str]] = {
         ),
         # ── Prompt & token tools ──────────────────────────────────────────────
         "jsat-prompt": (
-            "Optimize a query through the JSAT prompt pipeline before sending.",
-            'Use jsat__prompt_optimize with query="$ARGUMENTS" to run the full '
-            "offline pipeline: task classification → graph context → constraints → "
-            "few-shot examples → model formatting → token compression. "
-            "Show the optimized prompt and token savings."
+            "Optimize a query through the JSAT prompt pipeline. Supports flags in $ARGUMENTS.",
+            """Parse $ARGUMENTS for optional flags before the query text, then call the right tool:
+
+Supported flags (strip them from the query before passing to the tool):
+  --rewrite   → call jsat__prompt_rewrite  (1 LLM rewrite agent after offline pipeline)
+  --agents    → call jsat__prompt_multi_agent with n_agents=3  (3 parallel LLM agents)
+  --diff      → call jsat__prompt_diff  (show raw vs optimized side by side)
+  --send      → call jsat__prompt_optimize then jsat__query with the optimized prompt
+  (no flag)   → call jsat__prompt_optimize  (offline pipeline only, fastest)
+
+Examples:
+  /jsat-prompt fix logger in ValidateVPAHandler.post
+    → jsat__prompt_optimize(query="fix logger in ValidateVPAHandler.post")
+
+  /jsat-prompt --rewrite fix logger in ValidateVPAHandler.post
+    → jsat__prompt_rewrite(query="fix logger in ValidateVPAHandler.post")
+
+  /jsat-prompt --agents improve the retry logic in PaymentService
+    → jsat__prompt_multi_agent(query="improve the retry logic in PaymentService", n_agents=3)
+
+  /jsat-prompt --diff why is the checkout failing
+    → jsat__prompt_diff(query="why is the checkout failing")
+
+  /jsat-prompt --send write a test for process_refund()
+    → jsat__prompt_optimize then send the result to the AI
+
+After calling the tool, show the optimized prompt, token savings, and (for --rewrite/--agents) which agent won and its score."""
         ),
         "jsat-prompt-diff": (
             "Show what you typed vs what JSAT sent to the AI after optimization.",
