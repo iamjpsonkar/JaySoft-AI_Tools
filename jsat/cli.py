@@ -1318,9 +1318,20 @@ _JSAT_SKILLS: dict[str, tuple[str, str]] = {
             "the question using the indexed codebase graph. Show the answer clearly."
         ),
         "jsat-index": (
-            "Build or refresh the JSAT codebase graph index.",
-            'Use the jsat__index_repo MCP tool with path="$ARGUMENTS" (or "." if empty). '
-            "Report nodes indexed, edges indexed, parallel workers, and whether it was incremental."
+            "Build or refresh the JSAT codebase graph index. Supports flags in $ARGUMENTS.",
+            """Parse $ARGUMENTS for optional flags, then call jsat__index_repo:
+
+Supported flags (strip from path before passing):
+  --force          → pass force=true  (full re-index, ignores incremental cache)
+  --languages X,Y  → pass languages=["X","Y"]  (limit to specific languages)
+  (no flag)        → incremental index of path (or "." if empty)
+
+Examples:
+  /jsat-index .                    → jsat__index_repo(path=".")
+  /jsat-index src/ --force         → jsat__index_repo(path="src/", force=true)
+  /jsat-index . --languages python,go  → jsat__index_repo(path=".", languages=["python","go"])
+
+After indexing, show: nodes indexed, edges indexed, files parsed vs skipped, parallel workers."""
         ),
         "jsat-status": (
             "Show JSAT index statistics and health.",
@@ -1357,16 +1368,53 @@ _JSAT_SKILLS: dict[str, tuple[str, str]] = {
         ),
         # ── Impact & safety ───────────────────────────────────────────────────
         "jsat-blast-radius": (
-            "Trace downstream impact of a file or symbol change.",
-            'Use jsat__blast_radius with target="$ARGUMENTS" to trace impact. '
-            "Group results by severity: breaking / degraded / warning / safe. "
-            "Show a Mermaid diagram if the impact is large."
+            "Trace downstream impact of a change. Supports flags in $ARGUMENTS.",
+            """Parse $ARGUMENTS for optional flags, then call the right blast-radius tool:
+
+Supported flags:
+  --file       → call jsat__blast_radius_file with path=<rest>
+  --diff       → call jsat__blast_radius_diff with diff=<rest>
+  --symbol     → call jsat__blast_radius_symbol with symbol=<rest>
+  (no flag)    → call jsat__blast_radius with target=<rest>
+
+Examples:
+  /jsat-blast-radius src/payment/service.py
+    → jsat__blast_radius(target="src/payment/service.py")
+
+  /jsat-blast-radius --file src/payment/service.py
+    → jsat__blast_radius_file(path="src/payment/service.py")
+
+  /jsat-blast-radius --symbol PaymentService.process
+    → jsat__blast_radius_symbol(symbol="PaymentService.process")
+
+Group results by severity: breaking / degraded / warning / safe. Show Mermaid diagram if large."""
         ),
         "jsat-security": (
-            "Run a security scan on the codebase.",
-            'Use jsat__security_review with path="$ARGUMENTS" (or "." if empty). '
-            "Group findings by severity. Highlight Critical and High issues first. "
-            "For each finding show: file, line, rule, and remediation advice."
+            "Run a security scan. Supports flags in $ARGUMENTS.",
+            """Parse $ARGUMENTS for optional flags, then call the right security tool:
+
+Supported flags:
+  --file <path>          → call jsat__security_scan_file with file=<path>
+  --secrets              → call jsat__list_secrets to find hardcoded credentials
+  --auth                 → call jsat__get_auth_coverage to show auth gaps
+  --cves                 → call jsat__get_dependency_cves for CVE check
+  --severity critical    → filter to critical only (pass severity_threshold="critical")
+  --severity high        → filter to high+ (default: medium)
+  (no flag / path only)  → call jsat__security_review with path=<rest or ".">
+
+Examples:
+  /jsat-security
+    → jsat__security_review(path=".")
+  /jsat-security src/payment/
+    → jsat__security_review(path="src/payment/")
+  /jsat-security --file src/auth/login.py
+    → jsat__security_scan_file(file="src/auth/login.py")
+  /jsat-security --secrets
+    → jsat__list_secrets()
+  /jsat-security --severity critical
+    → jsat__security_review(path=".", severity_threshold="critical")
+
+Group findings by severity. Highlight Critical and High first. Show file, line, rule, fix."""
         ),
         "jsat-migration": (
             "Validate a database migration file for safety.",
@@ -1380,16 +1428,51 @@ _JSAT_SKILLS: dict[str, tuple[str, str]] = {
         ),
         # ── Code quality ──────────────────────────────────────────────────────
         "jsat-review": (
-            "Submit code for multi-model review.",
-            'Use jsat__submit_for_review with diff="$ARGUMENTS" to run a parallel multi-model '
-            "code review. Show findings grouped by confidence (high → low). "
-            "Highlight bugs confirmed by multiple models."
+            "Multi-model code review. Supports flags in $ARGUMENTS.",
+            """Parse $ARGUMENTS for optional flags, then call the right review tool:
+
+Supported flags:
+  --findings        → call jsat__get_review_findings to show results of last review
+  --bugs            → call jsat__get_high_confidence_bugs to list confirmed bugs only
+  --min high        → filter to high-confidence findings only
+  --min medium      → filter to medium+ (default)
+  (no flag)         → call jsat__submit_for_review with diff=<rest>
+
+Examples:
+  /jsat-review <paste diff here>
+    → jsat__submit_for_review(diff="<diff>")
+
+  /jsat-review --findings
+    → jsat__get_review_findings()
+
+  /jsat-review --bugs
+    → jsat__get_high_confidence_bugs()
+
+Show findings grouped by confidence: high → medium → low. Highlight bugs confirmed by 2+ models."""
         ),
         "jsat-test-gaps": (
-            "Find untested code paths and generate tests.",
-            'Use jsat__get_test_gaps with path="$ARGUMENTS" (or "." if empty) to find '
-            "functions with no test coverage. For the top gaps, use jsat__generate_unit_test "
-            "to generate a test for each."
+            "Find untested code paths and optionally generate tests. Supports flags in $ARGUMENTS.",
+            """Parse $ARGUMENTS for optional flags, then call the right test tool:
+
+Supported flags:
+  --generate         → after finding gaps, call jsat__generate_unit_test for each
+  --integration      → call jsat__generate_integration_test instead
+  --contract <A> <B> → call jsat__generate_contract_test between two services
+  --untested         → call jsat__list_untested_paths for a flat list
+  (no flag)          → call jsat__get_test_gaps with path=<rest or ".">
+
+Examples:
+  /jsat-test-gaps src/payment/
+    → jsat__get_test_gaps(path="src/payment/")
+
+  /jsat-test-gaps --generate src/payment/
+    → jsat__get_test_gaps(path="src/payment/") then generate tests for each gap
+
+  /jsat-test-gaps --untested
+    → jsat__list_untested_paths()
+
+  /jsat-test-gaps --contract PaymentService RefundService
+    → jsat__generate_contract_test(producer="PaymentService", consumer="RefundService")"""
         ),
         "jsat-coverage": (
             "Show behavioral test coverage estimate for a path.",
@@ -1398,9 +1481,32 @@ _JSAT_SKILLS: dict[str, tuple[str, str]] = {
         ),
         # ── Knowledge base ────────────────────────────────────────────────────
         "jsat-knowledge": (
-            "Query the JSAT knowledge base for architectural context.",
-            'Use jsat__knowledge_query with query="$ARGUMENTS" to search the knowledge base '
-            "for relevant ADRs, runbooks, and architectural decisions. Summarise findings."
+            "Query or manage the JSAT knowledge base. Supports subcommands in $ARGUMENTS.",
+            """Parse $ARGUMENTS for an optional subcommand, then call the right tool:
+
+Subcommands:
+  add <text>     → call jsat__knowledge_add with text=<text>  (store a new entry)
+  list           → call jsat__knowledge_list to show all entries
+  list <category>→ call jsat__knowledge_list with category=<category>
+  stale <id>     → call jsat__knowledge_flag_stale with entry_id=<id>
+  search <text>  → call jsat__knowledge_search with query=<text>
+  (no subcommand)→ call jsat__knowledge_query with query=<rest>  (semantic search)
+
+Examples:
+  /jsat-knowledge what are the payment service ADRs?
+    → jsat__knowledge_query(query="what are the payment service ADRs?")
+
+  /jsat-knowledge add Use tenacity for all retry logic per ADR-007
+    → jsat__knowledge_add(text="Use tenacity for all retry logic per ADR-007")
+
+  /jsat-knowledge list
+    → jsat__knowledge_list()
+
+  /jsat-knowledge list adr
+    → jsat__knowledge_list(category="adr")
+
+  /jsat-knowledge search retry patterns
+    → jsat__knowledge_search(query="retry patterns")"""
         ),
         "jsat-knowledge-add": (
             "Add an entry to the JSAT knowledge base.",
@@ -1414,9 +1520,29 @@ _JSAT_SKILLS: dict[str, tuple[str, str]] = {
         ),
         # ── Investigation ─────────────────────────────────────────────────────
         "jsat-incident": (
-            "Investigate a production incident using recent git history.",
-            'Use jsat__investigate_incident with description="$ARGUMENTS". '
-            "Show top hypotheses ranked by score with evidence and recent commits for each."
+            "Investigate a production incident. Supports subcommands in $ARGUMENTS.",
+            """Parse $ARGUMENTS for an optional subcommand, then call the right tool:
+
+Subcommands:
+  hypotheses      → call jsat__get_hypotheses to list ranked root-cause hypotheses
+  recent [path]   → call jsat__get_recent_changes to show recent commits in area
+  runbook <svc>   → call jsat__generate_runbook to produce an incident runbook
+  (no subcommand) → call jsat__investigate_incident with description=<rest>
+
+Examples:
+  /jsat-incident 500 errors spiking on checkout since 14:00
+    → jsat__investigate_incident(description="500 errors spiking on checkout since 14:00")
+
+  /jsat-incident hypotheses
+    → jsat__get_hypotheses()  (after a previous investigation)
+
+  /jsat-incident recent src/payment/
+    → jsat__get_recent_changes(target="src/payment/")
+
+  /jsat-incident runbook PaymentService
+    → jsat__generate_runbook(target="PaymentService")
+
+Show top hypotheses ranked by score. Include supporting evidence and recent commits."""
         ),
         "jsat-recent": (
             "Show recent changes in the codebase.",
@@ -1461,10 +1587,29 @@ After calling the tool, show the optimized prompt, token savings, and (for --rew
             "Label one panel 'You sent' and the other 'AI received'."
         ),
         "jsat-tokens": (
-            "Count tokens and compress text to fit model context limits.",
-            'Use jsat__token_count with text="$ARGUMENTS" to estimate token count. '
-            "If the text is large, also use jsat__token_compress to apply offline "
-            "compression (whitespace, dedup, import collapse) and show savings."
+            "Count, compress, or check token budget. Supports flags in $ARGUMENTS.",
+            """Parse $ARGUMENTS for optional flags, then call the right token tool:
+
+Supported flags:
+  --compress           → call jsat__token_compress with text=<rest>  (apply compression)
+  --model <name>       → call jsat__token_budget with text=<rest>, model=<name>
+  --budget <model>     → same as --model  (alias)
+  (no flag)            → call jsat__token_count with text=<rest>
+
+Examples:
+  /jsat-tokens explain the payment service
+    → jsat__token_count(text="explain the payment service")
+
+  /jsat-tokens --compress <paste large context here>
+    → jsat__token_compress(text="<text>")  → show savings and compressed output
+
+  /jsat-tokens --model gpt-4o <paste context here>
+    → jsat__token_budget(text="<text>", model="gpt-4o")  → show % used, headroom, status
+
+  /jsat-tokens --model claude-sonnet-4-6 <paste context>
+    → jsat__token_budget(text="<text>", model="claude-sonnet-4-6")
+
+Show: token count, savings (if compressed), budget % used and status (ok/warn/critical)."""
         ),
         "jsat-token-budget": (
             "Check how much of a model's context window a text uses.",
@@ -1481,12 +1626,34 @@ After calling the tool, show the optimized prompt, token savings, and (for --rew
         ),
         # ── IThinking ─────────────────────────────────────────────────────────
         "jsat-ithinking": (
-            "Apply IThinking meta-cognitive reasoning before acting on a task.",
-            'Use jsat__ithinking_plan with task="$ARGUMENTS" to run phases 0-4: '
-            "intent clarification, local feasibility check, prompt optimisation, "
-            "task decomposition, and assumption audit. "
-            "Display the plan clearly, then ask for confirmation before proceeding. "
-            "After completing, use jsat__ithinking_reflect to record what was done."
+            "IThinking meta-cognitive reasoning. Supports subcommands in $ARGUMENTS.",
+            """Parse $ARGUMENTS for an optional subcommand, then call the right IThinking tool:
+
+Subcommands:
+  plan <task>      → call jsat__ithinking_plan with task=<task>  (phases 0-4, default)
+  reflect <done>   → call jsat__ithinking_reflect with subtask=<done>  (phase 6 log)
+  audit <task>     → call jsat__ithinking_audit_assumptions with task=<task>
+  execute <plan>   → call jsat__ithinking_execute with subtask=<plan>
+  estimate <task>  → call jsat__ithinking_token_estimate with task=<task>
+  (no subcommand)  → call jsat__ithinking_plan with task=<rest>  (same as plan)
+
+Examples:
+  /jsat-ithinking refactor the payment retry logic
+    → jsat__ithinking_plan(task="refactor the payment retry logic")
+
+  /jsat-ithinking plan add rate limiting to the checkout API
+    → jsat__ithinking_plan(task="add rate limiting to the checkout API")
+
+  /jsat-ithinking reflect completed refactor of PaymentService.process()
+    → jsat__ithinking_reflect(subtask="completed refactor of PaymentService.process()")
+
+  /jsat-ithinking audit migrate users table to add nullable column
+    → jsat__ithinking_audit_assumptions(task="migrate users table to add nullable column")
+
+  /jsat-ithinking estimate write comprehensive tests for the checkout flow
+    → jsat__ithinking_token_estimate(task="write comprehensive tests for the checkout flow")
+
+Display plan clearly. After the user approves, proceed. Then reflect on what was done."""
         ),
         "jsat-think": (
             "Think carefully before acting — IThinking shortcut.",
