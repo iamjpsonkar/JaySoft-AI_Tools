@@ -236,7 +236,8 @@ def cmd_index(
         f"[bold]{result.edges_indexed}[/] edges in [bold]{elapsed:.1f}s[/]"
     )
     if watch:
-        import shutil, subprocess
+        import shutil
+        import subprocess
         if not shutil.which("entr"):
             err.print("[yellow]⚠ --watch needs entr:[/] brew install entr")
             raise typer.Exit(1)
@@ -902,6 +903,7 @@ def cmd_tokens(
     Pipe stdin:                  cat myfile.py | jsat tokens --model claude-cli
     """
     import sys
+
     from jsat.tools.token_optimizer import TokenOptimizer
 
     # ── Resolve input ─────────────────────────────────────────────────────────
@@ -2386,7 +2388,8 @@ def cmd_update(
     pre: bool = typer.Option(False, "--pre", help="Include pre-release versions"),
 ) -> None:
     """Upgrade JSAT to the latest version from PyPI."""
-    import subprocess, sys
+    import subprocess
+    import sys
     console.print("[dim]Checking for updates...[/dim]")
     try:
         cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "jsat"]
@@ -2400,7 +2403,7 @@ def cmd_update(
                     console.print(f"[green]✓[/] {line}")
                     console.print("[dim]Restart your terminal for changes to take effect.[/dim]")
                     return
-            console.print(f"[green]✓[/] Already up to date.")
+            console.print("[green]✓[/] Already up to date.")
         else:
             err.print(f"[red]Update failed:[/] {result.stderr[:300]}")
             raise typer.Exit(1)
@@ -2426,7 +2429,7 @@ def cmd_knowledge_ingest(
     jsat knowledge-ingest docs/adr/      ingest ADR files
     jsat knowledge-ingest --dry-run .    see what would be ingested
     """
-    from jsat.tools.knowledge_ingest import scan_repo, IngestRecord
+    from jsat.tools.knowledge_ingest import IngestRecord, scan_repo
     target = Path(path).resolve()
 
     if target.is_file():

@@ -120,6 +120,7 @@ class JSATShell:
 
     def run(self) -> None:
         import sys
+
         from rich.panel import Panel
 
         # Non-interactive / piped mode — process stdin line by line without prompts

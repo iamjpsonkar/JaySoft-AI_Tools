@@ -47,6 +47,7 @@ class IndexerTool(BaseTool):
         languages: list[str] | None = None,
     ) -> "IndexResult":
         import structlog
+
         from jsat._models import IndexResult
         from jsat._parsers import detect_language
         from jsat._parsers.manifest import IndexManifest
