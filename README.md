@@ -56,7 +56,7 @@ Inside any connected tool you can use JSAT commands:
 
 **Continue.dev custom commands** (same 28 commands, `/jsat-*` prefix)
 
-**All tools** have 55 JSAT MCP tools the AI can call automatically — no slash commands needed.
+**All tools** have all JSAT MCP tools the AI can call automatically — no slash commands needed.
 
 ---
 
@@ -130,7 +130,7 @@ switch lmstudio  → LM Studio
 
 ## AI Tool Integration
 
-JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — the tool picks up all 55 JSAT tools automatically.
+JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — the tool picks up all JSAT MCP tools automatically.
 
 ### Connect
 
@@ -148,7 +148,7 @@ jsat connect gemini                        # Google Gemini CLI
 jsat connect list                          # show every active connection
 ```
 
-Restart the AI tool after connecting. JSAT's 55 MCP tools are immediately available.
+Restart the AI tool after connecting. JSAT's MCP tools are immediately available.
 
 ### Files written per tool
 

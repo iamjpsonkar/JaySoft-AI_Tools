@@ -66,9 +66,17 @@ def get_ai_provider(cfg: Any) -> AIProvider:
         except ImportError as e:
             _profile_error("openai", "openai", e)
 
+    if provider_name == "openai_compat":
+        try:
+            from jsat._ai.openai_compat import OpenAICompatProvider  # type: ignore[import]
+            return OpenAICompatProvider(cfg)
+        except ImportError as e:
+            _profile_error("openai_compat", "openai", e)
+
     raise ValueError(
         f"Unknown ai.provider '{provider_name}'. "
-        "Valid: none, ollama, anthropic, openai. Run: jsat init --profile solo"
+        "Valid: none, claude_cli, ollama, anthropic, openai, openai_compat. "
+        "Run: jsat init --profile solo"
     )
 
 

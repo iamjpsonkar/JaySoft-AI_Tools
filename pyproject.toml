@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jsat"
-version = "0.3.1"
+version = "0.3.2"
 description = "Codebase intelligence shell and SDK — index once, query forever, works with Claude, GPT, Ollama, and any AI"
 readme = "README.md"
 license = { text = "MIT" }
@@ -94,6 +94,17 @@ all = [
     "jsat[anthropic]",
     "jsat[openai]",
     "jsat[ci]",
+]
+dev = [
+    "jsat[standard]",
+    "pytest>=7",
+    "pytest-cov>=4",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "tree-sitter-java>=0.21",
+    "tree-sitter-ruby>=0.21",
+    "tree-sitter-rust>=0.21",
+    "tree-sitter-go>=0.21",
 ]
 
 [project.scripts]

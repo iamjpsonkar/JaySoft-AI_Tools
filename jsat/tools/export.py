@@ -13,7 +13,10 @@ from jsat.tools import BaseTool
 if TYPE_CHECKING:
     from jsat._models import ExportManifest
 
-JSAT_VERSION = "0.1.0"
+try:
+    from jsat import __version__ as JSAT_VERSION
+except ImportError:
+    JSAT_VERSION = "unknown"
 MANIFEST_FILE = "manifest.json"
 
 
