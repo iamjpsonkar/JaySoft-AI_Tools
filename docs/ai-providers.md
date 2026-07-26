@@ -4,6 +4,10 @@ JSAT supports six AI backends. The right one is selected automatically based on 
 
 ## Provider Overview
 
+
+
+| Bob Shell CLI | `jsat ai use bob` | Free tier | `bob` binary |
+
 | Provider | Switch command | Cost | Needs |
 |----------|---------------|------|-------|
 | Claude Code CLI | `jsat ai use claude-cli` | Free tier | `claude` binary |
@@ -84,6 +88,71 @@ jsat ai test
 ---
 
 ## Anthropic API
+
+
+---
+
+## Bob Shell CLI
+
+Bob Shell is an IBM AI-powered terminal assistant that provides interactive coding assistance with multiple modes.
+
+### Install
+
+```bash
+npm install -g @ibm/bob-shell
+# Verify:
+which bob
+bob --version
+```
+
+### Activate
+
+JSAT auto-detects the `bob` binary. No configuration needed. To set it explicitly:
+
+```bash
+jsat ai use bob
+```
+
+This sets:
+
+```yaml
+ai:
+  provider: bob_cli
+  model: premium
+  chat_mode: advanced
+```
+
+### Available Modes
+
+Bob Shell supports four interaction modes:
+
+- `plan` — Planning and design mode
+- `code` — Code implementation mode  
+- `advanced` — Advanced code mode with more tools (default)
+- `ask` — Question and answer mode
+
+### Verify
+
+```bash
+jsat ai test
+```
+
+### Inside the shell
+
+```
+> switch bob
+> switch bob-cli
+```
+
+### Open a Bob Shell session directly
+
+```bash
+jsat bob
+jsat bob --mode advanced
+jsat bob --resume <session-id>
+```
+
+
 
 Use the Anthropic API directly (requires a paid API key).
 
@@ -341,11 +410,12 @@ jsat ai test
 When no provider is explicitly configured, JSAT probes all backends on startup and picks the best available one in this priority order:
 
 1. Claude Code CLI (`claude` binary found on PATH)
-2. Anthropic API (`ANTHROPIC_API_KEY` set)
-3. OpenAI API (`OPENAI_API_KEY` set)
-4. Google Gemini (`GEMINI_API_KEY` or `GOOGLE_API_KEY` set)
-5. Ollama (reachable at `localhost:11434`)
-6. LM Studio (reachable at `localhost:1234`)
+2. Bob Shell CLI (`bob` binary found on PATH)
+3. Anthropic API (`ANTHROPIC_API_KEY` set)
+4. OpenAI API (`OPENAI_API_KEY` set)
+5. Google Gemini (`GEMINI_API_KEY` or `GOOGLE_API_KEY` set)
+6. Ollama (reachable at `localhost:11434`)
+7. LM Studio (reachable at `localhost:1234`)
 
 If none are reachable, JSAT runs without AI (graph queries only, no natural language).
 
@@ -368,6 +438,8 @@ jsat ai test
 > switch claude
 > switch claude-api
 > switch claude-cli
+> switch bob
+> switch bob-cli
 > switch gpt
 > switch gpt4mini
 > switch ollama

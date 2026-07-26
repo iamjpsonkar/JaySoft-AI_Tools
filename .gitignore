@@ -8,6 +8,9 @@ prompt.md
 # Codex local session data
 .codex/
 
+# Bob Shell local session data (.bob/settings.json + notes/)
+.bob/
+
 # JSAT — everything lives under .jsat/
 # Exclude runtime artifacts; keep config.yaml committable for team sharing
 .jsat/

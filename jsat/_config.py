@@ -238,7 +238,20 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "requires":     "Install Claude Code: claude.ai/code",
     })
 
-    # 2. Anthropic API
+    # 2. Bob Shell CLI — no key needed if installed
+    bob_bin = shutil.which("bob")
+    results.append({
+        "name":         "Bob Shell (CLI)",
+        "alias":        "bob",
+        "provider_key": "bob_cli",
+        "available":    bool(bob_bin),
+        "model":        "premium",
+        "reason":       "bob binary found" if bob_bin else "bob CLI not installed",
+        "free":         False,
+        "requires":     "Install Bob Shell: npm install -g @ibm/bob-shell",
+    })
+
+    # 3. Anthropic API
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
     results.append({
         "name":         "Anthropic API",
@@ -328,8 +341,15 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "requires":     "Download LM Studio from lmstudio.ai → load model → start server",
     })
 
-    # Sort: available first
-    results.sort(key=lambda x: (not x["available"], x["name"]))
+    # Sort: available first, then by documented preference order
+    # (Claude CLI → Bob CLI → Anthropic → OpenAI → Gemini → Ollama → LM Studio),
+    # falling back to name for anything not explicitly ranked.
+    _priority = {
+        "claude_cli": 0, "bob_cli": 1, "anthropic": 2,
+        "openai": 3, "openai_compat": 4, "ollama": 5,
+    }
+    results.sort(
+        key=lambda x: (not x["available"], _priority.get(x["provider_key"], 99), x["name"]))
     return results
 
 
@@ -339,6 +359,8 @@ def _provider_reachable(provider_key: str, sys_profile: SystemProfile | None) ->
     import shutil
     if provider_key == "claude_cli":
         return bool(shutil.which("claude"))
+    if provider_key == "bob_cli":
+        return bool(shutil.which("bob"))
     if provider_key == "anthropic":
         return bool(os.environ.get("ANTHROPIC_API_KEY"))
     if provider_key == "openai":

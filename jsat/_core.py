@@ -119,6 +119,8 @@ class JSAT:
             "anthropic":  ("anthropic",    "claude-sonnet-4-6",             None),
             "haiku":      ("anthropic",    "claude-haiku-4-5-20251001",     None),
             "opus":       ("anthropic",    "claude-opus-4-8",               None),
+            "bob":        ("bob_cli",      "premium",                       None),
+            "bob-cli":    ("bob_cli",      "premium",                       None),
             "gpt":        ("openai",       "gpt-4o",                        None),
             "openai":     ("openai",       "gpt-4o",                        None),
             "chatgpt":    ("openai",       "gpt-4o",                        None),
@@ -175,6 +177,7 @@ class JSAT:
         """Short human-readable label: 'Claude Code (CLI)' or 'GPT (gpt-4o-mini)'"""
         _labels = {
             "claude_cli":   "Claude Code (CLI)",
+            "bob_cli":      "Bob Shell (CLI)",
             "anthropic":    "Claude API",
             "openai":       "GPT",
             "ollama":       "Ollama",
@@ -184,8 +187,8 @@ class JSAT:
         provider = self._cfg.ai.provider
         name = _labels.get(provider, provider)
         model = self._cfg.ai.model
-        # For claude_cli the model is internal; show just the provider name
-        if provider == "claude_cli":
+        # For CLI providers the model is internal; show just the provider name
+        if provider in ("claude_cli", "bob_cli"):
             return name
         return f"{name} ({model})"
 

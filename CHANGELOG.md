@@ -4,6 +4,39 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-07-26
+
+### Added — Bob Shell integration
+
+- **Bob Shell (`@ibm/bob-shell`) as a first-class AI provider** (`bob_cli`), joining
+  the auto-detect priority right after Claude Code CLI (no API key needed).
+- `jsat bob` launcher — opens a clean **interactive** Bob session with JSAT wired in
+  (`--mode`, `--resume`, `--continue`).
+- `jsat connect bob` / `jsat disconnect bob` — registers the JSAT MCP server in
+  `.bob/settings.json`, writes `BOB.md` guidance, and installs **31 `/jsat-*` slash
+  commands** in `.bob/commands/` (`--no-commands` to skip).
+- `switch bob` inside the JSAT shell.
+
+### Fixed
+
+- `bob_cli` was missing from the `AIConfig.provider` allowed values, so every attempt
+  to select it failed pydantic validation.
+- **MCP server logging went to stdout**, corrupting the stdio JSON-RPC stream — strict
+  clients (Bob Shell) reported "MCP ERROR". Logs now go to stderr; stdout is JSON-RPC only.
+- `auto_configure` treated a `bob_cli` config as unreachable and silently swapped it out
+  (`_provider_reachable` / `detect_ai_providers` now know about Bob).
+- `jsat bob` ran Bob one-shot (it exited after a single turn) instead of interactively.
+- Bob slash-command YAML frontmatter is now quoted, fixing parse failures on
+  descriptions containing `:` (e.g. `jsat-crack`).
+
+### Changed
+
+- `/jsat-prompt` now **optimizes the query and then answers it** by default
+  (`--optimize-only` to just show the rewrite).
+- Every generated `/jsat-*` command carries a directive to deliver a real, synthesized
+  answer from the tool result instead of echoing raw output.
+- Slash-command count reported dynamically (now 31, was a hardcoded 28).
+
 ## [0.2.0] — 2026-07-25
 
 ### Added — Indexer overhaul (Tool 1)

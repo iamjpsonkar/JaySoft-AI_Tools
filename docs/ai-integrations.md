@@ -8,16 +8,16 @@ skills or custom commands, and shell `switch` support.
 
 ## Feature Matrix
 
-| Feature | Claude Code | Codex | Cursor | Windsurf | Continue | Zed | Gemini CLI |
-|---|---|---|---|---|---|---|---|
-| `jsat <tool>` launcher | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-| Auto-connect on launch | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-| `jsat connect <tool>` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `--scope project/global` | ✅ | ✅ | ✅ | — (global) | — (global) | — (global) | — (global) |
-| Skills / custom commands | 28 slash cmds | instructions.md | .cursorrules | .windsurfrules | 28 slash cmds | .zed/JSAT.md | GEMINI.md |
-| `switch <tool>` in shell | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-| `--keep-guidance` on disconnect | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Tool type | CLI | CLI | GUI | GUI | IDE ext | GUI | CLI |
+| Feature | Claude Code | Codex | Cursor | Windsurf | Continue | Zed | Gemini CLI | Bob Shell |
+|---|---|---|---|---|---|---|---|---|
+| `jsat <tool>` launcher | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
+| Auto-connect on launch | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
+| `jsat connect <tool>` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `--scope project/global` | ✅ | ✅ | ✅ | — (global) | — (global) | — (global) | — (global) | ✅ |
+| Skills / custom commands | 31 slash cmds | instructions.md | .cursorrules | .windsurfrules | 31 slash cmds | .zed/JSAT.md | GEMINI.md | 31 slash cmds + BOB.md |
+| `switch <tool>` in shell | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
+| `--keep-guidance` on disconnect | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Tool type | CLI | CLI | GUI | GUI | IDE ext | GUI | CLI | CLI |
 
 ---
 
@@ -34,6 +34,7 @@ jsat cursor      # Cursor IDE
 jsat windsurf    # Windsurf
 jsat gemini      # Gemini CLI
 jsat zed         # Zed editor
+jsat bob         # Bob Shell
 ```
 
 Each launcher auto-connects JSAT if not already wired and opens the tool with 55 MCP tools ready.
@@ -53,11 +54,11 @@ jsat connect claude --no-skills          # MCP only, skip slash commands
 
 **What gets installed:**
 - `.claude/settings.json` — MCP server config
-- `.claude/commands/jsat-*.md` — 28 slash commands
+- `.claude/commands/jsat-*.md` — 31 slash commands
 
 **Slash commands:** `/jsat-query`, `/jsat-blast-radius`, `/jsat-security`, `/jsat-review`,
-`/jsat-test-gaps`, `/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt-rewrite`,
-`/jsat-tokens`, `/jsat-ithinking`, and 18 more.
+`/jsat-test-gaps`, `/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt`,
+`/jsat-tokens`, `/jsat-ithinking`, and 21 more.
 
 **In the JSAT shell:**
 ```
@@ -134,16 +135,16 @@ Continue is an IDE extension (VS Code, JetBrains). There's no `jsat continue` la
 runs inside your IDE.
 
 ```bash
-jsat connect continue                    # wire JSAT in + install 28 /jsat-* commands
+jsat connect continue                    # wire JSAT in + install 31 /jsat-* commands
 ```
 
 **What gets installed:**
-- `~/.continue/config.json` — MCP server + 28 `customCommands`
+- `~/.continue/config.json` — MCP server + 31 `customCommands`
 
-**Custom commands (same 28 as Claude's slash commands):**
+**Custom commands (same 31 as Claude's slash commands):**
 `/jsat-query`, `/jsat-blast-radius`, `/jsat-security`, `/jsat-review`, `/jsat-test-gaps`,
-`/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt-rewrite`, `/jsat-tokens`, `/jsat-ithinking`,
-and 18 more.
+`/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt`, `/jsat-tokens`, `/jsat-ithinking`,
+and 21 more.
 
 After connecting, reload Continue: `Cmd/Ctrl+Shift+P → Continue: Reload`.
 
@@ -187,6 +188,47 @@ switch gemini    → launch Gemini CLI session
 
 **Install Gemini CLI** (all platforms): `npm install -g @google/gemini-cli`
 
+
+### Bob Shell
+
+```bash
+jsat bob                                 # open Bob Shell with JSAT pre-loaded
+jsat bob --mode advanced                 # open in specific mode (plan, code, advanced, ask)
+jsat connect bob                         # project scope + install /jsat-* slash commands
+jsat connect bob --scope global          # global
+jsat connect bob --no-commands           # MCP + BOB.md only, skip slash commands
+```
+
+`jsat bob` opens a clean **interactive** Bob session; JSAT tools and guidance are
+loaded from `.bob/` and `BOB.md`, so nothing is injected as a throwaway prompt.
+
+**What gets installed:**
+- `.bob/settings.json` (project) or `~/.bob/settings.json` (global) — MCP server config
+- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 31 `/jsat-*` slash commands
+- `BOB.md` — JSAT tool guidance (Bob Shell reads from project root)
+
+**Slash commands:** type `/` in Bob Shell to browse them — `/jsat-query`,
+`/jsat-blast-radius`, `/jsat-security`, `/jsat-review`, `/jsat-test-gaps`,
+`/jsat-prompt`, `/jsat-ithinking`, and 24 more. `/jsat-prompt` optimizes your
+query and then answers it (use `--optimize-only` to just see the rewrite).
+
+**In the JSAT shell:**
+```
+switch bob    → launch Bob Shell session
+```
+
+**Install Bob Shell** (all platforms): `npm install -g @ibm/bob-shell`
+
+**Bob Shell modes:**
+- `plan` — Planning and design mode
+- `code` — Code implementation mode
+- `advanced` — Advanced code mode with more tools
+- `ask` — Question and answer mode
+
+---
+
+
+
 ---
 
 ## JSAT Shell — `switch` Reference
@@ -200,6 +242,7 @@ switch gemini       → Gemini CLI (reads ~/.gemini/settings.json + GEMINI.md)
 switch cursor       → open Cursor IDE in background
 switch windsurf     → open Windsurf IDE in background
 switch zed          → open Zed in background
+switch bob          → Bob Shell session
 switch gpt          → GPT-4o in JSAT shell (needs OPENAI_API_KEY)
 switch ollama       → local Ollama in JSAT shell
 switch anthropic    → Claude API in JSAT shell (needs ANTHROPIC_API_KEY)
@@ -218,6 +261,7 @@ jsat disconnect windsurf                 # Windsurf
 jsat disconnect continue                 # Continue (removes commands too)
 jsat disconnect zed                      # Zed
 jsat disconnect gemini                   # Gemini
+jsat disconnect bob                      # Bob Shell
 jsat disconnect all                      # every tool at once
 
 # Keep guidance files (instructions.md, .cursorrules, etc.)

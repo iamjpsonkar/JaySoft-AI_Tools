@@ -2,7 +2,7 @@
 jsat.tools.shell — Universal AI Shell.
 
 Ask anything. Response from whichever AI is configured.
-Switch AI mid-session with: switch claude | switch gpt | switch ollama | etc.
+Switch AI mid-session with: switch claude | switch bob | switch gpt | switch ollama | etc.
 
 Launch: jsat shell
 """
@@ -50,6 +50,7 @@ _PROVIDERS = [
     "ollama", "llama", "phi",
     "gemini", "gemini-pro",
     "lmstudio", "lm-studio",
+    "bob", "bob-cli", "bob-shell",
     "custom", "compat",
 ]
 
@@ -161,7 +162,8 @@ class JSATShell:
             f"Repo: [dim]{self._js._repo}[/]\n"
             f"Index: [dim]{index_info}[/]\n\n"
             f"[dim]Ask anything · Tab-complete · type [bold]help[/bold]\n"
-            f"[bold]switch claude-cli[/bold] → full Claude Code + JSAT tools | "
+            f"[bold]switch claude-cli[/bold] → Claude Code + JSAT | "
+            f"[bold]switch bob[/bold] → Bob Shell + JSAT | "
             f"[bold]opt show[/bold] → prompt diff[/dim]",
             border_style="cyan",
         ))
@@ -328,13 +330,14 @@ class JSATShell:
                 "[yellow]Usage:[/] switch <provider> [model]\n\n"
                 "[bold]Native launchers (JSAT pre-loaded):[/]\n"
                 "  [cyan]switch claude-cli[/]   ← Claude Code + JSAT MCP tools\n"
+                "  [cyan]switch bob[/]          ← Bob Shell + JSAT MCP tools\n"
                 "  [cyan]switch codex[/]        ← OpenAI Codex CLI\n"
                 "  [cyan]switch gemini[/]       ← Google Gemini CLI\n"
                 "  [cyan]switch cursor[/]       ← Cursor IDE\n"
                 "  [cyan]switch windsurf[/]     ← Windsurf IDE\n"
                 "  [cyan]switch zed[/]          ← Zed editor\n\n"
                 "[bold]JSAT shell with AI:[/]\n"
-                "  switch claude | gpt | ollama | anthropic | lmstudio"
+                "  switch claude | bob | gpt | ollama | anthropic | lmstudio"
             )
             return
 
@@ -357,6 +360,25 @@ class JSATShell:
         if provider in ("codex",):
             self._launch_cli_tool("codex")
             return
+
+
+        if provider in ("bob", "bob-cli", "bob-shell"):
+            # switch bob [--mode <mode>] [--resume <id> | --continue]
+            mode_arg = None
+            resume_id = None
+            cont = False
+            if "--mode" in args:
+                idx = args.index("--mode")
+                mode_arg = args[idx + 1] if idx + 1 < len(args) else None
+            if "--resume" in args:
+                idx = args.index("--resume")
+                resume_id = args[idx + 1] if idx + 1 < len(args) else None
+            elif "--continue" in args or "-c" in args:
+                cont = True
+            launch_ai_with_jsat_tools(self._js, ai="bob",
+                                       resume=resume_id, continue_session=cont, mode=mode_arg)
+            return
+
 
         if provider in ("gemini", "gemini-cli"):
             self._launch_cli_tool("gemini")
@@ -636,7 +658,7 @@ class JSATShell:
         self._console.print(
             f"  Provider: [cyan]{self._js._cfg.ai.provider}[/]\n"
             f"  Model:    [cyan]{self._js._cfg.ai.model}[/]\n"
-            "  Switch:   [dim]switch claude-cli | switch codex | switch gemini | switch cursor | switch gpt[/dim]"
+            "  Switch:   [dim]switch claude-cli | switch bob | switch codex | switch gemini | switch cursor | switch gpt[/dim]"
         )
 
     # ── AI chat (the main feature) ────────────────────────────────────────────
@@ -940,12 +962,14 @@ def launch_ai_with_jsat_tools(
     ai: str = "claude",
     resume: str | None = None,
     continue_session: bool = False,
+    mode: str | None = None,
 ) -> None:
     """Launch an AI session with JSAT tools wired in as MCP.
 
-    ai: "claude" | "gpt" | "ollama" | ... — which AI CLI to launch.
-    resume: Claude session ID to resume (passes --resume <id>).
-    continue_session: if True, passes --continue to resume the most recent session.
+    ai: "claude" | "bob" | "gpt" | "ollama" | ... — which AI CLI to launch.
+    resume: Session ID to resume (passes --resume <id>).
+    continue_session: if True, resumes the most recent session.
+    mode: Bob Shell mode (plan, code, advanced, ask) - only used for Bob.
     """
     import json
     import os
@@ -1066,6 +1090,38 @@ def launch_ai_with_jsat_tools(
                     os.unlink(mcp_path)
                 except Exception:
                     pass
+
+    elif ai in ("bob", "bob-cli") and shutil.which("bob"):
+        # Bob Shell has no --mcp-config flag: it auto-loads MCP servers from
+        # .bob/settings.json and guidance from BOB.md — both written by
+        # 'jsat connect bob'. So just launch a clean INTERACTIVE session and let
+        # Bob pick up the JSAT tools + guidance itself.
+        #
+        # Do NOT inject the tool list as a prompt: a bare positional prompt runs
+        # one-shot and exits, and -i/--prompt-interactive makes Bob *execute* the
+        # text and burn a turn on a useless "Task Completion" before it becomes
+        # interactive. BOB.md already carries this guidance.
+        bob_settings = (Path(repo) / ".bob" / "settings.json")
+        home_settings = (Path.home() / ".bob" / "settings.json")
+        if not bob_settings.exists() and not home_settings.exists():
+            print(  # noqa: T201 — user-facing hint before handing off to Bob
+                "⚠  JSAT is not connected to Bob Shell yet — its tools won't be "
+                "available.\n   Run:  jsat connect bob\n"
+            )
+
+        cmd = ["bob", "--yolo"]
+
+        # Chat mode (plan | code | advanced | ask)
+        if mode:
+            cmd += ["--chat-mode", mode]
+
+        # Resume/continue a previous session
+        if resume:
+            cmd += ["--resume", resume]
+        elif continue_session:
+            cmd += ["--resume", "latest"]
+
+        subprocess.run(cmd, cwd=repo)
     else:
         # Fallback: custom JSAT shell
         launch(jsat)

@@ -44,7 +44,7 @@ from jsat._exceptions import (
     UnsupportedLanguage,
 )
 
-__version__ = "0.3.4"
+__version__ = "0.3.5"
 __author__ = "Jay Prakash Sonkar"
 __email__ = "iamjpsonkar@gmail.com"
 __license__ = "MIT"

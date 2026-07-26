@@ -37,6 +37,7 @@ jsat cursor      # Cursor IDE
 jsat windsurf    # Windsurf
 jsat gemini      # Google Gemini CLI
 jsat zed         # Zed editor
+jsat bob         # Bob Shell
 
 # War room discussion (new!)
 jsat crack "redesign payment retry system"
@@ -94,11 +95,12 @@ pip install 'jsat[all]'            # everything
 JSAT auto-detects available providers at startup and picks the best one in priority order:
 
 1. **Claude Code CLI** — detected via `which claude`; no API key, no extra SDK, full tool calling
-2. **Anthropic API** — if `ANTHROPIC_API_KEY` is set and `jsat[anthropic]` is installed
-3. **OpenAI** — if `OPENAI_API_KEY` is set and `jsat[openai]` is installed
-4. **Ollama** — if `ollama serve` is running at `localhost:11434`
-5. **LM Studio** — if an OpenAI-compatible server is running at `localhost:1234`
-6. **No AI** — tools that don't need AI (indexing, blast radius, export) still work
+2. **Bob Shell CLI** — detected via `which bob`; no API key, IBM AI assistant with multiple modes
+3. **Anthropic API** — if `ANTHROPIC_API_KEY` is set and `jsat[anthropic]` is installed
+4. **OpenAI** — if `OPENAI_API_KEY` is set and `jsat[openai]` is installed
+5. **Ollama** — if `ollama serve` is running at `localhost:11434`
+6. **LM Studio** — if an OpenAI-compatible server is running at `localhost:1234`
+7. **No AI** — tools that don't need AI (indexing, blast radius, export) still work
 
 ### Check what's available
 
@@ -121,6 +123,7 @@ jsat ai test                              # verify the configured provider works
 
 ```
 switch claude    → Claude Code CLI (no key) or Claude API
+switch bob       → Bob Shell (no key)
 switch gpt       → GPT-4o
 switch ollama    → local Ollama
 switch haiku     → Claude Haiku
@@ -146,6 +149,7 @@ jsat connect windsurf                      # Windsurf (Codeium)
 jsat connect continue                      # Continue.dev
 jsat connect zed                           # Zed editor
 jsat connect gemini                        # Google Gemini CLI
+jsat connect bob                           # Bob Shell (+ /jsat-* slash commands)
 
 jsat connect list                          # show every active connection
 ```
@@ -468,7 +472,7 @@ jsat remove                                   # remove all JSAT artifacts from t
 
 | Command | Description |
 |---|---|
-| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 28 slash commands |
+| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 31 slash commands |
 | `jsat connect claude --scope global` | Wire JSAT into Claude Code globally |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
 | `jsat connect codex` | Wire JSAT into OpenAI Codex CLI (project scope) |

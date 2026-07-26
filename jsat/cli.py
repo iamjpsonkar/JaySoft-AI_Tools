@@ -31,7 +31,7 @@ app.add_typer(connect_app, name="connect")
 def cmd_disconnect(
     tool: str = typer.Argument(
         "claude",
-        help="Tool to disconnect: claude | codex | cursor | windsurf | continue | zed | gemini | all",
+        help="Tool to disconnect: claude | codex | cursor | windsurf | continue | zed | gemini | bob | all",
     ),
     scope: str = typer.Option(
         "project",
@@ -62,7 +62,7 @@ def cmd_disconnect(
     tool_lower = tool.lower()
 
     # Validate tool name upfront (L7 fix: was previously checked at the end)
-    _valid_tools = ("claude", "codex", "cursor", "windsurf", "continue", "zed", "gemini", "all")
+    _valid_tools = ("claude", "codex", "cursor", "windsurf", "continue", "zed", "gemini", "bob", "all")
     if tool_lower not in _valid_tools:
         err.print(f"[red]Unknown tool:[/] {tool}. "
                   f"Choose: {' | '.join(_valid_tools)}")
@@ -166,6 +166,28 @@ def cmd_disconnect(
         )
         if not keep_skills:
             _remove_jsat_block(Path.cwd() / "GEMINI.md")
+
+    # ── bob ───────────────────────────────────────────────────────────────────
+    if tool_lower in ("bob", "all"):
+        scopes = ["project", "global"] if (scope == "all" or tool_lower == "all") else [scope]
+        for s in scopes:
+            if s == "global":
+                p = Path.home() / ".bob" / "settings.json"
+                cd = Path.home() / ".bob" / "commands"
+            else:
+                p = Path.cwd() / ".bob" / "settings.json"
+                cd = Path.cwd() / ".bob" / "commands"
+            removed_any |= _remove_from_standard("Bob Shell", p)
+            if not keep_skills and cd.exists():
+                cmds = list(cd.glob("jsat-*.md"))
+                for f in cmds:
+                    f.unlink()
+                if cmds:
+                    console.print(
+                        f"[green]✓[/] Removed {len(cmds)} slash command file(s) from [bold]{cd}[/]")
+                    removed_any = True
+        if not keep_skills:
+            _remove_jsat_block(Path.cwd() / "BOB.md")
 
     if removed_any:
         console.print("\n[bold yellow]→ Restart the AI tool[/] to apply changes.\n")
@@ -320,6 +342,28 @@ def cmd_claude(
     launch_ai_with_jsat_tools(js, ai="claude", resume=resume, continue_session=continue_)
 
 
+
+
+@app.command("bob")
+def cmd_bob(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+    resume: Optional[str] = typer.Option(None, "--resume", help="Resume a Bob session by ID"),
+    continue_: bool = typer.Option(False, "--continue", "-c", help="Continue the most recent Bob session"),
+    mode: Optional[str] = typer.Option(None, "--mode", "-m", help="Bob Shell mode: plan, code, advanced, ask"),
+) -> None:
+    """Open Bob Shell with all JSAT tools available as MCP.
+
+    \b
+    Fresh session:                jsat bob
+    Resume a named session:       jsat bob --resume <session-id>
+    Continue most recent session: jsat bob --continue
+    Specific mode:                jsat bob --mode advanced
+    """
+    from jsat.tools.shell import launch_ai_with_jsat_tools
+    js = _jsat(repo=repo, verbose=verbose)
+    launch_ai_with_jsat_tools(js, ai="bob", resume=resume, continue_session=continue_, mode=mode)
+
 @app.command("gpt")
 def cmd_gpt(
     repo: str = typer.Option(".", "--repo", "-r"),
@@ -377,6 +421,11 @@ def _tool_install_hint(tool: str) -> str:
             "Linux":   "curl -f https://zed.dev/install.sh | sh",
             "Windows": "not yet available on Windows — check zed.dev",
         },
+        "bob": {
+            "Darwin":  "npm install -g @ibm/bob-shell",
+            "Linux":   "npm install -g @ibm/bob-shell",
+            "Windows": "npm install -g @ibm/bob-shell",
+        },
     }
     tool_hints = hints.get(tool, {})
     return tool_hints.get(system, tool_hints.get("Darwin", f"install {tool}"))
@@ -387,6 +436,7 @@ _TOOL_CONFIG_PATHS: dict[str, tuple[Path, str]] = {
     "windsurf": (Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
     "gemini":   (Path.home() / ".gemini" / "settings.json",      "mcpServers"),
     "zed":      (Path.home() / ".config" / "zed" / "settings.json", "context_servers"),
+    "bob":      (Path.cwd() / ".bob" / "settings.json",          "mcpServers"),
 }
 
 
@@ -1665,52 +1715,49 @@ Show top hypotheses ranked by score. Include supporting evidence and recent comm
         ),
         # ── Prompt & token tools ──────────────────────────────────────────────
         "jsat-prompt": (
-            "Optimize a query. Multiple flags allowed. Query is everything after the last flag.",
-            """Step 1 — scan $ARGUMENTS for ALL flags (they may appear in any order, any combination):
+            "Optimize a query, THEN answer it with the optimized prompt. Flags pick the optimizer.",
+            """This command optimizes the query and then ANSWERS it. Optimization is a
+means to a better answer, not the final output.
 
-  --rewrite or --agent  → use jsat__prompt_rewrite   (1 LLM rewrite agent)
-  --agents              → use jsat__prompt_multi_agent with n_agents=3
-  --diff                → use jsat__prompt_diff
-  --send                → after optimizing, also call jsat__query with the result
-  (no flag)             → use jsat__prompt_optimize  (offline only, fastest)
+Step 1 — scan $ARGUMENTS for ALL flags (any order, any combination):
 
-Step 2 — the query is every word that is NOT a flag (i.e. not starting with --).
-Strip all flags, join the remaining words as the query string.
+  --rewrite or --agent  → optimize with jsat__prompt_rewrite   (1 LLM rewrite agent)
+  --agents              → optimize with jsat__prompt_multi_agent with n_agents=3
+  (no optimizer flag)   → optimize with jsat__prompt_optimize  (offline, fastest)
+  --diff                → ALSO show jsat__prompt_diff (raw vs optimized) before answering
+  --optimize-only       → STOP after optimizing; show the optimized prompt and do NOT answer
 
-Priority when multiple flags given:
-  --agents beats --rewrite (more agents = better)
-  --diff can combine with any of the above (show diff AND optimize)
-  --send can combine with any of the above (optimize AND send)
+Step 2 — the query is every word that is NOT a flag (not starting with --).
+Strip all flags; join the remaining words as the query string.
 
-Step 3 — call the selected tool with query=<stripped text>.
+Step 3 — call the selected optimizer with query=<stripped text> to get the
+optimized prompt (read it from the tool's "optimized_prompt" field).
+
+Step 4 — UNLESS --optimize-only was given, call jsat__query with
+question=<optimized_prompt> and present the ANSWER as the primary result.
+
+Priority when multiple optimizer flags given: --agents beats --rewrite.
 
 Examples:
-  /jsat-prompt fix logger in ValidateVPAHandler.post
-    → query="fix logger in ValidateVPAHandler.post"
-    → jsat__prompt_optimize(query=...)
+  /jsat-prompt what is ithinking?
+    → jsat__prompt_optimize(query="what is ithinking?")
+    → jsat__query(question=<optimized_prompt>)   → show the ANSWER
 
   /jsat-prompt --rewrite fix logger in ValidateVPAHandler.post
-    → query="fix logger in ValidateVPAHandler.post"
-    → jsat__prompt_rewrite(query=...)
-
-  /jsat-prompt --rewrite --agent fix logger in ValidateVPAHandler.post
-    → same as --rewrite (--agent is alias)
-    → query="fix logger in ValidateVPAHandler.post"
-    → jsat__prompt_rewrite(query=...)
+    → jsat__prompt_rewrite(query="fix logger in ValidateVPAHandler.post")
+    → jsat__query(question=<optimized_prompt>)   → show the ANSWER
 
   /jsat-prompt --agents improve the retry logic in PaymentService
-    → query="improve the retry logic in PaymentService"
     → jsat__prompt_multi_agent(query=..., n_agents=3)
+    → jsat__query(question=<optimized_prompt>)   → show the ANSWER
 
-  /jsat-prompt --diff --rewrite why is checkout failing
-    → query="why is checkout failing"
-    → jsat__prompt_rewrite(query=...) then jsat__prompt_diff(query=...)
+  /jsat-prompt --optimize-only why is checkout failing
+    → jsat__prompt_optimize(query="why is checkout failing")
+    → show the optimized prompt only; do NOT answer
 
-  /jsat-prompt --agents --send write a test for process_refund()
-    → query="write a test for process_refund()"
-    → jsat__prompt_multi_agent(query=...) then jsat__query(question=optimized_result)
-
-After calling, show: optimized prompt, tokens before→after, savings %, and for --rewrite/--agents: winning agent name and score."""
+Output: lead with the ANSWER from jsat__query. Then, briefly, note the optimized
+prompt that was used and tokens before→after (plus winning agent for
+--rewrite/--agents). For --optimize-only, show ONLY the optimized prompt + token stats."""
         ),
         "jsat-prompt-diff": (
             "Show what you typed vs what JSAT sent to the AI after optimization.",
@@ -1826,6 +1873,19 @@ Show each agent's statements by round, then the moderator's final synthesis with
         ),
 }
 
+# Appended to every generated command so the assistant delivers a real answer
+# instead of stopping at raw tool output. Without this, some tools (especially
+# ones that return an intermediate artifact like an optimized prompt or a JSON
+# blob) get echoed verbatim, which reads as "just showing what the tool does".
+_JSAT_CMD_DIRECTIVE = (
+    "\n\nHOW TO RESPOND: Actually invoke the tool(s) described above, then reply "
+    "with a direct, useful answer built from the result — interpret it for the "
+    "user in plain language. Do not merely describe what the tool does, and do "
+    "not echo raw JSON. If a tool returns an intermediate artifact (e.g. an "
+    "optimized prompt), use it to finish the task rather than presenting it as "
+    "the final answer."
+)
+
 
 def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
     """Write /jsat-* skill files so Claude Code can call JSAT tools via slash commands."""
@@ -1839,8 +1899,41 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
 
     for name, (description, instruction) in _JSAT_SKILLS.items():
         skill_file = commands_dir / f"{name}.md"
-        content = f"---\ndescription: {description}\n---\n\n{instruction}\n"
+        content = f"---\ndescription: {description}\n---\n\n{instruction}{_JSAT_CMD_DIRECTIVE}\n"
         skill_file.write_text(content, encoding="utf-8")
+
+    return commands_dir
+
+
+def _write_bob_commands(scope: str, commands_dir: Path | None = None) -> Path:
+    """Write /jsat-* slash commands so Bob Shell can call JSAT tools.
+
+    Bob reads markdown commands from .bob/commands/ (project) or ~/.bob/commands/
+    (global); the filename becomes the command name. Bob uses shell-style
+    argument placeholders, so the $ARGUMENTS used by the Claude skills is
+    rewritten to $@ ("all arguments"), and an argument-hint is added when the
+    command takes input.
+    """
+    if commands_dir is None:
+        if scope == "global":
+            commands_dir = Path.home() / ".bob" / "commands"
+        else:
+            commands_dir = Path.cwd() / ".bob" / "commands"
+
+    commands_dir.mkdir(parents=True, exist_ok=True)
+
+    def _yaml_dq(s: str) -> str:
+        """Double-quote a value for YAML frontmatter. Bob parses frontmatter as
+        strict YAML, so descriptions containing ':' etc. must be quoted."""
+        return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+    for name, (description, instruction) in _JSAT_SKILLS.items():
+        body = instruction.replace("$ARGUMENTS", "$@") + _JSAT_CMD_DIRECTIVE
+        # Menu descriptions read better with a plain word than the raw token.
+        desc = description.replace("$ARGUMENTS", "arguments")
+        hint = f"\nargument-hint: {_yaml_dq('<arguments>')}" if "$@" in body else ""
+        content = f"---\ndescription: {_yaml_dq(desc)}{hint}\n---\n\n{body}\n"
+        (commands_dir / f"{name}.md").write_text(content, encoding="utf-8")
 
     return commands_dir
 
@@ -1925,7 +2018,7 @@ def cmd_connect_claude(
     if install_skills:
         skills_dir = _write_jsat_skills(scope)
         console.print(
-            f"[green]✓[/] Installed 28 JSAT slash commands in [bold]{skills_dir}[/]\n"
+            f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands in [bold]{skills_dir}[/]\n"
             "\n[bold]Graph exploration[/]\n"
             "  [cyan]/jsat-query[/]           — ask anything about the codebase\n"
             "  [cyan]/jsat-find-function[/]   — look up a function by name\n"
@@ -2318,7 +2411,63 @@ def cmd_connect_gemini(
         gemini_md = Path(repo).resolve() / "GEMINI.md"
         _write_instructions_file(gemini_md)
         _print_instructions_written(gemini_md, "Gemini CLI",
-                                    "Gemini CLI reads GEMINI.md from the project root automatically.")
+                                    "Place this file in project root — Gemini CLI auto-reads it.")
+
+
+@connect_app.command("bob")
+def cmd_connect_bob(
+    repo: str = typer.Option(".", "--repo", "-r"),
+    scope: str = typer.Option(
+        "project", "--scope", "-s",
+        help="'project' → .bob/settings.json  |  'global' → ~/.bob/settings.json",
+    ),
+    no_instructions: bool = typer.Option(False, "--no-instructions",
+                                          help="Skip writing BOB.md"),
+    install_commands: bool = typer.Option(
+        True, "--install-commands/--no-commands",
+        help="Also install /jsat-* slash commands in Bob Shell",
+    ),
+) -> None:
+    """Wire JSAT into Bob Shell as an MCP server + BOB.md guidance + /jsat-* commands.
+
+    \b
+    Project level (just this repo):
+        jsat connect bob
+
+    \b
+    Global level (all Bob Shell sessions):
+        jsat connect bob --scope global
+
+    Writes:
+      .bob/settings.json (or ~/.bob/settings.json)  — MCP server registration
+      .bob/commands/jsat-*.md (or ~/.bob/commands/)  — /jsat-* slash commands
+      BOB.md                                         — JSAT tool guidance (project root)
+    """
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+
+    if scope == "global":
+        config_path = Path.home() / ".bob" / "settings.json"
+        label = "Bob Shell (global)"
+    else:
+        config_path = Path.cwd() / ".bob" / "settings.json"
+        label = "Bob Shell (project)"
+
+    _connect_mcp_tool(label, config_path, binary, repo_path, "Restart Bob Shell")
+
+    if install_commands:
+        cmds_dir = _write_bob_commands(scope)
+        console.print(
+            f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands in [bold]{cmds_dir}[/]\n"
+            "  Type [cyan]/[/] in Bob Shell to browse them — e.g. "
+            "[cyan]/jsat-query[/], [cyan]/jsat-blast-radius[/], [cyan]/jsat-security[/].\n"
+        )
+
+    if not no_instructions:
+        bob_md = Path(repo).resolve() / "BOB.md"
+        _write_instructions_file(bob_md)
+        _print_instructions_written(bob_md, "Bob Shell",
+                                    "Bob Shell reads BOB.md from the project root automatically.")
 
 
 # ── All known JSAT config locations ───────────────────────────────────────────
@@ -2332,6 +2481,8 @@ _CONNECT_LOCATIONS: list[tuple[str, Path, str]] = [
     ("Codex (global)",        Path.home() / ".codex" / "config.json",    "mcpServers"),
     ("Windsurf",              Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
     ("Gemini CLI",            Path.home() / ".gemini" / "settings.json", "mcpServers"),
+    ("Bob Shell (project)",   Path.cwd() / ".bob" / "settings.json",     "mcpServers"),
+    ("Bob Shell (global)",    Path.home() / ".bob" / "settings.json",    "mcpServers"),
 ]
 
 
@@ -2383,6 +2534,7 @@ def cmd_connect_list() -> None:
             "  [bold]jsat connect continue[/]   ← Continue.dev\n"
             "  [bold]jsat connect zed[/]        ← Zed editor\n"
             "  [bold]jsat connect gemini[/]     ← Gemini CLI\n"
+            "  [bold]jsat connect bob[/]        ← Bob Shell\n"
         )
 
 
@@ -2558,6 +2710,32 @@ def cmd_mcp_server(
     from pathlib import Path
 
     repo_path = Path(repo).resolve()
+
+    # ── CRITICAL: route ALL logging to stderr before anything logs.
+    # In stdio MCP, stdout carries ONLY JSON-RPC 2.0 messages. structlog's
+    # default (and setup_logging's) PrintLoggerFactory writes to stdout, so any
+    # log line corrupts the JSON-RPC stream and strict clients (e.g. Bob Shell)
+    # report "MCP ERROR". Configure stderr-only logging here, before load_config
+    # emits its first line.
+    import logging as _logging
+    import sys as _sys
+
+    import structlog as _structlog
+
+    _mcp_level = _logging.DEBUG if verbose else _logging.WARNING
+    _logging.basicConfig(level=_mcp_level,
+                         handlers=[_logging.StreamHandler(_sys.stderr)], force=True)
+    _structlog.configure(
+        processors=[
+            _structlog.processors.add_log_level,
+            _structlog.processors.TimeStamper(fmt="iso", utc=True),
+            _structlog.dev.ConsoleRenderer(),
+        ],
+        wrapper_class=_structlog.make_filtering_bound_logger(_mcp_level),
+        context_class=dict,
+        logger_factory=_structlog.PrintLoggerFactory(file=_sys.stderr),
+        cache_logger_on_first_use=True,
+    )
 
     # Minimal config load — no system detection, no service pings, no indexing
     from jsat._config import load_config
