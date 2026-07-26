@@ -292,24 +292,57 @@ class JSATShell:
     def _cmd_switch(self, args: list[str]) -> None:
         """switch <provider> [model]
 
-        switch claude-cli  → opens the real Claude Code with ALL JSAT tools as MCP
-        switch claude      → uses claude CLI for Q&A (session-based)
-        switch gpt         → OpenAI GPT
-        switch ollama      → local Ollama
+        Native AI tool launchers (open with JSAT pre-loaded):
+          switch claude-cli  → Claude Code + JSAT MCP tools
+          switch codex       → OpenAI Codex CLI
+          switch gemini      → Google Gemini CLI
+          switch cursor      → Cursor IDE (opens in background)
+          switch windsurf    → Windsurf IDE (opens in background)
+          switch zed         → Zed editor (opens in background)
+
+        JSAT shell with AI backend:
+          switch claude | gpt | ollama | anthropic | lmstudio
         """
         if not args:
             self._console.print(
-                "[yellow]Usage:[/] switch <provider> [model]\n"
-                "  [cyan]switch claude-cli[/]  ← Full Claude Code + JSAT MCP tools (recommended)\n"
-                "  switch claude | gpt | ollama | gemini | lmstudio | anthropic"
+                "[yellow]Usage:[/] switch <provider> [model]\n\n"
+                "[bold]Native launchers (JSAT pre-loaded):[/]\n"
+                "  [cyan]switch claude-cli[/]   ← Claude Code + JSAT MCP tools\n"
+                "  [cyan]switch codex[/]        ← OpenAI Codex CLI\n"
+                "  [cyan]switch gemini[/]       ← Google Gemini CLI\n"
+                "  [cyan]switch cursor[/]       ← Cursor IDE\n"
+                "  [cyan]switch windsurf[/]     ← Windsurf IDE\n"
+                "  [cyan]switch zed[/]          ← Zed editor\n\n"
+                "[bold]JSAT shell with AI:[/]\n"
+                "  switch claude | gpt | ollama | anthropic | lmstudio"
             )
             return
 
         provider = args[0].lower()
 
-        # Special: launch full interactive Claude Code with JSAT as MCP tools
+        # ── Native tool launchers (open the actual AI tool with JSAT pre-loaded)
         if provider in ("claude-cli", "claude-interactive", "claude-full", "full"):
             self._launch_claude_with_jsat_tools()
+            return
+
+        if provider in ("codex",):
+            self._launch_cli_tool("codex")
+            return
+
+        if provider in ("gemini", "gemini-cli"):
+            self._launch_cli_tool("gemini")
+            return
+
+        if provider in ("cursor",):
+            self._open_gui_tool("cursor")
+            return
+
+        if provider in ("windsurf",):
+            self._open_gui_tool("windsurf")
+            return
+
+        if provider in ("zed",):
+            self._open_gui_tool("zed")
             return
 
         model    = args[1] if len(args) > 1 else None
@@ -525,12 +558,56 @@ class JSATShell:
         }
         return hints.get(provider, "")
 
+    def _launch_cli_tool(self, tool: str) -> None:
+        """Launch a CLI AI tool (codex, gemini) — they auto-read JSAT MCP config."""
+        import platform
+        import shutil
+        import subprocess
+        binary = shutil.which(tool)
+        if not binary:
+            from jsat.cli import _tool_install_hint  # type: ignore[attr-defined]
+            hint = _tool_install_hint(tool)
+            self._console.print(
+                f"[red]{tool} not found in PATH.[/]\n"
+                f"  Install ({platform.system()}): [bold]{hint}[/]\n"
+                f"  Then run: [bold]jsat connect {tool}[/] to wire JSAT."
+            )
+            return
+        repo = str(self._js._repo)
+        self._console.print(
+            f"[dim]Launching [bold]{tool}[/bold] with JSAT tools pre-loaded...[/dim]\n"
+            "[dim]  Ctrl+C to exit back to JSAT shell.[/dim]\n"
+        )
+        subprocess.run([binary], cwd=repo)
+
+    def _open_gui_tool(self, tool: str) -> None:
+        """Open a GUI AI tool (cursor, windsurf, zed) in the background."""
+        import platform
+        import shutil
+        import subprocess
+        binary = shutil.which(tool)
+        if not binary:
+            from jsat.cli import _tool_install_hint  # type: ignore[attr-defined]
+            hint = _tool_install_hint(tool)
+            self._console.print(
+                f"[red]{tool} not found in PATH.[/]\n"
+                f"  Install ({platform.system()}): [bold]{hint}[/]\n"
+                f"  Then run: [bold]jsat connect {tool}[/] to wire JSAT."
+            )
+            return
+        repo = str(self._js._repo)
+        subprocess.Popen([binary, repo])
+        self._console.print(
+            f"[green]✓[/] Opened [bold]{tool}[/] — JSAT tools are pre-loaded.\n"
+            f"[dim]  Run `jsat connect {tool}` if JSAT tools don't appear.[/dim]"
+        )
+
     def _show_ai(self) -> None:
         self._console.print(f"Current AI: [bold green]{self._ai_label()}[/]")
         self._console.print(
             f"  Provider: [cyan]{self._js._cfg.ai.provider}[/]\n"
             f"  Model:    [cyan]{self._js._cfg.ai.model}[/]\n"
-            f"  Switch:   [dim]switch claude | switch gpt | switch ollama | switch gemini[/dim]"
+            "  Switch:   [dim]switch claude-cli | switch codex | switch gemini | switch cursor | switch gpt[/dim]"
         )
 
     # ── AI chat (the main feature) ────────────────────────────────────────────

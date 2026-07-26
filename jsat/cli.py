@@ -39,8 +39,8 @@ def cmd_disconnect(
         help="'project' | 'global' | 'all'  (claude and codex only)",
     ),
     keep_skills: bool = typer.Option(
-        False, "--keep-skills",
-        help="Keep /jsat-* slash command files (default: remove them too)",
+        False, "--keep-skills", "--keep-guidance",
+        help="Keep /jsat-* skills, instructions, and guidance files (default: remove them too)",
     ),
 ) -> None:
     """Remove JSAT from an AI tool — undo jsat connect.
@@ -104,14 +104,20 @@ def cmd_disconnect(
 
     # ── cursor ────────────────────────────────────────────────────────────────
     if tool_lower in ("cursor", "all"):
-        removed_any |= _remove_from_standard("Cursor", Path.home() / ".cursor" / "mcp.json")
+        # Remove from both project and global config on 'all', else just the scope config
+        for cp in [Path(Path.cwd() / ".cursor" / "mcp.json"),
+                   Path.home() / ".cursor" / "mcp.json"]:
+            removed_any |= _remove_from_standard("Cursor", cp)
+        if not keep_skills:
+            _remove_jsat_block(Path.cwd() / ".cursorrules")
 
     # ── windsurf ──────────────────────────────────────────────────────────────
     if tool_lower in ("windsurf", "all"):
         removed_any |= _remove_from_standard(
             "Windsurf", Path.home() / ".codeium" / "windsurf" / "mcp_config.json"
         )
-        _remove_jsat_block(Path.cwd() / ".windsurfrules")
+        if not keep_skills:
+            _remove_jsat_block(Path.cwd() / ".windsurfrules")
 
     # ── continue ──────────────────────────────────────────────────────────────
     if tool_lower in ("continue", "all"):
@@ -119,9 +125,14 @@ def cmd_disconnect(
         try:
             if continue_path.exists():
                 cfg = _json.loads(continue_path.read_text(encoding="utf-8"))
-                before = len(cfg.get("mcpServers", []))
+                before_srv = len(cfg.get("mcpServers", []))
                 cfg["mcpServers"] = [s for s in cfg.get("mcpServers", []) if s.get("name") != "jsat"]
-                if len(cfg["mcpServers"]) < before:
+                if not keep_skills:
+                    cfg["customCommands"] = [
+                        c for c in cfg.get("customCommands", [])
+                        if not c.get("name", "").startswith("jsat-")
+                    ]
+                if len(cfg["mcpServers"]) < before_srv:
                     continue_path.write_text(_json.dumps(cfg, indent=2), encoding="utf-8")
                     console.print(f"[green]✓[/] Removed JSAT from [bold]Continue.dev[/] ({continue_path})")
                     removed_any = True
@@ -137,13 +148,16 @@ def cmd_disconnect(
             _write_json(zed_path, data)
             console.print(f"[green]✓[/] Removed JSAT from [bold]Zed[/] ({zed_path})")
             removed_any = True
+        if not keep_skills:
+            _remove_jsat_block(Path.cwd() / ".zed" / "JSAT.md")
 
     # ── gemini ────────────────────────────────────────────────────────────────
     if tool_lower in ("gemini", "all"):
         removed_any |= _remove_from_standard(
             "Gemini CLI", Path.home() / ".gemini" / "settings.json"
         )
-        _remove_jsat_block(Path.cwd() / "GEMINI.md")
+        if not keep_skills:
+            _remove_jsat_block(Path.cwd() / "GEMINI.md")
 
     if tool_lower not in ("claude", "codex", "cursor", "windsurf",
                           "continue", "zed", "gemini", "all"):
@@ -251,16 +265,26 @@ def cmd_shell(
       incident "500 errors"      investigate
 
     \b
-    Launch an AI session from inside the shell:
-      switch claude    → Claude Code (full features + JSAT tools)
-      switch gpt       → GPT-4o
-      switch ollama    → local Ollama
+    Launch a native AI tool from inside the shell:
+      switch claude-cli  → Claude Code (full features + JSAT tools)
+      switch codex       → OpenAI Codex CLI
+      switch gemini      → Google Gemini CLI
+      switch cursor      → Cursor IDE
+      switch windsurf    → Windsurf IDE
+      switch zed         → Zed editor
+      switch gpt         → GPT-4o (JSAT shell)
+      switch ollama      → local Ollama (JSAT shell)
 
     \b
     Or launch directly from the command line:
-      jsat claude      → open Claude with JSAT tools
-      jsat gpt         → open GPT with JSAT tools
-      jsat ollama      → open Ollama-powered session
+      jsat claude      → Claude Code with JSAT tools
+      jsat codex       → Codex CLI with JSAT tools
+      jsat cursor      → Cursor IDE with JSAT tools
+      jsat windsurf    → Windsurf IDE with JSAT tools
+      jsat gemini      → Gemini CLI with JSAT tools
+      jsat zed         → Zed with JSAT tools
+      jsat gpt         → GPT session (JSAT shell)
+      jsat ollama      → Ollama session (JSAT shell)
     """
     from jsat.tools.shell import launch
     js = _jsat(repo=repo, verbose=verbose)
@@ -306,6 +330,209 @@ def cmd_ollama(
     except Exception:
         pass
     launch(js)
+
+
+# ── AI tool launchers (parity with `jsat claude`) ────────────────────────────
+
+def _tool_install_hint(tool: str) -> str:
+    """Return OS-appropriate install instructions for an AI tool."""
+    import platform
+    system = platform.system()  # "Darwin" | "Linux" | "Windows"
+    hints: dict[str, dict[str, str]] = {
+        "codex": {
+            "Darwin":  "npm install -g @openai/codex",
+            "Linux":   "npm install -g @openai/codex",
+            "Windows": "npm install -g @openai/codex",
+        },
+        "cursor": {
+            "Darwin":  "brew install --cask cursor  OR  download from cursor.com",
+            "Linux":   "download AppImage from cursor.com/download",
+            "Windows": "download installer from cursor.com/download",
+        },
+        "windsurf": {
+            "Darwin":  "brew install --cask windsurf  OR  download from windsurf.ai",
+            "Linux":   "download AppImage from windsurf.ai/download",
+            "Windows": "download installer from windsurf.ai/download",
+        },
+        "gemini": {
+            "Darwin":  "npm install -g @google/gemini-cli  OR  brew install gemini",
+            "Linux":   "npm install -g @google/gemini-cli",
+            "Windows": "npm install -g @google/gemini-cli",
+        },
+        "zed": {
+            "Darwin":  "brew install --cask zed  OR  download from zed.dev",
+            "Linux":   "curl -f https://zed.dev/install.sh | sh",
+            "Windows": "not yet available on Windows — check zed.dev",
+        },
+    }
+    tool_hints = hints.get(tool, {})
+    return tool_hints.get(system, tool_hints.get("Darwin", f"install {tool}"))
+
+_TOOL_CONFIG_PATHS: dict[str, tuple[Path, str]] = {
+    "codex":    (Path.cwd() / ".codex" / "config.json",          "mcpServers"),
+    "cursor":   (Path.home() / ".cursor" / "mcp.json",           "mcpServers"),
+    "windsurf": (Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
+    "gemini":   (Path.home() / ".gemini" / "settings.json",      "mcpServers"),
+    "zed":      (Path.home() / ".config" / "zed" / "settings.json", "context_servers"),
+}
+
+
+def _is_connected(tool: str) -> bool:
+    """Return True if JSAT MCP config exists for this tool."""
+    entry = _TOOL_CONFIG_PATHS.get(tool)
+    if not entry:
+        return False
+    config_path, key = entry
+    return "jsat" in _read_json(config_path).get(key, {})
+
+
+def _auto_connect(tool: str, repo: str) -> None:
+    """Silently connect JSAT to a tool if not already wired."""
+    if _is_connected(tool):
+        return
+    console.print(f"[dim]Auto-connecting JSAT to {tool}...[/dim]")
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+    config_path, key = _TOOL_CONFIG_PATHS[tool]
+    if key == "context_servers":
+        settings = _read_json(config_path)
+        settings.setdefault("context_servers", {})
+        settings["context_servers"]["jsat"] = {
+            "command": {"path": binary, "args": ["mcp-server", "--repo", repo_path]}
+        }
+        _write_json(config_path, settings)
+    else:
+        _connect_mcp_tool(tool.title(), config_path, binary, repo_path, f"Restart {tool.title()}")
+    # Also write guidance file
+    if tool == "codex":
+        _write_instructions_file(config_path.parent / "instructions.md")
+    elif tool == "cursor":
+        _write_instructions_file(Path(repo).resolve() / ".cursorrules")
+    elif tool == "windsurf":
+        _write_instructions_file(Path(repo).resolve() / ".windsurfrules")
+    elif tool == "gemini":
+        _write_instructions_file(Path(repo).resolve() / "GEMINI.md")
+    elif tool == "zed":
+        _write_instructions_file(Path(repo).resolve() / ".zed" / "JSAT.md")
+    console.print(f"[green]✓[/] JSAT connected to [bold]{tool}[/]")
+
+
+def _launch_tool(
+    tool: str,
+    binary: str,
+    repo: str,
+    *,
+    gui: bool = False,
+    extra_args: list[str] | None = None,
+) -> None:
+    """Launch a native AI tool binary with JSAT pre-wired."""
+    import shutil
+    import subprocess
+
+    bin_path = shutil.which(binary or tool)
+    if not bin_path:
+        err.print(
+            f"[red]{tool} not found in PATH.[/]\n"
+            f"  Install: [bold]{_tool_install_hint(tool)}[/]"
+        )
+        raise typer.Exit(1)
+
+    _auto_connect(tool, repo)
+
+    repo_abs = str(Path(repo).resolve())
+    cmd = [bin_path] + (extra_args or [])
+    if not gui:
+        # CLI tools: run in foreground in the repo directory
+        console.print(
+            f"[green]✓[/] Launching [bold]{tool}[/] with JSAT tools pre-loaded.\n"
+            f"[dim]  MCP tools available — JSAT graph at {repo_abs}[/dim]\n"
+        )
+        subprocess.run(cmd, cwd=repo_abs)
+    else:
+        # GUI tools: open in background
+        cmd_with_dir = cmd + [repo_abs]
+        console.print(
+            f"[green]✓[/] Opening [bold]{tool}[/] — JSAT tools are pre-loaded.\n"
+            f"[dim]  Run `jsat connect {tool}` if tools don't appear.[/dim]\n"
+        )
+        subprocess.Popen(cmd_with_dir)
+
+
+@app.command("codex")
+def cmd_codex(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Open Codex CLI with JSAT tools pre-configured.
+
+    \b
+    Auto-connects JSAT if not already done, then launches:
+      codex        (reads .codex/config.json automatically)
+
+    \b
+    JSAT MCP tools are available to Codex immediately.
+    Install Codex: npm install -g @openai/codex
+    """
+    _launch_tool("codex", "codex", repo)
+
+
+@app.command("cursor")
+def cmd_cursor(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+) -> None:
+    """Open Cursor IDE with JSAT tools pre-configured.
+
+    \b
+    Auto-connects JSAT if not already done, then opens Cursor
+    in the repository directory. JSAT MCP tools are available immediately.
+    Install Cursor: brew install --cask cursor
+    """
+    _launch_tool("cursor", "cursor", repo, gui=True)
+
+
+@app.command("windsurf")
+def cmd_windsurf(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+) -> None:
+    """Open Windsurf IDE with JSAT tools pre-configured.
+
+    \b
+    Auto-connects JSAT if not already done, then opens Windsurf
+    in the repository directory. JSAT MCP tools are available immediately.
+    Install Windsurf: brew install --cask windsurf
+    """
+    _launch_tool("windsurf", "windsurf", repo, gui=True)
+
+
+@app.command("gemini")
+def cmd_gemini(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Open Gemini CLI with JSAT tools pre-configured.
+
+    \b
+    Auto-connects JSAT if not already done, then launches:
+      gemini       (reads ~/.gemini/settings.json + GEMINI.md automatically)
+
+    \b
+    Install Gemini CLI: npm install -g @google/gemini-cli
+    """
+    _launch_tool("gemini", "gemini", repo)
+
+
+@app.command("zed")
+def cmd_zed(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+) -> None:
+    """Open Zed editor with JSAT context server pre-configured.
+
+    \b
+    Auto-connects JSAT if not already done, then opens Zed
+    in the repository directory.
+    Install Zed: brew install --cask zed
+    """
+    _launch_tool("zed", "zed", repo, gui=True)
 
 
 # ── doctor ────────────────────────────────────────────────────────────────────
@@ -376,6 +603,32 @@ def cmd_doctor(
         ai_t.add_row("[dim]none detected[/]", "[red]✗[/]", "", "")
     console.print(Panel(ai_t, title=f"AI Providers  (active: {active_provider}/{ai.get('model','?')})",
                         border_style="blue"))
+
+    # Connected AI tools
+    tool_t = Table(box=box.ROUNDED, header_style="bold magenta")
+    tool_t.add_column("Tool")
+    tool_t.add_column("Status")
+    tool_t.add_column("Config")
+    tool_t.add_column("How to connect")
+    for label, cfg_path, key in _CONNECT_LOCATIONS:
+        jsat_cfg = _read_json(cfg_path).get(key, {}).get("jsat")
+        if jsat_cfg:
+            tool_t.add_row(label, "[green]✓ connected[/]", str(cfg_path), "")
+        else:
+            short = label.split("(")[0].strip().lower().replace(" ", "").replace("code", "")
+            cmd_hint = f"jsat connect {short}" if short else ""
+            tool_t.add_row(label, "[dim]✗ not wired[/]", "", f"[dim]{cmd_hint}[/]")
+    # Continue (array format)
+    import json as _json2
+    _cont = Path.home() / ".continue" / "config.json"
+    try:
+        _cont_cfg = _json2.loads(_cont.read_text()) if _cont.exists() else {}
+        _jsat_cont = any(s.get("name") == "jsat" for s in _cont_cfg.get("mcpServers", []))
+        tool_t.add_row("Continue", "[green]✓ connected[/]" if _jsat_cont else "[dim]✗ not wired[/]",
+                       str(_cont) if _jsat_cont else "", "" if _jsat_cont else "[dim]jsat connect continue[/]")
+    except Exception:
+        pass
+    console.print(Panel(tool_t, title="Connected AI Tools", border_style="blue"))
 
 
 # ── init ──────────────────────────────────────────────────────────────────────
@@ -1051,17 +1304,11 @@ def _write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
-    """Write /jsat-* skill files so Claude Code can call JSAT tools via slash commands."""
-    if commands_dir is None:
-        if scope == "global":
-            commands_dir = Path.home() / ".claude" / "commands"
-        else:
-            commands_dir = Path.cwd() / ".claude" / "commands"
+# ── Shared skill definitions (reused by Claude, Continue, and docs) ────────────
 
-    commands_dir.mkdir(parents=True, exist_ok=True)
-
-    skills: dict[str, tuple[str, str]] = {
+# Each entry: skill-name → (description, instruction)
+# $ARGUMENTS is replaced by {input} for Continue's customCommands format.
+_JSAT_SKILLS: dict[str, tuple[str, str]] = {
         # ── Graph exploration ─────────────────────────────────────────────────
         "jsat-query": (
             "Answer a question about this codebase using JSAT's graph index.",
@@ -1228,14 +1475,23 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
             'Use jsat__ithinking_reflect with subtask="$ARGUMENTS" to log the outcome, '
             "what worked, what didn\'t, and any follow-up actions."
         ),
-    }
+}
 
-    written = []
-    for name, (description, instruction) in skills.items():
+
+def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
+    """Write /jsat-* skill files so Claude Code can call JSAT tools via slash commands."""
+    if commands_dir is None:
+        if scope == "global":
+            commands_dir = Path.home() / ".claude" / "commands"
+        else:
+            commands_dir = Path.cwd() / ".claude" / "commands"
+
+    commands_dir.mkdir(parents=True, exist_ok=True)
+
+    for name, (description, instruction) in _JSAT_SKILLS.items():
         skill_file = commands_dir / f"{name}.md"
         content = f"---\ndescription: {description}\n---\n\n{instruction}\n"
         skill_file.write_text(content, encoding="utf-8")
-        written.append(name)
 
     return commands_dir
 
@@ -1382,13 +1638,35 @@ def _connect_mcp_tool(
 @connect_app.command("cursor")
 def cmd_connect_cursor(
     repo: str = typer.Option(".", "--repo", "-r"),
+    scope: str = typer.Option(
+        "global", "--scope", "-s",
+        help="'project' → .cursor/mcp.json in repo  |  'global' → ~/.cursor/mcp.json",
+    ),
+    no_instructions: bool = typer.Option(False, "--no-instructions",
+                                          help="Skip writing .cursorrules guidance"),
 ) -> None:
-    """Wire JSAT into Cursor as an MCP server (~/.cursor/mcp.json)."""
-    _connect_mcp_tool(
-        "Cursor", Path.home() / ".cursor" / "mcp.json",
-        _jsat_binary(), str(Path(repo).resolve()),
-        "Restart Cursor",
-    )
+    """Wire JSAT into Cursor as an MCP server + .cursorrules guidance.
+
+    \b
+    Project level (just this repo):
+        jsat connect cursor --scope project
+
+    \b
+    Global level (all Cursor sessions):
+        jsat connect cursor            (default: global)
+    """
+    binary = _jsat_binary()
+    repo_path = str(Path(repo).resolve())
+    if scope == "project":
+        config_path = Path(repo).resolve() / ".cursor" / "mcp.json"
+    else:
+        config_path = Path.home() / ".cursor" / "mcp.json"
+    _connect_mcp_tool("Cursor", config_path, binary, repo_path, "Restart Cursor")
+    if not no_instructions:
+        rules_path = Path(repo).resolve() / ".cursorrules"
+        _write_instructions_file(rules_path)
+        _print_instructions_written(rules_path, "Cursor",
+                                    "Cursor reads .cursorrules from the project root automatically.")
 
 
 def _jsat_instructions_block() -> str:
@@ -1591,31 +1869,18 @@ def cmd_connect_continue(
     })
     cfg["mcpServers"] = servers
 
-    # Custom slash commands (Continue's equivalent of skills)
+    # Custom slash commands — all 28, same as Claude skills (Continue's equivalent)
     if not no_instructions:
         existing_cmds: list = cfg.get("customCommands", [])
         existing_cmds = [c for c in existing_cmds if not c.get("name", "").startswith("jsat-")]
+        # Reuse _JSAT_SKILLS — convert $ARGUMENTS → {input} for Continue format
         jsat_commands = [
-            {"name": "jsat-query", "description": "Answer a question about the codebase",
-             "prompt": "Use the jsat__query MCP tool with question=\"{input}\""},
-            {"name": "jsat-blast-radius", "description": "Trace impact of a change",
-             "prompt": "Use jsat__blast_radius with target=\"{input}\""},
-            {"name": "jsat-security", "description": "Run a security scan",
-             "prompt": "Use jsat__security_review with path=\"{input}\" or \".\""},
-            {"name": "jsat-review", "description": "Multi-model code review",
-             "prompt": "Use jsat__submit_for_review with diff=\"{input}\""},
-            {"name": "jsat-test-gaps", "description": "Find untested code paths",
-             "prompt": "Use jsat__get_test_gaps with path=\"{input}\" or \".\""},
-            {"name": "jsat-knowledge", "description": "Search the knowledge base",
-             "prompt": "Use jsat__knowledge_query with query=\"{input}\""},
-            {"name": "jsat-incident", "description": "Investigate a production incident",
-             "prompt": "Use jsat__investigate_incident with description=\"{input}\""},
-            {"name": "jsat-prompt-rewrite", "description": "Rewrite a prompt with LLM agents",
-             "prompt": "Use jsat__prompt_multi_agent with query=\"{input}\" and n_agents=3"},
-            {"name": "jsat-tokens", "description": "Count and compress tokens",
-             "prompt": "Use jsat__token_count then jsat__token_compress with text=\"{input}\""},
-            {"name": "jsat-ithinking", "description": "Plan before acting",
-             "prompt": "Use jsat__ithinking_plan with task=\"{input}\""},
+            {
+                "name": name,
+                "description": description,
+                "prompt": instruction.replace("$ARGUMENTS", "{input}"),
+            }
+            for name, (description, instruction) in _JSAT_SKILLS.items()
         ]
         cfg["customCommands"] = existing_cmds + jsat_commands
 
@@ -1623,7 +1888,7 @@ def cmd_connect_continue(
 
     console.print(f"\n[green]✓[/] Added JSAT to Continue config: [cyan]{config_path}[/]")
     if not no_instructions:
-        console.print(f"[green]✓[/] Added 10 [cyan]/jsat-*[/] custom commands to Continue")
+        console.print(f"[green]✓[/] Added {len(_JSAT_SKILLS)} [cyan]/jsat-*[/] custom commands to Continue")
     console.print("[bold yellow]→ Reload Continue[/] (Cmd/Ctrl+Shift+P → 'Continue: Reload') to activate.\n")
 
 

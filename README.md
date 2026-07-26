@@ -24,25 +24,33 @@ JSAT works as a CLI, a Python SDK, and an MCP server that plugs directly into Cl
 ```bash
 pip install jsat
 
-# Wire JSAT into Claude Code (if installed — no API key needed)
-jsat connect claude
-
 # Index your project
 cd your-project/
 jsat index .
 
-# Open Claude with full codebase context and JSAT tools available
-jsat claude
+# Open your AI tool with JSAT pre-loaded (auto-connects on first use)
+jsat claude      # Claude Code
+jsat codex       # OpenAI Codex CLI
+jsat cursor      # Cursor IDE
+jsat windsurf    # Windsurf
+jsat gemini      # Google Gemini CLI
+jsat zed         # Zed editor
 ```
 
-Inside Claude Code you can then use slash commands:
+Inside any connected tool you can use JSAT commands:
 
+**Claude Code slash commands:**
 ```
 /jsat-query what does the payment service do?
 /jsat-blast-radius src/payment/refund.py
 /jsat-security
 /jsat-incident "500 errors spiking on checkout"
+/jsat-prompt-rewrite fix logger in ValidateVPAHandler.post
 ```
+
+**Continue.dev custom commands** (same 28 commands, `/jsat-*` prefix)
+
+**All tools** have 55 JSAT MCP tools the AI can call automatically — no slash commands needed.
 
 ---
 
