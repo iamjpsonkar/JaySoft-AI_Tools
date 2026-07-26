@@ -35,6 +35,12 @@ jsat cursor      # Cursor IDE
 jsat windsurf    # Windsurf
 jsat gemini      # Google Gemini CLI
 jsat zed         # Zed editor
+
+# War room discussion (new!)
+jsat crack "redesign payment retry system"
+
+# Shortest possible answer (new!)
+jsat short "what does process_refund do"
 ```
 
 Inside any connected tool you can use JSAT commands:
@@ -405,14 +411,24 @@ jsat remove                                   # remove all JSAT artifacts from t
 | `jsat index . --languages python,go` | Index specific languages only |
 | `jsat shell` | Start the interactive JSAT REPL |
 | `jsat claude` | Open Claude Code with JSAT MCP tools loaded |
+| `jsat codex` | Open Codex CLI with JSAT pre-loaded |
+| `jsat cursor` | Open Cursor IDE with JSAT pre-loaded |
+| `jsat windsurf` | Open Windsurf with JSAT pre-loaded |
+| `jsat gemini` | Open Gemini CLI with JSAT pre-loaded |
+| `jsat zed` | Open Zed editor with JSAT pre-loaded |
 | `jsat gpt` | Open a GPT session with JSAT tools |
 | `jsat ollama [--model llama3.2]` | Open a local Ollama session |
+| `jsat crack <task>` | Multi-agent war room discussion (6 AI specialists) |
+| `jsat crack --roles architect,security <task>` | War room with specific roles only |
+| `jsat crack --rounds 2 --file out.md <task>` | 2 rounds, save output to file |
+| `jsat short <question>` | Get the shortest possible correct answer |
+| `jsat short --one-line <question>` | Exactly one-sentence answer |
 | `jsat prompt <query>` | Print the optimized prompt (inspect without sending) |
 | `jsat prompt --send <query>` | Optimize prompt and send to the configured AI |
+| `jsat prompt --rewrite <query>` | Run 1 LLM rewrite agent after offline pipeline |
+| `jsat prompt --agents <query>` | Run 3 parallel LLM rewrite agents, pick best |
 | `jsat prompt --diff <query>` | Show raw input vs optimized prompt side by side |
-| `jsat prompt --format code\|plan\|json\|prose` | Override output format for this prompt |
-| `jsat prompt --ai claude\|gpt\|ollama` | Override AI provider for this prompt |
-| `jsat doctor` | System health check (graph, AI, services) |
+| `jsat doctor` | System health check (graph, AI, services, connected tools) |
 | `jsat doctor --json` | Health check as raw JSON |
 | `jsat version` | Print JSAT version |
 
@@ -563,6 +579,9 @@ print(health["profile"], health["graph"]["backend"])
 | 12 | **Export / Import System** | Portable zip snapshots of the full graph — share between machines, cache in CI, restore in seconds |
 | 13 | **Python SDK** | Programmatic access to every tool via `from jsat import JSAT` |
 | 14 | **IThinking Meta-Cognitive Layer** | Structured seven-phase reasoning: clarify, plan, context, assumptions, execute, reflect — with human approval gates |
+| 15 | **Token Optimizer** | Offline token analysis and multi-strategy compression (whitespace, stopphrase, dedup, import collapse, recency pin) |
+| 16 | **JSAT Crack** | Multi-agent war room — 6 specialists discuss complex decisions in rounds, responding to each other; moderator synthesises consensus |
+| 17 | **JSAT Short** | Minimum-word answers — prepends brevity constraint so AI responds in ≤3 sentences or less |
 
 ### Multi-Model Review
 

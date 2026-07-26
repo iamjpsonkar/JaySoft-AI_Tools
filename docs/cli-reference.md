@@ -598,7 +598,69 @@ opt history   # browse past optimization diffs
 
 ---
 
-## 8. Token Optimizer (`jsat tokens`)
+## 8. JSAT Crack (`jsat crack`)
+
+Run a multi-agent war room on a complex engineering decision.
+
+```
+jsat crack TASK [OPTIONS]
+```
+
+| Argument / Flag | Default | Description |
+|----------------|---------|-------------|
+| `TASK` | (required) | The complex engineering question to discuss |
+| `--roles`, `-r` | all 6 | Comma-separated subset: `architect,security,implementer,tester,skeptic` |
+| `--rounds`, `-n` | `3` | Number of discussion rounds |
+| `--file`, `-f` | auto | Write output to file (default: `.jsat/crack/<slug>.md`) |
+| `--repo` | `.` | Repository root |
+
+```bash
+jsat crack "redesign payment retry system"
+jsat crack --roles architect,security "migrate users table to UUID"
+jsat crack --rounds 2 "sync vs async for webhook processing"
+jsat crack --file design.md "how should we handle idempotency keys"
+```
+
+**Agents (run in parallel, respond to each other across rounds):**
+- 🏛 `architect` — system design, patterns, scalability
+- 🔒 `security` — threat model, auth, idempotency
+- ⚙️ `implementer` — current code analysis, effort estimate
+- 🧪 `tester` — edge cases, coverage gaps, testability
+- 😈 `skeptic` — challenges every proposal
+- 🎯 `moderator` — synthesises consensus and action plan (always last)
+
+Output is saved to `.jsat/crack/<slug>.md`.
+
+Works without AI configured (returns structural offline placeholders).
+
+---
+
+## 8b. JSAT Short (`jsat short`)
+
+Get the shortest possible correct answer to any question.
+
+```
+jsat short QUESTION [OPTIONS]
+```
+
+| Argument / Flag | Default | Description |
+|----------------|---------|-------------|
+| `QUESTION` | (required) | Question to ask |
+| `--words`, `-w` | `50` | Maximum word count |
+| `--one-line`, `-1` | false | Exactly one sentence |
+| `--repo`, `-r` | `.` | Repository root |
+
+```bash
+jsat short "what does process_refund do"
+jsat short --one-line "is PaymentService.process async"
+jsat short --words 10 "explain the retry logic"
+```
+
+In the JSAT shell: `short <question>`
+
+---
+
+## 10. Token Optimizer (`jsat tokens`)
 
 Count tokens, check model budget, and compress text for AI prompts. All offline — zero LLM calls.
 
@@ -693,7 +755,7 @@ jsat knowledge-ingest . --pattern "**/*.md" --dry-run
 
 ---
 
-## 9. Export and Import
+## 11. Export and Import
 
 ### `jsat export`
 
@@ -734,7 +796,7 @@ jsat import backup.jsat.zip
 
 ---
 
-## 10. Remove Command
+## 12. Remove Command
 
 ### `jsat remove`
 
@@ -769,7 +831,7 @@ jsat remove --keep-config      # preserve config.yaml
 
 ---
 
-## 11. Skills Commands (`jsat skills`)
+## 13. Skills Commands (`jsat skills`)
 
 ### `jsat skills list`
 
@@ -801,7 +863,7 @@ jsat skills run my-skill --args target=src/api.py --args depth=3
 
 ---
 
-## 12. MCP Server (Internal)
+## 14. MCP Server (Internal)
 
 ### `jsat mcp-server`
 
