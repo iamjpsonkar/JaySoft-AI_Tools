@@ -196,9 +196,17 @@ class IndexerTool(BaseTool):
         After parsing, CALLS edges point to callee names like "refund" instead
         of "payments/service.py::PaymentService.refund". This pass matches names
         to real node IDs where unambiguous (exactly 1 match).
+
+        Note: uses raw SQLite json_extract() — only runs on sqlite/lightgraph backends.
         """
         import structlog
         log = structlog.get_logger(__name__)
+        backend = getattr(getattr(self._cfg, "graph", None), "backend", "sqlite")
+        if backend not in ("sqlite", "lightgraph"):
+            log.info("edge_resolution_skipped",
+                     reason="non_sqlite_backend", backend=backend,
+                     note="CALLS/IMPORTS edges remain unresolved; use jsat__query for traversal")
+            return 0
         try:
             edges = self._graph.query(   # type: ignore[attr-defined]
                 "SELECT id, source_id, target_id, type FROM edges "

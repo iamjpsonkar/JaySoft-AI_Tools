@@ -60,6 +60,7 @@ class PromptResult(BaseModel):
     rewrite_agents_run: int = 0
     rewrite_elapsed_ms: float = 0.0
     winning_agent: str | None = None   # "rewrite"|"context_expand"|"constraint_harden"
+    rewrite_skip_reason: str | None = None  # set when rewrite requested but skipped
 
 class PromptHistory(BaseModel):
     ts: str
@@ -672,6 +673,7 @@ class PromptOptimizer(BaseTool):
         rewrite_elapsed = 0.0
         winning_agent: str | None = None
 
+        rewrite_skip_reason: str | None = None
         if _n > 0:
             if self._ai is not None and self._ai.is_available():  # type: ignore[attr-defined]
                 log.info("prompt_rewrite_start", n_agents=_n, task=task_type)
@@ -687,13 +689,17 @@ class PromptOptimizer(BaseTool):
                     winning_agent = rw_agent
                     stages.append(f"rewrite({rw_agent})")
                     timings[f"rewrite_{rw_agent}"] = rw_elapsed
+                else:
+                    rewrite_skip_reason = "all_agents_failed"
             else:
+                rewrite_skip_reason = "ai_unavailable"
                 log.warning("rewrite_skipped", reason="ai_unavailable", requested_agents=_n)
 
         llm_calls = (1 if rewrite_applied else 0)
         log.info("prompt_optimizer_done", task=task_type, before=tokens_before,
                  after=_tok(final_prompt), llm_calls=llm_calls,
                  rewrite_applied=rewrite_applied, winning_agent=winning_agent,
+                 rewrite_skip_reason=rewrite_skip_reason,
                  total_ms=round((time.monotonic()-t0)*1000,1))
 
         return PromptResult(
@@ -703,6 +709,7 @@ class PromptOptimizer(BaseTool):
             examples_used=len(fs_r.examples), stages_applied=stages, agent_timings=timings,
             rewrite_applied=rewrite_applied, rewrite_agents_run=rewrite_agents_run,
             rewrite_elapsed_ms=rewrite_elapsed, winning_agent=winning_agent,
+            rewrite_skip_reason=rewrite_skip_reason,
         )
 
     def self_critique(self, prompt: str, response: str, task_type: str) -> str | None:

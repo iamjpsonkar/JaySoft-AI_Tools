@@ -39,8 +39,8 @@ def cmd_disconnect(
         help="'project' | 'global' | 'all'  (claude and codex only)",
     ),
     keep_skills: bool = typer.Option(
-        False, "--keep-skills", "--keep-guidance",
-        help="Keep /jsat-* skills, instructions, and guidance files (default: remove them too)",
+        False, "--keep-guidance", "--keep-skills",
+        help="Keep skill files, instruction blocks, and guidance docs after disconnecting (--keep-skills is a backward-compatible alias)",
     ),
 ) -> None:
     """Remove JSAT from an AI tool — undo jsat connect.
@@ -833,6 +833,14 @@ def cmd_prompt(
         console.print(Panel(input_text, title="[yellow]Raw input[/]", border_style="yellow"))
         console.print(Panel(result.optimized_prompt, title="[green]Optimized[/]", border_style="green"))
 
+    if getattr(result, "rewrite_skip_reason", None):
+        reason = result.rewrite_skip_reason
+        if reason == "ai_unavailable":
+            err.print("[yellow]⚠ LLM rewrite requested but skipped — no AI provider configured.[/]")
+            err.print("[dim]  Configure one with: jsat ai use <provider>[/dim]")
+        else:
+            err.print(f"[yellow]⚠ LLM rewrite skipped: {reason}[/]")
+
     if result.tokens_before and result.tokens_after:
         saved = max(0, round((result.tokens_before - result.tokens_after) / result.tokens_before * 100))
         rewrite_tag = f" | {result.rewrite_agents_run} agents → {result.winning_agent} won" if result.rewrite_applied else ""
@@ -1561,33 +1569,52 @@ Show top hypotheses ranked by score. Include supporting evidence and recent comm
         ),
         # ── Prompt & token tools ──────────────────────────────────────────────
         "jsat-prompt": (
-            "Optimize a query through the JSAT prompt pipeline. Supports flags in $ARGUMENTS.",
-            """Parse $ARGUMENTS for optional flags before the query text, then call the right tool:
+            "Optimize a query. Multiple flags allowed. Query is everything after the last flag.",
+            """Step 1 — scan $ARGUMENTS for ALL flags (they may appear in any order, any combination):
 
-Supported flags (strip them from the query before passing to the tool):
-  --rewrite   → call jsat__prompt_rewrite  (1 LLM rewrite agent after offline pipeline)
-  --agents    → call jsat__prompt_multi_agent with n_agents=3  (3 parallel LLM agents)
-  --diff      → call jsat__prompt_diff  (show raw vs optimized side by side)
-  --send      → call jsat__prompt_optimize then jsat__query with the optimized prompt
-  (no flag)   → call jsat__prompt_optimize  (offline pipeline only, fastest)
+  --rewrite or --agent  → use jsat__prompt_rewrite   (1 LLM rewrite agent)
+  --agents              → use jsat__prompt_multi_agent with n_agents=3
+  --diff                → use jsat__prompt_diff
+  --send                → after optimizing, also call jsat__query with the result
+  (no flag)             → use jsat__prompt_optimize  (offline only, fastest)
+
+Step 2 — the query is every word that is NOT a flag (i.e. not starting with --).
+Strip all flags, join the remaining words as the query string.
+
+Priority when multiple flags given:
+  --agents beats --rewrite (more agents = better)
+  --diff can combine with any of the above (show diff AND optimize)
+  --send can combine with any of the above (optimize AND send)
+
+Step 3 — call the selected tool with query=<stripped text>.
 
 Examples:
   /jsat-prompt fix logger in ValidateVPAHandler.post
-    → jsat__prompt_optimize(query="fix logger in ValidateVPAHandler.post")
+    → query="fix logger in ValidateVPAHandler.post"
+    → jsat__prompt_optimize(query=...)
 
   /jsat-prompt --rewrite fix logger in ValidateVPAHandler.post
-    → jsat__prompt_rewrite(query="fix logger in ValidateVPAHandler.post")
+    → query="fix logger in ValidateVPAHandler.post"
+    → jsat__prompt_rewrite(query=...)
+
+  /jsat-prompt --rewrite --agent fix logger in ValidateVPAHandler.post
+    → same as --rewrite (--agent is alias)
+    → query="fix logger in ValidateVPAHandler.post"
+    → jsat__prompt_rewrite(query=...)
 
   /jsat-prompt --agents improve the retry logic in PaymentService
-    → jsat__prompt_multi_agent(query="improve the retry logic in PaymentService", n_agents=3)
+    → query="improve the retry logic in PaymentService"
+    → jsat__prompt_multi_agent(query=..., n_agents=3)
 
-  /jsat-prompt --diff why is the checkout failing
-    → jsat__prompt_diff(query="why is the checkout failing")
+  /jsat-prompt --diff --rewrite why is checkout failing
+    → query="why is checkout failing"
+    → jsat__prompt_rewrite(query=...) then jsat__prompt_diff(query=...)
 
-  /jsat-prompt --send write a test for process_refund()
-    → jsat__prompt_optimize then send the result to the AI
+  /jsat-prompt --agents --send write a test for process_refund()
+    → query="write a test for process_refund()"
+    → jsat__prompt_multi_agent(query=...) then jsat__query(question=optimized_result)
 
-After calling the tool, show the optimized prompt, token savings, and (for --rewrite/--agents) which agent won and its score."""
+After calling, show: optimized prompt, tokens before→after, savings %, and for --rewrite/--agents: winning agent name and score."""
         ),
         "jsat-prompt-diff": (
             "Show what you typed vs what JSAT sent to the AI after optimization.",

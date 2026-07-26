@@ -181,6 +181,8 @@ def _apply_import_collapse(text: str) -> str:
 
 def _apply_dedup(text: str, threshold: float = 0.82) -> str:
     """Remove near-duplicate sentences/chunks via Jaccard similarity on word sets."""
+    if not text or not text.strip():
+        return text
     # Split into logical chunks: sentence boundaries or blank-line paragraphs
     chunks = re.split(r"(?<=[.!?])\s{2,}|\n{2,}", text.strip())
     if len(chunks) <= 2:
@@ -220,8 +222,10 @@ def _apply_comment_strip(text: str) -> str:
 
 def _apply_recency_pin(text: str, target_tokens: int) -> str:
     """Last-resort trim: keep first 70% + last 30%, drop middle with a marker."""
+    if not text:
+        return text
     cur = estimate_tokens(text)
-    if cur <= target_tokens:
+    if cur <= target_tokens or cur == 0:
         return text
     chars_per_tok = len(text) / max(cur, 1)
     budget_chars = int(target_tokens * chars_per_tok)
@@ -303,6 +307,13 @@ class TokenOptimizer(BaseTool):
 
     def analyze(self, text: str, model: str | None = None) -> TokenReport:
         """Count tokens and compute budget. No compression applied."""
+        if not text or not text.strip():
+            return TokenReport(
+                original_text=text, original_tokens=0, compressed_text=text,
+                compressed_tokens=0, savings_tokens=0, savings_pct=0.0,
+                strategies_applied=[], model=model, model_limit=None,
+                budget_used_pct=None,
+            )
         log.debug("token_analyze", model=model, text_len=len(text))
         t0 = time.monotonic()
         count = estimate_tokens(text)
@@ -346,6 +357,13 @@ class TokenOptimizer(BaseTool):
         target_tokens: desired ceiling. If None and model is given, defaults to
         85% of the model's context limit. If neither, all lossless strategies run.
         """
+        if not text or not text.strip():
+            return TokenReport(
+                original_text=text, original_tokens=0, compressed_text=text,
+                compressed_tokens=0, savings_tokens=0, savings_pct=0.0,
+                strategies_applied=[], model=model, model_limit=self.model_limit(model) if model else None,
+                budget_used_pct=None,
+            )
         log.info("token_compress_start",
                  model=model, target_tokens=target_tokens,
                  strip_comments=strip_comments, dedup=dedup,

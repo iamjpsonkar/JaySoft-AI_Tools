@@ -23,7 +23,29 @@ jobs:
           python-version: "3.11"
 
       - name: Install build tools
-        run: pip install build
+        run: pip install build tomli
+
+      - name: Validate version tag matches pyproject.toml
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          PYPROJECT=$(python -c "
+          try:
+              import tomllib
+          except ImportError:
+              import tomli as tomllib
+          with open('pyproject.toml', 'rb') as f:
+              d = tomllib.load(f)
+          print(d['project']['version'])
+          ")
+          echo "Tag version:        $VERSION"
+          echo "pyproject version:  $PYPROJECT"
+          if [ "$VERSION" != "$PYPROJECT" ]; then
+            echo "❌ Tag $TAG does not match pyproject.toml version $PYPROJECT"
+            echo "   Bump pyproject.toml and __init__.py before tagging."
+            exit 1
+          fi
+          echo "✓ Version match: $VERSION"
 
       - name: Build
         run: python -m build
