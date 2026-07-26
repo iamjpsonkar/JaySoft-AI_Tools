@@ -832,3 +832,114 @@ class TokenReport:
 | `jsat__token_count` | Estimate token count with optional model budget context |
 | `jsat__token_compress` | Compress text and return savings stats + compressed result |
 | `jsat__token_budget` | Show budget status (ok/warn/critical) for a given model |
+
+---
+
+## Tool 16 — JSAT Crack
+
+Multi-agent war room for complex engineering decisions. Six specialist agents discuss a task in rounds, responding to each other's arguments — like a real architecture meeting or incident war room.
+
+### Architecture
+
+```
+Round 1 — all agents state positions IN PARALLEL:
+  🏛 architect   → system design proposal
+  🔒 security    → threat model + constraints
+  ⚙  implementer → current code analysis
+  🧪 tester      → coverage gaps, testability
+  😈 skeptic     → challenges every proposal
+  ← collected →
+
+Round 2 — agents RESPOND to each other:
+  Each agent reads round-1 transcript, addresses others' points directly
+
+Round 3 — Moderator synthesis:
+  🎯 moderator reads all rounds and produces:
+    ✅ Agreed items
+    ⚠️ Disputed items / open questions
+    🎯 Recommended action plan
+```
+
+**Key difference from `jsat__prompt_multi_agent`:**
+- `prompt_multi_agent`: 3 agents run independently in parallel, pick best output
+- `crack`: agents *respond to each other's outputs* across rounds (cross-talk)
+
+### CLI usage
+
+```bash
+jsat crack "redesign payment retry system"
+jsat crack --roles architect,security "migrate users table to UUID"
+jsat crack --rounds 2 --file output.md "sync vs async webhooks"
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--roles` | all 6 | Comma-separated subset: architect,security,implementer,tester,skeptic |
+| `--rounds` / `-n` | 3 | Number of discussion rounds |
+| `--file` / `-f` | auto | Write output to specific file (default: `.jsat/crack/<slug>.md`) |
+
+### Shell usage
+
+```
+> crack should we use Redis or Postgres for idempotency keys
+```
+
+### Python SDK
+
+```python
+from jsat.tools.crack import CrackTool
+result = CrackTool(graph=g, cfg=cfg, ai=ai).run(
+    "redesign payment retry system",
+    roles=["architect", "security", "skeptic"],
+    rounds=2,
+)
+print(result.synthesis)       # moderator's final synthesis
+print(result.output_path)     # .jsat/crack/redesign-payment-retry-system.md
+```
+
+### MCP tool
+
+| Tool | Description |
+|---|---|
+| `jsat__crack` | Multi-agent war room — architect, security, implementer, tester, skeptic, moderator |
+
+### Graceful degradation
+
+If no AI is configured, each agent returns a structural placeholder based on the task text and graph context (BFS keywords). The discussion still happens — it just uses offline templates instead of LLM completions.
+
+---
+
+## Tool 17 — JSAT Short
+
+Get the briefest possible correct answer to any question. Prepends a brevity constraint to any query.
+
+### CLI usage
+
+```bash
+jsat short "what does process_refund do"
+jsat short --one-line "is PaymentService.process async"
+jsat short --words 20 "explain the retry logic"
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--words` / `-w` | 50 | Maximum word count |
+| `--one-line` / `-1` | false | Strict one-sentence answer |
+
+### Shell usage
+
+```
+> short is the checkout flow async
+```
+
+### MCP tool
+
+| Tool | Description |
+|---|---|
+| `jsat__short` | Ask any question with a brevity constraint (≤50 words default) |
+
+### Claude Code slash command
+
+```
+/jsat-short what does process_refund do
+```

@@ -235,23 +235,52 @@ class ConstraintAgent:
             return ConstraintResult(text="", count=0)
 
 
+# Module-level cache keyed by (path_str, mtime) — auto-invalidates when file changes
+_fewshot_cache: dict[tuple[str, float], list] = {}
+
+
 class FewShotAgent:
     """kNN word-overlap over prompt history. No LLM. Truncates examples to 10 lines."""
     def __init__(self, history_path: Path, max_entries: int = 10000):
         self._path = history_path
         self._max = max_entries
 
+    def _load_candidates(self) -> list:
+        """Load and parse history file with mtime-based caching (M8)."""
+        if not self._path.exists():
+            return []
+        try:
+            mtime = self._path.stat().st_mtime
+        except OSError:
+            return []
+        cache_key = (str(self._path), mtime)
+        if cache_key in _fewshot_cache:
+            return _fewshot_cache[cache_key]
+        try:
+            lines = self._path.read_text(encoding="utf-8").splitlines()[-self._max:]
+        except OSError:
+            return []
+        entries = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                d = json.loads(line)
+                entries.append(d)
+            except Exception:
+                pass
+        _fewshot_cache[cache_key] = entries
+        return entries
+
     def run(self, raw: str, task_type: str, k: int) -> FewShotResult:
         if k == 0 or not self._path.exists():
             return FewShotResult(examples=[], scores=[])
         try:
-            lines = self._path.read_text(encoding="utf-8").splitlines()[-self._max:]
+            all_entries = self._load_candidates()
             candidates = []
-            for line in lines:
-                line = line.strip()
-                if not line: continue
+            for d in all_entries:
                 try:
-                    d = json.loads(line)
                     if d.get("task_type") == task_type:
                         candidates.append(PromptHistory(**d))
                 except Exception:

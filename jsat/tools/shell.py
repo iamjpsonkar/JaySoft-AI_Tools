@@ -40,6 +40,8 @@ _COMMANDS: dict[str, str] = {
     "exit":           "exit / quit — leave the shell",
     "opt":            "opt on|off|show|history — toggle/inspect prompt optimizer",
     "noopt":          "noopt — disable prompt optimizer for this session (alias: opt off)",
+    "crack":          "crack <TASK> — multi-agent war room discussion (architect/security/tester/...)",
+    "short":          "short <QUESTION> — get the briefest possible answer",
 }
 
 _PROVIDERS = [
@@ -87,8 +89,22 @@ class JSATShell:
                 readline.read_history_file(str(history_path))
             readline.set_history_length(2000)
 
+            # M7: load top graph symbol names for tab-completion
+            _graph_symbols: list[str] = []
+            try:
+                g = self._js._get_graph()
+                rows = g.query(
+                    "SELECT json_extract(properties,'$.name') as name FROM nodes "
+                    "WHERE label IN ('Function','Class') LIMIT 150"
+                )
+                _graph_symbols = [r["name"] for r in rows if r.get("name")]
+            except Exception:
+                pass
+
+            _all_completions = _COMPLETIONS + _graph_symbols
+
             def completer(text: str, state: int) -> str | None:
-                options = [c for c in _COMPLETIONS if c.startswith(text.lower())]
+                options = [c for c in _all_completions if c.startswith(text.lower())]
                 return options[state] if state < len(options) else None
 
             readline.set_completer(completer)
@@ -195,6 +211,8 @@ class JSATShell:
             "export":         self._cmd_export,
             "doctor":         self._cmd_doctor,
             "status":         self._cmd_status,
+            "crack":          self._cmd_crack,
+            "short":          self._cmd_short,
         }
 
         if cmd in handlers:
@@ -865,6 +883,49 @@ class JSATShell:
         s = self._js.index_status
         self._console.print(f"Nodes: [bold]{s.get('nodes',0):,}[/]  Edges: [bold]{s.get('edges',0):,}[/]  AI: [bold]{self._ai_label()}[/]")
 
+    def _cmd_crack(self, args: list[str]) -> None:
+        """crack <task> — multi-agent war room discussion."""
+        task = " ".join(args).strip()
+        if not task:
+            self._console.print("[yellow]Usage:[/] crack <task description>")
+            self._console.print("[dim]Example: crack should we use async or sync for webhooks[/dim]")
+            return
+        self._console.print(f"[dim]Starting war room for: {task[:60]}…[/dim]")
+        try:
+            from jsat.tools.crack import CrackTool
+            result = CrackTool(
+                graph=self._js._get_graph(),
+                cfg=self._js._cfg,
+                ai=self._js._get_ai(),
+            ).run(task, repo_path=self._js._repo)
+            if not result.ai_available:
+                self._console.print("[yellow]⚠ AI not configured — showing structural placeholders.[/]")
+            self._console.print("\n[bold green]🎯 Synthesis[/]\n")
+            self._console.print(result.synthesis or "[dim]No synthesis — AI unavailable.[/dim]")
+            if result.output_path:
+                self._console.print(f"\n[dim]Saved: {result.output_path}[/dim]")
+        except Exception as e:
+            self._console.print(f"[red]Crack error:[/] {e}")
+
+    def _cmd_short(self, args: list[str]) -> None:
+        """short <question> — get the briefest possible answer."""
+        query = " ".join(args).strip()
+        if not query:
+            self._console.print("[yellow]Usage:[/] short <question>")
+            return
+        ai = self._js._get_ai()
+        if not ai.is_available():
+            self._console.print("[red]AI not configured.[/] Run: switch <provider>")
+            return
+        full_query = f"Answer in ≤3 sentences. Plain language. No preamble.\n\n{query}"
+        self._console.print(f"[dim]{self._ai_label()}:[/dim] ", end="")
+        try:
+            for chunk in ai.stream(full_query, max_tokens=200):
+                print(chunk, end="", flush=True)
+            print()
+        except Exception as e:
+            self._console.print(f"[red]{e}[/]")
+
 
 def launch(jsat: JSAT) -> None:
     """Entry point called by the CLI."""
@@ -968,6 +1029,7 @@ def launch_ai_with_jsat_tools(
                 mode="w", suffix=".json", delete=False, prefix="jsat-mcp-"
             ) as f:
                 json.dump(mcp_config, f, indent=2)
+                f.flush()   # L8: ensure write completes before subprocess reads
                 mcp_path = f.name
 
             cmd = [

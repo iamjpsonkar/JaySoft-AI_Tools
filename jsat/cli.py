@@ -60,6 +60,14 @@ def cmd_disconnect(
     import json as _json
 
     tool_lower = tool.lower()
+
+    # Validate tool name upfront (L7 fix: was previously checked at the end)
+    _valid_tools = ("claude", "codex", "cursor", "windsurf", "continue", "zed", "gemini", "all")
+    if tool_lower not in _valid_tools:
+        err.print(f"[red]Unknown tool:[/] {tool}. "
+                  f"Choose: {' | '.join(_valid_tools)}")
+        raise typer.Exit(1)
+
     removed_any = False
 
     def _remove_from_standard(label: str, config_path: Path, key: str = "mcpServers") -> bool:
@@ -158,12 +166,6 @@ def cmd_disconnect(
         )
         if not keep_skills:
             _remove_jsat_block(Path.cwd() / "GEMINI.md")
-
-    if tool_lower not in ("claude", "codex", "cursor", "windsurf",
-                          "continue", "zed", "gemini", "all"):
-        err.print(f"[red]Unknown tool:[/] {tool}. "
-                  "Choose: claude | codex | cursor | windsurf | continue | zed | gemini | all")
-        raise typer.Exit(1)
 
     if removed_any:
         console.print("\n[bold yellow]→ Restart the AI tool[/] to apply changes.\n")
@@ -544,6 +546,100 @@ def cmd_zed(
     Install Zed: brew install --cask zed
     """
     _launch_tool("zed", "zed", repo, gui=True)
+
+
+# ── crack ─────────────────────────────────────────────────────────────────────
+
+@app.command("crack")
+def cmd_crack(
+    task: str = typer.Argument(..., help="The complex engineering task to discuss"),
+    roles: Optional[str] = typer.Option(
+        None, "--roles", "-r",
+        help="Comma-separated subset: architect,security,implementer,tester,skeptic",
+    ),
+    rounds: int = typer.Option(3, "--rounds", "-n", help="Discussion rounds (default 3)"),
+    file: Optional[str] = typer.Option(None, "--file", "-f", help="Write output to file"),
+    repo: str = typer.Option(".", "--repo"),
+) -> None:
+    """Run a multi-agent war room on a complex engineering decision.
+
+    \b
+    Six specialist agents (architect, security, implementer, tester, skeptic,
+    moderator) discuss the task in rounds. Each agent responds to others'
+    arguments. The moderator synthesises consensus and an action plan.
+
+    \b
+    Examples:
+      jsat crack "redesign payment retry system"
+      jsat crack --roles architect,security "migrate users table to UUID"
+      jsat crack --rounds 2 --file design.md "sync vs async webhooks"
+    """
+    from jsat.tools.crack import CrackTool
+    js = _jsat(repo=repo)
+    role_list = [r.strip() for r in roles.split(",")] if roles else None
+
+    with Progress(SpinnerColumn(), TextColumn("{task.description}"),
+                  console=console, transient=True) as p:
+        p.add_task(f"War room: [bold]{task[:50]}[/]…", total=None)
+        result = CrackTool(
+            graph=js._get_graph(), cfg=js._cfg, ai=js._get_ai()
+        ).run(task, roles=role_list, rounds=rounds, output_file=file,
+              repo_path=Path(repo).resolve())
+
+    if not result.ai_available:
+        err.print("[yellow]⚠ AI not configured — showing structural placeholders.[/]")
+        err.print("[dim]  Run: jsat ai use claude-cli   (or any provider)[/dim]\n")
+
+    # Print discussion summary
+    from rich.table import Table as _Table
+    for r in range(1, result.rounds_run + 1):
+        console.print(f"\n[bold]Round {r}[/]")
+        for s in (st for st in result.statements if st.round_num == r and st.role != "moderator"):
+            emoji = {"architect":"🏛","security":"🔒","implementer":"⚙️","tester":"🧪","skeptic":"😈"}.get(s.role,"•")
+            console.print(f"\n  {emoji} [bold]{s.role.upper()}[/]")
+            console.print(f"  {s.text[:300]}{'…' if len(s.text)>300 else ''}")
+
+    console.print("\n" + "─" * 60)
+    console.print("[bold green]🎯 Final Synthesis[/]\n")
+    console.print(result.synthesis or "[dim]No synthesis — AI unavailable.[/dim]")
+
+    if result.output_path:
+        console.print(f"\n[dim]Full discussion saved to [cyan]{result.output_path}[/][/dim]")
+    console.print(f"[dim]{result.rounds_run} rounds · {len(result.roles)} agents · {result.elapsed_ms:.0f}ms[/dim]")
+
+
+# ── short ─────────────────────────────────────────────────────────────────────
+
+@app.command("short")
+def cmd_short(
+    query: str = typer.Argument(..., help="Question to ask"),
+    words: int = typer.Option(50, "--words", "-w", help="Max word count (default 50)"),
+    one_line: bool = typer.Option(False, "--one-line", "-1", help="Strict one-sentence answer"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Ask any question — get the shortest possible correct answer.
+
+    \b
+    jsat short "what does process_refund do"
+    jsat short --one-line "is PaymentService.process async"
+    jsat short --words 20 "explain the retry logic"
+    """
+    js = _jsat(repo=repo)
+    ai = js._get_ai()
+    if not ai.is_available():
+        err.print(f"[red]AI not reachable:[/] {js.active_ai_label()}")
+        raise typer.Exit(1)
+
+    if one_line:
+        constraint = "Answer in exactly one sentence. No preamble, no bullet points."
+    else:
+        constraint = f"Answer in ≤{words} words. Plain language. No preamble or headers."
+
+    full_query = f"{constraint}\n\n{query}"
+    console.print(f"[dim]{js.active_ai_label()}:[/dim] ", end="")
+    for chunk in ai.stream(full_query, max_tokens=256):
+        print(chunk, end="", flush=True)
+    print()
 
 
 # ── doctor ────────────────────────────────────────────────────────────────────
@@ -1702,6 +1798,31 @@ Display plan clearly. After the user approves, proceed. Then reflect on what was
             "Record what was done after completing a task (IThinking phase 6).",
             'Use jsat__ithinking_reflect with subtask="$ARGUMENTS" to log the outcome, '
             "what worked, what didn\'t, and any follow-up actions."
+        ),
+        # ── New features ──────────────────────────────────────────────────────
+        "jsat-crack": (
+            "Multi-agent war room: architect, security, implementer, tester, skeptic + moderator discuss a complex task.",
+            """Use jsat__crack with task="$ARGUMENTS" to run a multi-agent engineering discussion.
+
+Agents run in rounds, responding to each other's arguments:
+  🏛 architect   — system design, patterns, scalability
+  🔒 security    — threat model, auth, idempotency
+  ⚙  implementer — current code analysis, effort estimation
+  🧪 tester      — edge cases, coverage gaps, testability
+  😈 skeptic     — devil's advocate, challenges assumptions
+  🎯 moderator   — synthesises consensus and action plan
+
+Show each agent's statements by round, then the moderator's final synthesis with:
+  ✅ Agreed items
+  ⚠️ Disputed items
+  ❓ Open questions
+  🎯 Recommended action plan""",
+        ),
+        "jsat-short": (
+            "Ask any question — get the briefest possible correct answer (≤3 sentences).",
+            'Use jsat__query with question="$ARGUMENTS" but prepend this brevity constraint: '
+            '"Answer in ≤3 sentences, plain language. No preamble, no headers, no bullet points." '
+            "Show only the AI response — no framing, no metadata.",
         ),
 }
 

@@ -281,9 +281,15 @@ class IndexerTool(BaseTool):
     def _collect_files(
         self, root: Path, langs: set[str], exclude: set[str], max_kb: int
     ) -> list[Path]:
+        import structlog as _structlog
+        _log = _structlog.get_logger(__name__)
         from jsat._parsers import detect_language
+        follow_symlinks = getattr(getattr(self._cfg, "indexer", None), "follow_symlinks", False)
         files = []
         for p in root.rglob("*"):
+            if p.is_symlink() and not follow_symlinks:
+                _log.debug("indexer_symlink_skipped", path=str(p))
+                continue
             if not p.is_file():
                 continue
             if any(ex in p.parts or ex in str(p) for ex in exclude):

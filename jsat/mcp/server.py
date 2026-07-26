@@ -791,9 +791,11 @@ class MCPServer:
                 "handler": lambda a: _ser(_auth_coverage_impl(js, a.get("service"))),
             },
             "get_dependency_cves": {
-                "description": "List dependency CVEs above a CVSS threshold (osv.dev integration planned for v0.2).",
+                "description": "List dependency CVEs above a CVSS threshold (osv.dev integration planned for v0.3).",
                 "schema": {"type": "object", "properties": {"cvss_min": {"type": "number", "default": 7.0}}},
-                "handler": lambda a: "CVE check via osv.dev coming in v0.2. Run: jsat security-review . for current dep scanning.",
+                "handler": lambda a: _ser({"status": "not_implemented", "tool": "get_dependency_cves",
+                                           "message": "CVE scanning planned for v0.3. Use jsat__security_review for now.",
+                                           "alternative": "jsat__security_review"}),
             },
             "trace_data_flow": {
                 "description": "Trace user input through the codebase to find injection risks.",
@@ -825,7 +827,9 @@ class MCPServer:
             "get_hypotheses": {
                 "description": "Get ranked root-cause hypotheses from the last incident investigation.",
                 "schema": {"type": "object", "properties": {"limit": {"type": "integer", "default": 5}}},
-                "handler": lambda a: "Run jsat__investigate_incident first, then hypotheses are in the response.",
+                "handler": lambda a: _ser({"status": "not_implemented", "tool": "get_hypotheses",
+                                           "message": "Call jsat__investigate_incident first; hypotheses are returned in that response.",
+                                           "alternative": "jsat__investigate_incident"}),
             },
             "get_recent_changes": {
                 "description": "Recent git commits and deploys for affected services.",
@@ -854,22 +858,23 @@ class MCPServer:
 
             # Test generation
             "generate_unit_test": {
-                "description": "Generate a unit test for a specific function.",
+                "description": "Generate a unit test for a specific function using JSAT graph context.",
                 "schema": {"type": "object", "required": ["function"],
                            "properties": {"function": {"type": "string"}}},
-                "handler": lambda a: f"Use jsat__query with: 'write a unit test for {a['function']} following the project test patterns'",
+                "handler": lambda a: _ser(_generate_test_impl(js, "unit", a.get("function", ""))),
             },
             "generate_integration_test": {
                 "description": "Generate an integration test for an endpoint.",
                 "schema": {"type": "object", "required": ["endpoint"],
                            "properties": {"endpoint": {"type": "string"}}},
-                "handler": lambda a: f"Use jsat__query with: 'write an integration test for {a['endpoint']}'",
+                "handler": lambda a: _ser(_generate_test_impl(js, "integration", a.get("endpoint", ""))),
             },
             "generate_contract_test": {
                 "description": "Generate a contract test between producer and consumer services.",
                 "schema": {"type": "object", "required": ["producer", "consumer"],
                            "properties": {"producer": {"type": "string"}, "consumer": {"type": "string"}}},
-                "handler": lambda a: f"Use jsat__query with: 'write a contract test between {a['producer']} and {a['consumer']}'",
+                "handler": lambda a: _ser(_generate_test_impl(
+                    js, "contract", f"{a.get('producer','')} and {a.get('consumer','')}")),
             },
             "get_consumers_of_endpoint": {
                 "description": "All callers of a specific endpoint across the codebase.",
@@ -1027,6 +1032,46 @@ class MCPServer:
                     },
                 },
                 "handler": lambda a: _ser(_token_budget_impl(js, a)),
+            },
+            # ── JSAT Crack — multi-agent war room ────────────────────────────
+            "crack": {
+                "description": (
+                    "Multi-agent war room discussion for complex engineering decisions. "
+                    "Six specialist agents (architect, security, implementer, tester, "
+                    "skeptic, moderator) discuss the task in rounds, responding to each "
+                    "other's arguments. Moderator synthesises consensus and an action plan."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["task"],
+                    "properties": {
+                        "task": {"type": "string",
+                                 "description": "The complex engineering question to discuss"},
+                        "roles": {"type": "array", "items": {"type": "string"},
+                                  "description": "Subset of roles (default: all 6)"},
+                        "rounds": {"type": "integer", "default": 3,
+                                   "description": "Discussion rounds (default 3)"},
+                    },
+                },
+                "handler": lambda a: _ser(_crack_impl(js, a)),
+            },
+            # ── JSAT Short — minimum-word response ───────────────────────────
+            "short": {
+                "description": (
+                    "Ask any question and get the briefest possible correct answer. "
+                    "Prepends a brevity constraint so the AI responds in ≤50 words (configurable)."
+                ),
+                "schema": {
+                    "type": "object",
+                    "required": ["query"],
+                    "properties": {
+                        "query": {"type": "string"},
+                        "max_words": {"type": "integer", "default": 50},
+                        "one_line": {"type": "boolean", "default": False,
+                                     "description": "If true, answer in exactly one sentence"},
+                    },
+                },
+                "handler": lambda a: _ser(_short_impl(js, a)),
             },
         }
 
@@ -1852,6 +1897,84 @@ def _token_budget_impl(js: object, args: dict) -> dict:
     except Exception as e:
         log.error("mcp_token_budget_error", error=str(e))
         return {"error": str(e)}
+
+
+def _crack_impl(js: object, args: dict) -> dict:
+    """MCP handler: multi-agent war room discussion."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    task = args.get("task", "")
+    if not task.strip():
+        return {"error": "task must not be empty"}
+    roles = args.get("roles")
+    rounds = int(args.get("rounds", 3))
+    log.info("mcp_crack_start", task=task[:80], roles=roles, rounds=rounds)
+    try:
+        from jsat.tools.crack import CrackTool
+        tool = CrackTool(
+            graph=js._get_graph(),  # type: ignore[attr-defined]
+            cfg=js._cfg,            # type: ignore[attr-defined]
+            ai=js._get_ai(),        # type: ignore[attr-defined]
+        )
+        result = tool.run(task, roles=roles, rounds=rounds)
+        log.info("mcp_crack_done", rounds=result.rounds_run,
+                 statements=len(result.statements), ai=result.ai_available)
+        return {
+            "task": result.task,
+            "roles": result.roles,
+            "rounds_run": result.rounds_run,
+            "ai_available": result.ai_available,
+            "synthesis": result.synthesis,
+            "output_path": result.output_path,
+            "elapsed_ms": result.elapsed_ms,
+            "statements": [
+                {"role": s.role, "round": s.round_num, "text": s.text[:400]}
+                for s in result.statements
+            ],
+        }
+    except Exception as e:
+        log.error("mcp_crack_error", error=str(e))
+        return {"error": str(e)}
+
+
+def _short_impl(js: object, args: dict) -> dict:
+    """MCP handler: brevity-constrained query."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    query = args.get("query", "")
+    max_words = int(args.get("max_words", 50))
+    one_line = bool(args.get("one_line", False))
+    if not query.strip():
+        return {"error": "query must not be empty"}
+    constraint = "One sentence only." if one_line else f"Answer in ≤{max_words} words."
+    full_query = f"{constraint} No preamble. Plain language.\n\n{query}"
+    log.info("mcp_short", query_len=len(query), max_words=max_words)
+    try:
+        ai = js._get_ai()  # type: ignore[attr-defined]
+        if not ai.is_available():
+            return {"error": "AI not available. Configure with: jsat ai use <provider>"}
+        response = ai.complete(full_query, max_tokens=256)
+        log.info("mcp_short_done", response_len=len(response))
+        return {"query": query, "answer": response.strip(), "constraint": constraint}
+    except Exception as e:
+        log.error("mcp_short_error", error=str(e))
+        return {"error": str(e)}
+
+
+def _generate_test_impl(js: object, test_type: str, target: str) -> dict:
+    """MCP handler: delegate test generation to jsat__query with context."""
+    prompts = {
+        "unit": f"Write a unit test for `{target}` following existing project test patterns.",
+        "integration": f"Write an integration test for `{target}` covering happy path and error cases.",
+        "contract": f"Write a contract test between {target} verifying the API contract is upheld.",
+    }
+    prompt = prompts.get(test_type, f"Write a {test_type} test for `{target}`.")
+    return {
+        "status": "delegated",
+        "tool": f"generate_{test_type}_test",
+        "suggested_query": prompt,
+        "note": f"Pass this query to jsat__query for AI-generated test code.",
+    }
 
 
 def _estimate_lock_impl(args: dict) -> str:

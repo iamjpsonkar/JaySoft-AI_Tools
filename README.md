@@ -240,6 +240,60 @@ jsat claude
 
 ---
 
+## JSAT Crack — Multi-Agent War Room
+
+Run a complex engineering decision past a panel of six specialist AI agents that argue, challenge, and respond to each other — like a real architecture meeting.
+
+```bash
+jsat crack "redesign payment retry system"
+jsat crack --roles architect,security "migrate users table to UUID"
+jsat crack --rounds 2 --file design.md "sync vs async webhooks"
+```
+
+**Agents (all run in parallel per round, then respond to each other):**
+
+| Agent | Focus |
+|---|---|
+| 🏛 `architect` | System design, scalability, patterns |
+| 🔒 `security` | Threat model, auth, idempotency |
+| ⚙️ `implementer` | Current code analysis, effort estimate |
+| 🧪 `tester` | Edge cases, coverage gaps |
+| 😈 `skeptic` | Devil's advocate — challenges everything |
+| 🎯 `moderator` | Synthesises consensus and action plan |
+
+**Output:** A Markdown document saved to `.jsat/crack/<slug>.md` with each round's discussion and a final synthesis:
+
+```
+✅ Agreed:        Use exponential backoff with tenacity
+⚠️ Disputed:      Redis vs in-process lock for idempotency
+❓ Open questions: What's the SLA for retry exhaustion?
+🎯 Action:        1. Extract retry logic, 2. Add idempotency key, 3. Write tests
+```
+
+**In Claude Code:** `/jsat-crack redesign the payment retry system`
+
+**In the JSAT shell:** `crack should we use async or sync for webhook processing`
+
+**MCP tool:** `jsat__crack`
+
+---
+
+## JSAT Short — Minimum-Word Answers
+
+Get the shortest possible correct answer to any question.
+
+```bash
+jsat short "what does process_refund do"
+jsat short --one-line "is PaymentService.process async"
+jsat short --words 20 "explain the retry logic"
+```
+
+**In Claude Code:** `/jsat-short what does process_refund do`
+
+**In the JSAT shell:** `short is the checkout flow async`
+
+---
+
 ## Prompt Optimizer
 
 JSAT optimizes every query through a two-phase pipeline before sending to the AI.
