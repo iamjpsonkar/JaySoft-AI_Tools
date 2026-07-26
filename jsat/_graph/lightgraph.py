@@ -88,8 +88,15 @@ class LightGraph(GraphClient):
 
     def query(self, cypher_like: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         s = cypher_like.strip()
-        if s.upper().startswith("SELECT"):
+        upper = s.upper()
+        if upper.startswith("SELECT"):
             return self._sql(s, list(params.values()) if params else None)
+        # Raw write statements (DELETE, UPDATE, INSERT)
+        if upper.startswith(("DELETE", "UPDATE", "INSERT")):
+            p = list(params.values()) if isinstance(params, dict) else (params or [])
+            self._conn.execute(s, p)
+            self._conn.commit()
+            return []
         m = re.fullmatch(r"MATCH\s+\(n:(\w+)\)\s+RETURN\s+n", s, re.IGNORECASE)
         if m:
             return self._sql("SELECT id, label, properties FROM nodes WHERE label=?", [m.group(1)])

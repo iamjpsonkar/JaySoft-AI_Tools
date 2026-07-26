@@ -104,8 +104,15 @@ class SQLiteGraph(GraphClient):
 
     def query(self, cypher_like: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         s = cypher_like.strip()
-        if s.upper().startswith("SELECT"):
+        upper = s.upper()
+        # Raw SQL pass-through for SELECT and write statements (DELETE, UPDATE, INSERT)
+        if upper.startswith("SELECT"):
             return self.execute_sql(s, list(params.values()) if params else None)
+        if upper.startswith(("DELETE", "UPDATE", "INSERT")):
+            p = list(params.values()) if isinstance(params, dict) else (params or [])
+            self._conn.execute(s, p)
+            self._conn.commit()
+            return []
 
         # MATCH (n:Label) RETURN n
         m = re.fullmatch(r"MATCH\s+\(n:(\w+)\)\s+RETURN\s+n", s, re.IGNORECASE)
