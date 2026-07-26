@@ -1768,11 +1768,18 @@ def cmd_connect_claude(
     # Read existing settings (preserve all other keys)
     settings = _read_json(settings_path)
 
-    # Build the JSAT MCP entry
+    # Build the JSAT MCP entry.
+    # Inject JSAT_AI_PROVIDER so the MCP subprocess can run LLM-based tools
+    # (prompt_rewrite, prompt_multi_agent, etc.) using the claude CLI that is
+    # already running in this session — no API key required.
+    import shutil as _shutil
+    _ai_env: dict[str, str] = {}
+    if _shutil.which("claude"):
+        _ai_env["JSAT_AI_PROVIDER"] = "claude_cli"
     jsat_entry = {
         "command": binary,
         "args": ["mcp-server", "--repo", repo_path],
-        "env": {},
+        "env": _ai_env,
     }
 
     # Inject into mcpServers (create key if absent)
@@ -2462,14 +2469,19 @@ def cmd_mcp_server(
 
         def _get_ai(self):
             if self._ai is None:
+                import os
                 import shutil
 
                 from jsat._ai.none import NoOpProvider
 
+                # JSAT_AI_PROVIDER env var: explicitly requested provider
+                # (set by `jsat connect claude` via the MCP config env block)
+                _env_provider = os.environ.get("JSAT_AI_PROVIDER", "").strip()
+
                 # Auto-detect the best available AI — same priority as auto_configure:
-                # claude_cli > anthropic API > openai API > ollama > none
+                # JSAT_AI_PROVIDER env > claude_cli > anthropic API > openai API > ollama > none
                 def _try_claude_cli():
-                    if shutil.which("claude"):
+                    if shutil.which("claude") or _env_provider == "claude_cli":
                         from jsat._ai.claude_cli import ClaudeCliProvider
                         # Use a clean config with claude model, not whatever
                         # the original config says (e.g. "llama3.2" from Ollama profile)
@@ -2499,8 +2511,17 @@ def cmd_mcp_server(
 
                 configured = self._cfg.ai.provider
 
+                # 0. Honour explicit JSAT_AI_PROVIDER env var first
+                if _env_provider == "claude_cli":
+                    provider = _try_claude_cli()
+                elif _env_provider and _env_provider not in ("none", ""):
+                    provider = _try_provider(_env_provider) or _try_claude_cli()
+                else:
+                    provider = None
+
                 # 1. Use configured provider if it actually works
-                provider = _try_provider(configured)
+                if provider is None:
+                    provider = _try_provider(configured)
 
                 # 2. Fallback chain if configured provider is unreachable
                 if provider is None:
