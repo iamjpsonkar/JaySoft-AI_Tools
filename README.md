@@ -17,6 +17,8 @@ Every AI session starts with the same problem: you spend the first ten minutes r
 
 JSAT works as a CLI, a Python SDK, and an MCP server that plugs directly into Claude Code. If Claude Code CLI is installed, JSAT uses it automatically with no API key required. For everything else — Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches the provider.
 
+Long-running tools (`jsat__crack`, `jsat__query`, `jsat__short`, prompt rewriting) stream **live progress notifications** back to Claude Code so you see what's happening in real time — no more blank screens during 30-second operations.
+
 ---
 
 ## Quick Start
@@ -281,6 +283,17 @@ jsat crack --rounds 2 --file design.md "sync vs async webhooks"
 **In the JSAT shell:** `crack should we use async or sync for webhook processing`
 
 **MCP tool:** `jsat__crack`
+
+**Live progress** — while the war room runs you see real-time updates in Claude Code:
+```
+⚡ Loading codebase context…
+⚡ Round 1/3: Opening statements…
+⚡ Round 1/3: Moderator synthesising…
+⚡ Round 2/3: Cross-examination…
+⚡ Round 3/3: Consensus…
+⚡ Writing discussion document…
+[result]
+```
 
 ---
 

@@ -1,6 +1,20 @@
 # Tools
 
-JSAT provides 15 tools. Each tool is a focused capability that can be called from the CLI, the Python SDK, or automatically by Claude Code via MCP.
+JSAT provides 17 tools (15 core + Token Optimizer + Crack + Short). Each tool is a focused capability that can be called from the CLI, the Python SDK, or automatically by Claude Code via MCP.
+
+## Live Progress Notifications
+
+Long-running MCP tools emit `notifications/progress` messages during execution so Claude Code shows real-time status instead of a blank screen:
+
+| Tool | Progress messages |
+|---|---|
+| `jsat__crack` | Per-round status (Opening statements / Cross-examination / Consensus / Moderator synthesising) |
+| `jsat__query` | Searching graph → Generating answer |
+| `jsat__short` | Asking AI… |
+| `jsat__prompt_rewrite` | Pipeline stages → LLM rewrite → Done |
+| `jsat__prompt_multi_agent` | Pipeline stages → N agents running → Done |
+
+This uses the standard MCP progress notification format (`method: notifications/progress`). No configuration needed — Claude Code picks it up automatically.
 
 The 15 tools correspond to the Python modules in `jsat/tools/`:
 
@@ -709,7 +723,7 @@ print(r["response"])
 |------|-------------|
 | `jsat__prompt_optimize` | Offline pipeline only — no LLM |
 | `jsat__prompt_diff` | Raw input vs fully optimized prompt as structured diff |
-| `jsat__prompt_rewrite` | Offline + 1 LLM rewrite agent |
+| `jsat__prompt_rewrite` | Offline + 1 LLM rewrite agent (streams progress: pipeline → rewrite → done) |
 | `jsat__prompt_multi_agent` | Offline + up to 3 parallel LLM agents; returns winner |
 
 ### Configuration (`.jsat/config.yaml`)
@@ -903,6 +917,21 @@ print(result.output_path)     # .jsat/crack/redesign-payment-retry-system.md
 |---|---|
 | `jsat__crack` | Multi-agent war room — architect, security, implementer, tester, skeptic, moderator |
 
+### Live progress
+
+`jsat__crack` streams progress notifications to Claude Code during execution, so you see each stage as it happens rather than waiting for the final result:
+
+```
+⚡ Loading codebase context…
+⚡ Round 1/3: Opening statements…
+⚡ Round 1/3: Moderator synthesising…
+⚡ Round 2/3: Cross-examination…
+⚡ Round 2/3: Moderator synthesising…
+⚡ Round 3/3: Consensus…
+⚡ Round 3/3: Moderator synthesising…
+⚡ Writing discussion document…
+```
+
 ### Graceful degradation
 
 If no AI is configured, each agent returns a structural placeholder based on the task text and graph context (BFS keywords). The discussion still happens — it just uses offline templates instead of LLM completions.
@@ -937,6 +966,8 @@ jsat short --words 20 "explain the retry logic"
 | Tool | Description |
 |---|---|
 | `jsat__short` | Ask any question with a brevity constraint (≤50 words default) |
+
+`jsat__short` emits a progress notification ("Asking AI…") immediately so Claude Code shows activity during the AI call.
 
 ### Claude Code slash command
 
