@@ -233,14 +233,16 @@ def test_incremental_force_flag_overrides(indexer, py_repo):
 
 @pytest.mark.ci
 def test_manifest_written_to_jsat_dir(indexer, py_repo):
+    from jsat._config import jsat_data_dir
     indexer.run(py_repo)
-    manifest = py_repo / ".jsat" / "index-manifest.json"
+    manifest = jsat_data_dir(py_repo) / "index-manifest.json"
     assert manifest.exists()
 
 @pytest.mark.ci
 def test_manifest_has_correct_structure(indexer, py_repo):
+    from jsat._config import jsat_data_dir
     indexer.run(py_repo)
-    manifest = py_repo / ".jsat" / "index-manifest.json"
+    manifest = jsat_data_dir(py_repo) / "index-manifest.json"
     data = json.loads(manifest.read_text())
     assert data.get("version") == 1
     assert "files" in data
@@ -260,25 +262,29 @@ def test_incremental_detects_new_file(indexer, graph, py_repo):
 
 @pytest.mark.ci
 def test_index_md_created(indexer, py_repo):
+    from jsat._config import jsat_data_dir
     indexer.run(py_repo)
-    assert (py_repo / ".jsat" / "INDEX.md").exists()
+    assert (jsat_data_dir(py_repo) / "INDEX.md").exists()
 
 @pytest.mark.ci
 def test_index_md_has_overview(indexer, py_repo):
+    from jsat._config import jsat_data_dir
     indexer.run(py_repo)
-    content = (py_repo / ".jsat" / "INDEX.md").read_text()
+    content = (jsat_data_dir(py_repo) / "INDEX.md").read_text()
     assert "Overview" in content
 
 @pytest.mark.ci
 def test_index_md_has_complexity_section(indexer, py_repo):
+    from jsat._config import jsat_data_dir
     indexer.run(py_repo)
-    content = (py_repo / ".jsat" / "INDEX.md").read_text()
+    content = (jsat_data_dir(py_repo) / "INDEX.md").read_text()
     assert "Complexity" in content
 
 @pytest.mark.ci
 def test_index_md_has_language_breakdown(indexer, py_repo):
+    from jsat._config import jsat_data_dir
     indexer.run(py_repo)
-    content = (py_repo / ".jsat" / "INDEX.md").read_text()
+    content = (jsat_data_dir(py_repo) / "INDEX.md").read_text()
     assert "python" in content.lower()
 
 

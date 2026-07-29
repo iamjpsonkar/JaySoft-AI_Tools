@@ -4,6 +4,20 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.3.10] — 2026-07-29
+
+### Fixed
+
+- **`jsat index` now stores `index-manifest.json` and `INDEX.md` in the global
+  data directory** (`~/.jsat/<hash12>/`) instead of `{repo}/.jsat/`. Previously
+  the indexer hardcoded `Path(path) / ".jsat"`, creating a local `.jsat/`
+  directory even on new setups, which then triggered the backward-compat check
+  in `jsat_data_dir()` and permanently locked the repo to the local dir.
+- **`jsat_data_dir()` backward-compat tightened** — only falls back to
+  `{repo}/.jsat/` if a graph database, vector store, or config file exists
+  there. A lone `index-manifest.json` or `INDEX.md` is no longer enough to
+  override the global dir.
+
 ## [0.3.9] — 2026-07-29
 
 ### Changed

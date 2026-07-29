@@ -62,7 +62,8 @@ class IndexerTool(BaseTool):
         max_kb = self._cfg.indexer.max_file_size_kb
         workers = min(os.cpu_count() or 4, 8)
 
-        jsat_dir = Path(path) / ".jsat"
+        from jsat._config import jsat_data_dir
+        jsat_dir = jsat_data_dir(Path(path))
         jsat_dir.mkdir(parents=True, exist_ok=True)
         manifest_path = jsat_dir / "index-manifest.json"
 
@@ -308,7 +309,8 @@ class IndexerTool(BaseTool):
         import json
 
         try:
-            jsat_dir = path / ".jsat"
+            from jsat._config import jsat_data_dir
+            jsat_dir = jsat_data_dir(path)
             jsat_dir.mkdir(parents=True, exist_ok=True)
 
             nodes = result.nodes_indexed

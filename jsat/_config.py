@@ -44,10 +44,18 @@ def jsat_data_dir(repo: Path) -> Path:
     if env_dir:
         return Path(env_dir).expanduser().resolve()
 
-    # 2. Backward compat — if a local .jsat/ already exists with content, keep it.
+    # 2. Backward compat — only if a local .jsat/ has substantial data: a graph
+    #    database, a vector store, or a config file. A lone index-manifest.json
+    #    or INDEX.md is not enough — those now live in the global dir too.
     local_dir = repo.resolve() / ".jsat"
-    if local_dir.is_dir() and any(local_dir.iterdir()):
-        return local_dir
+    if local_dir.is_dir():
+        _substantial = (
+            (local_dir / "graph" / "graph.db").exists()
+            or (local_dir / "vectors").exists()
+            or (local_dir / "config.yaml").exists()
+        )
+        if _substantial:
+            return local_dir
 
     # 3. Global default — ~/.jsat/<hash12>/
     repo_hash = hashlib.sha1(str(repo.resolve()).encode()).hexdigest()[:12]
