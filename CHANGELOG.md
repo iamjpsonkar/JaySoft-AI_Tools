@@ -4,6 +4,15 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.3.9] — 2026-07-29
+
+### Changed
+
+- Documentation fully updated for v0.3.8 global data dir and `--global` flag:
+  README, `docs/configuration.md`, `docs/getting-started.md`,
+  `docs/cli-reference.md` (new `jsat connect bob` section),
+  `docs/ai-integrations.md`, `docs/ai-providers.md`.
+
 ## [0.3.8] — 2026-07-29
 
 ### Added
