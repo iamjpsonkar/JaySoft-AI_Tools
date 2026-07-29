@@ -86,8 +86,9 @@ class JSAT:
         self._active_model: str = self._cfg.ai.model
 
         log = structlog.get_logger(__name__)
+        from jsat._config import jsat_data_dir as _jsat_data_dir
         log.info("jsat_init", repo=str(self._repo),
-                 jsat_dir=str(self._repo / ".jsat"),
+                 jsat_dir=str(_jsat_data_dir(self._repo)),
                  profile=self._sys.detected_profile,
                  ai_provider=self._cfg.ai.provider,
                  graph_backend=self._cfg.graph.backend)
@@ -194,20 +195,27 @@ class JSAT:
         return f"{name} ({model})"
 
     def _pin_paths_to_repo(self, cfg: JSATConfig) -> JSATConfig:
-        """Resolve all relative .jsat/* paths against self._repo.
+        """Resolve all relative .jsat/* paths to the JSAT data directory.
 
-        Prevents files being scattered in CWD when indexing a different directory.
-        All JSAT state lives exclusively inside {repo}/.jsat/.
+        By default the data dir is ~/.jsat/<hash12>/ (global, outside the repo)
+        so these files never appear in git. Falls back to {repo}/.jsat/ if that
+        directory already exists (backward compat for existing setups).
+        See jsat._config.jsat_data_dir for the full resolution order.
         """
-        root = self._repo
+        from jsat._config import jsat_data_dir
+        data_dir = jsat_data_dir(self._repo)
 
         def _abs(p: str) -> str:
-            """Make p absolute, rooted at repo if it starts with .jsat."""
             path = Path(p)
             if path.is_absolute():
                 return p
-            # Re-root .jsat/* paths (and plain relative paths) under the repo
-            return str(root / path)
+            # Strip leading ".jsat/" sentinel and root the rest under data_dir.
+            parts = path.parts
+            if parts and parts[0] == ".jsat":
+                remainder = Path(*parts[1:]) if len(parts) > 1 else Path()
+                return str(data_dir / remainder) if remainder.parts else str(data_dir)
+            # Non-.jsat relative paths (e.g. skills/) stay relative to the repo.
+            return str(self._repo / path)
 
         return cfg.model_copy(update={
             "graph": cfg.graph.model_copy(update={
@@ -223,6 +231,12 @@ class JSAT:
             }),
             "skills": cfg.skills.model_copy(update={
                 "dir": _abs(cfg.skills.dir),
+            }),
+            "privacy": cfg.privacy.model_copy(update={
+                "audit_log_path": _abs(cfg.privacy.audit_log_path),
+            }),
+            "prompt": cfg.prompt.model_copy(update={
+                "history_path": _abs(cfg.prompt.history_path),
             }),
         })
 

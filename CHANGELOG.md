@@ -4,6 +4,23 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.3.8] — 2026-07-29
+
+### Added
+
+- **Global data directory** — JSAT runtime state (graph, cache, vectors, prompt history,
+  system profile) now lives in `~/.jsat/<hash12>/` by default instead of `{repo}/.jsat/`.
+  This keeps every project's git tree clean. Existing setups with a local `.jsat/` directory
+  are auto-detected and kept working (backward-compatible).
+  Override with the `JSAT_DATA_DIR` env var for custom paths or CI environments.
+- **`--global` flag** on `jsat init`, `jsat ai use`, `jsat connect claude`,
+  `jsat connect codex`, and `jsat connect bob`. A single flag installs to the
+  global config path and global AI tool config (e.g. `~/.claude/settings.json`,
+  `~/.codex/`, `~/.bob/`) so JSAT works across all projects without any per-repo setup.
+- **Global JSAT config** at `~/.jsat/config.yaml` — `load_config` now checks this path as
+  a fallback, so `jsat init --global` + `jsat ai use --global` configure JSAT once for all
+  projects on the machine.
+
 ## [0.3.7] — 2026-07-29
 
 ### Fixed

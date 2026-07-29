@@ -21,7 +21,37 @@ from jsat._models import (
     SystemProfile,
 )
 
-_PROFILE_CACHE_NAME = Path(".jsat/system-profile.json")  # relative; resolved per-repo at runtime
+_PROFILE_CACHE_NAME = Path("system-profile.json")  # relative to jsat_data_dir(repo)
+
+
+def jsat_data_dir(repo: Path) -> Path:
+    """Return the JSAT data directory for a given repo.
+
+    Priority:
+      1. JSAT_DATA_DIR env var — full path override (useful in CI or Docker).
+      2. {repo}/.jsat/ if it already exists and is non-empty — backward compat
+         so existing local setups keep working without migration.
+      3. ~/.jsat/<sha1_12>/ — global per-repo store; keeps the repo tree clean
+         and .jsat/ out of git.
+
+    The hash is the first 12 hex chars of SHA-1 over the resolved repo path, so
+    the same repo always maps to the same directory regardless of symlinks or CWD.
+    """
+    import hashlib
+
+    # 1. Explicit override
+    env_dir = os.environ.get("JSAT_DATA_DIR", "").strip()
+    if env_dir:
+        return Path(env_dir).expanduser().resolve()
+
+    # 2. Backward compat — if a local .jsat/ already exists with content, keep it.
+    local_dir = repo.resolve() / ".jsat"
+    if local_dir.is_dir() and any(local_dir.iterdir()):
+        return local_dir
+
+    # 3. Global default — ~/.jsat/<hash12>/
+    repo_hash = hashlib.sha1(str(repo.resolve()).encode()).hexdigest()[:12]
+    return Path.home() / ".jsat" / repo_hash
 
 _PRESETS: dict[str, dict[str, Any]] = {
     "solo": {
@@ -87,10 +117,11 @@ def load_config(config_path: str | Path | None = None,
 
     root = repo or Path.cwd()
     candidates += [
-        root / ".jsat" / "config.yaml",     # canonical: everything inside .jsat/
-        root / ".jsat.yaml",                 # legacy: project root
-        Path(".jsat") / "config.yaml",       # CWD canonical
-        Path(".jsat.yaml"),                  # CWD legacy
+        root / ".jsat" / "config.yaml",              # repo-local canonical
+        root / ".jsat.yaml",                          # repo-local legacy
+        Path(".jsat") / "config.yaml",                # CWD canonical
+        Path(".jsat.yaml"),                           # CWD legacy
+        Path.home() / ".jsat" / "config.yaml",       # global user config (--global)
         Path.home() / ".config" / "jsat" / "config.yaml",
         Path("/etc/jsat/config.yaml"),
     ]
@@ -122,13 +153,12 @@ def load_config(config_path: str | Path | None = None,
 # ── 2. detect_system ──────────────────────────────────────────────────────────
 
 def detect_system(refresh: bool = False, repo_root: Path | None = None) -> SystemProfile:
-    """Probe hardware/services. Result cached in {repo}/.jsat/system-profile.json."""
+    """Probe hardware/services. Result cached in jsat_data_dir(repo)/system-profile.json."""
     import structlog
     log = structlog.get_logger(__name__)
 
-    # Resolve cache path to repo root so it never lands in CWD when indexing elsewhere
-    _root = repo_root or Path.cwd()
-    _PROFILE_CACHE = _root / _PROFILE_CACHE_NAME
+    _root = (repo_root or Path.cwd()).resolve()
+    _PROFILE_CACHE = jsat_data_dir(_root) / _PROFILE_CACHE_NAME
 
     if not refresh and _PROFILE_CACHE.exists():
         try:

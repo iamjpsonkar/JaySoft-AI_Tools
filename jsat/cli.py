@@ -825,21 +825,38 @@ def cmd_doctor(
 def cmd_init(
     profile: str = typer.Option("solo", "--profile", "-p",
                                 help="Profile: solo | team | ci | raspberry-pi"),
-    output: str = typer.Option(".jsat/config.yaml", "--output", "-o",
-                               help="Config file path (default: .jsat/config.yaml)"),
+    output: str = typer.Option("", "--output", "-o",
+                               help="Config file path (default: .jsat/config.yaml, or "
+                                    "~/.jsat/config.yaml with --global)"),
+    global_: bool = typer.Option(False, "--global", "-g",
+                                 help="Write to ~/.jsat/config.yaml — applies to all projects"),
 ) -> None:
-    """Generate a starter JSAT config inside .jsat/ (keeps your repo root clean)."""
+    """Generate a starter JSAT config.
+
+    \b
+    Per-repo (default):    jsat init --profile solo
+    Global (all projects): jsat init --global --profile solo
+    """
     from jsat._config import write_profile_preset
     valid = {"solo", "team", "ci", "raspberry-pi"}
     if profile not in valid:
         err.print(f"[bold red]Unknown profile:[/] {profile!r}. Valid: {', '.join(sorted(valid))}")
         raise typer.Exit(1)
+
+    if global_:
+        dest = Path.home() / ".jsat" / "config.yaml"
+    elif output:
+        dest = Path(output)
+    else:
+        dest = Path(".jsat") / "config.yaml"
+
     try:
-        write_profile_preset(profile, Path(output))
+        write_profile_preset(profile, dest)
     except Exception as e:
         err.print(f"[bold red]Init failed:[/] {e}")
         raise typer.Exit(1) from e
-    console.print(f"[green]✓[/] Written [bold]{output}[/] for profile [bold]{profile!r}[/]")
+    scope_label = "global (~/.jsat/config.yaml)" if global_ else str(dest)
+    console.print(f"[green]✓[/] Written [bold]{scope_label}[/] for profile [bold]{profile!r}[/]")
 
 
 # ── export ────────────────────────────────────────────────────────────────────
@@ -1326,13 +1343,20 @@ def cmd_ai_status() -> None:
 @ai_app.command("use")
 def cmd_ai_use(
     provider: str = typer.Argument(...,
-        help="Provider: ollama | anthropic | openai | lmstudio"),
+        help="Provider: ollama | anthropic | openai | lmstudio | claude_cli | bob_cli"),
     model: str | None = typer.Option(None, "--model", "-m",
         help="Model name (auto-selected if omitted)"),
-    config_path: str = typer.Option(".jsat/config.yaml", "--config", "-c",
-        help="Config file to write (default: .jsat/config.yaml)"),
+    config_path: str = typer.Option("", "--config", "-c",
+        help="Config file to write (default: .jsat/config.yaml, or ~/.jsat/config.yaml "
+             "with --global)"),
+    global_: bool = typer.Option(False, "--global", "-g",
+        help="Write to ~/.jsat/config.yaml — applies to all projects"),
 ) -> None:
     """Configure JSAT to use a specific AI provider.
+
+    \b
+    Per-repo (default):    jsat ai use ollama
+    Global (all projects): jsat ai use anthropic --global
 
     \b
     Examples:
@@ -1341,6 +1365,7 @@ def cmd_ai_use(
       jsat ai use anthropic                    # Claude (needs ANTHROPIC_API_KEY)
       jsat ai use openai --model gpt-4o-mini   # OpenAI (needs OPENAI_API_KEY)
       jsat ai use lmstudio                     # LM Studio at localhost:1234
+      jsat ai use claude_cli --global          # Claude Code CLI, global config
     """
     import os
 
@@ -1384,8 +1409,14 @@ def cmd_ai_use(
                 "  Pull model: [bold]ollama pull llama3.2[/]\n"
             )
 
-    # Read existing config
-    cfg_path = Path(config_path)
+    # Resolve config path
+    if global_:
+        cfg_path = Path.home() / ".jsat" / "config.yaml"
+    elif config_path:
+        cfg_path = Path(config_path)
+    else:
+        cfg_path = Path(".jsat") / "config.yaml"
+
     import yaml
     existing: dict = {}
     if cfg_path.exists():
@@ -1406,8 +1437,10 @@ def cmd_ai_use(
     with cfg_path.open("w") as f:
         yaml.dump(existing, f, default_flow_style=False, sort_keys=False)
 
+    scope_label = "global" if global_ else "project"
     console.print(
         f"\n[green]✓[/] AI provider set: [bold]{chosen_provider}[/] / [bold]{chosen_model}[/]"
+        f"  [{scope_label}]"
     )
     console.print(f"   Written to: [cyan]{cfg_path.resolve()}[/]\n")
 
@@ -2011,6 +2044,11 @@ def cmd_connect_claude(
         "--scope", "-s",
         help="'project' → .claude/settings.json  |  'global' → ~/.claude/settings.json",
     ),
+    global_: bool = typer.Option(
+        False, "--global", "-g",
+        help="Shorthand for --scope global — installs into ~/.claude/settings.json "
+             "and ~/.claude/commands/ for all Claude projects",
+    ),
     repo: str = typer.Option(".", "--repo", "-r",
                               help="Repo path passed to mcp-server (default: current dir)"),
     install_skills: bool = typer.Option(
@@ -2026,6 +2064,10 @@ def cmd_connect_claude(
         jsat connect claude
 
     \b
+    Global (all Claude projects, one-time setup):
+        jsat connect claude --global
+
+    \b
     Global level (all Claude Code sessions):
         jsat connect claude --scope global
 
@@ -2037,8 +2079,11 @@ def cmd_connect_claude(
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
 
+    # --global is a shorthand for --scope global
+    effective_scope = "global" if global_ else scope
+
     # Determine settings file location
-    if scope == "global":
+    if effective_scope == "global":
         settings_path = Path.home() / ".claude" / "settings.json"
         label = "global (~/.claude/settings.json)"
     else:
@@ -2082,7 +2127,7 @@ def cmd_connect_claude(
 
     # Install /jsat-* slash commands
     if install_skills:
-        skills_dir = _write_jsat_skills(scope)
+        skills_dir = _write_jsat_skills(effective_scope)
         console.print(
             f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands "
             f"in [bold]{skills_dir}[/]\n"
@@ -2256,6 +2301,10 @@ def cmd_connect_codex(
         "project", "--scope", "-s",
         help="'project' → .codex/  |  'global' → ~/.codex/",
     ),
+    global_: bool = typer.Option(
+        False, "--global", "-g",
+        help="Shorthand for --scope global — installs into ~/.codex/ for all Codex sessions",
+    ),
     no_instructions: bool = typer.Option(
         False, "--no-instructions",
         help="Skip writing instructions.md (MCP config only)",
@@ -2268,8 +2317,8 @@ def cmd_connect_codex(
         jsat connect codex
 
     \b
-    Global level (all Codex sessions):
-        jsat connect codex --scope global
+    Global (all Codex sessions, one-time setup):
+        jsat connect codex --global
 
     Writes two files:
       .codex/config.json       — MCP server registration
@@ -2277,14 +2326,15 @@ def cmd_connect_codex(
     """
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
-    if scope == "global":
+    effective_scope = "global" if global_ else scope
+    if effective_scope == "global":
         config_path = Path.home() / ".codex" / "config.json"
     else:
         config_path = Path.cwd() / ".codex" / "config.json"
     _connect_mcp_tool("Codex", config_path, binary, repo_path, "Restart Codex")
 
     if not no_instructions:
-        inst_path = _write_codex_instructions(scope)
+        inst_path = _write_codex_instructions(effective_scope)
         console.print(f"[green]✓[/] JSAT tool guidance written to [cyan]{inst_path}[/]")
         console.print(
             "[dim]  Codex reads this file at startup — no restart needed for instructions.[/dim]\n"
@@ -2504,6 +2554,10 @@ def cmd_connect_bob(
         "project", "--scope", "-s",
         help="'project' → .bob/settings.json  |  'global' → ~/.bob/settings.json",
     ),
+    global_: bool = typer.Option(
+        False, "--global", "-g",
+        help="Shorthand for --scope global — installs into ~/.bob/ for all Bob sessions",
+    ),
     no_instructions: bool = typer.Option(False, "--no-instructions",
                                           help="Skip writing BOB.md"),
     install_commands: bool = typer.Option(
@@ -2518,8 +2572,8 @@ def cmd_connect_bob(
         jsat connect bob
 
     \b
-    Global level (all Bob Shell sessions):
-        jsat connect bob --scope global
+    Global (all Bob Shell sessions, one-time setup):
+        jsat connect bob --global
 
     Writes:
       .bob/settings.json (or ~/.bob/settings.json)  — MCP server registration
@@ -2528,8 +2582,9 @@ def cmd_connect_bob(
     """
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
+    effective_scope = "global" if global_ else scope
 
-    if scope == "global":
+    if effective_scope == "global":
         config_path = Path.home() / ".bob" / "settings.json"
         label = "Bob Shell (global)"
     else:
@@ -2543,7 +2598,7 @@ def cmd_connect_bob(
                       env={"JSAT_AI_PROVIDER": "bob_cli"})
 
     if install_commands:
-        cmds_dir = _write_bob_commands(scope)
+        cmds_dir = _write_bob_commands(effective_scope)
         console.print(
             f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands "
             f"in [bold]{cmds_dir}[/]\n"
@@ -2844,12 +2899,11 @@ def cmd_mcp_server(
 
         def _get_graph(self):
             if self._graph is None:
-                # Pin graph path to repo
-                graph_path = str(repo_path / ".jsat" / "graph" / "graph.db")
-                from jsat._models import GraphConfig
-                graph_cfg = GraphConfig(path=graph_path)
+                from jsat._config import jsat_data_dir
                 from jsat._graph.sqlite import SQLiteGraph
-                self._graph = SQLiteGraph(graph_cfg)
+                from jsat._models import GraphConfig
+                graph_path = str(jsat_data_dir(repo_path) / "graph" / "graph.db")
+                self._graph = SQLiteGraph(GraphConfig(path=graph_path))
             return self._graph
 
         def _get_ai(self):
@@ -2986,17 +3040,18 @@ def cmd_clean(
     jsat clean --all        remove all of the above
     """
     import shutil
-    root = Path(repo).resolve() / ".jsat"
+    from jsat._config import jsat_data_dir
+    data_dir = jsat_data_dir(Path(repo).resolve())
     targets: list[tuple[str, Path]] = []
 
     if all_ or cache:
-        targets.append(("cache",   root / "cache"))
+        targets.append(("cache",   data_dir / "cache"))
     if all_ or graph:
-        targets.append(("graph",   root / "graph"))
+        targets.append(("graph",   data_dir / "graph"))
     if all_ or vectors:
-        targets.append(("vectors", root / "vectors"))
+        targets.append(("vectors", data_dir / "vectors"))
     if all_ or history:
-        targets.append(("history", root / "prompt-history.jsonl"))
+        targets.append(("history", data_dir / "prompt-history.jsonl"))
 
     if not targets:
         console.print(
@@ -3011,10 +3066,10 @@ def cmd_clean(
                 shutil.rmtree(p, ignore_errors=True)
             else:
                 p.unlink(missing_ok=True)
-            console.print(f"[green]✓[/] Removed [bold].jsat/{name}[/]")
+            console.print(f"[green]✓[/] Removed [bold]{name}[/] from [dim]{data_dir}[/]")
             removed += 1
         else:
-            console.print(f"[dim]  .jsat/{name} — not found[/dim]")
+            console.print(f"[dim]  {name} — not found in {data_dir}[/dim]")
 
     if removed:
         console.print(f"\n[bold green]Done.[/] {removed} item(s) removed.")
@@ -3131,22 +3186,23 @@ def cmd_remove(
     Does NOT touch other .claude/ config, your source code, or git history.
     """
     import shutil
+    from jsat._config import jsat_data_dir
 
     cwd = Path.cwd()
+    jsat_dir = jsat_data_dir(cwd)
 
     # ── Inventory what will be removed ───────────────────────────────────────
     items: list[tuple[str, Path]] = []
 
-    jsat_dir = cwd / ".jsat"
     for sub in ["graph", "vectors", "cache", "system-profile.json"]:
         p = jsat_dir / sub
         if p.exists():
-            items.append((f".jsat/{sub}", p))
+            items.append((f"{jsat_dir}/{sub}", p))
 
     if not keep_config:
         config_yaml = jsat_dir / "config.yaml"
         if config_yaml.exists():
-            items.append((".jsat/config.yaml", config_yaml))
+            items.append((f"{jsat_dir}/config.yaml", config_yaml))
 
     legacy = cwd / ".jsat.yaml"
     if legacy.exists():
@@ -3195,14 +3251,14 @@ def cmd_remove(
         p = jsat_dir / sub
         if p.exists():
             shutil.rmtree(p, ignore_errors=True)
-            console.print(f"[green]✓[/] Removed .jsat/{sub}/")
+            console.print(f"[green]✓[/] Removed {sub}/ from [dim]{jsat_dir}[/]")
             removed += 1
 
     for sub in ["system-profile.json"]:
         p = jsat_dir / sub
         if p.exists():
             p.unlink()
-            console.print(f"[green]✓[/] Removed .jsat/{sub}")
+            console.print(f"[green]✓[/] Removed {sub} from [dim]{jsat_dir}[/]")
             removed += 1
 
     # Config
@@ -3210,18 +3266,18 @@ def cmd_remove(
         config_yaml = jsat_dir / "config.yaml"
         if config_yaml.exists():
             config_yaml.unlink()
-            console.print("[green]✓[/] Removed .jsat/config.yaml")
+            console.print(f"[green]✓[/] Removed config.yaml from [dim]{jsat_dir}[/]")
             removed += 1
 
-    # Remove .jsat/ directory if now empty
+    # Remove data directory if now empty
     if jsat_dir.exists():
         remaining = list(jsat_dir.iterdir())
         if not remaining:
             jsat_dir.rmdir()
-            console.print("[green]✓[/] Removed .jsat/")
+            console.print(f"[green]✓[/] Removed [dim]{jsat_dir}[/]")
         else:
             console.print(
-                f"[dim]  .jsat/ kept ({len(remaining)} file(s) remain — "
+                f"[dim]  {jsat_dir} kept ({len(remaining)} file(s) remain — "
                 f"use --keep-config=false to remove all)[/dim]"
             )
 
