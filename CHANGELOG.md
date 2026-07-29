@@ -4,6 +4,21 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.3.7] — 2026-07-29
+
+### Fixed
+
+- **Bob `stream()` no longer silently yields nothing.** The previous implementation
+  assumed Anthropic's `content_block_delta` event format for `--output-format stream-json`.
+  Bob Shell uses IBM's own NDJSON format — different field names, different event types.
+  Replaced with a generic content extractor that checks `content`, `result`, `text`, and
+  `delta.text` in order, falling back to raw lines for unrecognised formats.
+- **Bob `complete()` JSON response handling is now explicit.** If Bob returns a JSON
+  envelope without a `result` key, the original text is preserved (not silently dropped).
+  Session ID extraction and result unwrapping are now logged at DEBUG level.
+- **`jsat bob --continue` prints a clear error** if Bob Shell rejects `--resume latest`
+  (which may not be a valid session ID in all Bob versions) instead of silently exiting.
+
 ## [0.3.6] — 2026-07-26
 
 ### Fixed

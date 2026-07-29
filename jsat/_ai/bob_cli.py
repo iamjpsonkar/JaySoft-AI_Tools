@@ -181,17 +181,22 @@ class BobCliProvider(AIProvider):
         self._call_count += 1
         text = result.stdout.strip()
         
-        # Try to extract session ID from output if available
-        # Bob Shell may output session info in JSON format
-        try:
-            if text.startswith("{"):
+        # Try to extract session ID and unwrap result from JSON output.
+        # Bob Shell may wrap its response in a JSON envelope.
+        if text.startswith("{"):
+            try:
                 data = json.loads(text)
-                if "session_id" in data:
-                    self._session_id = data["session_id"]
-                if "result" in data:
-                    text = data["result"]
-        except (json.JSONDecodeError, KeyError):
-            pass
+                sid = data.get("session_id")
+                if sid:
+                    self._session_id = sid
+                result = data.get("result")
+                if result:
+                    text = str(result)
+                # If no "result" key, keep original text — it may be a JSON-formatted answer.
+                log.debug("bob_cli_json_response", has_result=bool(result),
+                          has_session=bool(sid))
+            except json.JSONDecodeError:
+                pass  # not JSON, use raw text as-is
 
         log.info("bob_cli_done", response_len=len(text), elapsed_ms=elapsed,
                  session=self._session_id, turn=self._call_count)
@@ -241,29 +246,25 @@ class BobCliProvider(AIProvider):
                     total_chars += len(raw_line)
                     continue
 
-                event_type = event.get("type", "")
+                # Generic content extractor — handles Bob Shell's actual stream-json
+                # format without assuming Anthropic-style event names.
+                # Checks common field names in order of likelihood.
+                # TODO: verify exact event schema against real Bob Shell output
+                text = (
+                    event.get("content")
+                    or event.get("result")
+                    or event.get("text")
+                    or (event.get("delta") or {}).get("text")  # covers Anthropic & Bob delta
+                    or ""
+                )
+                if text:
+                    yield str(text)
+                    total_chars += len(str(text))
 
-                # Text delta — the actual streamed content
-                if event_type == "content_block_delta":
-                    delta = event.get("delta", {})
-                    if delta.get("type") == "text_delta":
-                        text = delta.get("text", "")
-                        if text:
-                            yield text
-                            total_chars += len(text)
-
-                # Message content
-                elif event_type == "message":
-                    content = event.get("content", "")
-                    if content:
-                        yield content
-                        total_chars += len(content)
-
-                # Session info
-                elif event_type == "session":
-                    sid = event.get("session_id")
-                    if sid:
-                        self._session_id = sid
+                # Capture session ID if present
+                sid = event.get("session_id")
+                if sid:
+                    self._session_id = sid
 
             proc.wait(timeout=10)
 

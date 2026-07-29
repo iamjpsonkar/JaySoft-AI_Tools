@@ -1165,9 +1165,16 @@ def launch_ai_with_jsat_tools(
         if resume:
             cmd += ["--resume", resume]
         elif continue_session:
+            # "--resume latest" is assumed to work in Bob Shell; if not, print a clear hint.
             cmd += ["--resume", "latest"]
 
-        subprocess.run(cmd, cwd=repo)
+        result = subprocess.run(cmd, cwd=repo)
+        if result.returncode != 0 and continue_session:
+            print(  # noqa: T201
+                "\n⚠  Bob Shell exited with an error — '--resume latest' may not be a valid "
+                "session ID in this version of Bob Shell.\n"
+                "   Try: jsat bob --resume <actual-session-id>\n"
+            )
     else:
         # Fallback: custom JSAT shell
         launch(jsat)

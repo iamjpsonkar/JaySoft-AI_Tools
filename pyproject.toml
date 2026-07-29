@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jsat"
-version = "0.3.6"
+version = "0.3.7"
 description = "Codebase intelligence shell and SDK — index once, query forever, works with Claude, GPT, Ollama, and any AI"
 readme = "README.md"
 license = { text = "MIT" }
