@@ -1,6 +1,27 @@
 # Configuration
 
-JSAT configuration lives in `.jsat/config.yaml` inside your project root (the canonical location). All JSAT state is co-located under `.jsat/` to keep your repo root clean.
+## Data Storage vs Config File
+
+JSAT separates **runtime state** from **project config**:
+
+- **Runtime state** (graph database, vector store, cache, prompt history) lives in a **global per-repo directory** at `~/.jsat/<hash12>/` by default — completely outside your git working tree, no `.gitignore` entry needed.
+- **Config file** (`.jsat/config.yaml`) is optional and repo-local. It holds only project-specific settings like languages to index, AI provider preference, and review models.
+
+### Data directory resolution order
+
+| Priority | Location | When |
+|---|---|---|
+| 1 | `$JSAT_DATA_DIR` | env var set (CI, Docker, custom paths) |
+| 2 | `{repo}/.jsat/` | already exists on disk (backward compat) |
+| 3 | `~/.jsat/<sha1_12>/` | **default** — global store, repo-isolated |
+
+The hash is the first 12 hex characters of SHA-1 over the resolved repo path, so the same repo always maps to the same directory regardless of CWD or symlinks.
+
+To find where JSAT is storing data for the current repo:
+
+```bash
+jsat doctor           # shows jsat_dir in the output
+```
 
 ## Config File Locations
 
@@ -8,23 +29,30 @@ JSAT searches for a config file in this order (first found wins):
 
 1. Explicit `--config` CLI flag or `config=` SDK argument
 2. `$JSAT_CONFIG` environment variable
-3. `{repo}/.jsat/config.yaml` — **canonical (recommended)**
+3. `{repo}/.jsat/config.yaml` — **repo-local (recommended for project-specific settings)**
 4. `{repo}/.jsat.yaml` — legacy fallback
 5. `./.jsat/config.yaml` — CWD canonical
 6. `./.jsat.yaml` — CWD legacy
-7. `~/.config/jsat/config.yaml` — user global
-8. `/etc/jsat/config.yaml` — system global
+7. `~/.jsat/config.yaml` — **global user config** (written by `jsat init --global`)
+8. `~/.config/jsat/config.yaml` — XDG user config
+9. `/etc/jsat/config.yaml` — system global
 
 If no config file is found, JSAT uses built-in defaults and auto-detects everything.
 
 ## Generate a Starter Config
 
 ```bash
-jsat init --profile solo           # recommended for individual devs
-jsat init --profile team           # for teams with Neo4j + Redis
-jsat init --profile ci             # for CI pipelines
-jsat init --profile raspberry-pi   # for low-RAM ARM devices
+# Per-repo config (just this project):
+jsat init --profile solo
+jsat init --profile team
+jsat init --profile ci
+jsat init --profile raspberry-pi
+
+# Global config (applies to all projects on this machine):
+jsat init --global --profile solo
 ```
+
+`--global` writes to `~/.jsat/config.yaml`. Any repo without its own `.jsat/config.yaml` picks this up automatically.
 
 ---
 
@@ -38,7 +66,7 @@ project_root: "."
 # ── Graph backend ──────────────────────────────────────────────────────────────
 graph:
   backend: sqlite               # "sqlite" | "neo4j" | "lightgraph"
-  path: .jsat/graph/graph.db    # SQLite database path (relative to repo root)
+  path: .jsat/graph/graph.db    # resolved to data dir at runtime (see Data Storage above)
   remote_uri: null              # Neo4j: "bolt://localhost:7687"
   username: neo4j               # Neo4j username
   password_env: NEO4J_PASSWORD  # env var holding the Neo4j password
@@ -502,10 +530,12 @@ All secrets should be passed via environment variables, never stored in config:
 | Variable | Purpose |
 |---------|---------|
 | `JSAT_CONFIG` | Override config file path |
+| `JSAT_DATA_DIR` | Override data directory (graph, cache, vectors). Useful in CI or Docker |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `GEMINI_API_KEY` | Gemini API key (`GOOGLE_API_KEY` also accepted) |
 | `NEO4J_PASSWORD` | Neo4j password (key name configurable via `password_env`) |
 | `QDRANT_API_KEY` | Qdrant API key (key name configurable via `api_key_env`) |
 | `JSAT_MCP_TOKEN` | MCP server auth token |
+| `JSAT_AI_PROVIDER` | Override AI provider for this process (set automatically by `jsat connect`) |
 | `CI` | If `true`/`1`/`yes`, forces CI profile overrides |

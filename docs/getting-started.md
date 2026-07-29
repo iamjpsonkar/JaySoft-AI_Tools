@@ -66,22 +66,28 @@ jsat version
 
 If you have Claude Code CLI installed, connect JSAT as an MCP server. This gives you all JSAT tools directly inside Claude Code without leaving your AI session.
 
-```bash
-jsat connect claude
-```
+=== "Global — one-time setup (recommended)"
 
-This command:
+    ```bash
+    jsat connect claude --global
+    ```
 
-1. Writes JSAT into `.claude/settings.json` as an MCP server
-2. Installs seven `/jsat-*` slash command skill files in `.claude/commands/`
+    Installs JSAT into `~/.claude/settings.json` and `~/.claude/commands/`. Works in every Claude Code project on this machine — no per-repo setup needed.
+
+=== "Per-project"
+
+    ```bash
+    jsat connect claude
+    ```
+
+    Installs JSAT into `.claude/settings.json` in the current directory. Only active in this project.
+
+Both commands:
+
+1. Write a JSAT MCP server entry into the Claude settings file
+2. Install 31 `/jsat-*` slash command skill files in the Claude commands directory
 
 After running, **restart Claude Code** to activate the MCP tools.
-
-To connect globally (all Claude Code sessions, not just this project):
-
-```bash
-jsat connect claude --scope global
-```
 
 See [Claude Integration](claude-integration.md) for details.
 
@@ -100,7 +106,7 @@ JSAT will:
 
 1. Parse all source files with tree-sitter (Python, JS/TS, Go, and more)
 2. Extract functions, classes, endpoints, tables, and their relationships
-3. Store the graph in `.jsat/graph/graph.db` (SQLite by default)
+3. Store the graph in `~/.jsat/<hash>/graph/graph.db` (global by default, outside the repo)
 4. Generate embeddings for semantic search (if a local or API embedding model is configured)
 
 Example output:
@@ -221,14 +227,20 @@ Example:
 If you do not have Claude Code installed, JSAT still works fully via its own shell or Python SDK.
 
 ```bash
-# Generate a starter config
+# Generate a global config (applies to all projects on this machine)
+jsat init --global --profile solo
+
+# — or — per-project config
 jsat init --profile solo
+
+# Set AI provider (globally or per-project)
+jsat ai use ollama --global       # global: ~/.jsat/config.yaml
+jsat ai use ollama                # per-project: .jsat/config.yaml
 
 # Index your project
 jsat index .
 
-# Open the JSAT shell with Ollama AI
-jsat ai use ollama
+# Open the JSAT shell
 jsat shell
 ```
 
@@ -250,25 +262,40 @@ Inside the shell, type any natural language question or use a built-in command:
 
 Running `jsat index` and `jsat connect claude` creates these files:
 
-```
-your-project/
-├── .jsat/
-│   ├── config.yaml          # your JSAT config (created by jsat init)
-│   ├── graph/
-│   │   └── graph.db         # SQLite codebase graph
-│   ├── vectors/             # embedding vectors (if configured)
-│   ├── cache/               # semantic cache (disk backend)
-│   └── system-profile.json  # auto-detected system profile (cached)
-└── .claude/
-    ├── settings.json        # MCP server entry added by jsat connect claude
-    └── commands/
-        ├── jsat-query.md
-        ├── jsat-blast-radius.md
-        ├── jsat-security.md
-        ├── jsat-incident.md
-        ├── jsat-index.md
-        ├── jsat-status.md
-        └── jsat-doctor.md
-```
+=== "Default (global data dir, per-project connect)"
 
-None of these files need to be committed. Add `.jsat/` and `.claude/commands/jsat-*.md` to `.gitignore` if you prefer not to share them.
+    ```
+    ~/.jsat/
+    └── <hash12>/            # global data dir for this repo (never inside git)
+        ├── graph/
+        │   └── graph.db     # SQLite codebase graph
+        ├── vectors/         # embedding vectors (if configured)
+        ├── cache/           # semantic cache (disk backend)
+        └── system-profile.json
+
+    your-project/
+    ├── .jsat/
+    │   └── config.yaml      # optional project-specific config (jsat init)
+    └── .claude/
+        ├── settings.json    # MCP server entry (jsat connect claude)
+        └── commands/
+            └── jsat-*.md    # 31 slash command files
+    ```
+
+=== "Global connect (jsat connect claude --global)"
+
+    ```
+    ~/.jsat/
+    ├── config.yaml          # global config (jsat init --global)
+    └── <hash12>/            # global data dir (per-repo, auto-created)
+        ├── graph/graph.db
+        ├── vectors/
+        └── cache/
+
+    ~/.claude/
+    ├── settings.json        # global MCP entry — works in every project
+    └── commands/
+        └── jsat-*.md        # global slash commands
+    ```
+
+The `~/.jsat/<hash12>/` directory is outside every git repo — nothing to `.gitignore`. If you run `jsat connect claude` (project scope), add `.claude/commands/jsat-*.md` to `.gitignore` if you prefer not to commit the skill files.

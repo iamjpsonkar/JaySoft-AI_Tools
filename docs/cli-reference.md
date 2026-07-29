@@ -32,7 +32,7 @@ jsat index . --watch                          # continuous re-index on save
 
 **How incremental mode works:**
 
-On the first run JSAT writes `.jsat/index-manifest.json` containing an `mtime + sha256` entry for every indexed file. On subsequent runs only files whose content actually changed are re-parsed; everything else is skipped. A 500-file repo with 5 changed files goes from ~3 s to ~100 ms.
+On the first run JSAT writes `index-manifest.json` in the data directory (see [Data Storage](configuration.md#data-storage-vs-config-file)) containing an `mtime + sha256` entry for every indexed file. On subsequent runs only files whose content actually changed are re-parsed; everything else is skipped. A 500-file repo with 5 changed files goes from ~3 s to ~100 ms.
 
 **Rich metadata extracted (v0.2.0+):**
 
@@ -184,7 +184,7 @@ Output columns: Provider, Status, Free, Notes/Models.
 
 ### `jsat ai use`
 
-Configure JSAT to use a specific AI provider. Writes to `.jsat/config.yaml`.
+Configure JSAT to use a specific AI provider.
 
 ```
 jsat ai use PROVIDER [OPTIONS]
@@ -192,17 +192,24 @@ jsat ai use PROVIDER [OPTIONS]
 
 | Argument / Flag | Description |
 |----------------|-------------|
-| `PROVIDER` | `ollama`, `anthropic`, `openai`, `lmstudio` |
+| `PROVIDER` | `ollama`, `anthropic`, `openai`, `lmstudio`, `claude_cli`, `bob_cli` |
 | `--model`, `-m` | Override the default model for this provider |
-| `--config`, `-c` | Config file to write (default: `.jsat/config.yaml`) |
+| `--config`, `-c` | Config file to write (default: `.jsat/config.yaml`, or `~/.jsat/config.yaml` with `--global`) |
+| `--global`, `-g` | Write to `~/.jsat/config.yaml` — applies to all projects on this machine |
 
 ```bash
+# Per-repo (writes .jsat/config.yaml)
 jsat ai use ollama
 jsat ai use ollama --model phi3:mini
 jsat ai use anthropic
 jsat ai use anthropic --model claude-haiku-4-5-20251001
 jsat ai use openai --model gpt-4o-mini
+jsat ai use claude_cli
 jsat ai use lmstudio
+
+# Global (writes ~/.jsat/config.yaml)
+jsat ai use claude_cli --global
+jsat ai use anthropic --global
 ```
 
 Runs a connectivity test after writing and reports whether the AI is reachable.
@@ -248,7 +255,7 @@ JSAT works as an MCP server with any AI tool that supports the Model Context Pro
 
 ### `jsat connect claude`
 
-Wire JSAT into Claude Code as an MCP server and install 28 `/jsat-*` slash commands.
+Wire JSAT into Claude Code as an MCP server and install 31 `/jsat-*` slash commands.
 
 ```
 jsat connect claude [OPTIONS]
@@ -257,13 +264,15 @@ jsat connect claude [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--scope`, `-s` | `project` | `project` → `.claude/settings.json` \| `global` → `~/.claude/settings.json` |
+| `--global`, `-g` | false | Shorthand for `--scope global` — one-time setup for all Claude projects |
 | `--repo`, `-r` | `.` | Repo path passed to the MCP server |
 | `--install-skills/--no-skills` | `--install-skills` | Install `/jsat-*` slash commands |
 | `--show` | false | Print the written config |
 
 ```bash
 jsat connect claude                         # project scope
-jsat connect claude --scope global          # global (all Claude Code sessions)
+jsat connect claude --global                # global — all Claude Code sessions (recommended)
+jsat connect claude --scope global          # same as --global
 jsat connect claude --no-skills             # MCP only, no slash commands
 jsat connect claude --show                  # print config after writing
 ```
@@ -283,17 +292,19 @@ jsat connect codex [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--scope`, `-s` | `project` | `project` → `.codex/` \| `global` → `~/.codex/` |
+| `--global`, `-g` | false | Shorthand for `--scope global` — all Codex sessions |
 | `--repo`, `-r` | `.` | Repo path passed to the MCP server |
 | `--no-instructions` | false | MCP config only — skip instructions.md |
 
 ```bash
 jsat connect codex                          # project scope
-jsat connect codex --scope global           # global
+jsat connect codex --global                 # global — all Codex sessions (recommended)
+jsat connect codex --scope global           # same as --global
 ```
 
 Writes two files:
-- `.codex/config.json` — MCP server registration
-- `.codex/instructions.md` — JSAT tool guidance (Codex reads at startup)
+- `.codex/config.json` (or `~/.codex/config.json` with `--global`) — MCP server registration
+- `.codex/instructions.md` (or `~/.codex/instructions.md`) — JSAT tool guidance
 
 ---
 
@@ -422,6 +433,34 @@ Restart Gemini CLI after running.
 
 ---
 
+### `jsat connect bob`
+
+Wire JSAT into Bob Shell (`@ibm/bob-shell`) as an MCP server, write BOB.md guidance, and install `/jsat-*` slash commands.
+
+```
+jsat connect bob [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--scope`, `-s` | `project` | `project` → `.bob/settings.json` \| `global` → `~/.bob/settings.json` |
+| `--global`, `-g` | false | Shorthand for `--scope global` — all Bob sessions |
+| `--repo`, `-r` | `.` | Repo path for the MCP server |
+| `--no-instructions` | false | Skip writing BOB.md |
+| `--install-commands/--no-commands` | `--install-commands` | Install `/jsat-*` slash commands |
+
+```bash
+jsat connect bob                            # project scope
+jsat connect bob --global                   # global — all Bob sessions (recommended)
+```
+
+Writes:
+- `.bob/settings.json` (or `~/.bob/settings.json`) — MCP server registration
+- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 31 slash commands
+- `BOB.md` — JSAT tool guidance (Bob Shell reads from project root automatically)
+
+---
+
 ### `jsat connect list`
 
 Show all AI tools that have JSAT wired as an MCP server.
@@ -483,7 +522,7 @@ Restart the relevant AI tool after disconnecting.
 
 ### `jsat init`
 
-Generate a starter `.jsat/config.yaml` for a given profile. Does not overwrite if the file already exists.
+Generate a starter JSAT config for a given profile.
 
 ```
 jsat init [OPTIONS]
@@ -492,14 +531,21 @@ jsat init [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--profile`, `-p` | `solo` | `solo`, `team`, `ci`, or `raspberry-pi` |
-| `--output`, `-o` | `.jsat/config.yaml` | Output path |
+| `--output`, `-o` | `.jsat/config.yaml` | Output path (ignored when `--global` is set) |
+| `--global`, `-g` | false | Write to `~/.jsat/config.yaml` — applies to all projects on this machine |
 
 ```bash
+# Per-repo config
 jsat init --profile solo
 jsat init --profile team
 jsat init --profile ci
-jsat init --profile raspberry-pi --output /etc/jsat/config.yaml
+jsat init --profile raspberry-pi
+
+# Global config — one-time setup, applies to all projects
+jsat init --global --profile solo
 ```
+
+`--global` writes `~/.jsat/config.yaml`. Any repo that does not have its own `.jsat/config.yaml` automatically uses the global config.
 
 ---
 

@@ -6,16 +6,17 @@ JSAT supports six AI backends. The right one is selected automatically based on 
 
 
 
-| Bob Shell CLI | `jsat ai use bob` | Free tier | `bob` binary |
-
 | Provider | Switch command | Cost | Needs |
 |----------|---------------|------|-------|
-| Claude Code CLI | `jsat ai use claude-cli` | Free tier | `claude` binary |
+| Claude Code CLI | `jsat ai use claude_cli` | Free tier | `claude` binary |
+| Bob Shell CLI | `jsat ai use bob_cli` | Free tier | `bob` binary |
 | Anthropic API | `jsat ai use anthropic` | Paid | `ANTHROPIC_API_KEY` |
 | OpenAI | `jsat ai use openai` | Paid | `OPENAI_API_KEY` |
 | Google Gemini | `jsat ai use gemini` | Paid | `GEMINI_API_KEY` |
 | Ollama (local) | `jsat ai use ollama` | Free | `ollama serve` + model |
 | LM Studio (local) | `jsat ai use lmstudio` | Free | LM Studio running |
+
+Add `--global` to any `jsat ai use` command to write the setting to `~/.jsat/config.yaml` (applies to all projects on this machine) instead of the per-repo `.jsat/config.yaml`.
 
 ---
 
@@ -62,7 +63,8 @@ claude --version
 JSAT auto-detects the `claude` binary. No configuration needed. To set it explicitly:
 
 ```bash
-jsat ai use claude-cli
+jsat ai use claude_cli           # per-repo
+jsat ai use claude_cli --global  # all projects on this machine
 ```
 
 This sets:
@@ -173,7 +175,8 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ### Activate
 
 ```bash
-jsat ai use anthropic
+jsat ai use anthropic           # per-repo
+jsat ai use anthropic --global  # all projects on this machine
 ```
 
 Available models: `claude-sonnet-4-6` (default), `claude-haiku-4-5-20251001`, `claude-opus-4-8`.
@@ -222,6 +225,7 @@ export OPENAI_API_KEY=sk-...
 ```bash
 jsat ai use openai
 jsat ai use openai --model gpt-4o-mini   # cheaper
+jsat ai use openai --global              # all projects on this machine
 ```
 
 Default model: `gpt-4o-mini`.
@@ -336,6 +340,7 @@ JSAT checks `http://localhost:11434` on startup. If Ollama is running, it is aut
 ```bash
 jsat ai use ollama
 jsat ai use ollama --model phi3:mini
+jsat ai use ollama --global             # all projects on this machine
 ```
 
 ### List pulled models

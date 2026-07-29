@@ -47,12 +47,16 @@ Each launcher auto-connects JSAT if not already wired and opens the tool with 55
 
 ```bash
 jsat claude                              # open with JSAT tools
-jsat connect claude                      # project scope
-jsat connect claude --scope global       # global (all sessions)
+jsat connect claude --global             # global — all sessions (recommended)
+jsat connect claude                      # project scope only
 jsat connect claude --no-skills          # MCP only, skip slash commands
 ```
 
-**What gets installed:**
+**What gets installed (global):**
+- `~/.claude/settings.json` — MCP server config
+- `~/.claude/commands/jsat-*.md` — 31 slash commands
+
+**What gets installed (project):**
 - `.claude/settings.json` — MCP server config
 - `.claude/commands/jsat-*.md` — 31 slash commands
 
@@ -71,8 +75,8 @@ switch claude-cli    → launch full Claude Code session
 
 ```bash
 jsat codex                               # open with JSAT pre-loaded
-jsat connect codex                       # project scope
-jsat connect codex --scope global        # global
+jsat connect codex --global              # global — all sessions (recommended)
+jsat connect codex                       # project scope only
 ```
 
 **What gets installed:**
@@ -194,8 +198,8 @@ switch gemini    → launch Gemini CLI session
 ```bash
 jsat bob                                 # open Bob Shell with JSAT pre-loaded
 jsat bob --mode advanced                 # open in specific mode (plan, code, advanced, ask)
-jsat connect bob                         # project scope + install /jsat-* slash commands
-jsat connect bob --scope global          # global
+jsat connect bob --global                # global — all sessions (recommended)
+jsat connect bob                         # project scope only
 jsat connect bob --no-commands           # MCP + BOB.md only, skip slash commands
 ```
 

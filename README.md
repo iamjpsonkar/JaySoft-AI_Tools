@@ -115,8 +115,12 @@ jsat ai use ollama                        # free, local, no key
 jsat ai use ollama --model qwen2.5-coder:7b
 jsat ai use anthropic                     # needs ANTHROPIC_API_KEY
 jsat ai use openai --model gpt-4o-mini    # needs OPENAI_API_KEY
+jsat ai use claude_cli                    # Claude Code CLI (no key, uses claude binary)
 jsat ai use lmstudio                      # any OpenAI-compat server at localhost:1234
 jsat ai test                              # verify the configured provider works
+
+# Apply globally (all projects on this machine):
+jsat ai use claude_cli --global
 ```
 
 ### Switch inside the JSAT shell
@@ -140,16 +144,20 @@ JSAT works as an MCP server with any AI tool that supports the Model Context Pro
 ### Connect
 
 ```bash
-jsat connect claude                        # Claude Code — project scope
-jsat connect claude --scope global         # Claude Code — all sessions
-jsat connect codex                         # OpenAI Codex CLI — project scope
-jsat connect codex --scope global          # OpenAI Codex CLI — global
+# Recommended: one-time global setup (works in every project)
+jsat connect claude --global               # Claude Code — all sessions
+jsat connect codex --global               # OpenAI Codex CLI — all sessions
+jsat connect bob --global                 # Bob Shell — all sessions
+
+# Per-project (this repo only)
+jsat connect claude                        # Claude Code
+jsat connect codex                         # OpenAI Codex CLI
+jsat connect bob                           # Bob Shell (+ /jsat-* slash commands)
 jsat connect cursor                        # Cursor
 jsat connect windsurf                      # Windsurf (Codeium)
 jsat connect continue                      # Continue.dev
 jsat connect zed                           # Zed editor
 jsat connect gemini                        # Google Gemini CLI
-jsat connect bob                           # Bob Shell (+ /jsat-* slash commands)
 
 jsat connect list                          # show every active connection
 ```
@@ -162,15 +170,19 @@ Each connect command writes both an MCP config **and** a guidance file so the AI
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
-| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (28 files) | Slash commands |
+| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (31 files) | Slash commands |
 | Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` | Slash commands |
 | Codex (project) | `.codex/config.json` | `.codex/instructions.md` | Agent instructions |
 | Codex (global) | `~/.codex/config.json` | `~/.codex/instructions.md` | Agent instructions |
+| Bob Shell (project) | `.bob/settings.json` | `BOB.md` + `.bob/commands/jsat-*.md` | Slash commands |
+| Bob Shell (global) | `~/.bob/settings.json` | `BOB.md` + `~/.bob/commands/jsat-*.md` | Slash commands |
 | Cursor | `~/.cursor/mcp.json` | — | — |
 | Windsurf | `~/.codeium/windsurf/mcp_config.json` | `.windsurfrules` | Rules file |
-| Continue | `~/.continue/config.json` | 10 `/jsat-*` custom commands | Slash commands |
+| Continue | `~/.continue/config.json` | `/jsat-*` custom commands | Slash commands |
 | Zed | `~/.config/zed/settings.json` | `.zed/JSAT.md` | Project context |
 | Gemini CLI | `~/.gemini/settings.json` | `GEMINI.md` | Project instructions |
+
+Pass `--global` (claude/codex/bob) or check the tool's docs for global scope on others.
 
 Pass `--no-instructions` to skip writing the guidance file (MCP only).
 
@@ -453,7 +465,8 @@ jsat remove                                   # remove all JSAT artifacts from t
 
 | Command | Description |
 |---|---|
-| `jsat init` | Generate `.jsat/config.yaml` (default: `solo` profile) |
+| `jsat init` | Generate `.jsat/config.yaml` for this repo (default: `solo` profile) |
+| `jsat init --global` | Generate `~/.jsat/config.yaml` — applies to all projects |
 | `jsat init --profile team` | Team profile (Neo4j, Qdrant, Redis, Claude API) |
 | `jsat init --profile ci` | CI profile (SQLite, no AI, JSON logs) |
 | `jsat init --profile raspberry-pi` | Low-RAM profile (SQLite, phi3:mini, batch size 8) |
@@ -463,7 +476,8 @@ jsat remove                                   # remove all JSAT artifacts from t
 | Command | Description |
 |---|---|
 | `jsat ai status` | Show all providers: available, active, free/paid |
-| `jsat ai use <provider>` | Configure a provider and write to config |
+| `jsat ai use <provider>` | Configure a provider and write to `.jsat/config.yaml` |
+| `jsat ai use <provider> --global` | Configure provider globally in `~/.jsat/config.yaml` |
 | `jsat ai use ollama --model phi3:mini` | Use a specific Ollama model |
 | `jsat ai test` | Send a test prompt and verify the provider works |
 | `jsat ai models` | List models available from the configured provider |
@@ -473,10 +487,12 @@ jsat remove                                   # remove all JSAT artifacts from t
 | Command | Description |
 |---|---|
 | `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 31 slash commands |
-| `jsat connect claude --scope global` | Wire JSAT into Claude Code globally |
+| `jsat connect claude --global` | Wire JSAT into Claude Code globally (all projects) |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
 | `jsat connect codex` | Wire JSAT into OpenAI Codex CLI (project scope) |
-| `jsat connect codex --scope global` | Wire JSAT into Codex globally |
+| `jsat connect codex --global` | Wire JSAT into Codex globally |
+| `jsat connect bob` | Wire JSAT into Bob Shell (project scope) |
+| `jsat connect bob --global` | Wire JSAT into Bob Shell globally |
 | `jsat connect cursor` | Wire JSAT into Cursor |
 | `jsat connect windsurf` | Wire JSAT into Windsurf |
 | `jsat connect continue` | Wire JSAT into Continue.dev |
@@ -657,10 +673,32 @@ JSAT indexes these node types and relationship edges:
 
 ## Configuration
 
-JSAT stores all state under `.jsat/` in your repo root. The config file is `.jsat/config.yaml`.
+### Data storage
+
+By default JSAT stores runtime state (graph, cache, vectors, prompt history) in **`~/.jsat/<hash12>/`** — a global per-repo directory that never appears inside your git working tree. No `.gitignore` entry needed.
+
+| Priority | Location | When |
+|---|---|---|
+| 1 | `$JSAT_DATA_DIR` | env var set (CI, Docker) |
+| 2 | `{repo}/.jsat/` | already exists (backward compat) |
+| 3 | `~/.jsat/<sha1_12>/` | **default** |
+
+The config file (`.jsat/config.yaml`) is separate and optional — it holds project-specific settings, not runtime data.
+
+### One-time global setup
 
 ```bash
-jsat init                        # write starter config (solo profile)
+jsat init --global --profile solo      # write ~/.jsat/config.yaml
+jsat ai use claude_cli --global        # set AI provider globally
+jsat connect claude --global           # install to ~/.claude/ for all projects
+```
+
+After this, every project on the machine has JSAT available with no per-repo steps.
+
+### Per-repo config
+
+```bash
+jsat init                        # write .jsat/config.yaml (solo profile)
 jsat init --profile team         # team profile
 jsat init --profile ci           # CI/CD profile
 ```
@@ -706,15 +744,16 @@ ithinking:
 
 ### Config search order
 
-JSAT finds its config by checking these locations in order (first found wins):
+JSAT finds its config file by checking these locations in order (first found wins):
 
 1. Explicit path passed to `JSAT(config=...)` or `--config` flag
 2. `$JSAT_CONFIG` environment variable
-3. `{repo}/.jsat/config.yaml` (canonical)
+3. `{repo}/.jsat/config.yaml` (repo-local canonical)
 4. `{repo}/.jsat.yaml` (legacy)
 5. `./.jsat/config.yaml` (CWD)
-6. `~/.config/jsat/config.yaml`
-7. `/etc/jsat/config.yaml`
+6. `~/.jsat/config.yaml` ← **global user config** (`jsat init --global`)
+7. `~/.config/jsat/config.yaml`
+8. `/etc/jsat/config.yaml`
 
 ---
 
