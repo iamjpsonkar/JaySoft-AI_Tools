@@ -2030,7 +2030,6 @@
 <h1 id="ai-providers">AI Providers<a class="headerlink" href="#ai-providers" title="Permanent link">&para;</a></h1>
 <p>JSAT supports six AI backends. The right one is selected automatically based on what is available, but you can override it at any time.</p>
 <h2 id="provider-overview">Provider Overview<a class="headerlink" href="#provider-overview" title="Permanent link">&para;</a></h2>
-<p>| Bob Shell CLI | <code>jsat ai use bob</code> | Free tier | <code>bob</code> binary |</p>
 <table>
 <thead>
 <tr>
@@ -2043,9 +2042,15 @@
 <tbody>
 <tr>
 <td>Claude Code CLI</td>
-<td><code>jsat ai use claude-cli</code></td>
+<td><code>jsat ai use claude_cli</code></td>
 <td>Free tier</td>
 <td><code>claude</code> binary</td>
+</tr>
+<tr>
+<td>Bob Shell CLI</td>
+<td><code>jsat ai use bob_cli</code></td>
+<td>Free tier</td>
+<td><code>bob</code> binary</td>
 </tr>
 <tr>
 <td>Anthropic API</td>
@@ -2079,6 +2084,7 @@
 </tr>
 </tbody>
 </table>
+<p>Add <code>--global</code> to any <code>jsat ai use</code> command to write the setting to <code>~/.jsat/config.yaml</code> (applies to all projects on this machine) instead of the per-repo <code>.jsat/config.yaml</code>.</p>
 <hr />
 <h2 id="check-what-is-available">Check What Is Available<a class="headerlink" href="#check-what-is-available" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>status
@@ -2108,7 +2114,8 @@
 </code></pre></div>
 <h3 id="activate">Activate<a class="headerlink" href="#activate" title="Permanent link">&para;</a></h3>
 <p>JSAT auto-detects the <code>claude</code> binary. No configuration needed. To set it explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>claude-cli
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>claude_cli<span class="w">           </span><span class="c1"># per-repo</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>claude_cli<span class="w"> </span>--global<span class="w">  </span><span class="c1"># all projects on this machine</span>
 </code></pre></div>
 <p>This sets:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">ai</span><span class="p">:</span>
@@ -2172,7 +2179,8 @@
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="c1"># Add to ~/.zshrc or ~/.bashrc to persist</span>
 </code></pre></div>
 <h3 id="activate_2">Activate<a class="headerlink" href="#activate_2" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>anthropic
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>anthropic<span class="w">           </span><span class="c1"># per-repo</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>anthropic<span class="w"> </span>--global<span class="w">  </span><span class="c1"># all projects on this machine</span>
 </code></pre></div>
 <p>Available models: <code>claude-sonnet-4-6</code> (default), <code>claude-haiku-4-5-20251001</code>, <code>claude-opus-4-8</code>.</p>
 <p>Use a specific model:</p>
@@ -2199,6 +2207,7 @@
 <h3 id="activate_3">Activate<a class="headerlink" href="#activate_3" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>openai
 <a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>openai<span class="w"> </span>--model<span class="w"> </span>gpt-4o-mini<span class="w">   </span><span class="c1"># cheaper</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>openai<span class="w"> </span>--global<span class="w">              </span><span class="c1"># all projects on this machine</span>
 </code></pre></div>
 <p>Default model: <code>gpt-4o-mini</code>.</p>
 <h3 id="verify_3">Verify<a class="headerlink" href="#verify_3" title="Permanent link">&para;</a></h3>
@@ -2266,6 +2275,7 @@
 <h3 id="activate_5">Activate<a class="headerlink" href="#activate_5" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama
 <a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>phi3:mini
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--global<span class="w">             </span><span class="c1"># all projects on this machine</span>
 </code></pre></div>
 <h3 id="list-pulled-models">List pulled models<a class="headerlink" href="#list-pulled-models" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>models

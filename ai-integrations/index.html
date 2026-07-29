@@ -1025,11 +1025,14 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <h2 id="per-tool-details">Per-Tool Details<a class="headerlink" href="#per-tool-details" title="Permanent link">&para;</a></h2>
 <h3 id="claude-code">Claude Code<a class="headerlink" href="#claude-code" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>jsat<span class="w"> </span>claude<span class="w">                              </span><span class="c1"># open with JSAT tools</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w">                      </span><span class="c1"># project scope</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">       </span><span class="c1"># global (all sessions)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--global<span class="w">             </span><span class="c1"># global — all sessions (recommended)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w">                      </span><span class="c1"># project scope only</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--no-skills<span class="w">          </span><span class="c1"># MCP only, skip slash commands</span>
 </code></pre></div>
-<p><strong>What gets installed:</strong>
+<p><strong>What gets installed (global):</strong>
+- <code>~/.claude/settings.json</code> — MCP server config
+- <code>~/.claude/commands/jsat-*.md</code> — 31 slash commands</p>
+<p><strong>What gets installed (project):</strong>
 - <code>.claude/settings.json</code> — MCP server config
 - <code>.claude/commands/jsat-*.md</code> — 31 slash commands</p>
 <p><strong>Slash commands:</strong> <code>/jsat-query</code>, <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>,
@@ -1041,8 +1044,8 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <hr />
 <h3 id="openai-codex-cli">OpenAI Codex CLI<a class="headerlink" href="#openai-codex-cli" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>codex<span class="w">                               </span><span class="c1"># open with JSAT pre-loaded</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                       </span><span class="c1"># project scope</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">        </span><span class="c1"># global</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w"> </span>--global<span class="w">              </span><span class="c1"># global — all sessions (recommended)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                       </span><span class="c1"># project scope only</span>
 </code></pre></div>
 <p><strong>What gets installed:</strong>
 - <code>.codex/config.json</code> — MCP server config
@@ -1116,8 +1119,8 @@ and 21 more.</p>
 <h3 id="bob-shell">Bob Shell<a class="headerlink" href="#bob-shell" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>jsat<span class="w"> </span>bob<span class="w">                                 </span><span class="c1"># open Bob Shell with JSAT pre-loaded</span>
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>jsat<span class="w"> </span>bob<span class="w"> </span>--mode<span class="w"> </span>advanced<span class="w">                 </span><span class="c1"># open in specific mode (plan, code, advanced, ask)</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w">                         </span><span class="c1"># project scope + install /jsat-* slash commands</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">          </span><span class="c1"># global</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w"> </span>--global<span class="w">                </span><span class="c1"># global — all sessions (recommended)</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w">                         </span><span class="c1"># project scope only</span>
 <a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>jsat<span class="w"> </span>connect<span class="w"> </span>bob<span class="w"> </span>--no-commands<span class="w">           </span><span class="c1"># MCP + BOB.md only, skip slash commands</span>
 </code></pre></div>
 <p><code>jsat bob</code> opens a clean <strong>interactive</strong> Bob session; JSAT tools and guidance are
