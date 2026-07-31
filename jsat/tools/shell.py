@@ -756,7 +756,10 @@ class JSATShell:
 
                 context = "\n".join(ctx_lines)
                 return (
-                    f"You are an expert software engineer with full knowledge of this codebase.\n\n"
+                    "You are an expert software engineer with access to this codebase's graph index.\n"
+                    "The context below shows what is actually indexed — reference specific "
+                    "service names, endpoints, and functions from it. If the context does not "
+                    "contain the answer, say so rather than guessing.\n\n"
                     f"CODEBASE CONTEXT:\n{context}\n\n"
                     f"USER: {message}\n\nASSISTANT:"
                 )

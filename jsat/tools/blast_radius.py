@@ -50,12 +50,20 @@ class BlastRadiusTool(BaseTool):
         if not start_ids:
             log.warning("blast_radius_no_start_nodes", target=target)
 
+        # Augment start_ids from diff if provided
+        if diff is not None:
+            diff_ids = self._start_ids_from_diff(diff)
+            log.info("blast_radius_diff_ids", diff_ids_count=len(diff_ids))
+            start_ids += diff_ids
+            start_ids = list(dict.fromkeys(start_ids))  # deduplicate, preserve order
+
         impacts: list[ImpactItem] = []
-        set(start_ids)
+        visited: set[str] = set(start_ids)
 
         for node_id, depth, edge_path in self._graph.bfs(start_ids, max_depth):
-            if node_id in start_ids:
+            if node_id in visited:
                 continue
+            visited.add(node_id)
             if depth == 0:
                 continue
             edge_type = edge_path[-1] if edge_path else "UNKNOWN"
@@ -114,17 +122,45 @@ class BlastRadiusTool(BaseTool):
         )
         return [r["id"] for r in rows] if rows else [target]
 
+    def _start_ids_from_diff(self, diff: str) -> list[str]:
+        """Extract node IDs for all files changed in a unified diff."""
+        import structlog
+        log = structlog.get_logger(__name__)
+
+        changed_files: set[str] = set()
+        for line in diff.splitlines():
+            if line.startswith("--- a/") or line.startswith("+++ b/"):
+                path = line[6:].strip()
+                if path != "/dev/null":
+                    changed_files.add(path)
+
+        log.debug("blast_radius_diff_changed_files", count=len(changed_files))
+
+        ids: list[str] = []
+        for fpath in changed_files:
+            rows = self._graph.query(
+                "SELECT id FROM nodes WHERE json_extract(properties,'$.file') LIKE ?",
+                {"pattern": f"%{fpath}"}
+            )
+            matched = [r["id"] for r in rows]
+            log.debug("blast_radius_diff_file_nodes", file=fpath, matched=len(matched))
+            ids.extend(matched)
+        return ids
+
     def _to_mermaid(self, target: str, impacts: list) -> str:
-        lines = ["graph LR", f"    ROOT[\"{target}\"]"]
-        colors = {"breaking": "style {id} fill:#ff6b6b",
-                  "degraded": "style {id} fill:#ffd93d",
-                  "warning":  "style {id} fill:#6bcb77",
-                  "safe":     ""}
+        lines = ["graph LR", f'    ROOT["{target}"]']
         for i, imp in enumerate(impacts):
             nid = f"N{i}"
             label = imp.node_name[:30]
-            lines.append(f"    {nid}[\"{label}\"]")
-            lines.append(f"    ROOT --> {nid}")
-            if colors.get(imp.severity):
-                lines.append(f"    {colors[imp.severity].format(id=nid)}")
+            edge_label = imp.path[-1] if imp.path else ""
+            lines.append(f'    {nid}["{label}"]')
+            lines.append(f'    ROOT -->|"{edge_label}"| {nid}')
+            sev_styles = {
+                "breaking": f"    style {nid} fill:#ff6b6b",
+                "degraded":  f"    style {nid} fill:#ffd93d",
+                "warning":   f"    style {nid} fill:#6bcb77",
+            }
+            style_line = sev_styles.get(imp.severity, "")
+            if style_line:
+                lines.append(style_line)
         return "\n".join(lines)

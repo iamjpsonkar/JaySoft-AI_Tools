@@ -58,24 +58,37 @@ class FeatureTool(BaseTool):
 
     def _load_context(self) -> str:
         try:
-            services = self._graph.query("MATCH (n:Service) RETURN n")
-            endpoints = self._graph.query("MATCH (n:Endpoint) RETURN n")
+            services = self._graph.query(
+                "SELECT id, properties FROM nodes WHERE label = 'Service'", {}
+            )
+            endpoints = self._graph.query(
+                "SELECT id, properties FROM nodes WHERE label = 'Endpoint'", {}
+            )
             lines = [f"Nodes: {self._graph.node_count()}, Edges: {self._graph.edge_count()}"]
             for s in services[:5]:
-                lines.append(f"Service: {s.get('properties',{}).get('name','?')}")
+                props = s.get("properties") or {}
+                lines.append(f"Service: {props.get('name', '?')} ({props.get('language', '?')})")
             for e in endpoints[:10]:
-                p = e.get("properties", {})
-                lines.append(f"Endpoint: {p.get('method','?')} {p.get('route','?')}")
+                p = e.get("properties") or {}
+                lines.append(f"Endpoint: {p.get('method', '?')} {p.get('route', '?')}")
             return "\n".join(lines)
         except Exception:
             return "[Graph context unavailable]"
 
     def _build_prompt(self, description: str, context: str) -> str:
         return (
-            "You are a senior software engineer planning a feature.\n\n"
-            f"CODEBASE:\n{context}\n\nFEATURE: {description}\n\n"
-            'Return ONLY JSON: {"affected_services":[],"implementation_steps":[],'
-            '"files_to_modify":[],"test_plan":[],"estimated_complexity":"low|medium|high"}'
+            "You are a senior software engineer planning a feature implementation.\n"
+            "You have the codebase graph context below — use it to give specific, grounded "
+            "answers. Reference actual service names, file paths, and function names from "
+            "the context. Do not invent files or services not listed.\n\n"
+            f"CODEBASE CONTEXT:\n{context}\n\n"
+            f"FEATURE REQUEST: {description}\n\n"
+            "Using ONLY what exists in the codebase context, return a JSON plan:\n"
+            '{"affected_services": ["exact service names from context"],'
+            ' "implementation_steps": ["numbered steps referencing real files/functions"],'
+            ' "files_to_modify": ["exact file paths from context"],'
+            ' "test_plan": ["specific test scenarios for the named functions/endpoints"],'
+            ' "estimated_complexity": "low|medium|high"}'
         )
 
     def _parse(self, response: str) -> dict:

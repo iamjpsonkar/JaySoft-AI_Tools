@@ -121,6 +121,15 @@ New **edge types:**
 
 **Symbol resolution** — after all files are parsed, a post-processing pass resolves CALLS/IMPORTS string-name targets (e.g. `"refund"`) to actual graph node IDs (e.g. `src/pay.py::PaymentService.refund`), so BFS traversal follows real edges.
 
+### Performance (v0.4.0+)
+
+The indexer was significantly optimized in v0.4.0:
+
+- **SQLite PRAGMAs**: WAL mode + `synchronous=NORMAL` (safe with WAL, 2× faster commits) + 64 MB page cache (was 2 MB) + 256 MB memory-mapped I/O
+- **Batch file deletion**: incremental mode now removes stale nodes/edges for N changed files in 3 queries regardless of N (was 3×N queries)
+- **In-memory edge resolution**: builds a name→id map with 1 SELECT, resolves all edges in memory, then bulk-UPDATEs with 1 `executemany` (was 2 SQL queries per edge)
+- **Batch size**: 500 → 2000 nodes per commit (fewer transaction round-trips)
+
 ### CLI usage
 
 ```bash
@@ -973,4 +982,106 @@ jsat short --words 20 "explain the retry logic"
 
 ```
 /jsat-short what does process_refund do
+```
+
+---
+
+## Tool 18 — Smart
+
+Terse compression mode that strips filler language from answers while preserving code, function names, file paths, and data byte-for-byte.
+
+**CLI:** `jsat smart <question>`
+**Slash command:** `/jsat smart <question>`
+**MCP:** uses `jsat__short` with a brevity constraint
+
+### Compression levels
+
+| Level | Flag | Approximate reduction | Effect |
+|---|---|---|---|
+| lite | `--lite` | ~30% | Removes filler phrases only; sentences preserved |
+| full | *(default)* | ~55% | Fragments + no preamble |
+| ultra | `--ultra` | ~70% | One bullet per fact, ≤8 words each |
+
+### CLI usage
+
+```bash
+jsat smart "what does the payment service do?"
+jsat smart --ultra "what does process_refund return?"
+jsat smart --lite "explain the checkout flow"
+```
+
+### When to use
+
+- Fast fallback when `/jsat query` times out on large contexts
+- When you want concise answers during multi-step workflows
+- During `jsat-crack` phases where brevity helps maintain focus
+
+---
+
+## Tool 19 — Lazy
+
+Reuse-first planning tool. Before suggesting new code, runs a 5-rung ladder against the indexed graph and stops at the first match.
+
+**Slash command:** `/jsat lazy <task>`
+
+### The Reuse Ladder
+
+| Rung | Check | Tool |
+|---|---|---|
+| 1 | Exact function/class already exists? | `jsat__get_function` / `jsat__get_class` |
+| 2 | Similar pattern in codebase? | `jsat__query` |
+| 3 | Existing service handles this domain? | `jsat__list_services` |
+| 4 | Existing endpoint already exposes this? | `jsat__list_endpoints` |
+| 5 | Nothing found — minimum viable implementation | (suggest only) |
+
+If any rung finds a match, it stops and reports: "Already exists — reuse this."
+
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `--audit <path>` | Scan a diff/file for code that reimplements existing graph nodes |
+| `--review <proposal>` | Check each named function/class in a proposed implementation against the graph |
+
+### CLI usage (slash command)
+
+```bash
+/jsat lazy add exponential backoff to the payment service
+/jsat lazy --audit src/payments/retry.py
+/jsat lazy --review "def process_refund(order_id, amount)..."
+```
+
+---
+
+## Tool 20 — Aw (Workflow Advisor)
+
+Classifies a task into one of 7 types and runs the optimal JSAT tool sequence for that type. Each step uses output from prior steps as context.
+
+**Slash command:** `/jsat aw <task>`
+
+### Task types and workflows
+
+| Type | Signal words | Workflow |
+|---|---|---|
+| feature | "add", "implement", "build" | lazy → find-function → blast-radius → crack → test-gaps |
+| bugfix | "fix", "broken", "failing" | recent → incident → find-function → blast-radius |
+| security | "security", "auth", "CVE" | security → blast-radius → crack --phases 3 → knowledge-add |
+| understand | "what", "how", "explain" | smart → trace → find-function → query |
+| incident | "500", "error", "alert" | incident → recent → blast-radius → runbook |
+| refactor | "refactor", "improve", "clean" | lazy → blast-radius → test-gaps → crack → review |
+| review | "review", "PR", "diff" | review → blast-radius → test-gaps --untested |
+
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `--type <type>` | Skip classification, force a specific workflow type |
+| `--dry` | Show the recommended workflow without running any tools |
+
+### CLI usage
+
+```bash
+/jsat aw add idempotency keys to the payment mutation endpoint
+/jsat aw --type security src/auth/
+/jsat aw --dry investigate the checkout 500 errors
 ```

@@ -519,10 +519,15 @@ class ReviewTool(BaseTool):
         that cross-model deduplication is meaningful.
         """
         return (
-            "Review this code diff for bugs, security issues, and correctness.\n"
+            "You are a security-aware code reviewer. Examine the diff for:\n"
+            "- Logic bugs (off-by-one errors, wrong conditions, unhandled branches)\n"
+            "- Security issues (injection, unvalidated input, auth bypass, secret leaks)\n"
+            "- Null/error handling gaps (missing checks on external calls)\n"
+            "- API contract violations (changed signatures, removed required fields)\n"
+            "Report ONLY confirmed findings — no speculative or style issues.\n"
             'Return ONLY a JSON array: [{"file":"...","line":null,'
             '"severity":"high|medium|low","title":"...","description":"..."}]\n'
-            "Return [] if no issues.\n\n"
+            "Return [] if no issues found.\n\n"
             f"DIFF:\n{diff}\n\n"
             "FINDINGS JSON:"
         )

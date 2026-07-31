@@ -64,9 +64,13 @@ class GraphClient(ABC):
     def query(
         self,
         cypher_like: str,
-        params: dict[str, Any] | None = None,
+        params: list[Any] | dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
-        """Execute a Cypher-like query. SQLite backend translates to SQL."""
+        """Execute a Cypher-like query. SQLite backend translates to SQL.
+
+        params: positional list (for SQLite ? placeholders) or named dict,
+        or None for queries with no parameters.
+        """
         ...
 
     @abstractmethod

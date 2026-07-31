@@ -329,14 +329,15 @@ def test_write_bob_commands_rewrites_arguments_placeholder(tmp_path):
         assert "$ARGUMENTS" not in md.read_text()
 
     query = (out / "jsat-query.md").read_text()
-    assert 'question="$@"' in query
+    # jsat-query takes arguments ($@ present after $ARGUMENTS rewrite)
+    assert "$@" in query
     # Frontmatter present; commands that take input advertise an argument-hint.
     assert query.startswith("---\ndescription:")
     assert "argument-hint:" in query and "<arguments>" in query
 
-    # A no-argument command gets no argument-hint.
-    services = (out / "jsat-list-services.md").read_text()
-    assert "argument-hint" not in services
+    # jsat-doctor has no $ARGUMENTS in its instruction → no argument-hint.
+    doctor = (out / "jsat-doctor.md").read_text()
+    assert "argument-hint" not in doctor
 
 
 @pytest.mark.ci

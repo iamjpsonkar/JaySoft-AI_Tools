@@ -4,6 +4,37 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-31
+
+### Added
+
+- **`jsat-aw` — Workflow advisor**: classifies tasks (feature/bugfix/security/understand/incident/refactor/review) and runs the optimal JSAT tool sequence end-to-end. `--dry` shows the plan without running. `--type` forces a specific workflow.
+- **`jsat-lazy` — Reuse-first planning**: 5-rung ladder checks the indexed graph for existing implementations before suggesting new code. `--audit` scans diffs for over-engineering. `--review` checks proposals for duplication.
+- **`jsat-smart` — Terse mode**: fragment-based answers with filler stripped. Three levels: `--lite` (~30%), `--full` default (~55%), `--ultra` (~70%).
+- **`jsat-crack` phased mode**: N=6 default (one agent per phase). Artifact carry-forward — each agent receives all prior findings as context. Phase 0 loads codebase context. Mid-sprint brief after Phase 3. Skeptic (Phase 5) specifically challenges architect + implementer conclusions.
+- **`jsat-prompt` Discuss→Verify pipeline**: Phase 1 classifies query type and selects the right primary tool (trace/lookup/security/incident/coverage/general). Phase 5 spot-checks concrete claims against the graph (✅ verified / ⚠️ unverified).
+- **`/jsat` single dispatcher**: `jsat connect claude` now installs one `jsat.md` dispatcher instead of 34 individual `jsat-*.md` files. All skills accessible via `/jsat <subcommand>`. Skill files bundled in `jsat/commands/` and sourced at connect time.
+
+### Improved
+
+- **Indexer performance**: SQLite PRAGMAs (`synchronous=NORMAL`, 64 MB page cache, 256 MB mmap); incremental deletion batched to 3 queries regardless of N changed files; edge resolution reduced from 2N queries to 3 (in-memory name→id map + bulk `executemany`); batch size 500→2000.
+- **`jsat --help`**: 5 labeled command panels (Setup & Config, Package, Graph & Index, AI Launchers, Tools); rich markup; quick-start block with `/jsat` examples; expanded docstrings for `doctor`, `export`, `import`, `update`, `version`.
+- **31 skill instructions improved**: `--service`, `--since`, `--depth`, `--limit`, `--model`, `--severity`, `--category` flags added across all skills; timeout recovery guidance; large-repo chunking strategies; better output format instructions.
+- **`jsat-crack` role prompts enriched**: each agent grounded in codebase context with instructions on what to look for; history truncation 400→1200 chars; ContextAgent tokens 1500→3000.
+- **10 Python tool quality improvements**: enriched role prompts (`crack.py`), richer context with function parameters and docstrings (`query.py`), CVE lookup via osv.dev + regex secret detection with file/line (`security.py`), function-level coverage (`test_helper.py`), real author-file frequency scoring (`incident.py`), ORM issue detection for Django migrations (`migration.py`), structural breaking-change detection (`contract.py`), SQLite query syntax fix + grounded prompts (`feature.py`), better extraction and synthesis prompts (`knowledge.py`), checklist-based review prompt (`review.py`).
+- **`prompt_optimizer.py`**: LLM rewrite agents now receive `context_nodes` (was computed but never sent to AI); offline-optimized → "offline-optimized" spelling.
+- **Sub-app help**: `connect`, `ai`, and `skills` Typer apps have expanded descriptions with quick-setup examples.
+
+### Fixed
+
+- `feature.py`: replaced Neo4j `MATCH (n:Service) RETURN n` syntax with SQLite-compatible `SELECT ... WHERE label = 'Service'`.
+- `test_helper.py`: fixed Neo4j `MATCH (n:Endpoint) RETURN n` in `_untested_endpoints`; improved `_has_test` to match `test_foo.py`, `foo_test.py`, and `foo.py` patterns.
+- `blast_radius.py`: `visited` set was created but its value discarded (`set(start_ids)` result not assigned), causing BFS to potentially visit the same node multiple times.
+- `GraphClient.query()` type signature: now accepts `list[Any] | dict[str, Any] | None`; implementation already handled list params but the annotation said `dict | None`.
+- `knowledge.py` re-ranking: "Favour" → "Favor", "Penalise" → "Penalize" (American English consistency).
+- `crack.py`: "synthesises" → "synthesizes", "Analyse" → "Analyze".
+- `prompt_optimizer.py`: "behaviour" → "behavior", "optimised" → "optimized", duplicate "analyse" removed from keyword list.
+
 ## [0.3.10] — 2026-07-29
 
 ### Fixed

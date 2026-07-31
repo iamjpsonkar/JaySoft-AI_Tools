@@ -18,16 +18,56 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-app = typer.Typer(name="jsat", help="JSAT — Codebase intelligence CLI.",
-                  add_completion=True, no_args_is_help=True)
-skills_app  = typer.Typer(help="Manage and run JSAT skills.")
-connect_app = typer.Typer(help="Connect JSAT to AI tools (Claude, Cursor, etc.).")
-app.add_typer(skills_app,  name="skills")
-app.add_typer(connect_app, name="connect")
+app = typer.Typer(
+    name="jsat",
+    help=(
+        "[bold]JSAT[/bold] — Codebase intelligence for AI sessions.\n\n"
+        "Index your codebase once, then query, analyze, and reason over it "
+        "from any AI tool — Claude Code, Cursor, Codex, Gemini, and more.\n\n"
+        "\b\n"
+        "Quick start:\n"
+        "  jsat index .                  — build the graph\n"
+        "  jsat connect claude --global  — wire into Claude Code\n"
+        "  jsat doctor                   — verify everything works\n\n"
+        "\b\n"
+        "Then in Claude Code:\n"
+        "  /jsat query    <question>   — answer any codebase question\n"
+        "  /jsat crack    <task>       — multi-agent war room\n"
+        "  /jsat blast    <file>       — trace impact of a change\n"
+        "  /jsat security              — OWASP scan\n"
+        "  /jsat aw       <task>       — full workflow advisor\n\n"
+        "Docs: https://github.com/iamjpsonkar/JaySoft-AI_Tools"
+    ),
+    add_completion=True,
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+)
+skills_app = typer.Typer(
+    help=(
+        "Manage and run JSAT skills.\n\n"
+        "[bold]Commands:[/bold]\n\n"
+        "  [cyan]jsat skills list[/cyan]          — list installed skill manifests\n"
+        "  [cyan]jsat skills run <name>[/cyan]    — run a named skill"
+    ),
+    rich_markup_mode="rich",
+)
+connect_app = typer.Typer(
+    help=(
+        "Wire JSAT into AI tools as an MCP server.\n\n"
+        "[bold]One-time global setup (recommended):[/bold]\n\n"
+        "  [cyan]jsat connect claude --global[/cyan]   — all Claude Code sessions\n"
+        "  [cyan]jsat connect codex  --global[/cyan]   — Codex CLI\n"
+        "  [cyan]jsat connect cursor[/cyan]             — Cursor IDE\n\n"
+        "Restart the AI tool after connecting."
+    ),
+    rich_markup_mode="rich",
+)
+app.add_typer(skills_app,  name="skills",  rich_help_panel="🔧  Setup & Config")
+app.add_typer(connect_app, name="connect", rich_help_panel="🔧  Setup & Config")
 
 # ── disconnect ─────────────────────────────────────────────────────────────────
 
-@app.command("disconnect")
+@app.command("disconnect", rich_help_panel="🔧  Setup & Config")
 def cmd_disconnect(
     tool: str = typer.Argument(
         "claude",
@@ -98,12 +138,17 @@ def cmd_disconnect(
                 cd = Path.cwd() / ".claude" / "commands"
             removed_any |= _remove_from_standard("Claude Code", sp)
             if not keep_skills and cd.exists():
-                skills = list(cd.glob("jsat-*.md"))
-                for f in skills:
+                removed: list[Path] = list(cd.glob("jsat-*.md"))
+                for f in removed:
                     f.unlink()
-                if skills:
+                # Also remove the dispatcher (jsat.md doesn't match jsat-*.md glob)
+                dispatcher = cd / "jsat.md"
+                if dispatcher.exists():
+                    dispatcher.unlink()
+                    removed.append(dispatcher)
+                if removed:
                     console.print(
-                        f"[green]✓[/] Removed {len(skills)} skill file(s) from [bold]{cd}[/]"
+                        f"[green]✓[/] Removed {len(removed)} JSAT skill file(s) from [bold]{cd}[/]"
                     )
                     removed_any = True
 
@@ -230,16 +275,21 @@ def _ok(v: bool | None) -> str:
 
 # ── version ──────────────────────────────────────────────────────────────────
 
-@app.command("version")
+@app.command("version", rich_help_panel="📦  Package")
 def cmd_version() -> None:
-    """Print JSAT version."""
+    """Print JSAT version and build info.
+
+    \b
+    Examples:
+      jsat version
+    """
     from jsat import __version__
     console.print(f"jsat {__version__}")
 
 
 # ── index ─────────────────────────────────────────────────────────────────────
 
-@app.command("index")
+@app.command("index", rich_help_panel="🔍  Graph & Index")
 def cmd_index(
     path: str | None = typer.Argument(None, help="Directory to index (default: repo root)"),
     branch: str = typer.Option("HEAD", "--branch", "-b"),
@@ -288,7 +338,7 @@ def cmd_index(
 
 # ── shell ─────────────────────────────────────────────────────────────────────
 
-@app.command("shell")
+@app.command("shell", rich_help_panel="🤖  AI Launchers")
 def cmd_shell(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -336,7 +386,7 @@ def _launch_ai(ai: str, repo: str, verbose: bool) -> None:
     launch_ai_with_jsat_tools(js, ai=ai)
 
 
-@app.command("claude")
+@app.command("claude", rich_help_panel="🤖  AI Launchers")
 def cmd_claude(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -359,7 +409,7 @@ def cmd_claude(
 
 
 
-@app.command("bob")
+@app.command("bob", rich_help_panel="🤖  AI Launchers")
 def cmd_bob(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -383,7 +433,7 @@ def cmd_bob(
     js = _jsat(repo=repo, verbose=verbose)
     launch_ai_with_jsat_tools(js, ai="bob", resume=resume, continue_session=continue_, mode=mode)
 
-@app.command("gpt")
+@app.command("gpt", rich_help_panel="🤖  AI Launchers")
 def cmd_gpt(
     repo: str = typer.Option(".", "--repo", "-r"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -392,7 +442,7 @@ def cmd_gpt(
     _launch_ai("gpt", repo, verbose)
 
 
-@app.command("ollama")
+@app.command("ollama", rich_help_panel="🤖  AI Launchers")
 def cmd_ollama(
     repo: str = typer.Option(".", "--repo", "-r"),
     model: str = typer.Option("llama3.2", "--model", "-m", help="Ollama model name"),
@@ -538,7 +588,7 @@ def _launch_tool(
         subprocess.Popen(cmd_with_dir)
 
 
-@app.command("codex")
+@app.command("codex", rich_help_panel="🤖  AI Launchers")
 def cmd_codex(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -556,7 +606,7 @@ def cmd_codex(
     _launch_tool("codex", "codex", repo)
 
 
-@app.command("cursor")
+@app.command("cursor", rich_help_panel="🤖  AI Launchers")
 def cmd_cursor(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
 ) -> None:
@@ -570,7 +620,7 @@ def cmd_cursor(
     _launch_tool("cursor", "cursor", repo, gui=True)
 
 
-@app.command("windsurf")
+@app.command("windsurf", rich_help_panel="🤖  AI Launchers")
 def cmd_windsurf(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
 ) -> None:
@@ -584,7 +634,7 @@ def cmd_windsurf(
     _launch_tool("windsurf", "windsurf", repo, gui=True)
 
 
-@app.command("gemini")
+@app.command("gemini", rich_help_panel="🤖  AI Launchers")
 def cmd_gemini(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
@@ -601,7 +651,7 @@ def cmd_gemini(
     _launch_tool("gemini", "gemini", repo)
 
 
-@app.command("zed")
+@app.command("zed", rich_help_panel="🤖  AI Launchers")
 def cmd_zed(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
 ) -> None:
@@ -617,7 +667,7 @@ def cmd_zed(
 
 # ── crack ─────────────────────────────────────────────────────────────────────
 
-@app.command("crack")
+@app.command("crack", rich_help_panel="⚡  Tools")
 def cmd_crack(
     task: str = typer.Argument(..., help="The complex engineering task to discuss"),
     roles: str | None = typer.Option(
@@ -633,7 +683,7 @@ def cmd_crack(
     \b
     Six specialist agents (architect, security, implementer, tester, skeptic,
     moderator) discuss the task in rounds. Each agent responds to others'
-    arguments. The moderator synthesises consensus and an action plan.
+    arguments. The moderator synthesizes consensus and an action plan.
 
     \b
     Examples:
@@ -682,7 +732,7 @@ def cmd_crack(
 
 # ── short ─────────────────────────────────────────────────────────────────────
 
-@app.command("short")
+@app.command("short", rich_help_panel="⚡  Tools")
 def cmd_short(
     query: str = typer.Argument(..., help="Question to ask"),
     words: int = typer.Option(50, "--words", "-w", help="Max word count (default 50)"),
@@ -716,12 +766,21 @@ def cmd_short(
 
 # ── doctor ────────────────────────────────────────────────────────────────────
 
-@app.command("doctor")
+@app.command("doctor", rich_help_panel="🔍  Graph & Index")
 def cmd_doctor(
     refresh: bool = typer.Option(False, "--refresh", help="Re-detect system"),
     as_json: bool = typer.Option(False, "--json", help="Output raw JSON"),
 ) -> None:
-    """Run a system health check."""
+    """Run a full system health check.
+
+    Checks: graph backend, AI provider, MCP server, indexed node/edge counts,
+    connected tools, and config profile.
+
+    \b
+    Examples:
+      jsat doctor
+      jsat doctor --json
+    """
     js = _jsat()
     try:
         report = js.doctor()
@@ -821,7 +880,7 @@ def cmd_doctor(
 
 # ── init ──────────────────────────────────────────────────────────────────────
 
-@app.command("init")
+@app.command("init", rich_help_panel="🔧  Setup & Config")
 def cmd_init(
     profile: str = typer.Option("solo", "--profile", "-p",
                                 help="Profile: solo | team | ci | raspberry-pi"),
@@ -861,12 +920,20 @@ def cmd_init(
 
 # ── export ────────────────────────────────────────────────────────────────────
 
-@app.command("export")
+@app.command("export", rich_help_panel="🔍  Graph & Index")
 def cmd_export(
     output: str = typer.Argument(..., help="Output path, e.g. backup.jsat.zip"),
     compress: int = typer.Option(6, "--compress", "-z", min=0, max=9),
 ) -> None:
-    """Export the current index to a portable zip."""
+    """Export the current graph index to a portable zip archive.
+
+    Useful for sharing an index with teammates or caching it in CI pipelines.
+
+    \b
+    Examples:
+      jsat export backup.jsat.zip
+      jsat export backup.jsat.zip -z 9   # maximum compression
+    """
     js = _jsat()
     try:
         manifest = js.export(output=output, compress_level=compress)
@@ -878,12 +945,18 @@ def cmd_export(
 
 # ── import ────────────────────────────────────────────────────────────────────
 
-@app.command("import")
+@app.command("import", rich_help_panel="🔍  Graph & Index")
 def cmd_import(
     archive: str = typer.Argument(..., help="Path to .jsat.zip archive"),
     migrate: bool = typer.Option(False, "--migrate"),
 ) -> None:
-    """Restore an index from an exported archive."""
+    """Restore a graph index from an exported .jsat.zip archive.
+
+    \b
+    Examples:
+      jsat import backup.jsat.zip
+      jsat import backup.jsat.zip --migrate   # allow version mismatch
+    """
     from jsat._core import JSAT
     try:
         js = JSAT.from_import(archive=archive)
@@ -943,7 +1016,7 @@ def cmd_skills_run(
 
 # ── prompt ────────────────────────────────────────────────────────────────────
 
-@app.command("prompt")
+@app.command("prompt", rich_help_panel="⚡  Tools")
 def cmd_prompt(
     input_text: str = typer.Argument(..., help="Raw query to optimize"),
     send: bool = typer.Option(False, "--send", "-s", help="Send to AI and return response"),
@@ -1116,7 +1189,7 @@ def cmd_prompt(
 
 # ── tokens ───────────────────────────────────────────────────────────────────
 
-@app.command("tokens")
+@app.command("tokens", rich_help_panel="⚡  Tools")
 def cmd_tokens(
     text: str | None = typer.Argument(None, help="Text to analyze (or use --file / pipe stdin)"),
     file: Path | None = typer.Option(None, "--file", "-f", help="Read from file"),  # noqa: B008
@@ -1235,8 +1308,19 @@ def cmd_tokens(
 
 # ── ai ────────────────────────────────────────────────────────────────────────
 
-ai_app = typer.Typer(help="Configure and test the AI provider JSAT uses internally.")
-app.add_typer(ai_app, name="ai")
+ai_app = typer.Typer(
+    help=(
+        "Configure and test the AI provider JSAT uses.\n\n"
+        "[bold]Quick setup:[/bold]\n\n"
+        "  [cyan]jsat ai use claude_cli[/cyan]    — use Claude Code CLI (no key)\n"
+        "  [cyan]jsat ai use ollama[/cyan]         — local Ollama (free)\n"
+        "  [cyan]jsat ai use anthropic[/cyan]      — Anthropic API (ANTHROPIC_API_KEY)\n"
+        "  [cyan]jsat ai status[/cyan]             — see all available providers\n"
+        "  [cyan]jsat ai test[/cyan]               — verify the active provider works"
+    ),
+    rich_markup_mode="rich",
+)
+app.add_typer(ai_app, name="ai", rich_help_panel="🔧  Setup & Config")
 
 
 def _detect_available_providers() -> list[dict]:
@@ -1574,9 +1658,25 @@ def _write_json(path: Path, data: dict) -> None:
 _JSAT_SKILLS: dict[str, tuple[str, str]] = {
         # ── Graph exploration ─────────────────────────────────────────────────
         "jsat-query": (
-            "Answer a question about this codebase using JSAT's graph index.",
-            'Use the jsat__query MCP tool with question="$ARGUMENTS" to answer '
-            "the question using the indexed codebase graph. Show the answer clearly."
+            "Answer a question about this codebase using JSAT's graph index. Supports service scoping.",
+            """Parse $ARGUMENTS for optional flags, then call jsat__query:
+
+Supported flags:
+  --service <name>  → scope answer to one service (reduces context, avoids timeout)
+  --short           → prepend brevity constraint (≤3 sentences)
+  (no flag)         → full graph query
+
+Examples:
+  /jsat-query what does the payment service do?
+    → jsat__query(question="what does the payment service do?")
+
+  /jsat-query --service PaymentService how is retry handled?
+    → jsat__query(question="how is retry handled?", service="PaymentService")
+
+TIMEOUT RECOVERY: If jsat__query times out or returns "[AI unavailable]":
+  1. Narrow scope: add --service <name> to limit context
+  2. Use /jsat-short for a briefer answer (≤3 sentences)
+  3. Break complex questions into smaller focused queries"""
         ),
         "jsat-index": (
             "Build or refresh the JSAT codebase graph index. Supports flags in $ARGUMENTS.",
@@ -1592,40 +1692,96 @@ Examples:
   /jsat-index src/ --force         → jsat__index_repo(path="src/", force=true)
   /jsat-index . --languages python,go  → jsat__index_repo(path=".", languages=["python","go"])
 
-After indexing, show: nodes indexed, edges indexed, files parsed vs skipped, parallel workers."""
+After indexing, show: nodes indexed, edges indexed, files parsed vs skipped, parallel workers.
+For large repos (>50k files): index one directory at a time — /jsat-index src/ then /jsat-index tests/"""
         ),
         "jsat-status": (
             "Show JSAT index statistics and health.",
-            "Use jsat__get_index_status and jsat__get_jsat_version to display node/edge counts, "
-            "version, and graph backend."
+            """Use jsat__get_index_status and jsat__get_jsat_version to display:
+- Node and edge counts with breakdown by type
+- JSAT version and graph backend (SQLite / Neo4j)
+- Index freshness (when last indexed)
+
+Flag if: node count is 0 (not indexed yet), or version is outdated.
+Suggest /jsat-index . if graph is empty."""
         ),
         "jsat-doctor": (
             "Run a full JSAT system health check.",
-            "Use jsat__health to show system status, AI provider, graph backend, version, "
-            "and any configuration issues. Flag anything that needs attention."
+            """Use jsat__health to run a full system check. Present results in this order:
+1. JSAT version and graph backend
+2. AI provider: which is active, which are available, free vs paid
+3. Graph: node count, edge count, last indexed timestamp
+4. MCP connection: which tools are loaded
+5. Config: profile (solo/team/ci), any missing settings
+
+Flag as ⚠️ WARN: graph not indexed, no AI configured, stale index (>7 days old)
+Flag as ❌ ERROR: graph backend unavailable, AI provider failing test call
+For each issue: suggest the fix command (e.g. /jsat-index ., jsat ai use ollama)."""
         ),
         "jsat-find-function": (
-            "Find a function or method in the indexed codebase.",
-            'Use jsat__get_function with name="$ARGUMENTS" to locate the function, '
-            "show its file, line numbers, parameters, return type, and complexity."
+            "Find a function or method in the indexed codebase. Supports service scoping.",
+            """Parse $ARGUMENTS for optional --service flag, then call jsat__get_function:
+
+  --service <name>  → scope search to one service
+  (no flag)         → search entire codebase
+
+Call jsat__get_function with name=<stripped arguments>.
+Show: file, line numbers, parameters (with types), return type, complexity, decorators.
+
+If multiple matches: list all matches with file:line so the user can choose.
+If no match found: suggest jsat__query(question="find function similar to <name>")"""
         ),
         "jsat-find-class": (
-            "Find a class in the indexed codebase.",
-            'Use jsat__get_class with name="$ARGUMENTS" to locate the class, '
-            "show its file, base classes, and method count."
+            "Find a class in the indexed codebase. Supports service scoping.",
+            """Parse $ARGUMENTS for optional --service flag, then call jsat__get_class:
+
+  --service <name>  → scope search to one service
+  (no flag)         → search entire codebase
+
+Call jsat__get_class with name=<stripped arguments>.
+Show: file, line numbers, base classes, method count, docstring.
+
+If multiple matches: list all with file:line so the user can choose.
+If no match found: suggest jsat__query(question="find class similar to <name>")"""
         ),
         "jsat-list-services": (
-            "List all services found in the indexed codebase.",
-            "Use jsat__list_services to show all services with their language and entry point."
+            "List all services found in the indexed codebase. Supports language filtering.",
+            """Parse $ARGUMENTS for optional --language flag, then call jsat__list_services:
+
+  --language <lang>  → filter by language (python, go, javascript, java, ruby, rust)
+  (no flag)          → list all services
+
+Show each service with: name, language, entry point file, endpoint count.
+Show total count at the end. If no services found, suggest /jsat-index ."""
         ),
         "jsat-list-endpoints": (
-            "List all API endpoints found in the indexed codebase.",
-            "Use jsat__list_endpoints to show all HTTP endpoints with method, route, and auth info."
+            "List all API endpoints found in the indexed codebase. Supports filtering.",
+            """Parse $ARGUMENTS for optional flags, then call jsat__list_endpoints:
+
+  --service <name>    → filter to one service's endpoints
+  --method <METHOD>   → filter by HTTP method (GET, POST, PUT, PATCH, DELETE)
+  (no flag)           → list all endpoints
+
+Show each endpoint: HTTP method, route, handler function, auth required (yes/no).
+Group by service. Show total count. Highlight unauthenticated endpoints with ⚠️."""
         ),
         "jsat-trace": (
-            "Trace a call chain from a symbol through the codebase.",
-            'Use jsat__trace_call_chain with symbol="$ARGUMENTS" to show the full call path. '
-            "Display as a numbered chain from entrypoint to leaf."
+            "Trace a call chain from a symbol through the codebase. Supports depth and direction.",
+            """Parse $ARGUMENTS for optional flags, then call jsat__trace_call_chain:
+
+Supported flags:
+  --depth N       → limit trace depth to N levels (default: no limit)
+  --upstream      → show callers of this symbol (who calls it), not what it calls
+  (no flag)       → trace downstream: what this symbol calls
+
+Examples:
+  /jsat-trace PaymentService.process
+    → jsat__trace_call_chain(symbol="PaymentService.process")
+
+  /jsat-trace --depth 3 PaymentService.process
+    → jsat__trace_call_chain(symbol="PaymentService.process", max_depth=3)
+
+Display as a numbered chain from entrypoint to leaf. Show file:line for each node. Flag cycles."""
         ),
         # ── Impact & safety ───────────────────────────────────────────────────
         "jsat-blast-radius": (
@@ -1633,10 +1789,11 @@ After indexing, show: nodes indexed, edges indexed, files parsed vs skipped, par
             """Parse $ARGUMENTS for optional flags, then call the right blast-radius tool:
 
 Supported flags:
-  --file       → call jsat__blast_radius_file with path=<rest>
-  --diff       → call jsat__blast_radius_diff with diff=<rest>
-  --symbol     → call jsat__blast_radius_symbol with symbol=<rest>
-  (no flag)    → call jsat__blast_radius with target=<rest>
+  --file           → call jsat__blast_radius_file with path=<rest>
+  --diff           → call jsat__blast_radius_diff with diff=<rest>
+  --symbol         → call jsat__blast_radius_symbol with symbol=<rest>
+  --severity <lvl> → filter output to breaking|degraded|warning|safe only
+  (no flag)        → call jsat__blast_radius with target=<rest>
 
 Examples:
   /jsat-blast-radius src/payment/service.py
@@ -1648,7 +1805,11 @@ Examples:
   /jsat-blast-radius --symbol PaymentService.process
     → jsat__blast_radius_symbol(symbol="PaymentService.process")
 
-Group results by severity: breaking / degraded / warning / safe. Show Mermaid diagram if large."""
+  /jsat-blast-radius --severity breaking src/payment/service.py
+    → jsat__blast_radius(target="src/payment/service.py", severity_filter=["breaking"])
+
+Group results by severity: breaking / degraded / warning / safe.
+Show summary counts first. Show Mermaid diagram if impacts > 5."""
         ),
         "jsat-security": (
             "Run a security scan. Supports flags in $ARGUMENTS.",
@@ -1672,21 +1833,57 @@ Examples:
     → jsat__security_scan_file(file="src/auth/login.py")
   /jsat-security --secrets
     → jsat__list_secrets()
-  /jsat-security --severity critical
-    → jsat__security_review(path=".", severity_threshold="critical")
+  /jsat-security --cves
+    → jsat__get_dependency_cves()
 
-Group findings by severity. Highlight Critical and High first. Show file, line, rule, fix."""
+Group findings by severity: Critical → High → Medium → Low.
+For each finding: file, line, rule ID, description, remediation.
+
+LARGE REPO STRATEGY: For repos >10k files, scan one directory at a time:
+  /jsat-security src/auth/    then   /jsat-security src/payment/"""
         ),
         "jsat-migration": (
-            "Validate a database migration file for safety.",
-            'Use jsat__validate_migration with path="$ARGUMENTS" to check lock types, '
-            "estimate duration, and flag dangerous operations. Suggest zero-downtime alternatives."
+            "Validate a database migration file for safety. Supports row count hints.",
+            """Parse $ARGUMENTS for optional flags, then call jsat__validate_migration:
+
+Supported flags:
+  --rows <table:N>   → hint table row count for lock duration estimation
+                       (e.g. --rows orders:5000000)
+  (no flag)          → validate migration file at path=<rest>
+
+Examples:
+  /jsat-migration db/migrations/0042_add_index.sql
+    → jsat__validate_migration(path="db/migrations/0042_add_index.sql")
+
+  /jsat-migration --rows orders:5000000 db/migrations/0042.sql
+    → jsat__validate_migration(path="db/migrations/0042.sql", table_rows={"orders": 5000000})
+
+Show for each SQL operation: lock type, estimated duration, danger level.
+Show zero-downtime alternative for any dangerous operation.
+Flag: missing rollback (DOWN section), multiple locking ops in single file, FK without index."""
         ),
         "jsat-contract": (
             "Check API contract compatibility between branches.",
-            'Use jsat__get_api_diff with diff="$ARGUMENTS" to detect breaking changes '
-            "in OpenAPI/AsyncAPI specs. Show compatibility score and "
-            "breaking vs non-breaking changes."
+            """Parse $ARGUMENTS, then call jsat__get_api_diff:
+
+Usage:
+  (no args)            → jsat__get_api_diff(base="main", head="HEAD")
+  <base> <head>        → jsat__get_api_diff(base=<base>, head=<head>)
+  --score              → show only the numeric compatibility score (0-100)
+  --breaking           → show breaking changes only
+
+Examples:
+  /jsat-contract
+    → diff main...HEAD for all OpenAPI/AsyncAPI specs in the repo
+
+  /jsat-contract main feature/new-payments
+    → jsat__get_api_diff(base="main", head="feature/new-payments")
+
+Show:
+  - Compatibility score (100 = no breaking changes; score decays logarithmically)
+  - Breaking changes: endpoint removed, required field removed, type changed
+  - Non-breaking: new endpoints, optional fields added
+  - Migration guide for each breaking change"""
         ),
         # ── Code quality ──────────────────────────────────────────────────────
         "jsat-review": (
@@ -1710,17 +1907,23 @@ Examples:
   /jsat-review --bugs
     → jsat__get_high_confidence_bugs()
 
-Show findings grouped by confidence: high → medium → low. Highlight bugs confirmed by 2+ models."""
+Show findings grouped by confidence: high → medium → low.
+Highlight bugs confirmed by 2+ models.
+
+LARGE DIFF STRATEGY: For diffs >500 lines, split by file and review in chunks:
+  /jsat-review <first file's diff>   then   /jsat-review <next file's diff>
+Then run /jsat-review --bugs to see cross-chunk high-confidence findings."""
         ),
         "jsat-test-gaps": (
             "Find untested code paths and optionally generate tests. Supports flags in $ARGUMENTS.",
             """Parse $ARGUMENTS for optional flags, then call the right test tool:
 
 Supported flags:
-  --generate         → after finding gaps, call jsat__generate_unit_test for each
-  --integration      → call jsat__generate_integration_test instead
+  --generate         → after finding gaps, call jsat__generate_unit_test for each gap
+  --integration      → call jsat__generate_integration_test instead of unit tests
   --contract <A> <B> → call jsat__generate_contract_test between two services
   --untested         → call jsat__list_untested_paths for a flat list
+  --service <name>   → scope to one service (avoids timeout on large codebases)
   (no flag)          → call jsat__get_test_gaps with path=<rest or ".">
 
 Examples:
@@ -1728,18 +1931,38 @@ Examples:
     → jsat__get_test_gaps(path="src/payment/")
 
   /jsat-test-gaps --generate src/payment/
-    → jsat__get_test_gaps(path="src/payment/") then generate tests for each gap
+    → jsat__get_test_gaps then jsat__generate_unit_test for each gap
 
   /jsat-test-gaps --untested
     → jsat__list_untested_paths()
 
   /jsat-test-gaps --contract PaymentService RefundService
-    → jsat__generate_contract_test(producer="PaymentService", consumer="RefundService")"""
+    → jsat__generate_contract_test(producer="PaymentService", consumer="RefundService")
+
+LARGE CODEBASE STRATEGY: Run per-service to avoid timeout:
+  /jsat-test-gaps --service PaymentService   then   /jsat-test-gaps --service RefundService"""
         ),
         "jsat-coverage": (
-            "Show behavioral test coverage estimate for a path.",
-            'Use jsat__get_behavioral_coverage with path="$ARGUMENTS" to estimate '
-            "how much of the code behavior is covered by tests."
+            "Show behavioral test coverage estimate. Supports generating tests for gaps.",
+            """Parse $ARGUMENTS for optional flags, then call jsat__get_behavioral_coverage:
+
+Supported flags:
+  --generate       → after showing gaps, call jsat__generate_unit_test for top uncovered paths
+  --service <name> → scope to one service (avoids timeout on large codebases)
+  --limit N        → show only top N uncovered paths (default: all)
+  (no flag)        → full coverage report for path=<rest or ".">
+
+Examples:
+  /jsat-coverage src/payment/
+    → jsat__get_behavioral_coverage(path="src/payment/")
+
+  /jsat-coverage --generate --limit 5 src/payment/
+    → coverage report + generate tests for 5 most critical uncovered paths
+
+  /jsat-coverage --service PaymentService
+    → scope to one service to avoid timeout
+
+Show: overall % covered, uncovered functions, over-mocked tests, endpoint gaps."""
         ),
         # ── Knowledge base ────────────────────────────────────────────────────
         "jsat-knowledge": (
@@ -1747,12 +1970,13 @@ Examples:
             """Parse $ARGUMENTS for an optional subcommand, then call the right tool:
 
 Subcommands:
-  add <text>     → call jsat__knowledge_add with text=<text>  (store a new entry)
-  list           → call jsat__knowledge_list to show all entries
-  list <category>→ call jsat__knowledge_list with category=<category>
-  stale <id>     → call jsat__knowledge_flag_stale with entry_id=<id>
-  search <text>  → call jsat__knowledge_search with query=<text>
-  (no subcommand)→ call jsat__knowledge_query with query=<rest>  (semantic search)
+  add <text>                  → call jsat__knowledge_add with text=<text>
+  add --category <cat> <text> → store with category (adr, runbook, pattern, decision)
+  list                        → call jsat__knowledge_list to show all entries
+  list <category>             → call jsat__knowledge_list with category=<category>
+  stale <id>                  → call jsat__knowledge_flag_stale with entry_id=<id>
+  search <text>               → call jsat__knowledge_search with query=<text>
+  (no subcommand)             → call jsat__knowledge_query with query=<rest>  (semantic search)
 
 Examples:
   /jsat-knowledge what are the payment service ADRs?
@@ -1761,8 +1985,8 @@ Examples:
   /jsat-knowledge add Use tenacity for all retry logic per ADR-007
     → jsat__knowledge_add(text="Use tenacity for all retry logic per ADR-007")
 
-  /jsat-knowledge list
-    → jsat__knowledge_list()
+  /jsat-knowledge add --category adr Payments use idempotency keys for all mutations
+    → jsat__knowledge_add(text="...", category="adr")
 
   /jsat-knowledge list adr
     → jsat__knowledge_list(category="adr")
@@ -1771,14 +1995,41 @@ Examples:
     → jsat__knowledge_search(query="retry patterns")"""
         ),
         "jsat-knowledge-add": (
-            "Add an entry to the JSAT knowledge base.",
-            'Use jsat__knowledge_add with text="$ARGUMENTS" to store a new architectural '
-            "decision, runbook note, or tribal knowledge entry."
+            "Add an entry to the JSAT knowledge base with optional category.",
+            """Parse $ARGUMENTS for optional --category flag, then call jsat__knowledge_add:
+
+  --category <cat>  → tag the entry (adr, runbook, pattern, decision, context)
+  (no flag)         → store with no category
+
+Examples:
+  /jsat-knowledge-add Use tenacity for retry logic per ADR-007
+    → jsat__knowledge_add(text="Use tenacity for retry logic per ADR-007")
+
+  /jsat-knowledge-add --category adr All payment mutations require idempotency keys
+    → jsat__knowledge_add(text="All payment mutations require idempotency keys", category="adr")
+
+Confirm the entry was stored: show its ID and a one-line preview."""
         ),
         "jsat-runbook": (
             "Generate an incident runbook for a service or component.",
-            'Use jsat__generate_runbook with target="$ARGUMENTS" to produce a runbook '
-            "covering diagnosis steps, rollback procedure, and escalation path."
+            """Parse $ARGUMENTS for optional subcommands, then call jsat__generate_runbook:
+
+  sections <target>   → show section outline only (no full content)
+  (no subcommand)     → full runbook for target=<rest>
+
+Examples:
+  /jsat-runbook PaymentService
+    → jsat__generate_runbook(target="PaymentService")
+
+  /jsat-runbook sections PaymentService
+    → outline only: symptoms, diagnosis, rollback, escalation, monitoring
+
+Full runbook includes:
+  1. Symptoms and alert signatures
+  2. Diagnosis steps (with graph-derived call chain)
+  3. Rollback procedure
+  4. Escalation path and contacts
+  5. Prevention and monitoring checklist"""
         ),
         # ── Investigation ─────────────────────────────────────────────────────
         "jsat-incident": (
@@ -1786,10 +2037,14 @@ Examples:
             """Parse $ARGUMENTS for an optional subcommand, then call the right tool:
 
 Subcommands:
-  hypotheses      → call jsat__get_hypotheses to list ranked root-cause hypotheses
-  recent [path]   → call jsat__get_recent_changes to show recent commits in area
-  runbook <svc>   → call jsat__generate_runbook to produce an incident runbook
-  (no subcommand) → call jsat__investigate_incident with description=<rest>
+  hypotheses          → call jsat__get_hypotheses to list ranked root-cause hypotheses
+  recent [path]       → call jsat__get_recent_changes to show recent commits in area
+  runbook <svc>       → call jsat__generate_runbook to produce an incident runbook
+  (no subcommand)     → call jsat__investigate_incident with description=<rest>
+
+Supported flags:
+  --since <time>      → limit commit search to window (24h, 7d)
+  --service <name>    → scope graph correlation to one service
 
 Examples:
   /jsat-incident 500 errors spiking on checkout since 14:00
@@ -1804,58 +2059,142 @@ Examples:
   /jsat-incident runbook PaymentService
     → jsat__generate_runbook(target="PaymentService")
 
-Show top hypotheses ranked by score. Include supporting evidence and recent commits."""
+Show top hypotheses ranked by score. For each: commit hash, author, changed files, keyword evidence.
+TIMEOUT STRATEGY: Use --since 24h to narrow the commit range on large repos."""
         ),
         "jsat-recent": (
-            "Show recent changes in the codebase.",
-            'Use jsat__get_recent_changes with target="$ARGUMENTS" (or "." if empty) '
-            "to list recent commits affecting the area. Highlight risky changes."
+            "Show recent changes in the codebase. Supports time range and author filters.",
+            """Parse $ARGUMENTS for optional flags, then call jsat__get_recent_changes:
+
+Supported flags:
+  --since <time>    → limit to changes since (24h, 7d, 30d)
+  --author <name>   → filter by commit author name (substring match)
+  --service <name>  → scope to one service's files
+  (no flag)         → recent changes for target=<rest or ".">
+
+Examples:
+  /jsat-recent
+    → jsat__get_recent_changes(target=".")
+
+  /jsat-recent --since 24h src/payment/
+    → recent changes in src/payment/ in the last 24 hours
+
+  /jsat-recent --author jay
+    → commits by any author whose name contains "jay"
+
+Show: short hash, author, timestamp, files changed, summary.
+Highlight: large commits (>10 files), changes touching auth/payment/migrations."""
         ),
         # ── Prompt & token tools ──────────────────────────────────────────────
         "jsat-prompt": (
-            "Optimize a query, THEN answer it with the optimized prompt. Flags pick the optimizer.",
-            """This command optimizes the query and then ANSWERS it. Optimization is a
-means to a better answer, not the final output.
+            "Discuss → Plan → Execute → Verify → Synthesize — uses the right tool per query type and checks its own answers.",
+            """Parse $ARGUMENTS for optional flags:
 
-Step 1 — scan $ARGUMENTS for ALL flags (any order, any combination):
+  --rewrite or --agent  → Phase 1 optimizer: jsat__prompt_rewrite  (1 LLM agent)
+  --agents              → Phase 1 optimizer: jsat__prompt_multi_agent (3 parallel agents)
+  (no optimizer flag)   → Phase 1 optimizer: jsat__prompt_optimize (offline, fastest)
+  --diff                → ALSO show raw vs optimized diff after Phase 1
+  --optimize-only       → Stop after Phase 1; show optimized prompt only
+  --phases N            → Run N phases (2-6, default: 6)
+  --service <name>      → Scope all query phases to this one service
+  --single              → Original one-shot flow (optimize → one jsat__query call)
 
-  --rewrite or --agent  → optimize with jsat__prompt_rewrite   (1 LLM rewrite agent)
-  --agents              → optimize with jsat__prompt_multi_agent with n_agents=3
-  (no optimizer flag)   → optimize with jsat__prompt_optimize  (offline, fastest)
-  --diff                → ALSO show jsat__prompt_diff (raw vs optimized) before answering
-  --optimize-only       → STOP after optimizing; show the optimized prompt and do NOT answer
+The query is every word that is NOT a flag. Strip all flags; join the rest.
+Priority when multiple optimizer flags: --agents beats --rewrite.
 
-Step 2 — the query is every word that is NOT a flag (not starting with --).
-Strip all flags; join the remaining words as the query string.
+## Phased Mode (default, --phases 6)
 
-Step 3 — call the selected optimizer with query=<stripped text> to get the
-optimized prompt (read it from the tool's "optimized_prompt" field).
+Run in 6 sequential phases. Show output after each.
 
-Step 4 — UNLESS --optimize-only was given, call jsat__query with
-question=<optimized_prompt> and present the ANSWER as the primary result.
+### Phase 1 — Discuss + Optimize (~6s)
 
-Priority when multiple optimizer flags given: --agents beats --rewrite.
+STEP A — Discuss (before optimizing):
+Classify the query type from the question text:
+  structural → contains "what calls", "who calls", "callers", "trace", "call chain"
+  lookup     → contains "where is", "find function", "find class", "locate"
+  security   → contains "security", "auth", "vulnerability", "secrets", "CVE"
+  incident   → contains "failing", "error", "500", "broken", "bug"
+  coverage   → contains "untested", "test gaps", "coverage"
+  general    → everything else
 
-Examples:
-  /jsat-prompt what is ithinking?
-    → jsat__prompt_optimize(query="what is ithinking?")
-    → jsat__query(question=<optimized_prompt>)   → show the ANSWER
+Select the primary execution tool for Phase 3:
+  structural → jsat__trace_call_chain
+  lookup     → jsat__get_function or jsat__get_class
+  security   → jsat__security_review
+  incident   → jsat__investigate_incident
+  coverage   → jsat__get_test_gaps
+  general    → jsat__query
 
-  /jsat-prompt --rewrite fix logger in ValidateVPAHandler.post
-    → jsat__prompt_rewrite(query="fix logger in ValidateVPAHandler.post")
-    → jsat__query(question=<optimized_prompt>)   → show the ANSWER
+Print: "🗣 Query type: <type> — primary tool: <tool>"
 
-  /jsat-prompt --agents improve the retry logic in PaymentService
-    → jsat__prompt_multi_agent(query=..., n_agents=3)
-    → jsat__query(question=<optimized_prompt>)   → show the ANSWER
+STEP B — Optimize:
+Call the optimizer selected by flags with query=<stripped text>.
+Read `optimized_prompt`. Save for all subsequent phases.
+Show: optimized prompt, tokens before→after.
+If --diff: also call jsat__prompt_diff and show diff.
+If --optimize-only: STOP here.
+Label: "🔧 Phase 1/6 — Discuss + Optimize"
 
-  /jsat-prompt --optimize-only why is checkout failing
-    → jsat__prompt_optimize(query="why is checkout failing")
-    → show the optimized prompt only; do NOT answer
+### Phase 2 — Plan + Scope (~3s)
+Call: jsat__get_index_status()
+Call: jsat__list_services()
+Show: node/edge counts, service list.
+State the query plan: "Plan: use <primary_tool> on <service>, then <secondary>."
+Identify 1-2 most relevant services for Phase 3-4.
+Label: "📊 Phase 2/6 — Plan + Scope"
 
-Output: lead with the ANSWER from jsat__query. Then, briefly, note the optimized
-prompt that was used and tokens before→after (plus winning agent for
---rewrite/--agents). For --optimize-only, show ONLY the optimized prompt + token stats."""
+### Phase 3 — Execute (Primary) (~15s)
+Use the primary tool identified in Phase 1:
+  structural: jsat__trace_call_chain(symbol=<key_symbol_from_question>)
+  lookup:     jsat__get_function(name=<name>) or jsat__get_class(name=<name>)
+  security:   jsat__security_review(path=<service_path or ".">)
+  incident:   jsat__investigate_incident(description=<optimized_prompt>)
+  coverage:   jsat__get_test_gaps(path=<service_path or ".">)
+  general:    jsat__query(question=<optimized_prompt>, service=<primary_service>)
+
+If --service was given, use it for all service-scoped calls.
+If tool returns "[AI unavailable]": fall back to jsat__query.
+Label: "💬 Phase 3/6 — Execute (<tool>)"
+
+### Phase 4 — Execute (Secondary) (~15s)
+If a second relevant service was identified in Phase 2:
+  Call same primary tool on second service, or jsat__query(service=<second>)
+  Label: "💬 Phase 4/6 — Secondary (<service>)"
+Else:
+  Call: jsat__query(question=<optimized_prompt>) with no service scope
+  Label: "💬 Phase 4/6 — Broader Context"
+
+### Phase 5 — Verify (~5s)
+Scan Phase 3-4 answers for 2-3 concrete claims to spot-check against the graph:
+  function/method name → jsat__get_function(name=<fn>)
+  class name           → jsat__get_class(name=<cls>)
+  service name         → already known from Phase 2 (no extra call needed)
+
+Mark each claim:
+  Found in graph   → ✅ verified
+  Not found        → ⚠️ unverified (may be inferred or not yet indexed)
+
+If Phase 3-4 produced no checkable claims (or both timed out):
+  Fall back: jsat__short(question=<optimized_prompt>)
+Label: "🔍 Phase 5/6 — Verify"
+
+### Phase 6 — Synthesize (by you, Claude — no tool call)
+- Lead with the direct answer to the original question
+- Present ✅ verified facts first, clearly attributed
+- Flag ⚠️ unverified claims: "Note: <X> was not found in the index — treat as inferred"
+- Add supporting detail from Phases 3-4
+- Note conflicts or gaps between phases
+Label: "✅ Phase 6/6 — Final Answer"
+
+## Phase splits for --phases N
+N=2: [discuss+optimize] / [execute + verify + synthesis]
+N=3: [discuss+optimize] / [scope + execute] / [verify + synthesis]
+N=4: [discuss+optimize] / [scope] / [execute] / [verify + synthesis]
+N=6: full pipeline above (default)
+
+## --single Flag
+If --single: classify → optimize → jsat__query(question=<optimized_prompt>) once.
+No verification in single mode."""
         ),
         "jsat-prompt-diff": (
             "Show what you typed vs what JSAT sent to the AI after optimization.",
@@ -1890,10 +2229,22 @@ Examples:
 Show: token count, savings (if compressed), budget % used and status (ok/warn/critical)."""
         ),
         "jsat-token-budget": (
-            "Check how much of a model's context window a text uses.",
-            'Use jsat__token_budget with text="$ARGUMENTS" and model="claude-sonnet-4-6" '
-            "(or the model currently in use) to show tokens used, limit, percentage, "
-            "headroom, and status (ok / warn / critical)."
+            "Check how much of a model's context window a text uses. Supports --model flag.",
+            """Parse $ARGUMENTS for optional --model flag:
+
+  --model <name>   → use specified model for limit calculation
+  (no flag)        → use current session model (claude-sonnet-4-6[1m] or as configured)
+
+Known model context limits:
+  claude-sonnet-4-6[1m]  → 1,048,576 tokens
+  claude-sonnet-4-6       → 200,000 tokens
+  claude-haiku-4-5        → 200,000 tokens
+  gpt-4o                  → 128,000 tokens
+  gpt-4o-mini             → 128,000 tokens
+
+Use jsat__token_budget with text=<stripped text> and model=<name>.
+Show: tokens used, limit, percentage, headroom, status (ok / warn / critical).
+Warn at ≥80%. Flag critical at ≥95%."""
         ),
         "jsat-prompt-rewrite": (
             "Rewrite a prompt using offline pipeline + parallel LLM agents for maximum clarity.",
@@ -1941,34 +2292,257 @@ Display plan clearly. After the user approves, proceed. Then reflect on what was
         ),
         "jsat-reflect": (
             "Record what was done after completing a task (IThinking phase 6).",
-            'Use jsat__ithinking_reflect with subtask="$ARGUMENTS" to log the outcome, '
-            "what worked, what didn\'t, and any follow-up actions."
+            "Use jsat__ithinking_reflect with subtask=\"$ARGUMENTS\" to log the outcome, "
+            "what worked, what didn't, and any follow-up actions."
         ),
         # ── New features ──────────────────────────────────────────────────────
         "jsat-crack": (
-            "Multi-agent war room: architect, security, implementer, tester, "
-            "skeptic + moderator discuss a complex task.",
-            """Use jsat__crack with task="$ARGUMENTS" to run a multi-agent engineering discussion.
+            "Multi-agent war room with artifact carry-forward — each agent builds on prior findings.",
+            """Parse $ARGUMENTS for optional flags:
 
-Agents run in rounds, responding to each other's arguments:
-  🏛 architect   — system design, patterns, scalability
-  🔒 security    — threat model, auth, idempotency
-  ⚙  implementer — current code analysis, effort estimation
-  🧪 tester      — edge cases, coverage gaps, testability
-  😈 skeptic     — devil's advocate, challenges assumptions
-  🎯 moderator   — synthesises consensus and action plan
+  --phases N   → run in N phases (2-6, default: 6)
+  --single     → run all agents at once (original one-shot behavior, may timeout)
+  (no flag)    → 6-phase mode with artifact carry-forward (recommended)
 
-Show each agent's statements by round, then the moderator's final synthesis with:
-  ✅ Agreed items
-  ⚠️ Disputed items
-  ❓ Open questions
-  🎯 Recommended action plan""",
+## Phased Mode (default)
+
+Runs 6 agents sequentially. Each agent receives the original task PLUS a running
+brief of all prior agents' key findings — agents build on each other's work
+rather than operating in isolation. The skeptic specifically challenges the
+architect's and implementer's proposals.
+
+Phase splits (strip --phases flag; task = everything else):
+  N=2: [architect,security,implementer] / [tester,skeptic,moderator]
+  N=3: [architect,security] / [implementer,tester] / [skeptic,moderator]
+  N=4: [architect] / [security,implementer] / [tester,skeptic] / [moderator]
+  N=5: [architect] / [security] / [implementer] / [tester,skeptic] / [moderator]
+  N=6 (default): one agent per phase — maximum granularity
+
+## Phase 0 — Codebase Context (run before Phase 1)
+
+Call: jsat__get_index_status()
+Call: jsat__list_services()
+Build CONTEXT_BRIEF from the results: node count, edge count, top service names.
+Prepend CONTEXT_BRIEF to every agent's task for grounding.
+
+## War Room Phases
+
+### Phase 1 — Architect
+Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nStructure your response:\n**Findings**: what exists in the codebase relevant to this task\n**Concerns**: top design risk\n**Recommendation**: your proposed approach", roles=["architect"], rounds=1)
+Show output under "🏛 Phase 1/6 — Architect".
+Extract HANDOFF_1: one sentence — "🏛 Architect: <Recommendation>"
+
+### Phase 2 — Security
+Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nPRIOR FINDINGS:\n<HANDOFF_1>\n\nStructure your response:\n**Findings**: threat surfaces or auth gaps\n**Concerns**: highest-risk issue\n**Recommendation**: required security measure", roles=["security"], rounds=1)
+Show output under "🔒 Phase 2/6 — Security".
+Extract HANDOFF_2: one sentence — "🔒 Security: <Concerns>"
+
+### Phase 3 — Implementer
+Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nPRIOR FINDINGS:\n<HANDOFF_1>\n<HANDOFF_2>\n\nStructure your response:\n**Findings**: specific files or functions that need changing\n**Concerns**: implementation difficulty or hidden cost\n**Recommendation**: concrete implementation path", roles=["implementer"], rounds=1)
+Show output under "⚙️ Phase 3/6 — Implementer".
+Extract HANDOFF_3: one sentence — "⚙️ Implementer: <Recommendation>"
+
+### Mid-Sprint Brief (print after Phase 3, before Phase 4)
+  "── Mid-sprint brief ──"
+  <HANDOFF_1>
+  <HANDOFF_2>
+  <HANDOFF_3>
+  "── Continuing to tester, skeptic, moderator ──"
+
+### Phase 4 — Tester
+Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nPRIOR FINDINGS:\n<HANDOFF_1>\n<HANDOFF_2>\n<HANDOFF_3>\n\nStructure your response:\n**Findings**: edge cases and failure modes for the proposed implementation\n**Concerns**: hardest thing to test or verify\n**Recommendation**: test strategy and critical test cases", roles=["tester"], rounds=1)
+Show output under "🧪 Phase 4/6 — Tester".
+Extract HANDOFF_4: one sentence — "🧪 Tester: <Concerns>"
+
+### Phase 5 — Skeptic (targeted challenger)
+Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nPRIOR FINDINGS:\n<HANDOFF_1>\n<HANDOFF_2>\n<HANDOFF_3>\n<HANDOFF_4>\n\nYour job: challenge the architect's approach (<HANDOFF_1>) and the implementer's plan (<HANDOFF_3>) specifically. Find the weakest assumption in each. Do NOT give generic concerns — cite the specific proposals above.\n\nStructure your response:\n**Findings**: the weakest assumption in the architect's or implementer's proposal\n**Concerns**: most likely failure mode if this proceeds as planned\n**Recommendation**: what must change or be proven before starting", roles=["skeptic"], rounds=1)
+Show output under "😈 Phase 5/6 — Skeptic".
+Extract HANDOFF_5: one sentence — "😈 Skeptic: <Concerns>"
+
+### Phase 6 — Moderator
+Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nFULL WAR ROOM BRIEF:\n<HANDOFF_1>\n<HANDOFF_2>\n<HANDOFF_3>\n<HANDOFF_4>\n<HANDOFF_5>\n\nSynthesize these findings. Make a clear recommendation.", roles=["moderator"], rounds=1)
+Show output under "🎯 Phase 6/6 — Moderator".
+
+### Final Synthesis (by you, Claude — no tool call)
+Using all 6 phase outputs now in context:
+  ✅ Agreed:        items all phases converged on
+  ⚠️  Disputed:     live tensions (especially skeptic vs architect/implementer)
+  ❓ Open questions: must-answer before starting
+  🎯 Action plan:   3-5 concrete next steps
+
+## --single Flag
+If --single: call jsat__crack(task=<task>) with all defaults (6 agents, 3 rounds).
+Note: agents do not receive prior findings in single mode.""",
         ),
         "jsat-short": (
             "Ask any question — get the briefest possible correct answer (≤3 sentences).",
-            'Use jsat__query with question="$ARGUMENTS" but prepend this brevity constraint: '
-            '"Answer in ≤3 sentences, plain language. No preamble, no headers, no bullet points." '
-            "Show only the AI response — no framing, no metadata.",
+            """Parse $ARGUMENTS for optional --one-line flag:
+
+  --one-line  → request exactly one sentence
+  (no flag)   → ≤3 sentences
+
+Use jsat__short with question=<stripped arguments> (or jsat__query if jsat__short unavailable),
+prepending the brevity constraint: "Answer in ≤3 sentences, plain language. No preamble."
+
+Show only the AI response — no framing, no metadata.
+Use as a fast fallback when /jsat-query times out.""",
+        ),
+        "jsat-smart": (
+            "Terse compression mode — answers in fragments, no filler, code intact. Supports --lite / --full / --ultra.",
+            """Terse mode: answer questions about this codebase with maximum compression.
+Strip all filler words. Preserve code, function names, file paths, and data byte-for-byte.
+Use fragment-based responses — no "In order to", no "It's worth noting", no hedging.
+
+Parse $ARGUMENTS for an optional level flag (strip before processing):
+  --lite    → remove filler phrases only (~30% reduction)
+  --full    → fragments + no explanatory preamble (~55% reduction, default)
+  --ultra   → one bullet per fact, ≤8 words each (~70% reduction)
+  (no flag) → full mode
+
+Steps:
+1. Strip the level flag; query = all remaining text.
+2. Call jsat__query(question=<query>) to get the answer.
+3. Compress the answer based on level:
+   - lite:  remove phrases like "In order to", "It is worth noting", "As mentioned",
+            "Additionally", "It should be noted", "In summary". Keep sentences intact.
+   - full:  convert to fragments. "The function does X by calling Y" → "Calls Y → X."
+            Remove all preamble ("Here is...", "Let me explain...").
+   - ultra: one bullet per fact. ≤8 words each. No connectives.
+4. Output only the compressed answer. No preamble. No "Here is the compressed answer:".
+
+Examples:
+  /jsat-smart what does the payment service do?
+    → full mode: fragment bullets, no filler
+
+  /jsat-smart --ultra what does process_refund return?
+    → single bullets, ≤8 words each
+
+  /jsat-smart --lite explain the checkout flow
+    → filler phrases stripped, sentence structure preserved""",
+        ),
+        "jsat-lazy": (
+            "Reuse-first code planning — runs a 5-rung ladder against the graph before suggesting new code.",
+            """Before writing any new code, run the reuse ladder to find what already exists.
+Rule: the best code is code you don't write. The graph index is the source of truth.
+
+Parse $ARGUMENTS for optional flags:
+  --audit   → scan a diff/file for over-engineering (code that reimplements existing)
+  --review  → check a proposed implementation against the graph for duplication
+  (no flag) → run the full reuse ladder for the given task description
+
+## Reuse Ladder (run rungs in order — stop as soon as one finds a match)
+
+RUNG 1 — Exact function/class match
+  Extract the key function or class name implied by the task.
+  Call: jsat__get_function(name=<key_term>)
+  If found: show file:line, signature, and say "✅ Already exists — reuse this."
+
+RUNG 2 — Similar pattern in the codebase
+  Call: jsat__query(question="find existing implementation for: <task>")
+  If the answer names specific functions/files: show them.
+  Say "✅ Reuse this pattern from <file>:<line>."
+
+RUNG 3 — Existing service already handles this domain
+  Call: jsat__list_services()
+  Check if any service name matches the task domain.
+  If found: say "✅ Delegate to <ServiceName> instead of building new."
+
+RUNG 4 — Existing endpoint already exposes this
+  Call: jsat__list_endpoints()
+  Check if a route or method matches the needed operation.
+  If found: say "✅ Call existing endpoint <METHOD> <route> instead."
+
+RUNG 5 — Nothing found: minimum viable implementation
+  Only reach this rung if rungs 1-4 all return empty.
+  Suggest the minimum code:
+  - One function, not a class
+  - No abstraction layers
+  - No config flags for hypothetical future use
+  Say: "⚠️ Nothing found in codebase. Minimum implementation:" then show it.
+
+## --audit flag
+Given a diff or file path: scan for code that reimplements something already in the graph.
+Call jsat__blast_radius(target=<path>) to find what already handles this area.
+Call jsat__get_function for each new function name found in the diff.
+Flag any that duplicate existing indexed functions.
+
+## --review flag
+Given a proposed implementation description: check each function/class name against the graph.
+For each named entity: call jsat__get_function(name=<fn>) or jsat__get_class(name=<cls>).
+Report: exists / not found / similar match (with location).""",
+        ),
+        "jsat-aw": (
+            "Workflow advisor — classifies your task and runs the optimal JSAT tool sequence end-to-end.",
+            """Given a task in $ARGUMENTS, act as a JSAT workflow advisor.
+Classify the task, announce the recommended tool sequence, then run each step.
+
+## Step 1 — Classify task type
+
+Read the task description and identify the type:
+
+  feature    → adding new functionality to the codebase
+  bugfix     → fixing broken or incorrect behavior
+  security   → security audit, hardening, or vulnerability check
+  understand → exploring or learning how existing code works
+  incident   → investigating a production issue or alert
+  refactor   → improving existing code without changing behavior
+  review     → reviewing a diff or PR before merge
+
+If the type is unclear, default to "understand".
+
+## Step 2 — Announce the workflow
+
+Show the recommended sequence before running anything:
+
+  feature:   jsat-lazy → jsat-find-function → jsat-blast-radius → jsat-crack → jsat-test-gaps
+  bugfix:    jsat-recent → jsat-incident → jsat-find-function → jsat-blast-radius
+  security:  jsat-security → jsat-blast-radius --severity breaking → jsat-crack --phases 3 → jsat-knowledge-add
+  understand:jsat-smart → jsat-trace → jsat-find-function → jsat-query
+  incident:  jsat-incident → jsat-recent → jsat-blast-radius → jsat-runbook
+  refactor:  jsat-lazy → jsat-blast-radius → jsat-test-gaps → jsat-crack → jsat-review
+  review:    jsat-review → jsat-blast-radius --severity breaking → jsat-test-gaps --untested
+
+Print before running:
+  "📋 Task type: <type>"
+  "🔄 Workflow (<N> steps): step1 → step2 → ..."
+
+## Step 3 — Execute each step in sequence
+
+For each step:
+  1. Invoke the JSAT MCP tool that corresponds to the skill, passing the task description
+     (or the most relevant part) as the argument. Apply any flags shown in the workflow.
+  2. Show the result under the header "✅ Step N/M — <skill-name>".
+  3. Extract the key finding in 1 sentence.
+  4. Carry that finding forward as additional context to the next step where useful.
+  5. Before each step, print: "▶ Step N/M — <skill-name>: <what it checks>"
+
+## Step 4 — Final summary
+
+After all steps complete, produce:
+
+  📊 **Workflow Summary**
+  - Task: <original task>
+  - Type: <classified type>
+  - Steps run: <N>
+  - Key findings: <one bullet per step>
+  - Recommended action: <1-2 concrete next steps>
+  - Save to knowledge base: <yes/no — if yes, use jsat-knowledge-add>
+
+## Flags
+
+  --type <type>   → skip classification, force a specific workflow type
+  --dry           → show the workflow plan only, do NOT run any tools
+  (no flag)       → classify + run full workflow
+
+Examples:
+  /jsat-aw add idempotency keys to the payment mutation endpoint
+    → classifies as "feature": lazy → find-function → blast-radius → crack → test-gaps
+
+  /jsat-aw --type security src/auth/
+    → skips classification, runs security workflow on src/auth/
+
+  /jsat-aw --dry investigate the checkout 500 errors from this morning
+    → prints the "incident" workflow plan without executing anything""",
         ),
 }
 
@@ -2001,6 +2575,91 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
         content = f"---\ndescription: {description}\n---\n\n{instruction}{_JSAT_CMD_DIRECTIVE}\n"
         skill_file.write_text(content, encoding="utf-8")
 
+    return commands_dir
+
+
+def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path:
+    """Write a single /jsat dispatcher sourced from the bundled jsat/commands/*.md files.
+
+    Reads the actual skill files from jsat/commands/ so updates to those files are
+    automatically reflected when 'jsat connect claude' is re-run.
+    """
+    if commands_dir is None:
+        if scope == "global":
+            commands_dir = Path.home() / ".claude" / "commands"
+        else:
+            commands_dir = Path.cwd() / ".claude" / "commands"
+
+    commands_dir.mkdir(parents=True, exist_ok=True)
+
+    # Remove any existing individual jsat-*.md files
+    for old in commands_dir.glob("jsat-*.md"):
+        old.unlink()
+
+    # Locate the bundled skill files: jsat/commands/jsat-*.md
+    pkg_commands_dir = Path(__file__).parent / "commands"
+    skill_files = sorted(pkg_commands_dir.glob("jsat-*.md"))
+
+    def _frontmatter_desc(text: str) -> str:
+        """Extract description: value from YAML frontmatter."""
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith("description:"):
+                return line.removeprefix("description:").strip().strip('"')
+        return ""
+
+    def _strip_frontmatter(text: str) -> str:
+        """Remove the leading ---...--- frontmatter block."""
+        lines = text.splitlines()
+        if not lines or lines[0].strip() != "---":
+            return text
+        try:
+            end = lines.index("---", 1)
+            return "\n".join(lines[end + 1:]).lstrip("\n")
+        except ValueError:
+            return text
+
+    # Build help table
+    lines: list[str] = [
+        "---",
+        "description: \"JSAT — /jsat <command> [flags] [args]. Type '/jsat help' for all commands.\"",
+        "---",
+        "",
+        "Parse the first word of $ARGUMENTS as COMMAND; everything after is ARGS.",
+        "Find the matching section below and execute its instructions, treating ARGS as $ARGUMENTS.",
+        "If COMMAND is \"help\" or $ARGUMENTS is empty: print the command list and stop.",
+        "",
+        "---",
+        "## help",
+        "",
+        "| Command | Description |",
+        "|---------|-------------|",
+    ]
+    for fpath in skill_files:
+        short = fpath.stem.removeprefix("jsat-")
+        desc = _frontmatter_desc(fpath.read_text(encoding="utf-8"))
+        lines.append(f"| `/jsat {short}` | {desc} |")
+
+    lines += ["", "---", ""]
+
+    # Embed each skill file's body as a named section
+    for fpath in skill_files:
+        short = fpath.stem.removeprefix("jsat-")
+        content = fpath.read_text(encoding="utf-8")
+        desc = _frontmatter_desc(content)
+        body = _strip_frontmatter(content)
+        lines += [
+            f"## {short}",
+            "",
+            f"*{desc}*" if desc else "",
+            "",
+            body.rstrip(),
+            "",
+            "---",
+            "",
+        ]
+
+    (commands_dir / "jsat.md").write_text("\n".join(lines), encoding="utf-8")
     return commands_dir
 
 
@@ -2127,51 +2786,27 @@ def cmd_connect_claude(
 
     # Install /jsat-* slash commands
     if install_skills:
-        skills_dir = _write_jsat_skills(effective_scope)
+        skills_dir = _write_jsat_dispatcher(effective_scope)
         console.print(
-            f"[green]✓[/] Installed {len(_JSAT_SKILLS)} JSAT slash commands "
-            f"in [bold]{skills_dir}[/]\n"
-            "\n[bold]Graph exploration[/]\n"
-            "  [cyan]/jsat-query[/]           — ask anything about the codebase\n"
-            "  [cyan]/jsat-find-function[/]   — look up a function by name\n"
-            "  [cyan]/jsat-find-class[/]      — look up a class by name\n"
-            "  [cyan]/jsat-list-services[/]   — list all indexed services\n"
-            "  [cyan]/jsat-list-endpoints[/]  — list all API endpoints\n"
-            "  [cyan]/jsat-trace[/]           — trace a call chain\n"
-            "  [cyan]/jsat-index[/]           — rebuild the graph (incremental)\n"
-            "  [cyan]/jsat-status[/]          — graph stats\n"
-            "  [cyan]/jsat-doctor[/]          — system health check\n"
-            "\n[bold]Impact & safety[/]\n"
-            "  [cyan]/jsat-blast-radius[/]    — trace downstream impact of a change\n"
-            "  [cyan]/jsat-security[/]        — OWASP security scan\n"
-            "  [cyan]/jsat-migration[/]       — validate DB migration safety\n"
-            "  [cyan]/jsat-contract[/]        — API contract compatibility check\n"
-            "\n[bold]Code quality[/]\n"
-            "  [cyan]/jsat-review[/]          — multi-model parallel code review\n"
-            "  [cyan]/jsat-test-gaps[/]       — find untested code, generate tests\n"
-            "  [cyan]/jsat-coverage[/]        — behavioral coverage estimate\n"
-            "\n[bold]Knowledge & investigation[/]\n"
-            "  [cyan]/jsat-knowledge[/]       — query the knowledge base\n"
-            "  [cyan]/jsat-knowledge-add[/]   — add to the knowledge base\n"
-            "  [cyan]/jsat-runbook[/]         — generate an incident runbook\n"
-            "  [cyan]/jsat-incident[/]        — investigate a production incident\n"
-            "  [cyan]/jsat-recent[/]          — show recent codebase changes\n"
-            "\n[bold]Prompt & token tools[/]\n"
-            "  [cyan]/jsat-prompt[/]          — optimize a prompt before sending\n"
-            "  [cyan]/jsat-prompt-diff[/]     — see raw vs optimized prompt\n"
-            "  [cyan]/jsat-tokens[/]          — count tokens, compress text\n"
-            "  [cyan]/jsat-token-budget[/]    — check model context budget\n"
-            "\n[bold]IThinking[/]\n"
-            "  [cyan]/jsat-ithinking[/]       — full IThinking: plan before acting\n"
-            "  [cyan]/jsat-think[/]           — quick: think before any task\n"
-            "  [cyan]/jsat-reflect[/]         — record outcome after a task\n"
+            f"[green]✓[/] Installed [cyan]/jsat[/] dispatcher "
+            f"({len(_JSAT_SKILLS)} subcommands) in [bold]{skills_dir}[/]\n"
+            "\n[bold]Usage:[/] [cyan]/jsat <command> [flags] [args][/]\n"
+            "  [cyan]/jsat help[/]             — list all subcommands\n"
+            "  [cyan]/jsat query[/] <question> — answer codebase questions\n"
+            "  [cyan]/jsat crack[/] <task>     — multi-agent war room\n"
+            "  [cyan]/jsat lazy[/] <task>      — reuse-first planning\n"
+            "  [cyan]/jsat aw[/] <task>        — workflow advisor\n"
+            "  [cyan]/jsat security[/] [path]  — security scan\n"
+            "  [cyan]/jsat blast[/] <target>   — blast radius analysis\n"
+            "  [cyan]/jsat review[/] <diff>    — multi-model code review\n"
+            f"  ... {len(_JSAT_SKILLS)} total — type [cyan]/jsat help[/] to see all\n"
         )
 
     console.print(
         "[bold yellow]→ Restart Claude Code[/] to activate.\n"
         "  MCP tools: [dim]jsat__query · jsat__blast_radius · jsat__security_review ·[/]\n"
         "             [dim]jsat__investigate_incident · jsat__index_repo · ...[/]\n"
-        "  Slash cmds: [dim]/jsat-query · /jsat-blast-radius · /jsat-security · ...[/]\n"
+        "  Slash cmd:  [dim]/jsat <command>[/]\n"
     )
 
 
@@ -2703,7 +3338,7 @@ def cmd_connect_remove(
 
 # ── ci-setup ──────────────────────────────────────────────────────────────────
 
-@app.command("ci-setup")
+@app.command("ci-setup", rich_help_panel="🔧  Setup & Config")
 def cmd_ci_setup(
     provider: str = typer.Option("github", "--provider", "-p",
                                   help="CI provider: github | gitlab"),
@@ -2821,7 +3456,7 @@ jsat:
 
 # ── mcp-server ───────────────────────────────────────────────────────────────
 
-@app.command("mcp-server")
+@app.command("mcp-server", rich_help_panel="🔧  Setup & Config")
 def cmd_mcp_server(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root to serve"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging"),
@@ -3021,7 +3656,7 @@ def cmd_mcp_server(
 
 # ── clean ────────────────────────────────────────────────────────────────────
 
-@app.command("clean")
+@app.command("clean", rich_help_panel="🔍  Graph & Index")
 def cmd_clean(
     cache: bool = typer.Option(False, "--cache", help="Remove semantic cache only"),
     graph: bool = typer.Option(False, "--graph", help="Remove graph database only"),
@@ -3077,11 +3712,18 @@ def cmd_clean(
 
 # ── update ─────────────────────────────────────────────────────────────────────
 
-@app.command("update")
+@app.command("update", rich_help_panel="📦  Package")
 def cmd_update(
     pre: bool = typer.Option(False, "--pre", help="Include pre-release versions"),
 ) -> None:
-    """Upgrade JSAT to the latest version from PyPI."""
+    """Upgrade JSAT to the latest version from PyPI.
+
+    Equivalent to: pip install --upgrade jsat
+
+    \b
+    Examples:
+      jsat update
+    """
     import subprocess
     import sys
     console.print("[dim]Checking for updates...[/dim]")
@@ -3108,7 +3750,7 @@ def cmd_update(
 
 # ── knowledge-ingest ──────────────────────────────────────────────────────────
 
-@app.command("knowledge-ingest")
+@app.command("knowledge-ingest", rich_help_panel="⚡  Tools")
 def cmd_knowledge_ingest(
     path: str = typer.Argument(".", help="Directory or file to ingest"),
     pattern: str = typer.Option("*.md", "--pattern", "-p", help="File glob pattern"),
@@ -3162,7 +3804,7 @@ def cmd_knowledge_ingest(
 
 # ── remove ────────────────────────────────────────────────────────────────────
 
-@app.command("remove")
+@app.command("remove", rich_help_panel="🔍  Graph & Index")
 def cmd_remove(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     keep_config: bool = typer.Option(False, "--keep-config",

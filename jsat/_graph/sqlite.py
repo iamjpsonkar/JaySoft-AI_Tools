@@ -34,6 +34,10 @@ class SQLiteGraph(GraphClient):
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL;")
+        self._conn.execute("PRAGMA synchronous=NORMAL;")   # safe with WAL; 2× faster commits
+        self._conn.execute("PRAGMA cache_size=-65536;")     # 64 MB page cache (was ~2 MB)
+        self._conn.execute("PRAGMA temp_store=MEMORY;")     # temp tables in RAM
+        self._conn.execute("PRAGMA mmap_size=268435456;")   # 256 MB memory-mapped I/O
         self._conn.execute("PRAGMA foreign_keys=ON;")
         self._create_schema()
         self._conn.commit()
@@ -105,15 +109,22 @@ class SQLiteGraph(GraphClient):
                     visited.add(target_id)
                     queue.append((target_id, depth + 1, path + [edge_type]))
 
-    def query(self, cypher_like: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    def query(self, cypher_like: str, params: list[Any] | dict[str, Any] | None = None) -> list[dict[str, Any]]:
         s = cypher_like.strip()
         upper = s.upper()
+        # Normalize params: always produce a list for positional ? placeholders
+        def _as_list(p: list[Any] | dict[str, Any] | None) -> list[Any]:
+            if p is None:
+                return []
+            if isinstance(p, dict):
+                return list(p.values())
+            return list(p)
+
         # Raw SQL pass-through for SELECT and write statements (DELETE, UPDATE, INSERT)
         if upper.startswith("SELECT"):
-            return self.execute_sql(s, list(params.values()) if params else None)
+            return self.execute_sql(s, _as_list(params) or None)
         if upper.startswith(("DELETE", "UPDATE", "INSERT")):
-            p = list(params.values()) if isinstance(params, dict) else (params or [])
-            self._conn.execute(s, p)
+            self._conn.execute(s, _as_list(params))
             self._conn.commit()
             return []
 
@@ -128,7 +139,7 @@ class SQLiteGraph(GraphClient):
             r"MATCH\s+\(n\)\s+WHERE\s+n\.id\s*=\s*\$id\s+RETURN\s+n", s, re.IGNORECASE
         )
         if m2:
-            nid = (params or {}).get("id")
+            nid = params.get("id") if isinstance(params, dict) else None
             if nid:
                 return self.execute_sql(
                     "SELECT id, label, properties FROM nodes WHERE id=?", [nid]
@@ -148,6 +159,12 @@ class SQLiteGraph(GraphClient):
                     rec["properties"] = json.loads(rec["properties"])
             results.append(rec)
         return results
+
+    def executemany_sql(self, sql: str, params_list: list[Any]) -> None:
+        """Execute a write statement for multiple rows in one batch (single commit)."""
+        self._log.debug("sqlite_executemany_sql", sql=sql[:60], rows=len(params_list))
+        self._conn.executemany(sql, params_list)
+        self._conn.commit()
 
     def bulk_add_nodes(self, nodes: list[dict[str, Any]]) -> None:
         self._conn.executemany(

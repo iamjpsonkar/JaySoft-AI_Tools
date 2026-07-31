@@ -83,11 +83,9 @@ class IndexerTool(BaseTool):
                      to_parse=len(delta.to_parse),
                      skipped=len(delta.unchanged),
                      deleted=len(delta.deleted))
-            # Remove stale nodes/edges for deleted and modified files
-            for rel_path in delta.deleted + [
-                str(f.relative_to(path)) for f in delta.modified
-            ]:
-                self._remove_file_nodes(rel_path)
+            # Remove stale nodes/edges for deleted and modified files (batched)
+            stale = delta.deleted + [str(f.relative_to(path)) for f in delta.modified]
+            self._remove_files_batch(stale)
             files_to_parse = delta.to_parse
             files_skipped = len(delta.unchanged)
         else:
@@ -99,7 +97,7 @@ class IndexerTool(BaseTool):
         batch_nodes: list[dict] = []
         batch_edges: list[dict] = []
         new_manifest_entries: dict[str, dict] = dict(prev_manifest)
-        BATCH = 500
+        BATCH = 2000
 
         lang_map: dict[Path, str] = {}
         for fpath in files_to_parse:
@@ -174,41 +172,54 @@ class IndexerTool(BaseTool):
         self._write_index_md(Path(path), result)
         return result
 
-    def _remove_file_nodes(self, rel_path: str) -> None:
-        """Delete all nodes and edges belonging to a file (for incremental update)."""
+    _MAX_VARS = 900  # SQLite SQLITE_MAX_VARIABLE_NUMBER safe ceiling
+
+    def _remove_files_batch(self, rel_paths: list[str]) -> None:
+        """Batch-delete all nodes/edges for a list of files — 3 queries per 900-file chunk."""
+        if not rel_paths:
+            return
+        import structlog
+        log = structlog.get_logger(__name__)
+        log.debug("indexer_remove_files_batch", count=len(rel_paths))
         try:
-            self._graph.query(   # type: ignore[attr-defined]
-                "DELETE FROM nodes WHERE json_extract(properties,'$.file') = ?",
-                [rel_path]
-            )
-            self._graph.query(   # type: ignore[attr-defined]
-                "DELETE FROM edges WHERE source_id LIKE ?",
-                [f"{rel_path}::%"]
-            )
-            self._graph.query(   # type: ignore[attr-defined]
-                "DELETE FROM edges WHERE source_id = ?",
-                [rel_path]
-            )
+            for i in range(0, len(rel_paths), self._MAX_VARS):
+                chunk = rel_paths[i:i + self._MAX_VARS]
+                ph = ",".join("?" * len(chunk))
+                # Delete all nodes belonging to these files
+                self._graph.query(   # type: ignore[attr-defined]
+                    f"DELETE FROM nodes WHERE json_extract(properties,'$.file') IN ({ph})",
+                    chunk
+                )
+                # Delete file-level edges (source_id == rel_path for File nodes)
+                self._graph.query(   # type: ignore[attr-defined]
+                    f"DELETE FROM edges WHERE source_id IN ({ph})",
+                    chunk
+                )
+                # Delete function/class-level edges (source_id starts with rel_path::)
+                like_clause = " OR ".join("source_id LIKE ?" for _ in chunk)
+                self._graph.query(   # type: ignore[attr-defined]
+                    f"DELETE FROM edges WHERE {like_clause}",
+                    [f"{p}::%" for p in chunk]
+                )
         except Exception:
             pass  # non-SQLite backends may not support raw queries
 
     def _resolve_edges(self) -> int:
         """Resolve string-name CALLS/IMPORTS targets to actual graph node IDs.
 
-        After parsing, CALLS edges point to callee names like "refund" instead
-        of "payments/service.py::PaymentService.refund". This pass matches names
-        to real node IDs where unambiguous (exactly 1 match).
-
-        Note: uses raw SQLite json_extract() — only runs on sqlite/lightgraph backends.
+        Optimization: builds an in-memory name→[node_id] map with ONE query,
+        resolves all edges in O(1) lookups, then bulk-UPDATEs in one batch.
+        Previous approach: one SELECT + one UPDATE per unresolved edge (O(N) queries).
         """
         import structlog
         log = structlog.get_logger(__name__)
         backend = getattr(getattr(self._cfg, "graph", None), "backend", "sqlite")
         if backend not in ("sqlite", "lightgraph"):
-            log.info("edge_resolution_skipped",
-                     reason="non_sqlite_backend", backend=backend,
+            log.info("edge_resolution_skipped", reason="non_sqlite_backend", backend=backend,
                      note="CALLS/IMPORTS edges remain unresolved; use jsat__query for traversal")
             return 0
+
+        # 1 query: fetch all CALLS/IMPORTS edges
         try:
             edges = self._graph.query(   # type: ignore[attr-defined]
                 "SELECT id, source_id, target_id, type FROM edges "
@@ -217,32 +228,61 @@ class IndexerTool(BaseTool):
         except Exception:
             return 0
 
-        resolved = 0
+        # 1 query: build name→[node_id] map for O(1) resolution
+        try:
+            node_rows = self._graph.query(   # type: ignore[attr-defined]
+                "SELECT id, json_extract(properties,'$.name') as name FROM nodes"
+            )
+            name_map: dict[str, list[str]] = {}
+            for row in node_rows:
+                nid = row.get("id", "")
+                name = row.get("name") or nid.split("::")[-1]
+                if name:
+                    name_map.setdefault(name, []).append(nid)
+        except Exception:
+            return 0
+
+        log.debug("edge_resolution_name_map_built", entries=len(name_map))
+
+        # Resolve all edges in memory — no SQL per edge
+        updates: list[list[str]] = []
         for edge in edges:
             target = edge.get("target_id", "")
             if "::" in target or target.startswith("/"):
                 continue  # already resolved or absolute path
-            try:
-                candidates = self._graph.query(  # type: ignore[attr-defined]
-                    "SELECT id FROM nodes WHERE id LIKE ? OR "
-                    "json_extract(properties,'$.name') = ?",
-                    [f"%::{target}", target]
-                )
-            except Exception:
-                continue
+            candidates = name_map.get(target, [])
             if len(candidates) == 1:
-                new_target = candidates[0].get("id", "")
-                if new_target and new_target != target:
+                new_target = candidates[0]
+                if new_target != target:
+                    updates.append([new_target, edge.get("id", "")])
+
+        # 1 bulk UPDATE instead of N individual UPDATEs
+        if updates:
+            if hasattr(self._graph, "executemany_sql"):
+                try:
+                    self._graph.executemany_sql(  # type: ignore[attr-defined]
+                        "UPDATE edges SET target_id = ? WHERE id = ?", updates
+                    )
+                except Exception as exc:
+                    log.warning("edge_resolution_bulk_failed", error=str(exc), fallback="serial")
+                    for row in updates:
+                        try:
+                            self._graph.query(  # type: ignore[attr-defined]
+                                "UPDATE edges SET target_id = ? WHERE id = ?", row
+                            )
+                        except Exception:
+                            pass
+            else:
+                for row in updates:
                     try:
                         self._graph.query(  # type: ignore[attr-defined]
-                            "UPDATE edges SET target_id = ? WHERE id = ?",
-                            [new_target, edge.get("id", "")]
+                            "UPDATE edges SET target_id = ? WHERE id = ?", row
                         )
-                        resolved += 1
                     except Exception:
                         pass
 
-        log.info("edge_resolution_done", resolved=resolved)
+        resolved = len(updates)
+        log.info("edge_resolution_done", resolved=resolved, candidates_built=len(name_map))
         return resolved
 
     def _complexity_hotspots(self, top_n: int = 5) -> list[dict]:

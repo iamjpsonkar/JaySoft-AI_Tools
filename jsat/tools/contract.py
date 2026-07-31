@@ -1,6 +1,8 @@
 """jsat.tools.contract — Tool 5: API Contract Validator."""
 from __future__ import annotations
 
+import math
+import re
 import subprocess
 import time
 from dataclasses import dataclass
@@ -9,7 +11,6 @@ from typing import Any
 
 from jsat.tools import BaseTool
 
-_BREAKING_KW = ("required", "type:", "schema:", "operationid", "delete", "remove")
 _SPEC_GLOBS = ("openapi*.yaml", "openapi*.json", "swagger*.yaml", "asyncapi*.yaml")
 
 
@@ -29,7 +30,7 @@ class ContractTool(BaseTool):
             format: str = "auto") -> ContractReport:
         import structlog
         log = structlog.get_logger(__name__)
-        log.info("contract_start", base=base, head=head)
+        log.info("contract_start", base=base, head=head, format=format)
         t0 = time.monotonic()
 
         root = self._repo_root()
@@ -41,12 +42,15 @@ class ContractTool(BaseTool):
             diff = self._git_diff(spec, base, head)
             if diff:
                 changes = self._classify(diff)
+                log.debug("contract_spec_classified", spec=str(spec.name),
+                          total=len(changes),
+                          breaking=sum(1 for c in changes if c["is_breaking"]))
                 for c in changes:
                     c["spec"] = str(spec.relative_to(root))
                 all_changes.extend(changes)
 
         breaking = sum(1 for c in all_changes if c["is_breaking"])
-        score = max(0, 100 - breaking * 20)
+        score = max(0, round(100 * math.exp(-0.15 * breaking)))
         guide = self._guide(all_changes, base, head)
         duration_ms = round((time.monotonic() - t0) * 1000)
 
@@ -82,18 +86,43 @@ class ContractTool(BaseTool):
             return ""
 
     def _classify(self, diff: str) -> list[dict]:
-        changes = []
+        changes: list[dict] = []
+        removed: list[str] = []
+        added: list[str] = []
+
         for line in diff.splitlines():
             if line.startswith("---") or line.startswith("+++"):
                 continue
             if line.startswith("-"):
-                content = line[1:].strip()
-                breaking = any(kw in content.lower() for kw in _BREAKING_KW)
-                changes.append({"content": content, "is_breaking": breaking,
-                                "change_type": "removed"})
+                removed.append(line[1:].strip())
             elif line.startswith("+"):
-                changes.append({"content": line[1:].strip(), "is_breaking": False,
-                                "change_type": "added"})
+                added.append(line[1:].strip())
+
+        added_set = set(added)
+
+        for content in removed:
+            norm = content.lower()
+            # Endpoint method lines (e.g. "get:", "post:", "/path/to/resource:")
+            is_endpoint = bool(re.match(r'(get|post|put|patch|delete|head|options)\s*:', norm))
+            is_path = bool(re.match(r'/\S', norm))
+            # Field removals in schemas
+            is_field_removal = any(kw in norm for kw in ("required", "type:", "schema:", "$ref:"))
+            # Endpoint removed outright (not just renamed)
+            if (is_endpoint or is_path) and content not in added_set:
+                changes.append({"content": content, "is_breaking": True,
+                                "change_type": "endpoint_removed",
+                                "reason": "Endpoint or path removed with no replacement"})
+            elif is_field_removal and content not in added_set:
+                changes.append({"content": content, "is_breaking": True,
+                                "change_type": "field_removed",
+                                "reason": "Required field or type constraint removed"})
+            else:
+                changes.append({"content": content, "is_breaking": False,
+                                "change_type": "removed"})
+
+        for content in added:
+            changes.append({"content": content, "is_breaking": False, "change_type": "added"})
+
         return changes
 
     def _guide(self, changes: list[dict], base: str, head: str) -> str:
@@ -102,5 +131,6 @@ class ContractTool(BaseTool):
             return ""
         lines = [f"# Migration Guide — `{base}` → `{head}`", ""]
         for i, c in enumerate(breaking, 1):
-            lines.append(f"{i}. **REMOVED** in `{c.get('spec','?')}`: `{c['content']}`")
+            reason = c.get("reason", "Breaking change")
+            lines.append(f"{i}. **{reason}** in `{c.get('spec','?')}`: `{c['content']}`")
         return "\n".join(lines)

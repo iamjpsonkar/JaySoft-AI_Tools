@@ -34,7 +34,8 @@ class IncidentTool(BaseTool):
         from jsat._models import Hypothesis, IncidentReport
 
         log = structlog.get_logger(__name__)
-        log.info("incident_start", description=description[:80], since=since)
+        log.info("incident_start", description=description[:80], since=since,
+                 services=services)
         t0 = time.monotonic()
 
         commits = self._recent_commits(since)
@@ -42,7 +43,7 @@ class IncidentTool(BaseTool):
 
         hypotheses: list[Hypothesis] = []
         for commit in commits[:20]:  # cap at 20 candidates
-            score = self._score(commit, description)
+            score = self._score(commit, description, commits)
             hypotheses.append(Hypothesis(
                 score=round(score, 3),
                 commit_hash=commit["hash"],
@@ -89,7 +90,7 @@ class IncidentTool(BaseTool):
             structlog.get_logger(__name__).warning("incident_git_error", error=str(e))
             return []
 
-    def _score(self, commit: dict, description: str) -> float:
+    def _score(self, commit: dict, description: str, all_commits: list[dict] | None = None) -> float:
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc)
         authored = commit.get("authored_datetime", now)
@@ -102,8 +103,8 @@ class IncidentTool(BaseTool):
         # Blast radius: count changed files
         blast = min(len(commit.get("files", [])), self.MAX_BLAST) / self.MAX_BLAST
 
-        # Frequency: approximate as 0.5 (no history in v0.1)
-        freq = 0.5 / self.MAX_FREQ
+        # Frequency: fraction of commits by the same author that touch the same files
+        freq = self._author_file_frequency(commit, all_commits or [])
 
         # Pattern: simple keyword overlap
         desc_words = set(description.lower().split())
@@ -114,11 +115,28 @@ class IncidentTool(BaseTool):
         return (self.W_RECENCY * recency + self.W_BLAST * blast +
                 self.W_FREQUENCY * freq + self.W_PATTERN * pattern)
 
+    def _author_file_frequency(self, commit: dict, all_commits: list[dict]) -> float:
+        """Fraction of commits by the same author that touch the same files."""
+        author = commit.get("author", "")
+        changed = set(commit.get("files", []))
+        if not author or not changed:
+            return 0.1
+        overlap_count = sum(
+            1 for c in all_commits
+            if c.get("author") == author and set(c.get("files", [])) & changed
+        )
+        return min(overlap_count, self.MAX_FREQ) / self.MAX_FREQ
+
     def _evidence(self, commit: dict, description: str) -> list[str]:
         ev = [f"Commit {commit['hash'][:8]} by {commit['author']} at {commit['timestamp'][:16]}"]
         files = commit.get("files", [])
         if files:
             ev.append(f"Changed {len(files)} file(s): {', '.join(files[:3])}")
+        desc_words = set(description.lower().split())
+        summary_words = set(commit["summary"].lower().split())
+        matched = desc_words & summary_words
+        if matched:
+            ev.append(f"Keyword overlap with incident description: {', '.join(sorted(matched)[:5])}")
         return ev
 
     def _mitigations(self, top: list) -> list[str]:

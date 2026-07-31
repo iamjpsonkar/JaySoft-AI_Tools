@@ -129,13 +129,15 @@ def _ai_extract_entities(ai: Any, text: str) -> tuple[list[Entity], list[Relatio
     Returns (entities, relations). Falls back to empty lists on any error.
     """
     prompt = (
-        "Extract structured knowledge from the text below.\n"
-        "Return ONLY valid JSON in this exact shape (no markdown fences):\n"
-        '{"entities": [{"name": str, "type": '
-        '"SERVICE|FILE|FUNCTION|CONCEPT|PERSON|TEAM|OTHER", "raw": str}], '
-        '"relations": [{"source": str, "target": str, '
-        '"rel": "USES|OWNS|CALLS|DOCUMENTS|RELATED_TO|DEPENDS_ON"}]}\n'
-        "Focus on technical terms, services, files, functions, people, and teams.\n"
+        "You are a knowledge extraction engine for a software codebase.\n"
+        "Extract named entities and relationships from technical text.\n"
+        "Rules: only extract entities EXPLICITLY named in the text. "
+        "Prefer FUNCTION for method names, SERVICE for microservices, "
+        "FILE for .py/.go/.ts paths, CONCEPT for design patterns.\n"
+        "Return ONLY valid JSON (no markdown fences):\n"
+        '{"entities": [{"name": str, "type": "SERVICE|FILE|FUNCTION|CONCEPT|PERSON|TEAM|OTHER", "raw": str}],'
+        ' "relations": [{"source": str, "target": str,'
+        ' "rel": "USES|OWNS|CALLS|DOCUMENTS|RELATED_TO|DEPENDS_ON"}]}\n'
         f"TEXT:\n{text[:2000]}"
     )
     try:
@@ -627,9 +629,12 @@ class KnowledgeTool(BaseTool):
             for i, (_, r) in enumerate(candidates)
         )
         prompt = (
-            f"Given the question: \"{question}\"\n\n"
-            f"Rank the following knowledge entries from MOST to LEAST relevant.\n"
-            f"Reply with ONLY the indices in order, comma-separated, e.g.: 2,0,5,1,3\n\n"
+            "You are a relevance ranker for a software knowledge base.\n"
+            f"Question: {question}\n\n"
+            "Rank the entries below from MOST to LEAST relevant. "
+            "Favor: direct answers, specific technical detail, named functions/services. "
+            "Penalize: generic statements, unrelated services.\n"
+            "Reply with ONLY the indices in order, comma-separated (e.g.: 2,0,5,1,3).\n\n"
             f"ENTRIES:\n{snippets}"
         )
         try:
@@ -671,12 +676,14 @@ class KnowledgeTool(BaseTool):
             )
         else:
             prompt = (
-                "You are a codebase knowledge assistant. "
-                "Answer the question using ONLY the context provided below. "
-                "If the context does not answer the question, say so.\n\n"
+                "You are a precise software codebase knowledge assistant.\n"
+                "Answer the question using ONLY the context entries provided. "
+                "Reference specific ADRs, runbooks, or decision entries by name where relevant. "
+                "If the context does not contain enough information, say so explicitly — "
+                "do not guess or invent details not present in the entries.\n\n"
                 f"CONTEXT:\n{context}\n\n"
                 f"QUESTION: {question}\n\n"
-                "ANSWER (be concise and specific):"
+                "ANSWER (cite specific entries; be direct and actionable):"
             )
 
         log.debug("knowledge_synthesize", prompt_len=len(prompt), has_context=bool(context.strip()))

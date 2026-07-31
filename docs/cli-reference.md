@@ -168,6 +168,58 @@ jsat version
 
 ---
 
+### `jsat crack`
+
+Run a multi-agent war room on a complex engineering decision. Six agents run in
+sequence — each receives all prior agents' findings as context.
+
+**Agents:** architect → security → implementer → tester → skeptic → moderator
+
+```bash
+jsat crack "redesign the payment retry system"
+jsat crack --phases 4 "add idempotency to the charge endpoint"
+jsat crack --single "should we use Redis or Postgres for sessions?"
+```
+
+| Option | Description |
+|---|---|
+| `--phases N` | Number of phases (2–6, default 6 — one agent per phase) |
+| `--single` | Run all 6 agents at once (may timeout on complex tasks) |
+
+### `jsat short`
+
+Get the shortest possible correct answer (≤3 sentences, or one sentence with `--one-line`).
+
+```bash
+jsat short "what does process_refund do?"
+jsat short --one-line "what's the auth pattern used here?"
+```
+
+### `jsat prompt`
+
+Classify, optimize, execute, and verify a codebase question through 6 phases:
+Discuss → Plan → Execute → Verify → Synthesize.
+
+```bash
+jsat prompt "what calls process_refund?"
+jsat prompt --rewrite "fix the logger in PaymentService.charge"
+jsat prompt --type structural "trace the checkout call chain"
+jsat prompt --optimize-only "why is checkout slow?"
+jsat prompt --single "what does the payment service do?"
+```
+
+| Option | Description |
+|---|---|
+| `--rewrite` / `--agent` | Phase 1: optimize with 1 LLM rewrite agent |
+| `--agents` | Phase 1: optimize with 3 parallel LLM agents |
+| `--type <type>` | Override query type classification (structural/lookup/security/incident/coverage/general) |
+| `--service <name>` | Scope all query phases to one service |
+| `--optimize-only` | Stop after Phase 1; show optimized prompt only |
+| `--single` | Original one-shot flow (no phasing) |
+| `--phases N` | Override phase count (2–6, default 6) |
+
+---
+
 ## 2. AI Commands (`jsat ai`)
 
 ### `jsat ai status`
@@ -278,6 +330,27 @@ jsat connect claude --show                  # print config after writing
 ```
 
 Restart Claude Code after running.
+
+### `/jsat` dispatcher
+
+`jsat connect claude` installs a single `/jsat` dispatcher command rather than 34 individual
+`/jsat-*` commands. All 34 skills are accessible as subcommands:
+
+```bash
+/jsat help               # list all 34 subcommands with descriptions
+/jsat query <question>   # answer codebase questions (6-phase Discuss→Verify)
+/jsat crack <task>       # multi-agent war room (artifact carry-forward)
+/jsat aw <task>          # workflow advisor (classify + run optimal sequence)
+/jsat lazy <task>        # reuse-first: check what exists before writing new code
+/jsat smart <question>   # terse mode: compressed answers, no filler
+/jsat security [path]    # OWASP scan + CVE check + secret detection
+/jsat blast <target>     # blast radius analysis
+/jsat review <diff>      # multi-model code review
+```
+
+Skill files are bundled in the JSAT package at `jsat/commands/jsat-*.md` and read
+directly by `_write_jsat_dispatcher()` when `jsat connect claude` runs. Updates to
+skill files are picked up automatically on next `jsat connect claude`.
 
 ---
 

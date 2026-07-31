@@ -50,14 +50,14 @@ Inside any connected tool you can use JSAT commands:
 
 **Claude Code slash commands:**
 ```
-/jsat-query what does the payment service do?
-/jsat-blast-radius src/payment/refund.py
-/jsat-security
-/jsat-incident "500 errors spiking on checkout"
-/jsat-prompt-rewrite fix logger in ValidateVPAHandler.post
+/jsat query what does the payment service do?
+/jsat blast-radius src/payment/refund.py
+/jsat security
+/jsat incident "500 errors spiking on checkout"
+/jsat prompt-rewrite fix logger in ValidateVPAHandler.post
 ```
 
-**Continue.dev custom commands** (same 28 commands, `/jsat-*` prefix)
+**Continue.dev custom commands** (same commands, `/jsat-*` prefix)
 
 **All tools** have all JSAT MCP tools the AI can call automatically — no slash commands needed.
 
@@ -186,6 +186,21 @@ Pass `--global` (claude/codex/bob) or check the tool's docs for global scope on 
 
 Pass `--no-instructions` to skip writing the guidance file (MCP only).
 
+### `/jsat` dispatcher
+
+`jsat connect claude` installs a single `/jsat` command rather than 34 individual `/jsat-*` commands. All skills are accessible as subcommands:
+
+```bash
+/jsat help               # list all 34 subcommands
+/jsat query <question>   # answer codebase questions (Discuss→Verify pipeline)
+/jsat crack <task>       # multi-agent war room with artifact carry-forward
+/jsat aw <task>          # workflow advisor
+/jsat lazy <task>        # reuse-first planning
+/jsat smart <question>   # terse compressed answers
+```
+
+Skill files are bundled inside the JSAT package at `jsat/commands/` and sourced directly when `jsat connect claude` runs.
+
 ### Disconnect
 
 ```bash
@@ -200,61 +215,70 @@ jsat disconnect gemini                     # Gemini CLI
 jsat disconnect all                        # every tool at once
 ```
 
-### Claude Code — slash commands (28 total)
+### Claude Code — slash commands (34 total)
 
-`jsat connect claude` also installs 28 `/jsat-*` slash commands, organized by category:
+`jsat connect claude` installs a single `/jsat` dispatcher with 34 subcommands, organized by category:
 
 **Graph exploration**
 | Command | What it does |
 |---|---|
-| `/jsat-query <question>` | Natural language query over the indexed graph |
-| `/jsat-find-function <name>` | Look up a function — file, params, return type, complexity |
-| `/jsat-find-class <name>` | Look up a class — file, bases, method count |
-| `/jsat-list-services` | List all indexed services |
-| `/jsat-list-endpoints` | List all API endpoints with method, route, auth |
-| `/jsat-trace <symbol>` | Trace a call chain from a symbol |
-| `/jsat-index [path]` | Rebuild the codebase graph (incremental) |
-| `/jsat-status` | Node/edge counts |
-| `/jsat-doctor` | Full system health check |
+| `/jsat query <question>` | Natural language query over the indexed graph |
+| `/jsat find-function <name>` | Look up a function — file, params, return type, complexity |
+| `/jsat find-class <name>` | Look up a class — file, bases, method count |
+| `/jsat list-services` | List all indexed services |
+| `/jsat list-endpoints` | List all API endpoints with method, route, auth |
+| `/jsat trace <symbol>` | Trace a call chain from a symbol |
+| `/jsat index [path]` | Rebuild the codebase graph (incremental) |
+| `/jsat status` | Node/edge counts |
+| `/jsat doctor` | Full system health check |
 
 **Impact & safety**
 | Command | What it does |
 |---|---|
-| `/jsat-blast-radius <file or symbol>` | Downstream impact grouped by severity |
-| `/jsat-security [path]` | OWASP scan — Critical and High first |
-| `/jsat-migration <file>` | DB migration safety — lock type, duration estimate |
-| `/jsat-contract <diff>` | API contract compatibility check |
+| `/jsat blast-radius <file or symbol>` | Downstream impact grouped by severity |
+| `/jsat security [path]` | OWASP scan — Critical and High first |
+| `/jsat migration <file>` | DB migration safety — lock type, duration estimate |
+| `/jsat contract <diff>` | API contract compatibility check |
 
 **Code quality**
 | Command | What it does |
 |---|---|
-| `/jsat-review <diff>` | Multi-model parallel code review |
-| `/jsat-test-gaps [path]` | Find untested paths, generate tests |
-| `/jsat-coverage [path]` | Behavioral coverage estimate |
+| `/jsat review <diff>` | Multi-model parallel code review |
+| `/jsat test-gaps [path]` | Find untested paths, generate tests |
+| `/jsat coverage [path]` | Behavioral coverage estimate |
 
 **Knowledge & investigation**
 | Command | What it does |
 |---|---|
-| `/jsat-knowledge <query>` | Search the knowledge base |
-| `/jsat-knowledge-add <text>` | Add an ADR / runbook / decision |
-| `/jsat-runbook <target>` | Generate an incident runbook |
-| `/jsat-incident <description>` | Root-cause hypotheses ranked by confidence |
-| `/jsat-recent [path]` | Recent changes in an area |
+| `/jsat knowledge <query>` | Search the knowledge base |
+| `/jsat knowledge-add <text>` | Add an ADR / runbook / decision |
+| `/jsat runbook <target>` | Generate an incident runbook |
+| `/jsat incident <description>` | Root-cause hypotheses ranked by confidence |
+| `/jsat recent [path]` | Recent changes in an area |
 
 **Prompt & token tools**
 | Command | What it does |
 |---|---|
-| `/jsat-prompt <query>` | Optimize a prompt through the full pipeline |
-| `/jsat-prompt-diff <query>` | Show raw input vs what the AI actually received |
-| `/jsat-tokens <text>` | Count tokens; compress to fit context limit |
-| `/jsat-token-budget <text>` | Check budget against the active model's context window |
+| `/jsat prompt <query>` | Optimize a prompt through the full pipeline |
+| `/jsat prompt-diff <query>` | Show raw input vs what the AI actually received |
+| `/jsat tokens <text>` | Count tokens; compress to fit context limit |
+| `/jsat token-budget <text>` | Check budget against the active model's context window |
 
 **IThinking**
 | Command | What it does |
 |---|---|
-| `/jsat-ithinking <task>` | Full IThinking: plan → assumptions → decompose → confirm |
-| `/jsat-think <task>` | Quick shortcut — think before any task |
-| `/jsat-reflect <outcome>` | Record what was done (phase 6 log) |
+| `/jsat ithinking <task>` | Full IThinking: plan → assumptions → decompose → confirm |
+| `/jsat think <task>` | Quick shortcut — think before any task |
+| `/jsat reflect <outcome>` | Record what was done (phase 6 log) |
+
+**Analysis & planning**
+| Command | What it does |
+|---|---|
+| `/jsat crack <task>` | Multi-agent war room with artifact carry-forward |
+| `/jsat short <question>` | Minimum-word answer (≤3 sentences) |
+| `/jsat smart <question>` | Terse compressed answer, filler stripped |
+| `/jsat lazy <task>` | Reuse-first planning — 5-rung ladder before suggesting new code |
+| `/jsat aw <task>` | Workflow advisor — classify task, run optimal tool sequence |
 
 ### Open Claude with JSAT context pre-loaded
 
@@ -285,6 +309,19 @@ jsat crack --rounds 2 --file design.md "sync vs async webhooks"
 | 😈 `skeptic` | Devil's advocate — challenges everything |
 | 🎯 `moderator` | Synthesises consensus and action plan |
 
+**Phased mode (v0.4.0+):** By default, each agent runs in its own phase (N=6) so you see results after every agent instead of waiting for all 6. Each agent receives all prior findings as context — the architect's conclusions inform the security analysis, and the skeptic specifically challenges the architect's and implementer's proposals.
+
+| Flag | Effect |
+|---|---|
+| `--phases N` | Override phase count (2–6, default 6) |
+| `--single` | One-shot: all 6 agents at once (may timeout) |
+
+```bash
+jsat crack "redesign the payment retry system"
+jsat crack --phases 4 "add idempotency to the charge endpoint"  
+jsat crack --single "should we use Redis or Postgres for sessions?"
+```
+
 **Output:** A Markdown document saved to `.jsat/crack/<slug>.md` with each round's discussion and a final synthesis:
 
 ```
@@ -294,7 +331,7 @@ jsat crack --rounds 2 --file design.md "sync vs async webhooks"
 🎯 Action:        1. Extract retry logic, 2. Add idempotency key, 3. Write tests
 ```
 
-**In Claude Code:** `/jsat-crack redesign the payment retry system`
+**In Claude Code:** `/jsat crack redesign the payment retry system`
 
 **In the JSAT shell:** `crack should we use async or sync for webhook processing`
 
@@ -323,7 +360,7 @@ jsat short --one-line "is PaymentService.process async"
 jsat short --words 20 "explain the retry logic"
 ```
 
-**In Claude Code:** `/jsat-short what does process_refund do`
+**In Claude Code:** `/jsat short what does process_refund do`
 
 **In the JSAT shell:** `short is the checkout flow async`
 
@@ -376,6 +413,8 @@ jsat prompt --agents --send "fix logger in ValidateVPAHandler.post"
 
 Agents run in parallel. Winner is chosen by: `coverage × 0.45 + specificity × 0.40 + efficiency × 0.15`.
 
+**Discuss → Verify pipeline (v0.4.0+):** Before optimizing, the skill classifies the query type and selects the right primary tool — structural questions use `jsat__trace_call_chain`, lookup questions use `jsat__get_function`, security questions use `jsat__security_review`, etc. After executing, Phase 5 spot-checks concrete claims from the answers against the graph, marking each as ✅ verified or ⚠️ unverified before synthesis.
+
 **Example output with `--agents --verbose`:**
 ```
 ┌─────────────────────┬──────────────────────────────┐
@@ -415,7 +454,7 @@ opt history   # browse past optimization diffs
 
 **Claude Code slash command:**
 ```
-/jsat-prompt-rewrite fix the logger missing extra= dict in ValidateVPAHandler.post
+/jsat prompt-rewrite fix the logger missing extra= dict in ValidateVPAHandler.post
 ```
 
 ### Disconnect or remove
@@ -424,6 +463,80 @@ opt history   # browse past optimization diffs
 jsat disconnect claude --scope all            # Claude Code everywhere
 jsat disconnect all                           # every connected tool at once
 jsat remove                                   # remove all JSAT artifacts from this repo
+```
+
+---
+
+## JSAT Smart — Terse Mode
+
+Get compressed, fragment-based answers with filler stripped. Preserves code, function names, file paths, and data byte-for-byte.
+
+Three compression levels:
+
+| Level | Flag | Reduction | What it does |
+|---|---|---|---|
+| lite | `--lite` | ~30% | Strips filler phrases only ("In order to", "It's worth noting", etc.) |
+| full | *(default)* | ~55% | Fragments + no explanatory preamble |
+| ultra | `--ultra` | ~70% | One bullet per fact, ≤8 words each |
+
+```bash
+jsat smart "what does the payment service do?"
+jsat smart --ultra "what does process_refund return?"
+jsat smart --lite "explain the checkout flow"
+```
+
+Use as a fast fallback when `/jsat query` times out on large contexts.
+
+---
+
+## JSAT Lazy — Reuse-First Planning
+
+Before writing new code, runs a 5-rung reuse ladder against the indexed codebase graph. Stops at the first match.
+
+| Rung | What it checks | Tool used |
+|---|---|---|
+| 1 | Exact function/class already exists? | `jsat__get_function` / `jsat__get_class` |
+| 2 | Similar pattern in codebase? | `jsat__query` |
+| 3 | Existing service handles this domain? | `jsat__list_services` |
+| 4 | Existing endpoint already exposes this? | `jsat__list_endpoints` |
+| 5 | Nothing found → minimum viable code | (suggest only) |
+
+```bash
+# Check before building new retry logic
+/jsat lazy add exponential backoff to the payment service
+
+# Scan a diff for code that reimplements existing things
+/jsat lazy --audit src/payments/retry.py
+
+# Check if a proposed implementation duplicates existing code
+/jsat lazy --review "def process_refund(order_id, amount)..."
+```
+
+---
+
+## JSAT Aw — Workflow Advisor
+
+Classifies your task type and runs the optimal JSAT tool sequence end-to-end — no more guessing which tool to use or in what order.
+
+| Task type | Recommended workflow |
+|---|---|
+| feature | lazy → find-function → blast-radius → crack → test-gaps |
+| bugfix | recent → incident → find-function → blast-radius |
+| security | security → blast-radius `--severity breaking` → crack `--phases 3` → knowledge-add |
+| understand | smart → trace → find-function → query |
+| incident | incident → recent → blast-radius → runbook |
+| refactor | lazy → blast-radius → test-gaps → crack → review |
+| review | review → blast-radius `--severity breaking` → test-gaps `--untested` |
+
+```bash
+# Classify automatically and run the full workflow
+/jsat aw add idempotency keys to the payment mutation endpoint
+
+# Skip classification, force a specific workflow type
+/jsat aw --type security src/auth/
+
+# Show the recommended workflow without running it
+/jsat aw --dry investigate the checkout 500 errors from this morning
 ```
 
 ---
@@ -593,7 +706,7 @@ print(health["profile"], health["graph"]["backend"])
 
 ---
 
-## Tools Overview
+## Tools Overview (20 tools)
 
 | # | Tool | Description |
 |---|---|---|
@@ -615,6 +728,9 @@ print(health["profile"], health["graph"]["backend"])
 | 15 | **Token Optimizer** | Offline token analysis and multi-strategy compression (whitespace, stopphrase, dedup, import collapse, recency pin) |
 | 16 | **JSAT Crack** | Multi-agent war room — 6 specialists discuss complex decisions in rounds, responding to each other; moderator synthesises consensus |
 | 17 | **JSAT Short** | Minimum-word answers — prepends brevity constraint so AI responds in ≤3 sentences or less |
+| 18 | **JSAT Smart** | Terse compression mode — fragment-based answers with filler stripped, code preserved |
+| 19 | **JSAT Lazy** | Reuse-first planning — 5-rung ladder against the graph before suggesting new code |
+| 20 | **JSAT Aw** | Workflow advisor — classifies task type, runs optimal JSAT tool sequence end-to-end |
 
 ### Multi-Model Review
 

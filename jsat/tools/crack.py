@@ -2,7 +2,7 @@
 
 Multiple specialist AI agents discuss a complex engineering task in rounds,
 responding to each other's arguments — like a real architecture meeting or
-incident war room. A Moderator synthesises consensus at the end.
+incident war room. A Moderator synthesizes consensus at the end.
 
 Architecture:
   Round N (for N in 1..rounds):
@@ -34,50 +34,54 @@ log = structlog.get_logger(__name__)
 
 _ROLE_PROMPTS: dict[str, str] = {
     "architect": (
-        "You are a senior software architect in a design meeting.\n"
-        "Your focus: system design, scalability, patterns, data flow, and long-term tradeoffs.\n"
-        "Be concrete. Reference specific architectural patterns "
-        "(CQRS, event sourcing, etc.) when relevant.\n"
-        "State your position clearly in 3-5 sentences. No hedging — commit to a recommendation."
+        "You are a senior software architect.\n"
+        "Examine the codebase context to identify existing design patterns, service "
+        "boundaries, and data flow. Reference specific services, modules, or files "
+        "from the context. Analyze: decomposition trade-offs, interface contracts, "
+        "data model impacts, scalability constraints, and how the proposal fits or "
+        "clashes with the existing architecture. Be concrete — name what you see."
     ),
     "security": (
-        "You are a security engineer in a design review meeting.\n"
-        "Your focus: threat model, authentication, authorisation, injection risks, idempotency, "
-        "secret handling, and compliance implications.\n"
-        "Identify the specific security risks in the proposed approach and suggest mitigations.\n"
-        "Be concrete. State 2-4 specific concerns with suggested fixes."
+        "You are a security engineer.\n"
+        "Use the codebase context to identify specific attack surfaces and trust "
+        "boundaries. Look for: authentication gaps in listed endpoints, sensitive "
+        "data flows between services, idempotency risks in mutation paths, and "
+        "injection vectors in input-handling functions. Reference specific function "
+        "names, routes, or services from the context when raising risks."
     ),
     "implementer": (
-        "You are the engineer who knows this codebase best — you have read the indexed graph.\n"
-        "Your focus: how the current code works, what's hard to change, complexity hotspots, "
-        "realistic implementation path, and effort estimation.\n"
-        "Ground your statements in the codebase context provided. Call out specific functions "
-        "or files that will be affected. State what will be easy vs hard to change."
+        "You are the engineer who knows this codebase best.\n"
+        "Read the codebase context carefully — the services, functions, and endpoints "
+        "listed are what actually exists. Estimate effort by identifying which "
+        "existing functions need to change, what new code is needed, and what "
+        "integration points are affected. Name specific files or functions. Flag "
+        "backwards-compatibility constraints or migration complexity."
     ),
     "tester": (
-        "You are a QA engineer who thinks in test cases and failure modes.\n"
-        "Your focus: what can go wrong, edge cases, test coverage gaps, testability of the "
-        "proposed design, and rollback strategy.\n"
-        "Identify 3-5 specific test scenarios (including failure cases) that must be covered. "
-        "Flag anything that would be hard to test or verify."
+        "You are a QA engineer focused on test strategy.\n"
+        "Using the codebase context, identify untested paths and edge cases for the "
+        "named services and functions. Propose concrete test cases: unit tests for "
+        "specific functions, integration tests for service boundaries shown in context, "
+        "and contract tests for listed API endpoints. Name the code paths you'd target."
     ),
     "skeptic": (
-        "You are the team's devil's advocate. Your job is to challenge every proposal.\n"
-        "Your focus: find the weakest assumptions, the most likely failure mode, and the "
-        "hidden costs of each proposal.\n"
-        "Ask the hard questions. Push back on vague claims. Force others to be specific. "
-        "You may agree with parts, but always find at least one serious objection."
+        "You are the team's devil's advocate.\n"
+        "Challenge every assumption using the codebase context as evidence. Find: "
+        "existing patterns that would be broken, services not mentioned that would be "
+        "affected, complexity hidden in listed functions. Ask 'what could go wrong?' "
+        "for each concrete item in the context. Raise risks with specific references, "
+        "not generic concerns."
     ),
     "moderator": (
-        "You are the technical lead facilitating this design meeting.\n"
-        "Your focus: identify consensus, surface unresolved disputes, and produce an "
-        "actionable recommendation.\n"
+        "You are the technical lead who must drive the team to a clear decision.\n"
+        "Review all specialist statements and the codebase context. Identify the ONE "
+        "core trade-off that matters most. Make a CLEAR recommendation — not "
+        "'it depends'. List only what must be true for the recommendation to succeed.\n\n"
         "Structure your output EXACTLY as:\n"
-        "**✅ Agreed:** [list items everyone agrees on]\n"
-        "**⚠️ Disputed:** [list unresolved tensions with brief summary of each side]\n"
-        "**❓ Open questions:** [questions that need more information]\n"
-        "**🎯 Recommended action:** [concrete next steps in priority order]\n"
-        "Be decisive. If there's a clear winner, name it."
+        "**✅ Agreed:** (what all agents converged on)\n"
+        "**⚠️ Disputed:** (the live tensions, with stakes)\n"
+        "**❓ Open questions:** (must-answer questions before starting)\n"
+        "**🎯 Recommended action:** (one specific, concrete next step)"
     ),
 }
 
@@ -115,7 +119,7 @@ class CrackResult:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _format_history(statements: list[CrackStatement], max_chars_per: int = 400) -> str:
+def _format_history(statements: list[CrackStatement], max_chars_per: int = 1200) -> str:
     """Format all previous statements as a readable transcript."""
     if not statements:
         return "No previous statements."
@@ -283,7 +287,7 @@ class CrackTool(BaseTool):
         _notify("Loading codebase context…", 0, rounds * 2 + 1)
         try:
             from jsat.tools.prompt_optimizer import ContextAgent
-            context = ContextAgent(self._graph, depth=2, max_tokens=1500).run(task).text
+            context = ContextAgent(self._graph, depth=2, max_tokens=3000).run(task).text
             log.debug("crack_context_loaded", chars=len(context))
         except Exception as e:
             log.debug("crack_context_failed", error=str(e))

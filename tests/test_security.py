@@ -45,7 +45,8 @@ def test_no_secrets_in_clean_file(tool, tmp_path):
     f.write_text("def add(a, b):\n    return a + b\nGREETING = 'hello'\n")
     import structlog
     log = structlog.get_logger("test")
-    assert tool._detect_secrets(tmp_path, log) == 0
+    count, _ = tool._detect_secrets(tmp_path, log)
+    assert count == 0
 
 @pytest.mark.ci
 def test_finds_high_entropy_token(tool, tmp_path):
@@ -57,7 +58,8 @@ def test_finds_high_entropy_token(tool, tmp_path):
     f.write_text(f'API_KEY = "{token}"\n')
     import structlog
     log = structlog.get_logger("test")
-    assert tool._detect_secrets(tmp_path, log) >= 1
+    count, _ = tool._detect_secrets(tmp_path, log)
+    assert count >= 1
 
 # Severity filtering
 @pytest.mark.ci

@@ -80,14 +80,16 @@ class MigrationTool(BaseTool):
         lock_total = sum(o.estimated_duration_s for o in ops)
         rollback = self._has_rollback(migration_file, sql)
         guide = self._zero_downtime_guide(ops)
+        orm_issues = self._detect_orm_issues(migration_file, sql)
         duration_ms = round((time.monotonic() - t0) * 1000)
 
+        log.info("migration_orm_issues", count=len(orm_issues))
         log.info("migration_done", risk=risk, lock_s=round(lock_total, 2),
                  has_rollback=rollback, duration_ms=duration_ms)
         return MigrationReport(operations=ops, risk_level=risk,
                                lock_estimate_seconds=round(lock_total, 2),
                                has_rollback=rollback, zero_downtime_guide=guide,
-                               orm_issues=[], duration_ms=duration_ms)
+                               orm_issues=orm_issues, duration_ms=duration_ms)
 
     def _parse(self, sql: str) -> list[tuple[str, str]]:
         cleaned = re.sub(r"/\*.*?\*/", "", sql, flags=re.DOTALL)
@@ -149,6 +151,46 @@ class MigrationTool(BaseTool):
         except Exception:
             pass
         return False
+
+    def _detect_orm_issues(self, migration_file: Path, sql: str) -> list[str]:
+        issues: list[str] = []
+
+        # Django migration: check atomic = False for long operations
+        is_django = (migration_file.parent.name == "migrations"
+                     and migration_file.suffix == ".py")
+        if is_django:
+            try:
+                content = migration_file.read_text(errors="ignore")
+                has_long_op = any(
+                    kw in sql.upper()
+                    for kw in ("CREATE INDEX", "ALTER TABLE", "DROP TABLE", "TRUNCATE")
+                )
+                if has_long_op and "atomic = False" not in content:
+                    issues.append(
+                        "Django migration: set atomic = False for long-running operations "
+                        "to avoid holding a full transaction lock during migration."
+                    )
+            except Exception:
+                pass
+
+        # Multiple locking operations in one migration
+        raw_ops = self._parse(sql)
+        dangerous = [op for _, op in raw_ops if op in ("ALTER TABLE ALTER COLUMN", "CREATE UNIQUE", "DROP TABLE")]
+        if len(dangerous) > 1:
+            issues.append(
+                f"{len(dangerous)} locking operations in a single migration — "
+                "consider splitting into separate migrations to reduce downtime risk."
+            )
+
+        # FK without accompanying index
+        if re.search(r"\bREFERENCES\b", sql, re.IGNORECASE):
+            if not re.search(r"\bCREATE\s+INDEX\b", sql, re.IGNORECASE):
+                issues.append(
+                    "Foreign key reference detected without a corresponding index — "
+                    "add an index on the FK column to avoid sequential scans."
+                )
+
+        return issues
 
     def _zero_downtime_guide(self, ops: list[MigrationOperation]) -> str | None:
         dangerous = [o for o in ops if o.is_dangerous]

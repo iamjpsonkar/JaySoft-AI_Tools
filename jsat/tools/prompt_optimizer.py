@@ -111,7 +111,7 @@ _TASK_KEYWORDS: dict[str, list[str]] = {
     "security":  ["secure","vulnerability","auth","permission","injection","owasp","xss","exploit","attack","bypass"],  # noqa: E501
     "test":      ["test","spec","verify","assert","unit test","pytest","coverage","fixture","mock"],
     "debug":     ["why","broken","error","crash","fix","not working","failing","traceback","exception","bug"],  # noqa: E501
-    "review":    ["review","check","audit","find bugs","inspect","analyse","analyze","evaluate"],
+    "review":    ["review","check","audit","find bugs","inspect","analyze","evaluate"],
     "refactor":  ["refactor","rewrite","improve","cleanup","clean up","restructure","simplify"],
     "code_gen":  ["write","implement","add","create","build","scaffold","generate","develop","make"],  # noqa: E501
     "plan":      ["design","plan","architecture","approach","strategy","how should","how do i","best way"],  # noqa: E501
@@ -488,7 +488,12 @@ class LLMRewriteAgent:
         import structlog
         log = structlog.get_logger(__name__)
         t0 = time.monotonic()
-        user_msg = f"Rewrite this prompt:\n\n{optimized_prompt}"
+        ctx_hint = ""
+        if context_nodes:
+            ctx_hint = "\n\nCODEBASE SYMBOLS IN SCOPE:\n" + "\n".join(
+                f"  - {n.split('::')[-1]} ({n})" for n in context_nodes[:20]
+            )
+        user_msg = f"Rewrite this prompt:\n\n{optimized_prompt}{ctx_hint}"
         try:
             result = ai.complete(  # type: ignore[attr-defined]
                 f"{self._SYSTEM}\n\n{user_msg}", max_tokens=1200
@@ -513,7 +518,7 @@ class LLMContextExpandAgent:
         "You are a senior engineer reviewing an AI coding prompt.\n"
         "Identify what technical detail is missing that would help an AI give a better answer.\n"
         "Then return the prompt with those gaps filled — add function names, error messages, "
-        "file paths, or expected behaviour where the context already hints at them.\n"
+        "file paths, or expected behavior where the context already hints at them.\n"
         "Do NOT invent information not supported by the existing context.\n"
         "Return ONLY the improved prompt, no commentary."
     )
@@ -523,9 +528,15 @@ class LLMContextExpandAgent:
         import structlog
         log = structlog.get_logger(__name__)
         t0 = time.monotonic()
+        ctx_hint = ""
+        if context_nodes:
+            ctx_hint = "\n\nCODEBASE SYMBOLS IN SCOPE:\n" + "\n".join(
+                f"  - {n.split('::')[-1]} ({n})" for n in context_nodes[:20]
+            )
         user_msg = (
             f"Raw user query: {raw_input}\n\n"
-            f"Offline-optimised prompt to improve:\n\n{optimized_prompt}"
+            f"Offline-optimized prompt to improve:\n\n{optimized_prompt}"
+            f"{ctx_hint}"
         )
         try:
             result = ai.complete(  # type: ignore[attr-defined]

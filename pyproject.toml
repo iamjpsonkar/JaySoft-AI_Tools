@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jsat"
-version = "0.3.10"
+version = "0.4.0"
 description = "Codebase intelligence shell and SDK — index once, query forever, works with Claude, GPT, Ollama, and any AI"
 readme = "README.md"
 license = { text = "MIT" }
@@ -119,6 +119,7 @@ Changelog = "https://github.com/iamjpsonkar/JaySoft-AI_Tools/blob/main/CHANGELOG
 
 [tool.hatch.build.targets.wheel]
 packages = ["jsat"]
+include = ["jsat/commands/*.md"]
 
 [tool.ruff]
 target-version = "py310"
