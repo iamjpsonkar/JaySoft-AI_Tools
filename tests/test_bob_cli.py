@@ -310,7 +310,7 @@ def test_launch_bob_resume_passthrough(monkeypatch, tmp_path):
 
 @pytest.mark.ci
 def test_write_bob_commands_creates_one_file_per_skill(tmp_path):
-    from jsat.cli import _JSAT_SKILLS, _write_bob_commands
+    from jsat._cli_skills_data import _JSAT_SKILLS, _write_bob_commands
 
     out = _write_bob_commands("project", commands_dir=tmp_path / ".bob" / "commands")
     files = sorted(p.name for p in out.glob("*.md"))
@@ -321,7 +321,7 @@ def test_write_bob_commands_creates_one_file_per_skill(tmp_path):
 
 @pytest.mark.ci
 def test_write_bob_commands_rewrites_arguments_placeholder(tmp_path):
-    from jsat.cli import _write_bob_commands
+    from jsat._cli_skills_data import _write_bob_commands
 
     out = _write_bob_commands("project", commands_dir=tmp_path)
     # Claude's $ARGUMENTS must not leak into Bob commands (Bob uses $@).
@@ -345,7 +345,7 @@ def test_write_bob_commands_frontmatter_is_valid_yaml(tmp_path):
     """Bob parses frontmatter as strict YAML — descriptions with ':' (e.g.
     jsat-crack: 'war room: architect, ...') must be quoted, not break parsing."""
     yaml = pytest.importorskip("yaml")
-    from jsat.cli import _write_bob_commands
+    from jsat._cli_skills_data import _write_bob_commands
 
     out = _write_bob_commands("project", commands_dir=tmp_path)
     for md in out.glob("*.md"):
@@ -363,7 +363,7 @@ def test_write_bob_commands_frontmatter_is_valid_yaml(tmp_path):
 def test_commands_carry_answer_directive(tmp_path):
     """Every generated command must tell the assistant to deliver a real answer
     from the tool result, not just echo raw tool output."""
-    from jsat.cli import _JSAT_CMD_DIRECTIVE, _write_bob_commands, _write_jsat_skills
+    from jsat._cli_skills_data import _JSAT_CMD_DIRECTIVE, _write_bob_commands, _write_jsat_skills
 
     bob = _write_bob_commands("project", commands_dir=tmp_path / "bob")
     claude = _write_jsat_skills("project", commands_dir=tmp_path / "claude")
@@ -376,7 +376,7 @@ def test_commands_carry_answer_directive(tmp_path):
 def test_jsat_prompt_optimizes_then_answers(tmp_path):
     """/jsat-prompt must chain the optimized prompt into jsat__query by default,
     with an --optimize-only escape hatch."""
-    from jsat.cli import _write_bob_commands
+    from jsat._cli_skills_data import _write_bob_commands
 
     out = _write_bob_commands("project", commands_dir=tmp_path)
     body = (out / "jsat-prompt.md").read_text()
@@ -386,7 +386,7 @@ def test_jsat_prompt_optimizes_then_answers(tmp_path):
 
 @pytest.mark.ci
 def test_write_bob_commands_global_scope_defaults_home(monkeypatch, tmp_path):
-    import jsat.cli as climod
+    import jsat._cli_skills_data as climod
 
     monkeypatch.setattr(climod.Path, "home", classmethod(lambda cls: tmp_path))
     out = climod._write_bob_commands("global")

@@ -623,7 +623,7 @@ class JSATShell:
         import subprocess
         binary = shutil.which(tool)
         if not binary:
-            from jsat.cli import _tool_install_hint  # type: ignore[attr-defined]
+            from jsat._cli_launchers import _tool_install_hint  # type: ignore[attr-defined]
             hint = _tool_install_hint(tool)
             self._console.print(
                 f"[red]{tool} not found in PATH.[/]\n"
@@ -645,7 +645,7 @@ class JSATShell:
         import subprocess
         binary = shutil.which(tool)
         if not binary:
-            from jsat.cli import _tool_install_hint  # type: ignore[attr-defined]
+            from jsat._cli_launchers import _tool_install_hint  # type: ignore[attr-defined]
             hint = _tool_install_hint(tool)
             self._console.print(
                 f"[red]{tool} not found in PATH.[/]\n"

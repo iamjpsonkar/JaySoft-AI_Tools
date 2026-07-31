@@ -21,6 +21,15 @@ All notable changes to JSAT.
 - Startup log clearly reports auth mode: `mcp_auth_enabled`, `mcp_rbac_enabled`,
   `mcp_auth_insecure` (with warning), or `mcp_auth_unconfigured` (error).
 
+### Changed
+
+- **Split `jsat/cli.py` (4,416 lines) into 8 focused modules** for maintainability:
+  `_cli_common.py` (app objects + shared utils), `_cli_skills_data.py` (skill definitions),
+  `_cli_launchers.py` (AI launcher commands), `_cli_connect.py` (connect subcommands),
+  `_cli_ai.py` (AI provider management), `_cli_tools.py` (tool commands),
+  `_cli_index.py` (graph/index commands), `_cli_setup.py` (setup/config/package).
+  `jsat/cli.py` is now a 22-line entrypoint. Pure refactoring — no behaviour change.
+
 ### Added
 
 - **`tests/test_mcp_server.py`**: 17 new tests covering `_allowed()` role/permission matrix,
