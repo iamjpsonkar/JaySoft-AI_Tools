@@ -63,9 +63,10 @@ class MCPServer:
     Exposes JSAT tools to any MCP-compatible AI client (Claude Code, Cursor, Continue, etc.).
 
     Environment variables:
-      JSAT_MCP_TOKEN       — single shared bearer token (legacy, backward-compat)
-      JSAT_MCP_TOKEN_ROLES — JSON map of token→role, e.g. {"tok1": "admin", "tok2": "viewer"}
-      JSAT_METRICS_PORT    — if set, start Prometheus HTTP server on that port (optional dep)
+      JSAT_MCP_TOKEN          — single shared bearer token (legacy, backward-compat)
+      JSAT_MCP_TOKEN_ROLES    — JSON map of token→role, e.g. {"tok1": "admin", "tok2": "viewer"}
+      JSAT_MCP_ALLOW_INSECURE — set to "1" to allow unauthenticated access (local/dev only)
+      JSAT_METRICS_PORT       — if set, start Prometheus HTTP server on that port (optional dep)
     """
 
     def __init__(self, jsat_instance: JSAT) -> None:
@@ -77,6 +78,9 @@ class MCPServer:
         # In-memory metrics: {tool_name: {"calls": int, "total_ms": float, "errors": int}}
         self._metrics: dict[str, dict[str, Any]] = {}
 
+        # Legacy single-token auth (backward-compat) — read once at init, not in run()
+        self._auth_token: str | None = os.environ.get("JSAT_MCP_TOKEN")
+
         # RBAC: token → role map (may be empty if not configured)
         _raw = os.environ.get("JSAT_MCP_TOKEN_ROLES", "")
         try:
@@ -84,14 +88,32 @@ class MCPServer:
         except json.JSONDecodeError:
             self._log.error("mcp_rbac_parse_error",
                             env_var="JSAT_MCP_TOKEN_ROLES",
-                            note="Value is not valid JSON — RBAC silently disabled. "
+                            note="Value is not valid JSON — RBAC disabled. "
                                  "Fix the env var to restore access control.")
             self._token_roles = {}
 
-        if self._token_roles:
+        # Fail-closed: require explicit opt-in when neither auth mechanism is configured.
+        # Without this, every tool (list_secrets, validate_migration, index writes, etc.)
+        # runs unauthenticated by default, which is unsafe in shared or remote environments.
+        self._allow_insecure: bool = os.environ.get("JSAT_MCP_ALLOW_INSECURE", "").strip() == "1"
+
+        if self._auth_token:
+            self._log.info("mcp_auth_enabled",
+                           mode="legacy_token",
+                           note="All requests must include Authorization: Bearer <token>")
+        elif self._token_roles:
             self._log.info("mcp_rbac_enabled", token_count=len(self._token_roles))
+        elif self._allow_insecure:
+            self._log.warning("mcp_auth_insecure",
+                              note="JSAT_MCP_ALLOW_INSECURE=1 set — "
+                                   "all tools accessible without authentication. "
+                                   "Do NOT use this in shared or production environments.")
         else:
-            self._log.info("mcp_rbac_disabled", note="set JSAT_MCP_TOKEN_ROLES to enable")
+            self._log.error("mcp_auth_unconfigured",
+                            note="No auth configured and JSAT_MCP_ALLOW_INSECURE is not set. "
+                                 "All tool calls will be rejected. "
+                                 "Set JSAT_MCP_TOKEN, JSAT_MCP_TOKEN_ROLES, "
+                                 "or JSAT_MCP_ALLOW_INSECURE=1 (local/dev only).")
 
         # Optional Prometheus side-car
         try:
@@ -107,12 +129,6 @@ class MCPServer:
     def run(self) -> None:
         """Read JSON-RPC messages from stdin, write responses to stdout."""
         self._log.info("mcp_server_running", mode="stdin/stdout")
-
-        # Legacy single-token auth (backward-compat)
-        self._auth_token: str | None = os.environ.get("JSAT_MCP_TOKEN")
-        if self._auth_token:
-            self._log.info("mcp_auth_enabled",
-                           note="All requests must include Authorization: Bearer <token>")
 
         for line in sys.stdin:
             line = line.strip()
@@ -140,6 +156,22 @@ class MCPServer:
         method = msg.get("method", "")
         id_ = msg.get("id")
         params = msg.get("params") or {}
+
+        # ── Fail-closed: reject tool calls when no auth is configured ───────
+        # Protects list_secrets, validate_migration, knowledge writes, index writes.
+        # initialize/notifications/initialized are exempt so the MCP handshake completes.
+        if (not self._auth_token and not self._token_roles and not self._allow_insecure
+                and method not in ("initialize", "notifications/initialized")):
+            self._log.warning("mcp_auth_rejected_unconfigured", method=method)
+            if id_ is not None:
+                return {"jsonrpc": "2.0", "id": id_,
+                        "error": {"code": -32600,
+                                  "message": (
+                                      "Unauthorized: MCP server has no auth configured. "
+                                      "Set JSAT_MCP_TOKEN, JSAT_MCP_TOKEN_ROLES, "
+                                      "or JSAT_MCP_ALLOW_INSECURE=1 (local/dev only)."
+                                  )}}
+            return None
 
         # ── Legacy single-token auth (JSAT_MCP_TOKEN) ───────────────────────
         if self._auth_token and method not in ("initialize", "notifications/initialized"):

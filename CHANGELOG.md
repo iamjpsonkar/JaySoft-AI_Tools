@@ -4,6 +4,30 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-08-01
+
+### Security
+
+- **MCP server RBAC fail-closed** (`jsat/mcp/server.py`): The server previously allowed all
+  tool calls to proceed unauthenticated when neither `JSAT_MCP_TOKEN` nor
+  `JSAT_MCP_TOKEN_ROLES` was set. This exposed `list_secrets`, `validate_migration`,
+  `knowledge_add`, `index_repo`, and all other tools to unauthenticated callers by default.
+  The server now fails closed: all tool calls (except `initialize`/`notifications/initialized`)
+  are rejected with HTTP-equivalent 401 when no auth is configured.
+  **Migration**: set `JSAT_MCP_ALLOW_INSECURE=1` to restore the previous open behaviour
+  (local/single-user dev only), or configure `JSAT_MCP_TOKEN` or `JSAT_MCP_TOKEN_ROLES`.
+- Moved `_auth_token` initialization from `run()` into `__init__()` for consistency with
+  `_token_roles`; both auth mechanisms now initialized at server construction time.
+- Startup log clearly reports auth mode: `mcp_auth_enabled`, `mcp_rbac_enabled`,
+  `mcp_auth_insecure` (with warning), or `mcp_auth_unconfigured` (error).
+
+### Added
+
+- **`tests/test_mcp_server.py`**: 17 new tests covering `_allowed()` role/permission matrix,
+  fail-closed default rejection, `JSAT_MCP_ALLOW_INSECURE=1` opt-in, legacy single-token
+  auth (correct/wrong/empty token), RBAC token-roles (known/unknown token, viewer blocked
+  from `list_secrets`), and malformed JSON in `JSAT_MCP_TOKEN_ROLES` (graceful degradation).
+
 ## [0.4.2] — 2026-07-31
 
 ### Added
