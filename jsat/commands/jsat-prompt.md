@@ -12,6 +12,15 @@ Parse $ARGUMENTS for optional flags:
   --phases N            → Run N phases (2-6, default: 6)
   --service <name>      → Scope all query phases to this one service
   --single              → Original one-shot flow (optimize → one jsat__query call)
+  --continue            → Resume most recent in_progress prompt session
+
+## --continue Flag
+
+When --continue is given:
+  1. List ~/.jsat/sessions/prompt-*.md; find most recent with status: in_progress
+  2. Read it; extract optimized_prompt from ## Findings if Phase 1 completed
+  3. Find first "- [ ]" phase — resume from there with saved context
+  4. Print: "▶ Resuming prompt session: <filename>"
 
 The query is every word that is NOT a flag. Strip all flags; join the rest.
 Priority when multiple optimizer flags: --agents beats --rewrite.
@@ -19,6 +28,10 @@ Priority when multiple optimizer flags: --agents beats --rewrite.
 ## Phased Mode (default, --phases 6)
 
 Run in 6 sequential phases. Show output after each.
+
+### Session File (before Phase 1)
+Create ~/.jsat/sessions/prompt-<SLUG>-<YYYYMMDD-HHMM>.md with phases 1-6 as unchecked steps.
+Print: "📄 Session: <path>"
 
 ### Phase 1 — Discuss + Optimize (~6s)
 
@@ -105,6 +118,24 @@ N=2: [discuss+optimize] / [execute + verify + synthesis]
 N=3: [discuss+optimize] / [scope + execute] / [verify + synthesis]
 N=4: [discuss+optimize] / [scope] / [execute] / [verify + synthesis]
 N=6: full pipeline above (default)
+
+After each phase completes, update session file: mark phase [x] with 1-sentence finding.
+After Phase 6: set status → completed. Print: "✅ Session complete: <path>"
+(If interrupted, run /jsat prompt --continue to resume from the last incomplete phase.)
+
+## Actions File
+
+From Phase 6 synthesis, extract concrete follow-up work:
+  - Fixes for ⚠️ unverified claims (look them up and correct the answer)
+  - Decisions to log (run /jsat decide log)
+  - Knowledge to store (run /jsat knowledge-add)
+  - Tests or verification steps recommended
+
+Write ~/.jsat/sessions/prompt-actions-<SLUG>-<YYYYMMDD-HHMM>.md.
+Print: "📋 Actions: <path>"
+
+Execute each "- [ ]" action in sequence. Mark [x] as done.
+When all done: status → completed. Print: "✅ All actions complete: <path>"
 
 ## --single Flag
 If --single: classify → optimize → jsat__query(question=<optimized_prompt>) once.

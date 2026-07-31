@@ -6,7 +6,16 @@ Parse $ARGUMENTS for optional flags:
 
   --phases N   → run in N phases (2-6, default: 6)
   --single     → run all agents at once (original one-shot behavior, may timeout)
+  --continue   → resume the most recent in_progress crack session
   (no flag)    → 6-phase mode with artifact carry-forward (recommended)
+
+## --continue Flag
+
+When --continue is given:
+  1. List ~/.jsat/sessions/crack-*.md; find the most recent with status: in_progress
+  2. Read it; extract task and findings from ## Findings as accumulated HANDOFF context
+  3. Find first "- [ ]" phase — resume execution from that phase
+  4. Print: "▶ Resuming crack session: <filename>"
 
 ## Phased Mode (default)
 
@@ -29,6 +38,10 @@ Call: jsat__list_services()
 Build CONTEXT_BRIEF from the results: node count, edge count, top service names.
 Prepend CONTEXT_BRIEF to every agent's task for grounding.
 
+Create session file: ~/.jsat/sessions/crack-<SLUG>-<YYYYMMDD-HHMM>.md
+Content: all 6 phases as unchecked steps in ## Steps, ## Findings empty.
+Print: "📄 Session: <path>"
+
 ## War Room Phases
 
 ### Phase 1 — Architect
@@ -42,6 +55,7 @@ Structure your response:
 **Recommendation**: your proposed approach", roles=["architect"], rounds=1)
 Show output under "🏛 Phase 1/6 — Architect".
 Extract HANDOFF_1: one sentence — "🏛 Architect: <Recommendation>"
+Update session file: "- [ ] Phase 1" → "- [x] Phase 1 (HANDOFF_1)"; append to ## Findings.
 
 ### Phase 2 — Security
 Call: jsat__crack(task="<task>
@@ -139,6 +153,24 @@ Using all 6 phase outputs now in context:
   ⚠️  Disputed:     live tensions (especially skeptic vs architect/implementer)
   ❓ Open questions: must-answer before starting
   🎯 Action plan:   3-5 concrete next steps
+
+Update session file: status → completed.
+Print: "✅ Session complete: <path>"
+(If interrupted, run /jsat crack --continue to resume from the last incomplete phase.)
+
+## Actions File
+
+Extract the "🎯 Action plan: 3-5 concrete next steps" from the Final Synthesis.
+Write ~/.jsat/sessions/crack-actions-<SLUG>-<YYYYMMDD-HHMM>.md with each step
+as a "- [ ]" item (include exact file edits, commands, tests to run, decisions to log).
+
+Print: "📋 Actions: <path>"
+
+Execute each action item in sequence:
+  1. Run the action
+  2. Mark "- [ ]" → "- [x] (done: <result>)" in the file
+  3. Continue to next
+When all done: status → completed. Print: "✅ All actions complete: <path>"
 
 ## --single Flag
 If --single: call jsat__crack(task=<task>) with all defaults (6 agents, 3 rounds).

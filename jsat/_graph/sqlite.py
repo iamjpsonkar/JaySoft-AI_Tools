@@ -166,6 +166,12 @@ class SQLiteGraph(GraphClient):
         self._conn.executemany(sql, params_list)
         self._conn.commit()
 
+    def nodes_by_label(self, label: str) -> list[dict[str, Any]]:
+        """Return all nodes with the given label."""
+        return self.execute_sql(
+            "SELECT id, label, properties FROM nodes WHERE label=?", [label]
+        )
+
     def bulk_add_nodes(self, nodes: list[dict[str, Any]]) -> None:
         self._conn.executemany(
             "INSERT OR REPLACE INTO nodes (id, label, properties) VALUES (:id, :label, :props)",

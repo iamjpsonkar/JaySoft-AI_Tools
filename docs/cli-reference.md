@@ -218,6 +218,66 @@ jsat prompt --single "what does the payment service do?"
 | `--single` | Original one-shot flow (no phasing) |
 | `--phases N` | Override phase count (2–6, default 6) |
 
+### `jsat magic`
+
+AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 39,
+and runs them in the optimal order.
+
+```bash
+/jsat magic add retry logic to the payment service
+/jsat magic --depth deep redesign the authentication flow
+/jsat magic --preview investigate the checkout 500 errors   # plan only
+/jsat magic --service PaymentService what are the test gaps?
+```
+
+| Option | Description |
+|---|---|
+| `--depth quick\|standard\|deep` | Cap skills at 4/8/15 (default: standard) |
+| `--budget N` | Explicit cap on skill invocations |
+| `--service <name>` | Scope all skills to one service |
+| `--preview` | Compose and show the plan; do not run |
+
+### `jsat plan`
+
+Pre-implementation planning gate. Six forcing questions + scope, architecture, and security review.
+
+```bash
+/jsat plan add idempotency keys to the payment mutation
+/jsat plan --scope refactor the retry logic
+/jsat plan --security add a new admin endpoint
+```
+
+### `jsat decide`
+
+Architectural decision journal. Log decisions; retrieve by file, topic, or blast-radius context.
+
+```bash
+/jsat decide log --impact h Chose PostgreSQL for ACID compliance
+/jsat decide context src/payments/service.py
+/jsat decide search caching strategy
+/jsat decide list adr
+```
+
+### `jsat sprint`
+
+Seven-stage delivery workflow: Think → Plan → Build → Review → Test → Ship → Reflect.
+
+```bash
+/jsat sprint add rate limiting to the checkout API
+/jsat sprint --stage 4 add rate limiting    # resume from Review
+/jsat sprint --dry redesign auth flow
+```
+
+### `jsat cohesion`
+
+Code health analysis — flags oversized files, high-complexity functions, and mixed responsibilities.
+
+```bash
+/jsat cohesion src/
+/jsat cohesion --threshold 600 --service PaymentService
+/jsat cohesion --functions jsat/cli.py
+```
+
 ---
 
 ## 2. AI Commands (`jsat ai`)

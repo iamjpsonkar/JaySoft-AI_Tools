@@ -541,6 +541,122 @@ Classifies your task type and runs the optimal JSAT tool sequence end-to-end —
 
 ---
 
+## JSAT Magic — AI-Orchestrated Skill Composer
+
+The only JSAT skill with no fixed template. Given any task, it:
+
+1. **Analyzes** the task to understand what information is needed
+2. **Composes** a minimal effective skill sequence from all 39 skills, organized in layers
+3. **Executes** each skill with task-specific parameters, adapting based on findings
+4. **Converges** when the task is answerable — skips remaining skills once sufficient data exists
+
+| Layer | Skills | Purpose |
+|---|---|---|
+| 0 — Context | status, list-services | Always run |
+| 1 — Discover | find-function, trace, query, recent… | Locate relevant code |
+| 2 — Analyze | blast-radius, security, test-gaps, cohesion… | Assess risk and quality |
+| 3 — Plan | lazy, plan, think, crack, decide… | Design the solution |
+| 4 — Execute | review, prompt, sprint | Guide implementation |
+| 5 — Verify | test-gaps --generate, blast-radius --severity breaking | Validate before shipping |
+| 6 — Record | decide log, reflect, knowledge-add | Preserve decisions |
+
+```bash
+/jsat magic add retry logic to the payment service
+/jsat magic --depth deep redesign the authentication flow
+/jsat magic --preview investigate the checkout 500 errors   # plan only, no execution
+/jsat magic --service PaymentService what are the test gaps?
+```
+
+Depth flags: `--depth quick` (4 skills), `--depth standard` (8, default), `--depth deep` (15).
+`--preview` shows the composed plan without running anything.
+
+---
+
+## JSAT Plan — Pre-Implementation Planning Gate
+
+Runs before writing any code. Surfaces assumptions, scope risks, and architectural concerns
+by answering six forcing questions, then reviewing from three perspectives.
+
+**Six Forcing Questions:**
+1. What is the exact problem?
+2. Who experiences it and how often?
+3. What is the cost of NOT solving it?
+4. What already exists in the codebase that partially handles this?
+5. What is the minimum change that solves it?
+6. What is the hardest part — and what assumption am I making about it?
+
+Three review perspectives: **Scope** (what to build and why), **Architecture** (how to build it),
+**Security** (what can go wrong).
+
+Output: a one-page planning brief with recommended decision, architecture approach, top risk, and first concrete step.
+
+```bash
+/jsat plan add idempotency keys to the payment mutation
+/jsat plan --scope refactor the retry logic         # scope review only
+/jsat plan --security add a new admin endpoint      # security review only
+```
+
+---
+
+## JSAT Decide — Architectural Decision Journal
+
+Log architectural decisions into the knowledge base and retrieve them by file, topic,
+or blast-radius context — so past decisions inform future changes.
+
+```bash
+/jsat decide log --impact h Chose PostgreSQL over MongoDB for ACID compliance on payment records
+/jsat decide log Switched caching from Redis to in-memory — cost $500/month, latency acceptable
+/jsat decide context src/payments/service.py     # decisions relevant to this file
+/jsat decide search caching strategy
+/jsat decide list adr                            # list all ADR-category decisions
+```
+
+Subcommands: `log [--impact h|m|l]`, `list [<category>]`, `search <query>`, `context <file_or_symbol>`
+
+---
+
+## JSAT Sprint — Seven-Stage Delivery Workflow
+
+Structured end-to-end delivery. Each stage runs focused JSAT tools and passes its
+findings forward to the next.
+
+| Stage | Tool | Purpose |
+|---|---|---|
+| 1. Think | ithinking plan | Clarify intent and surface assumptions |
+| 2. Plan | ithinking audit + query | Surface risks before coding |
+| 3. Build | find-function + blast-radius | Locate code and map impact scope |
+| 4. Review | review findings | Multi-model code review of affected areas |
+| 5. Test | test-gaps | Find coverage gaps |
+| 6. Ship | blast-radius --severity breaking | Breaking impact check before release |
+| 7. Reflect | ithinking reflect | Log outcomes and decisions |
+
+```bash
+jsat sprint "add rate limiting to the checkout API"
+jsat sprint --stage 4 "add rate limiting"    # resume from Review
+jsat sprint --dry "redesign auth flow"       # show plan without running
+```
+
+---
+
+## JSAT Cohesion — Code Health Analysis
+
+Flags files and functions that have grown beyond healthy boundaries, then cross-references
+with blast-radius to prioritize the most urgent refactoring targets.
+
+- Files > 800 lines (adjustable with `--threshold N`)
+- Functions with cyclomatic complexity > 10
+- Classes with > 15 methods
+
+Output: RED / YELLOW / GREEN priority report with specific extraction suggestions.
+
+```bash
+/jsat cohesion src/
+/jsat cohesion --threshold 600 --service PaymentService
+/jsat cohesion --functions jsat/cli.py    # function-level analysis only
+```
+
+---
+
 ## CLI Reference
 
 ### Core commands
@@ -706,7 +822,7 @@ print(health["profile"], health["graph"]["backend"])
 
 ---
 
-## Tools Overview (20 tools)
+## Tools Overview (25 tools)
 
 | # | Tool | Description |
 |---|---|---|
@@ -731,6 +847,11 @@ print(health["profile"], health["graph"]["backend"])
 | 18 | **JSAT Smart** | Terse compression mode — fragment-based answers with filler stripped, code preserved |
 | 19 | **JSAT Lazy** | Reuse-first planning — 5-rung ladder against the graph before suggesting new code |
 | 20 | **JSAT Aw** | Workflow advisor — classifies task type, runs optimal JSAT tool sequence end-to-end |
+| 21 | **JSAT Magic** | AI-orchestrated skill composer — dynamically selects and runs the right skills for any task |
+| 22 | **JSAT Plan** | Pre-implementation planning gate — six forcing questions + scope/architecture/security review |
+| 23 | **JSAT Decide** | Architectural decision journal — log decisions and surface them by file or blast-radius context |
+| 24 | **JSAT Sprint** | Seven-stage delivery workflow — Think → Plan → Build → Review → Test → Ship → Reflect |
+| 25 | **JSAT Cohesion** | Code health analysis — flags oversized files, high complexity, and mixed responsibilities |
 
 ### Multi-Model Review
 

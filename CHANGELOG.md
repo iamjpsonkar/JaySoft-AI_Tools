@@ -4,6 +4,75 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-07-31
+
+### Added
+
+- **Session + actions files for big skills** (`magic`, `crack`, `sprint`, `prompt`):
+  Every major skill now writes a session checkpoint file (`~/.jsat/sessions/<skill>-<slug>.md`)
+  for `--continue` resume, and an actions file (`~/.jsat/sessions/<skill>-actions-<slug>.md`)
+  at synthesis time. The actions file is immediately executed in sequence — the skill
+  recommends and acts, not just recommends.
+- **`jsat-magic`** session + actions files: `--continue` resumes interrupted runs;
+  actions file auto-executes synthesis recommendations.
+- **`/jsat` single dispatcher**: All 39 skill files consolidated from individual
+  `~/.claude/commands/jsat-*.md` into one `~/.claude/commands/jsat.md` with `## <command>`
+  sections. Eliminates command palette pollution.
+
+### Fixed
+
+- **False-positive secret detection** (`jsat/tools/security.py`): Entropy threshold raised
+  from 4.5 → 4.8, minimum token length raised from 20 → 24 characters. Eliminates
+  false-positive alerts on CLI skill instruction text, test fixtures, and rich markup.
+- **`.claude` worktrees polluting graph index** (`jsat/_models.py`): Added `".claude"` to
+  the default `exclude_patterns` in `IndexerConfig`. Agent worktrees created by Claude Code
+  during parallel tasks no longer appear in test-gaps, security scan, or cohesion reports.
+- **Lint (ruff I001)**: Added missing blank line between `import shutil` and
+  `from jsat._config import jsat_data_dir` at two locations in `cli.py`.
+
+### Changed
+
+- **`jsat-crack`** default phases: N=6 (one agent per phase for maximum granularity).
+  Phase 5 (Skeptic) now explicitly challenges Phase 1 (Architect) and Phase 3 (Implementer)
+  by name rather than giving generic concerns.
+- **`jsat-prompt`** default phases: N=6. Phase 1 Discuss step now classifies query type
+  (structural/lookup/security/incident/coverage/general) and selects primary tool before
+  optimizing.
+
+## [0.4.1] — 2026-07-31
+
+### Added
+
+- **`jsat-magic`** — AI-orchestrated skill composer. Analyzes any task, composes a
+  minimal-but-sufficient skill sequence from all 39 skills using a 6-layer dependency
+  model (context → discover → analyze → plan → execute → verify → record), executes
+  adaptively, and converges when the task is answerable. Flags: `--depth quick/standard/deep`,
+  `--preview`, `--budget N`, `--service <name>`.
+- **`jsat-plan`** — Pre-implementation planning gate. Six forcing questions + three
+  review perspectives (scope, architecture, security) before any code is written.
+  Backed by `jsat__ithinking_audit_assumptions`, `jsat__blast_radius`, `jsat__get_auth_coverage`.
+- **`jsat-decide`** — Architectural decision journal. `log`, `list`, `search`, and
+  `context` subcommands backed by the JSAT knowledge base (category="decision").
+  `context <file>` surfaces relevant decisions via blast-radius cross-reference.
+- **`jsat-sprint`** — Seven-stage delivery workflow: Think → Plan → Build → Review →
+  Test → Ship → Reflect. `--stage N` resumes mid-sprint. `--dry` previews the plan.
+  Final output includes ship readiness and decisions worth logging.
+- **`jsat-cohesion`** — Code health analysis. Flags files > 800 lines, functions with
+  cyclomatic complexity > 10, and classes with > 15 methods. Cross-references with
+  blast-radius to surface the highest-impact refactoring targets first.
+
+### Fixed
+
+- **Shell injection** (`cli.py`, `jsat index --watch`): `shell=True` with unquoted `target`
+  path replaced with two `subprocess.Popen` calls connected by pipe. `find`'s `-o` is a
+  find operator, not a shell operator — no shell needed. Injection surface eliminated.
+- **Timing oracle** (`mcp/server.py`): MCP auth token comparison replaced with
+  `hmac.compare_digest` (constant-time). Previously `!=` leaked timing information
+  proportional to the matching prefix length.
+- **`SQLiteGraph.nodes_by_label` missing**: `jsat__list_services` failed with
+  `AttributeError: 'SQLiteGraph' object has no attribute 'nodes_by_label'`. Added the
+  method via `execute_sql("SELECT ... WHERE label=?", [label])`.
+
 ## [0.4.0] — 2026-07-31
 
 ### Added

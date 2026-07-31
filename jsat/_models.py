@@ -82,7 +82,7 @@ class CacheConfig(BaseModel):
 class IndexerConfig(BaseModel):
     languages: list[str] = Field(default_factory=lambda: ["python", "javascript", "go"])
     exclude_patterns: list[str] = Field(default_factory=lambda: [
-        ".git", "node_modules", "__pycache__", ".venv", "vendor", "dist", "build",
+        ".git", ".claude", "node_modules", "__pycache__", ".venv", "vendor", "dist", "build",
     ])
     incremental: bool = True
     git_hooks: bool = True

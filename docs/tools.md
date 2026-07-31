@@ -1085,3 +1085,167 @@ Classifies a task into one of 7 types and runs the optimal JSAT tool sequence fo
 /jsat aw --type security src/auth/
 /jsat aw --dry investigate the checkout 500 errors
 ```
+
+---
+
+## Tool 21 — Magic
+
+**Slash command:** `/jsat magic <task>`
+
+The only JSAT skill with no fixed template. Analyzes any task, composes a minimal
+sufficient skill sequence from all 39 tools using a 6-layer dependency model, executes
+each skill adaptively, and converges when the task is answerable.
+
+| Layer | Skills used |
+|---|---|
+| 0 — Context | status, list-services |
+| 1 — Discover | find-function, find-class, trace, query, smart, short, recent, list-endpoints |
+| 2 — Analyze | blast-radius, security, test-gaps, coverage, contract, cohesion, migration, incident |
+| 3 — Plan | lazy, plan, think, crack, decide, knowledge |
+| 4 — Execute | review, prompt, sprint |
+| 5 — Verify | test-gaps --generate, blast-radius --severity breaking |
+| 6 — Record | decide log, reflect, knowledge-add, runbook |
+
+### CLI usage
+
+```bash
+/jsat magic add retry logic to the payment service
+/jsat magic --depth deep redesign the authentication flow
+/jsat magic --preview investigate the checkout 500 errors
+/jsat magic --service PaymentService what are the test gaps?
+```
+
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `--depth quick` | Cap at 4 skills |
+| `--depth standard` | Cap at 8 skills (default) |
+| `--depth deep` | Cap at 15 skills |
+| `--budget N` | Explicit skill cap |
+| `--service <name>` | Scope all skills to one service |
+| `--preview` | Compose plan, do not run |
+
+---
+
+## Tool 22 — Plan
+
+**Slash command:** `/jsat plan <task>`
+
+Pre-implementation planning gate. Before writing any code, answers six forcing questions
+then runs up to three review perspectives.
+
+**Six Forcing Questions:**
+1. What is the exact problem?
+2. Who experiences it and how often?
+3. What is the cost of NOT solving it?
+4. What already exists in the codebase that partially handles this?
+5. What is the minimum change that solves it?
+6. What is the hardest part — and what assumption am I making about it?
+
+**Three perspectives:**
+- **Scope** — calls `jsat__ithinking_audit_assumptions` + `jsat__query` to classify what to build
+- **Architecture** — calls `jsat__blast_radius` to map impact and identify patterns to follow
+- **Security** — calls `jsat__get_auth_coverage` to flag risks before implementation
+
+**Output:** one-page planning brief: recommended decision, architecture approach, top risk, first concrete step.
+
+### CLI usage
+
+```bash
+/jsat plan add idempotency keys to the payment mutation
+/jsat plan --scope refactor the retry logic
+/jsat plan --architecture add a new admin endpoint
+/jsat plan --security add file upload to the API
+```
+
+---
+
+## Tool 23 — Decide
+
+**Slash command:** `/jsat decide <subcommand>`
+
+Architectural decision journal backed by the JSAT knowledge base (`category="decision"`).
+Decisions are retrievable by file, topic, or blast-radius context.
+
+### Subcommands
+
+| Subcommand | Effect |
+|---|---|
+| `log [--impact h\|m\|l] <text>` | Store a decision |
+| `list [<category>]` | List all decisions (recent first) |
+| `search <query>` | Semantic search across decisions |
+| `context <file_or_symbol>` | Show decisions relevant to this file (via blast-radius cross-reference) |
+
+### CLI usage
+
+```bash
+/jsat decide log --impact h Chose PostgreSQL over MongoDB for ACID compliance
+/jsat decide log Switched caching from Redis to in-memory — cost $500/month, latency acceptable
+/jsat decide context src/payments/service.py
+/jsat decide search caching strategy
+/jsat decide list adr
+```
+
+---
+
+## Tool 24 — Sprint
+
+**Slash command:** `/jsat sprint <task>`
+
+Seven-stage delivery workflow. Each stage runs focused JSAT tools and passes its
+findings as context to the next stage.
+
+| Stage | MCP tools called | Purpose |
+|---|---|---|
+| 1. Think | `jsat__ithinking_plan` | Clarify intent and surface assumptions |
+| 2. Plan | `jsat__ithinking_audit_assumptions` + `jsat__query` | Surface risks before coding |
+| 3. Build | `jsat__get_function` + `jsat__blast_radius` | Locate code and map impact |
+| 4. Review | `jsat__get_review_findings` | Multi-model code review |
+| 5. Test | `jsat__get_test_gaps` | Find coverage gaps |
+| 6. Ship | `jsat__blast_radius` (breaking only) | Breaking impact check |
+| 7. Reflect | `jsat__ithinking_reflect` | Log outcomes |
+
+### CLI usage
+
+```bash
+/jsat sprint add rate limiting to the checkout API
+/jsat sprint --stage 4 add rate limiting    # resume from Review
+/jsat sprint --dry redesign auth flow       # show plan without running
+```
+
+### Final output
+
+Ship readiness (yes/no based on Stage 6), plus decisions worth logging.
+
+---
+
+## Tool 25 — Cohesion
+
+**Slash command:** `/jsat cohesion [path]`
+
+Identifies cohesion problems in the codebase: oversized files, high-complexity functions,
+and classes with too many responsibilities. Cross-references with blast-radius to prioritize
+refactoring targets by downstream impact.
+
+### What it flags
+
+| Issue | Default threshold |
+|---|---|
+| File size | > 800 lines |
+| Cyclomatic complexity | > 10 per function |
+| Class size | > 15 methods |
+
+### CLI usage
+
+```bash
+/jsat cohesion src/
+/jsat cohesion --threshold 600 --service PaymentService
+/jsat cohesion --functions jsat/cli.py
+/jsat cohesion --service PaymentService   # scope to avoid timeout
+```
+
+### Output format
+
+Findings ranked RED (extract immediately) / YELLOW (schedule refactor) / GREEN (healthy),
+with specific extraction suggestions and blast-radius-derived priority ordering.

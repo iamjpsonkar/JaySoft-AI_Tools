@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import contextlib
+import hmac
 import json
 import os
 import sys
@@ -143,7 +144,7 @@ class MCPServer:
         # ── Legacy single-token auth (JSAT_MCP_TOKEN) ───────────────────────
         if self._auth_token and method not in ("initialize", "notifications/initialized"):
             provided = params.get("_auth_token", "")
-            if provided != self._auth_token:
+            if not hmac.compare_digest(provided, self._auth_token):
                 self._log.warning("mcp_auth_rejected", method=method)
                 if id_ is not None:
                     return {"jsonrpc": "2.0", "id": id_,

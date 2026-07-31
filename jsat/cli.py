@@ -2098,6 +2098,15 @@ Highlight: large commits (>10 files), changes touching auth/payment/migrations."
   --phases N            → Run N phases (2-6, default: 6)
   --service <name>      → Scope all query phases to this one service
   --single              → Original one-shot flow (optimize → one jsat__query call)
+  --continue            → Resume most recent in_progress prompt session
+
+## --continue Flag
+
+When --continue is given:
+  1. List ~/.jsat/sessions/prompt-*.md; find most recent with status: in_progress
+  2. Read it; extract optimized_prompt from ## Findings if Phase 1 completed
+  3. Find first "- [ ]" phase — resume from there with saved context
+  4. Print: "▶ Resuming prompt session: <filename>"
 
 The query is every word that is NOT a flag. Strip all flags; join the rest.
 Priority when multiple optimizer flags: --agents beats --rewrite.
@@ -2105,6 +2114,10 @@ Priority when multiple optimizer flags: --agents beats --rewrite.
 ## Phased Mode (default, --phases 6)
 
 Run in 6 sequential phases. Show output after each.
+
+### Session File (before Phase 1)
+Create ~/.jsat/sessions/prompt-<SLUG>-<YYYYMMDD-HHMM>.md with phases 1-6 as unchecked steps.
+Print: "📄 Session: <path>"
 
 ### Phase 1 — Discuss + Optimize (~6s)
 
@@ -2191,6 +2204,24 @@ N=2: [discuss+optimize] / [execute + verify + synthesis]
 N=3: [discuss+optimize] / [scope + execute] / [verify + synthesis]
 N=4: [discuss+optimize] / [scope] / [execute] / [verify + synthesis]
 N=6: full pipeline above (default)
+
+After each phase completes, update session file: mark phase [x] with 1-sentence finding.
+After Phase 6: set status → completed. Print: "✅ Session complete: <path>"
+(If interrupted, run /jsat prompt --continue to resume from the last incomplete phase.)
+
+## Actions File
+
+From Phase 6 synthesis, extract concrete follow-up work:
+  - Fixes for ⚠️ unverified claims (look them up and correct the answer)
+  - Decisions to log (run /jsat decide log)
+  - Knowledge to store (run /jsat knowledge-add)
+  - Tests or verification steps recommended
+
+Write ~/.jsat/sessions/prompt-actions-<SLUG>-<YYYYMMDD-HHMM>.md.
+Print: "📋 Actions: <path>"
+
+Execute each "- [ ]" action in sequence. Mark [x] as done.
+When all done: status → completed. Print: "✅ All actions complete: <path>"
 
 ## --single Flag
 If --single: classify → optimize → jsat__query(question=<optimized_prompt>) once.
@@ -2302,7 +2333,16 @@ Display plan clearly. After the user approves, proceed. Then reflect on what was
 
   --phases N   → run in N phases (2-6, default: 6)
   --single     → run all agents at once (original one-shot behavior, may timeout)
+  --continue   → resume the most recent in_progress crack session
   (no flag)    → 6-phase mode with artifact carry-forward (recommended)
+
+## --continue Flag
+
+When --continue is given:
+  1. List ~/.jsat/sessions/crack-*.md; find the most recent with status: in_progress
+  2. Read it; extract task and findings from ## Findings as accumulated HANDOFF context
+  3. Find first "- [ ]" phase — resume execution from that phase
+  4. Print: "▶ Resuming crack session: <filename>"
 
 ## Phased Mode (default)
 
@@ -2325,12 +2365,17 @@ Call: jsat__list_services()
 Build CONTEXT_BRIEF from the results: node count, edge count, top service names.
 Prepend CONTEXT_BRIEF to every agent's task for grounding.
 
+Create session file: ~/.jsat/sessions/crack-<SLUG>-<YYYYMMDD-HHMM>.md
+Content: all 6 phases as unchecked steps in ## Steps, ## Findings empty.
+Print: "📄 Session: <path>"
+
 ## War Room Phases
 
 ### Phase 1 — Architect
 Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nStructure your response:\n**Findings**: what exists in the codebase relevant to this task\n**Concerns**: top design risk\n**Recommendation**: your proposed approach", roles=["architect"], rounds=1)
 Show output under "🏛 Phase 1/6 — Architect".
 Extract HANDOFF_1: one sentence — "🏛 Architect: <Recommendation>"
+Update session file: "- [ ] Phase 1" → "- [x] Phase 1 (HANDOFF_1)"; append to ## Findings.
 
 ### Phase 2 — Security
 Call: jsat__crack(task="<task>\n\nCODEBASE: <CONTEXT_BRIEF>\n\nPRIOR FINDINGS:\n<HANDOFF_1>\n\nStructure your response:\n**Findings**: threat surfaces or auth gaps\n**Concerns**: highest-risk issue\n**Recommendation**: required security measure", roles=["security"], rounds=1)
@@ -2369,6 +2414,24 @@ Using all 6 phase outputs now in context:
   ⚠️  Disputed:     live tensions (especially skeptic vs architect/implementer)
   ❓ Open questions: must-answer before starting
   🎯 Action plan:   3-5 concrete next steps
+
+Update session file: status → completed.
+Print: "✅ Session complete: <path>"
+(If interrupted, run /jsat crack --continue to resume from the last incomplete phase.)
+
+## Actions File
+
+Extract the "🎯 Action plan: 3-5 concrete next steps" from the Final Synthesis.
+Write ~/.jsat/sessions/crack-actions-<SLUG>-<YYYYMMDD-HHMM>.md with each step
+as a "- [ ]" item (include exact file edits, commands, tests to run, decisions to log).
+
+Print: "📋 Actions: <path>"
+
+Execute each action item in sequence:
+  1. Run the action
+  2. Mark "- [ ]" → "- [x] (done: <result>)" in the file
+  3. Continue to next
+When all done: status → completed. Print: "✅ All actions complete: <path>"
 
 ## --single Flag
 If --single: call jsat__crack(task=<task>) with all defaults (6 agents, 3 rounds).
@@ -2470,6 +2533,396 @@ Flag any that duplicate existing indexed functions.
 Given a proposed implementation description: check each function/class name against the graph.
 For each named entity: call jsat__get_function(name=<fn>) or jsat__get_class(name=<cls>).
 Report: exists / not found / similar match (with location).""",
+        ),
+        "jsat-plan": (
+            "Pre-implementation planning — six forcing questions + scope/architecture/security review before writing code.",
+            """Pre-implementation planning gate. Before writing any code, surface assumptions, scope risks, and architectural concerns.
+
+Parse $ARGUMENTS for optional flags:
+  --scope          → scope review only: what to build and why
+  --architecture   → architecture review: how to build it
+  --security       → security review: what can go wrong
+  --full           → run all three perspectives (default)
+  (no flag)        → full three-perspective review
+
+## Six Forcing Questions (always run first)
+
+Before any perspective review, answer these six questions from the task description and graph context:
+  1. What is the exact problem being solved?
+  2. Who experiences this problem and how often?
+  3. What is the cost of NOT solving it?
+  4. What already exists in the codebase that partially handles this?
+  5. What is the minimum change that would solve it?
+  6. What is the hardest part — and what assumption am I making about it?
+
+Call: jsat__ithinking_audit_assumptions(task=<task>)
+Call: jsat__query(question="what exists in the codebase related to: <task>") to answer question 4.
+Label: "🔍 Forcing Questions"
+
+## Scope Perspective (--scope or --full)
+Classify the task: full scope / reduced scope (cut what loses no core value) / expanded scope (what adjacent improvement would compound value?).
+Call: jsat__blast_radius(target=<most relevant file or symbol from Q4>)
+Show: recommended scope with reason. Label: "📐 Scope"
+
+## Architecture Perspective (--architecture or --full)
+Evaluate the implementation approach:
+  - What existing patterns should this follow? (from graph context)
+  - What data flows are affected? (from blast-radius above)
+  - What are the 2 most likely failure modes?
+  - One-line flow: input → transformation → output
+Label: "🏗 Architecture"
+
+## Security Perspective (--security or --full)
+Flag risks before implementation:
+  - What user inputs reach this code path?
+  - What external calls or side effects are involved?
+  - What is the blast radius if this function behaves unexpectedly?
+Call: jsat__get_auth_coverage() if auth is relevant.
+Label: "🔒 Security"
+
+## Output
+Print a one-page planning brief:
+  Decision: build as described / reduce scope / defer / delegate
+  Architecture: <one-line approach>
+  Top risk: <one-line>
+  First step: <specific file or function to change first>""",
+        ),
+        "jsat-decide": (
+            "Decision journal — log architectural decisions and surface them by file, topic, or blast-radius context.",
+            """Architectural decision journal. Log decisions with context; retrieve them when analyzing impact or planning changes.
+
+Parse $ARGUMENTS for optional subcommand:
+  log <text>               → store a decision
+  log --impact h|m|l <text> → store with impact rating (high/medium/low)
+  list                     → show all decisions (recent first)
+  list <category>          → filter by category
+  search <query>           → semantic search across decisions
+  context <file_or_symbol> → show decisions relevant to this file or function
+  (no subcommand)          → same as search <rest>
+
+## log subcommand
+Store the decision in the knowledge base with structured context:
+Call: jsat__knowledge_add(
+  text="DECISION: <text> | Impact: <impact> | Date: today",
+  category="decision"
+)
+Confirm with ID and 1-line preview.
+
+## context subcommand
+Find decisions relevant to a file or function:
+  Call: jsat__blast_radius(target=<file_or_symbol>) to find connected nodes
+  Call: jsat__knowledge_search(query="decision related to <file_or_symbol>")
+  Show decisions whose scope overlaps with the blast-radius output.
+
+## search subcommand
+  Call: jsat__knowledge_search(query=<query>)
+  Show matching decisions with date, impact, and text.
+
+## list subcommand
+  Call: jsat__knowledge_list(category="decision")
+  Show all decisions sorted by recency.
+
+Examples:
+  /jsat decide log Switched caching from Redis to in-memory — cost $500/month, latency acceptable
+  /jsat decide log --impact h Chose PostgreSQL over MongoDB for ACID compliance on payment records
+  /jsat decide context src/payments/service.py
+  /jsat decide search caching strategy""",
+        ),
+        "jsat-sprint": (
+            "Seven-stage delivery workflow — Think → Plan → Build → Review → Test → Ship → Reflect, each stage fast and focused.",
+            """Seven-stage sprint workflow for structured project delivery. Each stage runs focused JSAT tools and passes findings forward.
+
+Parse $ARGUMENTS:
+  --stage <1-7>    → resume from a specific stage (skip earlier stages)
+  --dry            → show the sprint plan without running any tools
+  --continue       → resume most recent in_progress sprint session
+  (no flag)        → run all 7 stages sequentially
+
+## --continue Flag
+
+When --continue is given:
+  1. List ~/.jsat/sessions/sprint-*.md; find most recent with status: in_progress
+  2. Read it; find first "- [ ]" stage; carry ## Findings as context
+  3. Print: "▶ Resuming sprint: <filename>"
+  4. Resume from that stage
+
+Stage map:
+  1. Think   — clarify intent and surface assumptions
+  2. Plan    — forcing questions + scope/architecture/security review
+  3. Build   — find what exists, map impact scope
+  4. Review  — multi-model code review of affected areas
+  5. Test    — find test gaps, generate missing cases
+  6. Ship    — breaking blast-radius check before release
+  7. Reflect — log decisions and outcomes
+
+## Stage execution
+
+### Session File (before Stage 1)
+Create ~/.jsat/sessions/sprint-<SLUG>-<YYYYMMDD-HHMM>.md with all 7 stages as unchecked steps.
+Print: "📄 Session: <path>"
+
+### Stage 1 — Think (~10s)
+Call: jsat__ithinking_plan(task=<task>)
+Extract clarified intent in 1 sentence. Label: "🧠 Stage 1/7 — Think"
+Update session file: mark Stage 1 [x] with 1-sentence outcome.
+
+### Stage 2 — Plan (~20s)
+Call: jsat__ithinking_audit_assumptions(task=<task>)
+Call: jsat__query(question="what already handles: <task>")
+Summarize: what exists, what's new, top assumption. Label: "📋 Stage 2/7 — Plan"
+
+### Stage 3 — Build (~15s)
+Call: jsat__get_function(name=<key function implied by task>)
+Call: jsat__blast_radius(target=<most relevant file or function>)
+Show: what to change and what it affects. Label: "🔨 Stage 3/7 — Build"
+
+### Stage 4 — Review (~20s)
+Call: jsat__get_review_findings() if a recent review exists
+Otherwise: jsat__query(question="code quality or design issues in <relevant area>")
+Label: "👁 Stage 4/7 — Review"
+
+### Stage 5 — Test (~20s)
+Call: jsat__get_test_gaps(path=<relevant path>)
+Show top 3 uncovered paths. Label: "🧪 Stage 5/7 — Test"
+
+### Stage 6 — Ship (~10s)
+Call: jsat__blast_radius(target=<changed file or function>)
+Filter to breaking impacts only. Flag any before proceeding.
+Label: "🚢 Stage 6/7 — Ship"
+
+### Stage 7 — Reflect (~5s)
+Call: jsat__ithinking_reflect(subtask="<task> — sprint completed")
+Prompt: "Log key decision? Run: /jsat decide log <decision>"
+Label: "🔮 Stage 7/7 — Reflect"
+
+### Final Summary
+  ✅ Stages completed: N/7
+  🚢 Ship readiness: yes/no (Stage 6 broke nothing → yes)
+  📝 Decisions to log: <architectural choices made during sprint>
+
+Update session file: status → completed.
+Print: "✅ Session complete: <path>"
+(If interrupted, run /jsat sprint --continue to resume from the last incomplete stage.)
+
+## Actions File
+
+From sprint outcomes, extract concrete remaining work:
+  - Decisions to log (from Stage 7 Reflect)
+  - Test gaps to fill (from Stage 5 Test)
+  - Breaking changes to fix before shipping (from Stage 6 Ship)
+  - Any code changes identified but not yet implemented
+
+Write ~/.jsat/sessions/sprint-actions-<SLUG>-<YYYYMMDD-HHMM>.md.
+Print: "📋 Actions: <path>"
+
+Execute each "- [ ]" action in sequence. Mark [x] as done.
+When all done: status → completed. Print: "✅ All actions complete: <path>"
+"""
+        ),
+        "jsat-cohesion": (
+            "File and function cohesion analysis — flags oversized files, high complexity, and mixed responsibilities.",
+            """Analyze the codebase for cohesion problems: oversized files, high-complexity functions, and mixed responsibilities.
+
+Parse $ARGUMENTS for optional flags:
+  --service <name>    → scope to one service
+  --threshold <N>     → flag files with more than N lines (default: 800)
+  --functions         → show function-level analysis only (no file-level)
+  (no flag)           → full cohesion report for path=<rest or ".">
+
+## What it checks
+
+Files:
+  - Lines > 800 (default threshold) → likely need extraction
+  - Multiple unrelated responsibilities → split into focused modules
+
+Functions:
+  - Cyclomatic complexity > 10 → likely needs simplification
+  - Lines > 150 → likely doing too much
+  - High outgoing edges in blast-radius (calls many unrelated things)
+
+## How it works
+
+Call: jsat__get_index_status() for graph overview
+Call: jsat__query(question="which files are largest and most complex in the codebase?")
+Call: jsat__get_test_gaps(path=<path>) to correlate complexity with test coverage gaps
+
+For the top findings, cross-reference with blast-radius to identify which large files
+have the highest downstream impact (most urgent to refactor).
+
+## Output format
+
+📊 **Cohesion Report**
+
+  🔴 HIGH priority (extract or split):
+    <file> — <N> lines, complexity <X> — suggest extracting: <function names>
+
+  🟡 MEDIUM priority (schedule refactor):
+    <file> — <N> lines, complexity <X>
+
+  ✅ Healthy: <N> files within thresholds
+
+  Top recommendation: <one specific first action — most impactful>
+
+TIMEOUT STRATEGY: For large repos, scope with --service <name> to avoid timeout.""",
+        ),
+        "jsat-magic": (
+            "AI-orchestrated skill composer — analyzes any task and dynamically selects, orders, and runs the optimal JSAT skills to complete it.",
+            """Analyze the task, compose the optimal JSAT skill sequence from the full catalog,
+run each skill adaptively, and converge when the task is complete.
+
+Parse $ARGUMENTS for optional flags:
+  --depth quick     → cap at 4 skills (fast pass, breadth-first)
+  --depth standard  → cap at 8 skills (default, balanced)
+  --depth deep      → cap at 15 skills (comprehensive)
+  --budget N        → explicit cap on skill invocations
+  --service <name>  → scope all skills to one service (avoids timeout)
+  --preview         → compose plan only, do NOT run any skills
+  --continue        → resume the most recent in_progress magic session
+  (no flag)         → standard depth, auto-scoped
+
+## --continue Flag
+
+When --continue is given:
+  1. List files in ~/.jsat/sessions/ matching magic-*.md
+  2. Find the most recent file with "status: in_progress" in its frontmatter
+  3. Read it and print: "▶ Resuming: <filename>"
+  4. Extract task from frontmatter; extract findings from ## Findings as accumulated context
+  5. Find first "- [ ]" step — resume execution from there
+  6. Skip all "- [x]" steps (already done)
+  7. Continue with Step 3 execution, carrying findings as prior context
+
+## Step 1 — Analyze the task
+
+Read the task description and extract:
+  - WHAT: what is being asked? (question / change / investigation / decision)
+  - WHERE: specific files, functions, services, or broad scope?
+  - RISK: does this involve security, data, production, or breaking changes?
+  - DEPTH: how complete an answer is needed?
+
+## Step 2 — Compose the skill sequence
+
+Select skills from this layered catalog, ordered by information dependency.
+Select only what the task genuinely needs — minimum sufficient set.
+Prefer narrow fast skills before heavy ones (crack, sprint only if genuinely complex).
+
+  LAYER 0 — Context (always run):
+    status, list-services
+
+  LAYER 1 — Discover (when task names symbols or asks where/what/how):
+    find-function, find-class, trace, query, smart, short, recent, list-endpoints
+
+  LAYER 2 — Analyze (when task involves risk, impact, quality, or incidents):
+    blast-radius, security, test-gaps, coverage, contract, cohesion, migration, incident
+
+  LAYER 3 — Plan (when task involves building, deciding, or designing):
+    lazy, plan, think, crack, decide, knowledge
+
+  LAYER 4 — Execute (when task involves implementing or reviewing):
+    review, prompt, sprint
+
+  LAYER 5 — Verify (after execution, before shipping):
+    test-gaps --generate, blast-radius --severity breaking
+
+  LAYER 6 — Record (at end, for operational or architectural work):
+    decide log, reflect, knowledge-add, runbook
+
+If --service was given, scope all Layer 1-5 skills to that service.
+
+Announce the composed plan before running:
+  "✨ Magic Plan (<N> skills, <depth> depth):"
+  "  Layer 0: status → list-services"
+  "  Layer 1: <selected discover skills with params>"
+  "  Layer 2: <selected analyze skills>"
+  (only list layers that have selected skills)
+
+If --preview: STOP here, do not run any tools.
+
+## Session File
+
+Before running any skills, create the session directory and file:
+
+  mkdir -p ~/.jsat/sessions/
+  SLUG = first 4 words of task, lowercased, spaces→hyphens
+  FILE = ~/.jsat/sessions/magic-<SLUG>-<YYYYMMDD-HHMM>.md
+
+Write the file:
+  ---
+  skill: magic
+  task: <original task>
+  created: <current datetime>
+  status: in_progress
+  ---
+
+  ## Steps
+  - [ ] <each selected skill, one line each>
+
+  ## Findings
+  (populated as steps complete)
+
+Print: "📄 Session: ~/.jsat/sessions/<filename>"
+
+## Step 3 — Execute adaptively
+
+For each selected skill in layer order:
+  1. Print: "▶ [Layer N] <skill> — <what it checks for this specific task>"
+  2. Call the corresponding JSAT MCP tool with task-specific parameters
+  3. Show result under: "✅ <skill>: <1-sentence finding>"
+  4. ADAPT: if the finding reveals new information needs, add skills from later layers
+     (example: blast-radius shows breaking changes → add test-gaps --generate to Layer 5)
+  5. CONVERGE: if the task is now answerable with high confidence, skip remaining skills
+     and jump to synthesis. Print: "⚡ Converged at step N/M — sufficient to answer."
+  6. Update session file: change "- [ ] <skill>" → "- [x] <skill> (finding: <1-sentence>)"
+     and append to ## Findings: "**<skill>:** <1-sentence finding>"
+
+Timeout handling: if any skill returns "[AI unavailable]" or times out:
+  - Retry with --service <most relevant service> to narrow scope
+  - Or skip and note: "(timed out — answer based on available data)"
+
+## Step 4 — Synthesize
+
+  ✨ **Magic Summary**
+  - Task: <original task>
+  - Skills used: <N of planned>
+  - Key findings: <one bullet per skill with useful data>
+  - Answer: <direct, complete answer to the task>
+  - Actions: <1-3 concrete next steps>
+  - Log a decision? <yes/no — if yes: /jsat decide log <decision>>
+  - Record outcome? <yes/no — if yes: /jsat reflect <outcome>>
+
+Update session file frontmatter: status → completed.
+Print: "✅ Session complete: ~/.jsat/sessions/<filename>"
+(If interrupted before this step, run /jsat magic --continue to resume.)
+
+## Actions File
+
+Extract every concrete action from the summary above (commands to run, files
+to edit with line:column, tests to verify, commits to make). Write:
+  ~/.jsat/sessions/magic-actions-<SLUG>-<YYYYMMDD-HHMM>.md
+
+File format:
+  ---
+  skill: magic
+  task: <original task>
+  generated: <datetime>
+  status: pending
+  ---
+  ## Action Items
+  - [ ] <exact command or file edit>  — <why>
+  ...
+  ## Completed Actions
+  (empty)
+
+Print: "📋 Actions: <path>"
+
+Now read that file and execute each "- [ ]" action in sequence:
+  1. Execute the action (run command, edit file, install package, etc.)
+  2. Update the file: "- [ ]" → "- [x] (done: <result>)"
+  3. Append to ## Completed Actions: "<action>: <result>"
+  4. Continue to next action
+
+When all actions are done: set status → completed in the actions file.
+Print: "✅ All actions complete: <path>"
+""",
         ),
         "jsat-aw": (
             "Workflow advisor — classifies your task and runs the optimal JSAT tool sequence end-to-end.",
@@ -3675,6 +4128,7 @@ def cmd_clean(
     jsat clean --all        remove all of the above
     """
     import shutil
+
     from jsat._config import jsat_data_dir
     data_dir = jsat_data_dir(Path(repo).resolve())
     targets: list[tuple[str, Path]] = []

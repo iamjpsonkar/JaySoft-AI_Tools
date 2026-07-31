@@ -109,7 +109,8 @@ class SecurityTool(BaseTool):
         from jsat._models import SecurityFinding
 
         findings: list[SecurityFinding] = []
-        entropy_threshold = 4.5
+        entropy_threshold = 4.8   # raised from 4.5 — eliminates false positives on CLI help text / test fixtures
+        min_token_len = 24         # raised from 20 — further reduces noise from short high-entropy identifiers
         files_scanned = 0
 
         for fpath in path.rglob("*"):
@@ -139,7 +140,7 @@ class SecurityTool(BaseTool):
                         ))
                 # Entropy fallback for unlabelled high-entropy tokens
                 for tok in line.split():
-                    if len(tok) >= 20 and _entropy(tok) > entropy_threshold:
+                    if len(tok) >= min_token_len and _entropy(tok) > entropy_threshold:
                         rel = str(fpath.relative_to(path) if path in fpath.parents else fpath)
                         findings.append(SecurityFinding(
                             file=rel, line=lineno,
