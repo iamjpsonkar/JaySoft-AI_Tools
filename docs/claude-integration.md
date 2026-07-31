@@ -1,6 +1,6 @@
 # Claude Integration
 
-JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get nine `/jsat-*` slash commands.
+JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the `/jsat` slash command with 39 subcommands.
 
 ## How It Works
 
@@ -11,7 +11,7 @@ Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←�
 When you run `jsat connect claude`, JSAT:
 
 1. Writes an MCP server entry into `.claude/settings.json` (or `~/.claude/settings.json` for global scope)
-2. Installs ten `/jsat-*` slash command skill files in `.claude/commands/`
+2. Installs the `/jsat` dispatcher skill file (`~/.claude/commands/jsat.md`) containing all 39 subcommands
 
 Claude Code reads these on startup, starts the `jsat mcp-server` process, and makes all JSAT tools available during your session.
 
@@ -63,126 +63,76 @@ jsat connect list
 
 ## Slash Commands
 
-Ten `/jsat-*` slash commands are installed into Claude Code when you run `jsat connect claude`.
-
-### `/jsat-query`
-
-Ask any natural language question about the indexed codebase.
+A single `/jsat` dispatcher is installed into Claude Code when you run `jsat connect claude`. It routes to 39 subcommands, organized into layers:
 
 ```
-/jsat-query what does this project do?
-/jsat-query which services call the payments endpoint?
-/jsat-query where is user authentication handled?
-/jsat-query what writes to the orders table?
+/jsat <subcommand> [args]
 ```
 
-Claude calls the `jsat__query` MCP tool, which searches the codebase graph and returns a sourced answer.
+### Quick reference
 
-### `/jsat-blast-radius`
+| Layer | Commands |
+|-------|----------|
+| **Context** | `status`, `list-services`, `list-endpoints`, `doctor` |
+| **Discover** | `query`, `find-function`, `find-class`, `trace`, `smart`, `short`, `recent` |
+| **Analyze** | `blast-radius`, `security`, `test-gaps`, `coverage`, `contract`, `cohesion`, `migration`, `incident` |
+| **Plan** | `lazy`, `plan`, `think`, `crack`, `decide`, `knowledge` |
+| **Execute** | `review`, `prompt`, `sprint` |
+| **Orchestrate** | `magic`, `aw` |
+| **Record** | `decide log`, `reflect`, `knowledge-add`, `runbook` |
+| **Tokens** | `tokens`, `token-budget`, `prompt-diff`, `prompt-rewrite` |
+| **Index** | `index`, `ithinking` |
 
-Trace the downstream impact of changing a file or symbol. Groups results by severity.
+### Common examples
 
-```
-/jsat-blast-radius src/payment/refund.py
-/jsat-blast-radius checkout_service.process_order
-/jsat-blast-radius
-```
+```bash
+# Understand
+/jsat query what does the payment service do?
+/jsat find-function process_refund
+/jsat trace PaymentService.charge --depth 3
+/jsat short what does validate_cart return?
 
-Claude calls `jsat__blast_radius`. Results are grouped as:
+# Analyze
+/jsat blast-radius src/payment/service.py
+/jsat security src/auth/
+/jsat test-gaps src/payment/
+/jsat cohesion --threshold 600
 
-- **breaking** — callers that will fail if the interface changes
-- **degraded** — callers that may silently misbehave
-- **warning** — indirect dependencies worth checking
-- **safe** — no meaningful coupling
+# Plan & decide
+/jsat plan add idempotency keys to the payment mutation
+/jsat lazy add a retry wrapper for HTTP calls
+/jsat decide log --impact h Chose PostgreSQL for ACID compliance on payments
 
-### `/jsat-security`
+# Deep analysis
+/jsat crack redesign the payment retry system
+/jsat crack --phases 3 add rate limiting to checkout
+/jsat crack --continue          # resume interrupted session
 
-Run an OWASP-style security scan on the codebase. Pass a path to scope the scan.
+# Full pipeline
+/jsat prompt what calls process_refund and what do they pass?
+/jsat sprint add rate limiting to the checkout API
+/jsat magic --depth deep investigate and fix the auth flow
 
-```
-/jsat-security
-/jsat-security src/api/
-/jsat-security src/auth/login.py
-```
-
-Claude calls `jsat__security_review`. Findings are ranked Critical → High → Medium → Low.
-
-Requires `pip install jsat[standard]` for the full Semgrep-backed scan. Without it, the graph-based scan runs (checks auth coverage, secret detection, data flow).
-
-### `/jsat-incident`
-
-Investigate a production incident. JSAT searches recent git history, correlates commits to the affected services, and returns ranked root-cause hypotheses.
-
-```
-/jsat-incident 500 errors on checkout since 14:00
-/jsat-incident payment gateway timeouts starting after the 3pm deploy
-/jsat-incident OOM on worker-3 pods since yesterday
-```
-
-Claude calls `jsat__investigate_incident`. Output includes hypotheses with scores, commit evidence, and recommended actions.
-
-### `/jsat-index`
-
-Build or refresh the JSAT codebase graph from inside Claude Code.
-
-```
-/jsat-index
-/jsat-index src/new-service/
+# Orchestrate everything
+/jsat magic update and improve this project
+/jsat magic --preview find all security issues    # plan only, no execution
+/jsat magic --continue                            # resume interrupted session
 ```
 
-Claude calls `jsat__index_repo` and reports the node and edge counts.
+### Big skills: session files and auto-execute
 
-### `/jsat-status`
-
-Show current graph statistics: node count, edge count, and index freshness.
-
-```
-/jsat-status
-```
-
-Claude calls `jsat__get_index_status`.
-
-### `/jsat-doctor`
-
-Run a system health check without leaving Claude Code.
-
-```
-/jsat-doctor
-```
-
-Claude calls `jsat__get_jsat_version` and `jsat__get_index_status` and shows version, system profile, and index health.
-
-### `/jsat-ithinking`
-
-Run the IThinking structured planning framework for a complex task. IThinking decomposes the task into phases, audits assumptions, estimates token cost, and (depending on `gate_level`) pauses for human review before execution.
-
-```
-/jsat-ithinking Refactor the authentication module to support OAuth2
-/jsat-ithinking add retry logic to the payment gateway client
-```
-
-Claude calls `jsat__ithinking_plan` followed by `jsat__ithinking_audit_assumptions`. With `gate_level: medium` or higher, Claude will present the plan and wait for your approval before proceeding.
-
-Installed by `jsat connect claude`. Controlled via the `ithinking` block in `.jsat/config.yaml`.
-
-### `/jsat-think`
-
-Shorthand alias for `/jsat-ithinking`. Identical behavior — use whichever is easier to type.
-
-```
-/jsat-think how should I migrate the orders table without downtime?
-```
+`magic`, `crack`, `sprint`, and `prompt` write session files to `~/.jsat/sessions/` and execute their recommendations automatically after synthesis. Pass `--continue` to resume any interrupted session. See [Session Files & Auto-Execute](../README.md#session-files--auto-execute) for details.
 
 ### `/jsat-prompt-diff`
 
-Show the raw input you typed next to the full optimized prompt that was actually sent to the AI — including injected graph context, knowledge-base constraints, few-shot examples, and model-specific formatting.
+Show the raw input you typed next to the full optimized prompt that was actually sent to the AI:
 
 ```
-/jsat-prompt-diff improve the retry logic
-/jsat-prompt-diff what does the checkout service do?
+/jsat prompt-diff improve the retry logic
+/jsat prompt-diff what does the checkout service do?
 ```
 
-Claude calls `jsat__prompt_diff`. The output is rendered as two labelled panels: **Raw** and **Optimized**. Useful for understanding exactly what context was injected and why the AI responded the way it did.
+Claude calls `jsat__prompt_diff`. Output is two labelled panels: **Raw** and **Optimized**.
 
 ---
 

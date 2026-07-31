@@ -657,6 +657,43 @@ Output: RED / YELLOW / GREEN priority report with specific extraction suggestion
 
 ---
 
+## Session Files & Auto-Execute
+
+Every major skill (`magic`, `crack`, `sprint`, `prompt`) writes two files automatically:
+
+### Session file — resume interrupted runs
+
+`~/.jsat/sessions/<skill>-<slug>-<YYYYMMDD-HHMM>.md`
+
+Tracks which steps completed. If a session times out or you interrupt it, pass `--continue` to pick up where it left off:
+
+```bash
+/jsat magic --continue        # resume most recent interrupted magic session
+/jsat crack --continue        # resume most recent interrupted crack session
+/jsat sprint --continue       # resume most recent interrupted sprint
+/jsat prompt --continue       # resume most recent interrupted prompt pipeline
+```
+
+The session file uses YAML frontmatter (`status: in_progress` / `completed`) and markdown checkboxes (`- [ ]` / `- [x]`) so it's human-readable.
+
+### Actions file — auto-execute synthesis recommendations
+
+`~/.jsat/sessions/<skill>-actions-<slug>-<YYYYMMDD-HHMM>.md`
+
+After each skill finishes its analysis and writes its synthesis, it extracts the concrete recommended actions (commands to run, files to edit with line numbers, tests to write, commits to make) and writes them to an actions file. The AI then **immediately executes** each action in sequence, marking `[x]` as it goes:
+
+```
+📋 Actions: ~/.jsat/sessions/crack-actions-redesign-payment-20260731-1430.md
+  ✅ Fix entropy threshold security.py line 112: done
+  ✅ Add .claude to IndexerConfig exclude_patterns: done
+  ✅ python -m pytest tests/ -q → 356 passed, 9 skipped: done
+✅ All actions complete: ~/.jsat/sessions/crack-actions-redesign-payment-20260731-1430.md
+```
+
+The skill recommends **and** acts — nothing falls through the cracks.
+
+---
+
 ## CLI Reference
 
 ### Core commands

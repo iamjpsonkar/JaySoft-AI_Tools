@@ -185,6 +185,9 @@ jsat crack --single "should we use Redis or Postgres for sessions?"
 |---|---|
 | `--phases N` | Number of phases (2–6, default 6 — one agent per phase) |
 | `--single` | Run all 6 agents at once (may timeout on complex tasks) |
+| `--continue` | Resume the most recent `in_progress` crack session from `~/.jsat/sessions/` |
+
+Session file written to `~/.jsat/sessions/crack-<slug>-<ts>.md`; actions file auto-executed after synthesis.
 
 ### `jsat short`
 
@@ -217,6 +220,9 @@ jsat prompt --single "what does the payment service do?"
 | `--optimize-only` | Stop after Phase 1; show optimized prompt only |
 | `--single` | Original one-shot flow (no phasing) |
 | `--phases N` | Override phase count (2–6, default 6) |
+| `--continue` | Resume the most recent `in_progress` prompt session from `~/.jsat/sessions/` |
+
+Session file written to `~/.jsat/sessions/prompt-<slug>-<ts>.md`; actions file auto-executed after Phase 6.
 
 ### `jsat magic`
 
@@ -236,6 +242,9 @@ and runs them in the optimal order.
 | `--budget N` | Explicit cap on skill invocations |
 | `--service <name>` | Scope all skills to one service |
 | `--preview` | Compose and show the plan; do not run |
+| `--continue` | Resume the most recent `in_progress` magic session from `~/.jsat/sessions/` |
+
+Session file written to `~/.jsat/sessions/magic-<slug>-<ts>.md`; actions file auto-executed after synthesis.
 
 ### `jsat plan`
 
@@ -266,7 +275,16 @@ Seven-stage delivery workflow: Think → Plan → Build → Review → Test → 
 /jsat sprint add rate limiting to the checkout API
 /jsat sprint --stage 4 add rate limiting    # resume from Review
 /jsat sprint --dry redesign auth flow
+/jsat sprint --continue                     # resume most recent interrupted sprint
 ```
+
+| Option | Description |
+|---|---|
+| `--stage N` | Start from stage N (1–7), skipping earlier stages |
+| `--dry` | Show the sprint plan without running any tools |
+| `--continue` | Resume the most recent `in_progress` sprint session from `~/.jsat/sessions/` |
+
+Session file written to `~/.jsat/sessions/sprint-<slug>-<ts>.md`; actions file auto-executed after Stage 7.
 
 ### `jsat cohesion`
 

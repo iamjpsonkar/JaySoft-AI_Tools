@@ -117,6 +117,7 @@ indexer:
     - go
   exclude_patterns:
     - .git
+    - .claude           # excludes agent worktrees created by Claude Code
     - node_modules
     - __pycache__
     - .venv

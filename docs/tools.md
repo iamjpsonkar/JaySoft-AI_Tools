@@ -129,6 +129,7 @@ The indexer was significantly optimized in v0.4.0:
 - **Batch file deletion**: incremental mode now removes stale nodes/edges for N changed files in 3 queries regardless of N (was 3×N queries)
 - **In-memory edge resolution**: builds a name→id map with 1 SELECT, resolves all edges in memory, then bulk-UPDATEs with 1 `executemany` (was 2 SQL queries per edge)
 - **Batch size**: 500 → 2000 nodes per commit (fewer transaction round-trips)
+- **`.claude` excluded by default** (v0.4.2+): `IndexerConfig.exclude_patterns` now includes `.claude`, preventing Claude Code agent worktrees from appearing in test-gap reports, security scans, and cohesion analysis
 
 ### CLI usage
 
