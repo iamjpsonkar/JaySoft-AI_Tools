@@ -1,6 +1,7 @@
 """jsat.tools.security — Tool 6: Security Review Agent."""
 from __future__ import annotations
 
+import contextlib
 import json
 import math
 import re
@@ -24,8 +25,8 @@ _SECRET_PATTERNS: dict[str, tuple[re.Pattern[str], str]] = {
     "google_api_key":       (re.compile(r'\bAIza[0-9A-Za-z\-_]{35}\b'), "high"),
     "slack_token":          (re.compile(r'\bxox[baprs]-[0-9A-Za-z\-]{10,48}\b'), "high"),
     "stripe_live_key":      (re.compile(r'\bsk_live_[0-9A-Za-z]{24}\b'), "critical"),
-    "private_key_header":   (re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'), "critical"),
-    "jwt_token":            (re.compile(r'\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.'), "medium"),
+    "private_key_header":   (re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'), "critical"),  # noqa: E501
+    "jwt_token":            (re.compile(r'\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.'), "medium"),  # noqa: E501
     "generic_token":        (re.compile(
         r'(?i)(?:api[_\-]?key|access[_\-]?token|auth[_\-]?token|secret[_\-]?key)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,64})["\']'
     ), "high"),
@@ -59,7 +60,7 @@ class SecurityTool(BaseTool):
 
         checkpoint(f"security: starting semgrep scan on '{path}'")
         findings = self._run_semgrep(path, severity_threshold, log)
-        checkpoint(f"security: semgrep done — {len(findings)} finding(s) at threshold={severity_threshold}")
+        checkpoint(f"security: semgrep done — {len(findings)} finding(s) at threshold={severity_threshold}")  # noqa: E501
 
         checkpoint(f"security: starting secret detection scan on '{path}'")
         secrets_count, secret_findings = self._detect_secrets(path, log)
@@ -128,8 +129,8 @@ class SecurityTool(BaseTool):
         from jsat._models import SecurityFinding
 
         findings: list[SecurityFinding] = []
-        entropy_threshold = 4.8   # raised from 4.5 — eliminates false positives on CLI help text / test fixtures
-        min_token_len = 24         # raised from 20 — further reduces noise from short high-entropy identifiers
+        entropy_threshold = 4.8   # raised from 4.5 — eliminates false positives on CLI help text / test fixtures  # noqa: E501
+        min_token_len = 24         # raised from 20 — further reduces noise from short high-entropy identifiers  # noqa: E501
         files_scanned = 0
         all_files = [f for f in path.rglob("*") if f.is_file() and f.suffix in _SCAN_EXTS]
         checkpoint(f"security: scanning {len(all_files)} file(s) for secrets")
@@ -142,7 +143,7 @@ class SecurityTool(BaseTool):
 
             files_scanned += 1
             if files_scanned % 50 == 0:
-                checkpoint(f"security: secret scan progress — {files_scanned}/{len(all_files)} files")
+                checkpoint(f"security: secret scan progress — {files_scanned}/{len(all_files)} files")  # noqa: E501
             for lineno, line in enumerate(lines, 1):
                 # Regex-based patterns — precise, with file + line context
                 for pattern_name, (pattern, severity) in _SECRET_PATTERNS.items():
@@ -156,7 +157,7 @@ class SecurityTool(BaseTool):
                             severity=severity,  # type: ignore[arg-type]
                             title=f"Potential secret: {pattern_name}",
                             description=f"Pattern '{pattern_name}' matched on line {lineno}",
-                            remediation="Remove secret from source. Use environment variables or a secrets manager.",
+                            remediation="Remove secret from source. Use environment variables or a secrets manager.",  # noqa: E501
                             rule_id=f"jsat.secret.{pattern_name}",
                         ))
                 # Entropy fallback for unlabelled high-entropy tokens
@@ -168,7 +169,7 @@ class SecurityTool(BaseTool):
                             category="secret_detection",
                             severity="medium",
                             title="High-entropy token",
-                            description=f"Token of length {len(tok)} with entropy {_entropy(tok):.2f}",
+                            description=f"Token of length {len(tok)} with entropy {_entropy(tok):.2f}",  # noqa: E501
                             remediation="Verify this is not a hardcoded secret.",
                             rule_id="jsat.secret.high_entropy",
                         ))
@@ -226,10 +227,8 @@ class SecurityTool(BaseTool):
                     cvss = 0.0
                     for sev in vuln.get("severity", []):
                         if sev.get("type") == "CVSS_V3":
-                            try:
+                            with contextlib.suppress(ValueError, TypeError):
                                 cvss = float(sev.get("score", 0))
-                            except (ValueError, TypeError):
-                                pass
                     sev_label = (
                         "critical" if cvss >= 9.0 else
                         "high" if cvss >= 7.0 else

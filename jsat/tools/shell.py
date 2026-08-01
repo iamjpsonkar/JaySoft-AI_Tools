@@ -756,7 +756,7 @@ class JSATShell:
 
                 context = "\n".join(ctx_lines)
                 return (
-                    "You are an expert software engineer with access to this codebase's graph index.\n"
+                    "You are an expert software engineer with access to this codebase's graph index.\n"  # noqa: E501
                     "The context below shows what is actually indexed — reference specific "
                     "service names, endpoints, and functions from it. If the context does not "
                     "contain the answer, say so rather than guessing.\n\n"

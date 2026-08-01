@@ -236,7 +236,10 @@ class OrchestratorTool(BaseTool):
             decomposed = [(a, s) for a, s in decomposed if a in requested]
 
         agent_names = [a for a, _ in decomposed]
-        checkpoint(f"orchestrator: decomposed into {len(decomposed)} subtasks — agents={agent_names}")
+        checkpoint(
+            f"orchestrator: decomposed into {len(decomposed)} subtasks "
+            f"— agents={agent_names}"
+        )
 
         results: list[SubtaskResult] = []
         context = ""

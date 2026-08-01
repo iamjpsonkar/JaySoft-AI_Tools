@@ -136,7 +136,7 @@ def _ai_extract_entities(ai: Any, text: str) -> tuple[list[Entity], list[Relatio
         "Prefer FUNCTION for method names, SERVICE for microservices, "
         "FILE for .py/.go/.ts paths, CONCEPT for design patterns.\n"
         "Return ONLY valid JSON (no markdown fences):\n"
-        '{"entities": [{"name": str, "type": "SERVICE|FILE|FUNCTION|CONCEPT|PERSON|TEAM|OTHER", "raw": str}],'
+        '{"entities": [{"name": str, "type": "SERVICE|FILE|FUNCTION|CONCEPT|PERSON|TEAM|OTHER", "raw": str}],'  # noqa: E501
         ' "relations": [{"source": str, "target": str,'
         ' "rel": "USES|OWNS|CALLS|DOCUMENTS|RELATED_TO|DEPENDS_ON"}]}\n'
         f"TEXT:\n{text[:2000]}"

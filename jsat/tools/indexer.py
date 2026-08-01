@@ -9,6 +9,7 @@ Enhancements over v0.1.x:
 """
 from __future__ import annotations
 
+import contextlib
 import os
 import time
 from collections.abc import Generator
@@ -120,7 +121,7 @@ class IndexerTool(BaseTool):
                 lang_map[fpath] = lang
         checkpoint(f"indexer: {len(lang_map)} file(s) identified for parsing ({workers} workers)")
 
-        checkpoint(f"indexer: submitting parse jobs to thread pool")
+        checkpoint("indexer: submitting parse jobs to thread pool")
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futs = {pool.submit(_parse_file, fpath, Path(path), lang): fpath
                     for fpath, lang in lang_map.items()}
@@ -146,7 +147,10 @@ class IndexerTool(BaseTool):
 
                 if len(batch_nodes) >= BATCH:
                     batch_flush_count += 1
-                    checkpoint(f"indexer: flushing batch {batch_flush_count} ({len(batch_nodes)} nodes) to graph")
+                    checkpoint(
+                        f"indexer: flushing batch {batch_flush_count} "
+                        f"({len(batch_nodes)} nodes) to graph"
+                    )
                     self._graph.bulk_add_nodes(batch_nodes)   # type: ignore[attr-defined]
                     self._graph.bulk_add_edges(batch_edges)   # type: ignore[attr-defined]
                     self._graph.commit()                       # type: ignore[attr-defined]
@@ -165,7 +169,10 @@ class IndexerTool(BaseTool):
 
         # ── Symbol resolution pass ────────────────────────────────────────────
         if files_done > 0:
-            checkpoint(f"indexer: running symbol resolution pass ({nodes_total} nodes, {edges_total} edges)")
+            checkpoint(
+                f"indexer: running symbol resolution pass "
+                f"({nodes_total} nodes, {edges_total} edges)"
+            )
         resolved = self._resolve_edges() if files_done > 0 else 0
         if files_done > 0:
             checkpoint(f"indexer: symbol resolution done — {resolved} edge(s) resolved")
@@ -303,20 +310,16 @@ class IndexerTool(BaseTool):
                 except Exception as exc:
                     log.warning("edge_resolution_bulk_failed", error=str(exc), fallback="serial")
                     for row in updates:
-                        try:
+                        with contextlib.suppress(Exception):
                             self._graph.query(  # type: ignore[attr-defined]
                                 "UPDATE edges SET target_id = ? WHERE id = ?", row
                             )
-                        except Exception:
-                            pass
             else:
                 for row in updates:
-                    try:
+                    with contextlib.suppress(Exception):
                         self._graph.query(  # type: ignore[attr-defined]
                             "UPDATE edges SET target_id = ? WHERE id = ?", row
                         )
-                    except Exception:
-                        pass
 
         resolved = len(updates)
         log.info("edge_resolution_done", resolved=resolved, candidates_built=len(name_map))

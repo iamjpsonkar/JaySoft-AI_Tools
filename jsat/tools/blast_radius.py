@@ -64,7 +64,7 @@ class BlastRadiusTool(BaseTool):
             start_ids = list(dict.fromkeys(start_ids))  # deduplicate, preserve order
             checkpoint(f"blast_radius: {len(start_ids)} total start nodes after dedup")
 
-        checkpoint(f"blast_radius: starting BFS from {len(start_ids)} node(s), max_depth={max_depth}")
+        checkpoint(f"blast_radius: starting BFS from {len(start_ids)} node(s), max_depth={max_depth}")  # noqa: E501
         impacts: list[ImpactItem] = []
         visited: set[str] = set(start_ids)
         last_depth = -1

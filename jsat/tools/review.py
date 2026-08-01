@@ -367,7 +367,7 @@ class ReviewTool(BaseTool):
 
         provider_labels = [lbl for lbl, _ in providers]
         log.info("review_dispatch", providers=provider_labels)
-        checkpoint(f"review: dispatching to {len(providers)} model(s): {', '.join(provider_labels)}")
+        checkpoint(f"review: dispatching to {len(providers)} model(s): {', '.join(provider_labels)}")  # noqa: E501
 
         # ── 4. Parallel dispatch ──────────────────────────────────────────────
         all_raw: list[tuple[str, dict]] = []
@@ -384,7 +384,7 @@ class ReviewTool(BaseTool):
                     result_label, findings = future.result(timeout=timeout)
                     successful_models.append(result_label)
                     all_raw.extend((result_label, f) for f in findings)
-                    checkpoint(f"review: model '{result_label}' done — {len(findings)} raw finding(s)")
+                    checkpoint(f"review: model '{result_label}' done — {len(findings)} raw finding(s)")  # noqa: E501
                     log.debug(
                         "review_future_collected",
                         label=label,

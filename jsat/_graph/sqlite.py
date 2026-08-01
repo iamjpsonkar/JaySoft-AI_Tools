@@ -114,7 +114,7 @@ class SQLiteGraph(GraphClient):
                     visited.add(target_id)
                     queue.append((target_id, depth + 1, path + [edge_type]))
 
-    def query(self, cypher_like: str, params: list[Any] | dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    def query(self, cypher_like: str, params: list[Any] | dict[str, Any] | None = None) -> list[dict[str, Any]]:  # noqa: E501
         s = cypher_like.strip()
         upper = s.upper()
         # Normalize params: always produce a list for positional ? placeholders

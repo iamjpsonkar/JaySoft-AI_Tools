@@ -49,7 +49,10 @@ class IncidentTool(BaseTool):
         hypotheses: list[Hypothesis] = []
         for i, commit in enumerate(capped, 1):
             if i == 1 or i % 5 == 0:
-                checkpoint(f"incident: scoring commit {i}/{len(capped)} — {commit['hash'][:8]} {commit['summary'][:50]}")
+                checkpoint(
+                    f"incident: scoring commit {i}/{len(capped)} — "
+                    f"{commit['hash'][:8]} {commit['summary'][:50]}"
+                )
             score = self._score(commit, description, commits)
             hypotheses.append(Hypothesis(
                 score=round(score, 3),
@@ -111,7 +114,7 @@ class IncidentTool(BaseTool):
             structlog.get_logger(__name__).warning("incident_git_error", error=str(e))
             return []
 
-    def _score(self, commit: dict, description: str, all_commits: list[dict] | None = None) -> float:
+    def _score(self, commit: dict, description: str, all_commits: list[dict] | None = None) -> float:  # noqa: E501
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc)
         authored = commit.get("authored_datetime", now)
@@ -157,7 +160,7 @@ class IncidentTool(BaseTool):
         summary_words = set(commit["summary"].lower().split())
         matched = desc_words & summary_words
         if matched:
-            ev.append(f"Keyword overlap with incident description: {', '.join(sorted(matched)[:5])}")
+            ev.append(f"Keyword overlap with incident description: {', '.join(sorted(matched)[:5])}")  # noqa: E501
         return ev
 
     def _mitigations(self, top: list) -> list[str]:

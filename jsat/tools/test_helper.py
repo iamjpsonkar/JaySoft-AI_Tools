@@ -1,6 +1,7 @@
 """jsat.tools.test_helper — Tool 2: Test Intelligence Helper."""
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -117,10 +118,8 @@ class TestHelperTool(BaseTool):
             # Build set of function names referenced in test files
             test_content = ""
             for tfile in test_files[:50]:
-                try:
+                with contextlib.suppress(Exception):
                     test_content += tfile.read_text(errors="ignore")
-                except Exception:
-                    pass
             tested = sum(
                 1 for r in rows
                 if (r.get("properties") or {}).get("name", "") in test_content

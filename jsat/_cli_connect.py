@@ -13,10 +13,8 @@ from ._cli_common import (
     _jsat_binary,
     _read_json,
     _write_json,
-    app,
     connect_app,
     console,
-    err,
 )
 from ._cli_skills_data import _JSAT_SKILLS, _write_bob_commands, _write_jsat_dispatcher
 

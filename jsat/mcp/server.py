@@ -11,7 +11,8 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
-from jsat._call_context import _call_ctx, checkpoint as _budget_checkpoint  # noqa: F401
+from jsat._call_context import _call_ctx  # noqa: F401
+from jsat._call_context import checkpoint as _budget_checkpoint
 
 if TYPE_CHECKING:
     from jsat._core import JSAT
@@ -402,12 +403,10 @@ class MCPServer:
             _dash_finish = None      # type: ignore[assignment]
             _dash_session_done = None  # type: ignore[assignment]
             if _use_dashboard:
-                from jsat.mcp.dashboard import (
-                    finish_call as _dash_finish,
-                    push_call_event as _dash_push_fn,
-                    session_done as _dash_session_done,
-                    start_dashboard,
-                )
+                from jsat.mcp.dashboard import finish_call as _dash_finish
+                from jsat.mcp.dashboard import push_call_event as _dash_push_fn
+                from jsat.mcp.dashboard import session_done as _dash_session_done
+                from jsat.mcp.dashboard import start_dashboard
                 dash_port = int(os.environ.get("JSAT_DASHBOARD_PORT", "7432"))
                 dash_url, _open_browser = start_dashboard(
                     _dashboard_session_name, _call_id, name, _parent_call_id, dash_port

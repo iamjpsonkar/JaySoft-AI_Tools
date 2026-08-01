@@ -175,7 +175,7 @@ class MigrationTool(BaseTool):
 
         # Multiple locking operations in one migration
         raw_ops = self._parse(sql)
-        dangerous = [op for _, op in raw_ops if op in ("ALTER TABLE ALTER COLUMN", "CREATE UNIQUE", "DROP TABLE")]
+        dangerous = [op for _, op in raw_ops if op in ("ALTER TABLE ALTER COLUMN", "CREATE UNIQUE", "DROP TABLE")]  # noqa: E501
         if len(dangerous) > 1:
             issues.append(
                 f"{len(dangerous)} locking operations in a single migration — "
@@ -183,12 +183,12 @@ class MigrationTool(BaseTool):
             )
 
         # FK without accompanying index
-        if re.search(r"\bREFERENCES\b", sql, re.IGNORECASE):
-            if not re.search(r"\bCREATE\s+INDEX\b", sql, re.IGNORECASE):
-                issues.append(
-                    "Foreign key reference detected without a corresponding index — "
-                    "add an index on the FK column to avoid sequential scans."
-                )
+        if (re.search(r"\bREFERENCES\b", sql, re.IGNORECASE)
+                and not re.search(r"\bCREATE\s+INDEX\b", sql, re.IGNORECASE)):
+            issues.append(
+                "Foreign key reference detected without a corresponding index — "
+                "add an index on the FK column to avoid sequential scans."
+            )
 
         return issues
 

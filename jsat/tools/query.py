@@ -105,7 +105,9 @@ class QueryTool(BaseTool):
                 "SELECT id, properties FROM nodes WHERE label = 'Function'", {}
             )
             checkpoint(f"query: {len(fn_rows)} functions — filtering by relevance")
-            relevant_fns = [r for r in fn_rows if self._is_relevant(r.get("properties") or {}, keywords)]
+            relevant_fns = [
+                r for r in fn_rows if self._is_relevant(r.get("properties") or {}, keywords)
+            ]
             checkpoint(f"query: {len(relevant_fns)} relevant functions")
             for row in relevant_fns[:20]:
                 props = row.get("properties") or {}
@@ -132,7 +134,9 @@ class QueryTool(BaseTool):
                 "SELECT id, properties FROM nodes WHERE label = 'Class'", {}
             )
             checkpoint(f"query: {len(cls_rows)} classes — filtering by relevance")
-            relevant_cls = [r for r in cls_rows if self._is_relevant(r.get("properties") or {}, keywords)]
+            relevant_cls = [
+                r for r in cls_rows if self._is_relevant(r.get("properties") or {}, keywords)
+            ]
             checkpoint(f"query: {len(relevant_cls)} relevant classes")
             for row in relevant_cls[:10]:
                 props = row.get("properties") or {}

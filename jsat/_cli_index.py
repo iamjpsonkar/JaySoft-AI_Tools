@@ -10,7 +10,6 @@ from pathlib import Path
 import structlog
 import typer
 from rich import box
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
