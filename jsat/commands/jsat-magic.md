@@ -61,7 +61,9 @@ Prefer narrow fast skills before heavy ones (crack, sprint only if genuinely com
   LAYER 6 — Record (at end, for operational or architectural work):
     decide log, reflect, knowledge-add, runbook
 
-If --service was given, scope all Layer 1-5 skills to that service.
+If --service was given, pass service_filter=<name> (or service=<name> where supported)
+to ALL Layer 1-5 tool calls: blast_radius, query, test-gaps, coverage, security, incident.
+This is the primary mechanism for preventing timeouts on large repos.
 
 Announce the composed plan before running:
   "✨ Magic Plan (<N> skills, <depth> depth):"
@@ -109,9 +111,17 @@ For each selected skill in layer order:
   6. Update session file: change "- [ ] <skill>" → "- [x] <skill> (finding: <1-sentence>)"
      and append to ## Findings: "**<skill>:** <1-sentence finding>"
 
-Timeout handling: if any skill returns "[AI unavailable]" or times out:
-  - Retry with --service <most relevant service> to narrow scope
-  - Or skip and note: "(timed out — answer based on available data)"
+Timeout handling: all JSAT tools have hierarchical per-tool budgets (60s top-level,
+halved at each sub-level, max 7 nested calls). When a tool returns a ⏱ TIMEOUT or
+🔁 DEPTH EXCEEDED marker in its response:
+  1. Read the "💡 Suggestion" line — it tells you exactly how to retry with smaller scope
+  2. Read the "🤖 AI Guidance" line — it tells you whether to retry, wait, or split
+  3. Act: either re-call with service_filter + reduced max_depth, OR skip this step
+     and note: "(timed out — answer based on available data)"
+  4. If still timing out: break the task into separate /jsat magic calls, one per service
+
+Blast-radius calls in magic default to max_depth=3 (not 5). Pass --depth deep to the
+blast-radius sub-call if you need deeper traversal on a fast repo.
 
 ## Step 4 — Synthesize
 

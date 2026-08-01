@@ -39,6 +39,11 @@ class SQLiteGraph(GraphClient):
         self._conn.execute("PRAGMA temp_store=MEMORY;")     # temp tables in RAM
         self._conn.execute("PRAGMA mmap_size=268435456;")   # 256 MB memory-mapped I/O
         self._conn.execute("PRAGMA foreign_keys=ON;")
+        # Allow up to 5s waiting on a locked DB before raising OperationalError.
+        # Also register a no-op progress handler so Python's thread interrupt mechanism
+        # (KeyboardInterrupt / thread cancellation) can surface during long queries.
+        self._conn.execute("PRAGMA busy_timeout=5000;")
+        self._conn.set_progress_handler(lambda: None, 10_000)
         self._create_schema()
         self._conn.commit()
 

@@ -1,16 +1,147 @@
 """jsat.mcp.server — MCP (Model Context Protocol) server. v0.2: 30+ tools, RBAC, metrics."""
 from __future__ import annotations
 
+import concurrent.futures
 import contextlib
 import hmac
 import json
 import os
 import sys
+import threading
 import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jsat._core import JSAT
+
+# ── Hierarchical timeout budgets ──────────────────────────────────────────────
+# Each MCP tool call runs in a thread with a hard per-tool deadline.
+# Sub-operations inside a tool get half the parent's remaining budget.
+# Nested call depth is tracked; anything beyond _MAX_CALL_DEPTH is rejected
+# with guidance for the AI to break the work into separate smaller tasks.
+#
+# Hierarchy (seconds):  main(60) → sub(30) → sub-sub(15) → ... → depth-7 = break
+_MAX_CALL_DEPTH: int = 7
+
+_TOOL_BUDGETS: dict[str, float] = {
+    "blast_radius":        30.0,
+    "blast_radius_diff":   30.0,
+    "blast_radius_symbol": 25.0,
+    "get_consumers":       20.0,
+    "query":               45.0,
+    "short":               30.0,
+    "crack":               55.0,
+    "submit_for_review":   45.0,
+    "get_review_findings": 40.0,
+    "generate_unit_test":  40.0,
+    "security_review":     40.0,
+    "_default":            60.0,
+}
+
+_TIMEOUT_SUGGESTIONS: dict[str, str] = {
+    "blast_radius": (
+        "Add service_filter='<service>' to scope traversal, or reduce max_depth. "
+        "Example: blast_radius(target='...', max_depth=2, service_filter='payments')"
+    ),
+    "blast_radius_diff":  "Pass a specific file path in the diff, or reduce max_depth=2.",
+    "get_consumers":      "Use a more specific target symbol name to reduce edge scan size.",
+    "query": (
+        "Add service='<name>' to scope graph context. "
+        "Example: query(question='...', service='payments')"
+    ),
+    "security_review":    "Scope to a subdirectory: security_review(path='src/payment/')",
+    "crack": (
+        "Run with a single role: crack(task='...', roles=['architect']). "
+        "Or break the task into smaller focused questions."
+    ),
+    "_default":           "Scope to a specific service or file path to reduce graph traversal.",
+}
+
+# Thread-local context: tracks depth, deadline, and event log for each tool call.
+_call_ctx = threading.local()
+
+
+def _budget_checkpoint(label: str) -> None:
+    """Record a named progress step — surfaced in timeout messages."""
+    events: list | None = getattr(_call_ctx, "events", None)
+    if events is not None:
+        events.append(label)
+
+
+def _budget_timed_out() -> bool:
+    """True if the current call's sub-budget has expired."""
+    sub_deadline: float | None = getattr(_call_ctx, "sub_deadline", None)
+    return sub_deadline is not None and time.monotonic() > sub_deadline
+
+
+def _budget_depth() -> int:
+    """Return the current call nesting depth (0 = top-level MCP tool call)."""
+    return getattr(_call_ctx, "depth", 0)
+
+
+def _timeout_response(tool: str, budget_s: float, elapsed_s: float,
+                      completed: str = "") -> dict:
+    """Structured timeout payload the AI can read and act on."""
+    suggestion = _TIMEOUT_SUGGESTIONS.get(tool, _TIMEOUT_SUGGESTIONS["_default"])
+    events: list = getattr(_call_ctx, "events", [])[-5:]
+    return {
+        "_timeout": True,
+        "tool": tool,
+        "budget_s": budget_s,
+        "elapsed_s": elapsed_s,
+        "completed": completed,
+        "last_events": events,
+        "suggestion": suggestion,
+        "ai_guidance": (
+            f"Tool '{tool}' exceeded its {budget_s}s budget (elapsed: {elapsed_s}s). "
+            + (f"Completed before cut: {completed}. " if completed else "")
+            + suggestion
+            + " Decide: (a) retry with narrower scope, "
+            "(b) split into smaller tasks, or (c) skip and proceed with available data."
+        ),
+    }
+
+
+def _depth_exceeded_response(tool: str, depth: int) -> dict:
+    """Returned when call nesting exceeds _MAX_CALL_DEPTH."""
+    return {
+        "_depth_exceeded": True,
+        "tool": tool,
+        "depth": depth,
+        "max_depth": _MAX_CALL_DEPTH,
+        "ai_guidance": (
+            f"Tool '{tool}' reached call nesting depth {depth} (max: {_MAX_CALL_DEPTH}). "
+            "Break this work into separate, smaller tasks and call each independently. "
+            "This prevents deadlocks and keeps individual calls within manageable scope."
+        ),
+    }
+
+
+def _format_timeout_text(result: dict) -> str:
+    """Format a timeout or depth-exceeded result as readable text for the AI."""
+    if result.get("_depth_exceeded"):
+        return (
+            f"🔁 DEPTH EXCEEDED: Tool '{result['tool']}' reached call depth "
+            f"{result['depth']}/{result['max_depth']}.\n\n"
+            f"🤖 {result['ai_guidance']}"
+        )
+    lines = [
+        f"⏱ TIMEOUT: Tool '{result['tool']}' exceeded {result['budget_s']}s budget "
+        f"(elapsed: {result['elapsed_s']}s).",
+        "",
+    ]
+    if result.get("completed"):
+        lines.append(f"✅ Completed before cut: {result['completed']}")
+    if result.get("last_events"):
+        lines.append("📍 Last operations:")
+        for ev in result["last_events"]:
+            lines.append(f"  · {ev}")
+        lines.append("")
+    lines.append(f"💡 Suggestion: {result['suggestion']}")
+    lines.append("")
+    lines.append(f"🤖 AI Guidance: {result['ai_guidance']}")
+    return "\n".join(lines)
+
 
 # ── Role definitions ──────────────────────────────────────────────────────────
 # viewer  : read-only tools (query, get_*, list_*, knowledge_query, health, status)
@@ -240,11 +371,25 @@ class MCPServer:
                 }
                 print(json.dumps(notif), flush=True)
 
+            budget = _TOOL_BUDGETS.get(name, _TOOL_BUDGETS["_default"])
             t0 = time.monotonic()
             error_occurred = False
+            pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             try:
-                result = self._call(name, args, _notify=_notify)
-                text = result if isinstance(result, str) else json.dumps(result, default=str)
+                future = pool.submit(self._call, name, args, _notify)
+                try:
+                    result = future.result(timeout=budget)
+                except concurrent.futures.TimeoutError:
+                    elapsed = round(time.monotonic() - t0, 1)
+                    result = _timeout_response(name, budget, elapsed)
+                    self._log.warning("mcp_tool_timeout", name=name,
+                                      budget_s=budget, elapsed_s=elapsed)
+                if isinstance(result, dict) and (
+                    result.get("_timeout") or result.get("_depth_exceeded")
+                ):
+                    text = _format_timeout_text(result)
+                else:
+                    text = result if isinstance(result, str) else json.dumps(result, default=str)
                 return {"jsonrpc": "2.0", "id": id_,
                         "result": {"content": [{"type": "text", "text": text}]}}
             except Exception as e:
@@ -253,6 +398,7 @@ class MCPServer:
                 return {"jsonrpc": "2.0", "id": id_,
                         "error": {"code": -32603, "message": str(e)}}
             finally:
+                pool.shutdown(wait=False)  # don't block on timed-out threads
                 elapsed_ms = (time.monotonic() - t0) * 1000
                 self._record_metric(name, elapsed_ms, error=error_occurred)
 
@@ -327,10 +473,24 @@ class MCPServer:
     def _call(self, name: str, args: dict, _notify=None) -> Any:
         if name not in self._registry:
             raise ValueError(f"Unknown tool: {name}")
-        # Inject _notify so handlers that support progress can call it
-        if _notify is not None:
-            args = dict(args, _notify=_notify)
-        return self._registry[name]["handler"](args)
+        # Track and enforce call nesting depth
+        depth = getattr(_call_ctx, "depth", 0)
+        if depth >= _MAX_CALL_DEPTH:
+            self._log.warning("mcp_call_depth_exceeded", tool=name, depth=depth)
+            return _depth_exceeded_response(name, depth)
+        _call_ctx.depth = depth + 1
+        # Initialize thread-local budget context (sub-deadline = half the tool's budget)
+        _call_ctx.events = []
+        _call_ctx.sub_deadline = (
+            time.monotonic() + _TOOL_BUDGETS.get(name, _TOOL_BUDGETS["_default"]) * 0.5
+        )
+        try:
+            # Inject _notify so handlers that support progress can call it
+            if _notify is not None:
+                args = dict(args, _notify=_notify)
+            return self._registry[name]["handler"](args)
+        finally:
+            _call_ctx.depth = depth  # restore depth on return
 
     # ── Registry ──────────────────────────────────────────────────────────────
 
@@ -507,15 +667,22 @@ class MCPServer:
             "blast_radius": {
                 "description": (
                     "Trace every downstream component affected by a change to a file or symbol. "
-                    "Returns a severity-ranked list: breaking / degraded / warning / safe."
+                    "Returns a severity-ranked list: breaking / degraded / warning / safe. "
+                    "Use service_filter on large repos to scope results and avoid timeouts."
                 ),
                 "schema": {"type": "object", "required": ["target"],
                            "properties": {
                                "target": {"type": "string",
                                           "description": "File path or symbol name"},
-                               "max_depth": {"type": "integer", "default": 5}}},
-                "handler": lambda a: _ser(js.blast_radius(  # type: ignore[attr-defined]
-                    target=a["target"], max_depth=a.get("max_depth", 5))),
+                               "max_depth": {"type": "integer", "default": 3,
+                                             "description": "BFS depth (default 3, max 5). "
+                                                            "Lower values prevent timeouts on large repos."},
+                               "service_filter": {"type": "string",
+                                                  "description": "Only return impacts whose file path "
+                                                                 "contains this string (e.g. 'payment')"}}},
+                "handler": lambda a: _ser(_blast_radius_filtered(
+                    js, a["target"], a.get("max_depth", 3), a.get("service_filter")
+                )),
             },
             "blast_radius_diff": {
                 "description": (
@@ -546,14 +713,17 @@ class MCPServer:
             "get_consumers": {
                 "description": (
                     "Find all nodes that CONSUMES or CALLS a given target "
-                    "(endpoint, topic, function, or service)."
+                    "(endpoint, topic, function, or service). "
+                    "Capped at max_consumers to prevent full-table scan on large graphs."
                 ),
                 "schema": {"type": "object", "required": ["target"],
                            "properties": {
                                "target": {"type": "string",
-                                          "description": "Target symbol, endpoint, or topic"}}},
+                                          "description": "Target symbol, endpoint, or topic"},
+                               "max_consumers": {"type": "integer", "default": 200,
+                                                 "description": "Cap on returned results (default 200)"}}},
                 "handler": lambda a: _ser(
-                    _get_consumers_impl(js, a["target"])
+                    _get_consumers_impl(js, a["target"], a.get("max_consumers", 200))
                 ),
             },
 
@@ -1406,19 +1576,73 @@ def _blast_radius_diff_impl(js: object, diff: str, max_depth: int) -> object:
         return {"error": str(e)}
 
 
-def _get_consumers_impl(js: object, target: str) -> list[dict]:
-    """Find nodes that CONSUMES or CALLS the given target."""
+def _blast_radius_filtered(js: object, target: str, max_depth: int,
+                           service_filter: str | None) -> object:
+    """Run blast_radius with optional post-filter to a service namespace."""
     import structlog
     log = structlog.get_logger(__name__)
-    log.info("get_consumers", target=target)
+    _budget_checkpoint(f"blast_radius: target={target[:50]}, depth={max_depth}")
+    log.info("blast_radius_filtered", target=target, max_depth=max_depth,
+             service_filter=service_filter)
+    try:
+        result = js.blast_radius(target=target, max_depth=max_depth)  # type: ignore[attr-defined]
+        if not service_filter:
+            _budget_checkpoint(f"blast_radius done: {len(getattr(result, 'impacts', []))} impacts")
+            return result
+        svc = service_filter.lower()
+        filtered = [
+            i for i in result.impacts
+            if svc in (i.file or "").lower() or svc in i.node_name.lower()
+        ]
+        summary = {k: sum(1 for i in filtered if i.severity == k)
+                   for k in ("breaking", "degraded", "warning", "safe")}
+        _budget_checkpoint(f"blast_radius filtered: {len(filtered)}/{len(result.impacts)} impacts")
+        log.info("blast_radius_filtered_done", total=len(result.impacts),
+                 filtered=len(filtered), service_filter=service_filter)
+        return {
+            "target": result.target,
+            "service_filter": service_filter,
+            "impacts": [i.__dict__ if hasattr(i, "__dict__") else i for i in filtered],
+            "summary": summary,
+            "total_unfiltered": len(result.impacts),
+            "duration_ms": result.duration_ms,
+        }
+    except Exception as e:
+        log.error("blast_radius_filtered_error", error=str(e))
+        return {"error": str(e)}
+
+
+def _get_consumers_impl(js: object, target: str, max_consumers: int = 200) -> list[dict] | dict:
+    """Find nodes that CONSUMES or CALLS the given target (capped to prevent full-table scan)."""
+    import structlog
+    log = structlog.get_logger(__name__)
+    log.info("get_consumers", target=target, max_consumers=max_consumers)
     _CONSUMER_EDGE_TYPES = frozenset({"CONSUMES", "CALLS"})
     try:
         g = js._get_graph()  # type: ignore[attr-defined]
+        _budget_checkpoint("get_consumers: fetching edges from graph")
         edges = g.edges(edge_types=list(_CONSUMER_EDGE_TYPES))  # type: ignore[attr-defined]
-        consumers = [
-            e for e in edges
-            if target.lower() in str(e.get("target", "")).lower()
-        ]
+        # Pre-cap before Python-side filter to bound memory on large graphs
+        edges = edges[: max_consumers * 5]
+        consumers: list[dict] = []
+        for e in edges:
+            if _budget_timed_out() and len(consumers) >= 10:
+                log.warning("get_consumers_sub_budget_exceeded",
+                            found=len(consumers), target=target)
+                return {
+                    "consumers": consumers,
+                    "_timeout_context": {
+                        "timed_out": True,
+                        "operation": "consumer edge scan",
+                        "found": len(consumers),
+                        "suggestion": "Use a more specific target symbol name.",
+                    },
+                }
+            if target.lower() in str(e.get("target", "")).lower():
+                consumers.append(e)
+                if len(consumers) >= max_consumers:
+                    log.info("get_consumers_capped", cap=max_consumers)
+                    break
         log.info("get_consumers_done", target=target, consumer_count=len(consumers))
         return consumers
     except Exception as e:
