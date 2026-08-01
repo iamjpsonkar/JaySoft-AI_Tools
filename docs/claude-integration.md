@@ -12,6 +12,7 @@ When you run `jsat connect claude`, JSAT:
 
 1. Writes an MCP server entry into `.claude/settings.json` (or `~/.claude/settings.json` for global scope)
 2. Installs the `/jsat` dispatcher skill file (`~/.claude/commands/jsat.md`) containing all 39 subcommands
+3. Installs `/jsat-help` as a standalone skill file (`~/.claude/commands/jsat-help.md`)
 
 Claude Code reads these on startup, starts the `jsat mcp-server` process, and makes all JSAT tools available during your session.
 
@@ -37,7 +38,7 @@ jsat connect claude --scope global
 
 ### Without slash commands
 
-Connect the MCP server only, skip installing `/jsat-*` skill files:
+Connect the MCP server only, skip installing `/jsat` and `/jsat-help` skill files:
 
 ```bash
 jsat connect claude --no-skills
@@ -82,6 +83,8 @@ A single `/jsat` dispatcher is installed into Claude Code when you run `jsat con
 | **Record** | `decide log`, `reflect`, `knowledge-add`, `runbook` |
 | **Tokens** | `tokens`, `token-budget`, `prompt-diff`, `prompt-rewrite` |
 | **Index** | `index`, `ithinking` |
+
+> **`/jsat-help`** is a separate command (not a subcommand of `/jsat`): `/jsat-help` lists all 39 with one-liners; `/jsat-help <command>` shows full flags and examples for that command.
 
 ### Common examples
 
@@ -161,9 +164,24 @@ MCP tools for programmatic use:
 
 ---
 
+## MCP Server Authentication
+
+The MCP server runs locally over stdin/stdout and defaults to **open access with a startup warning** when no auth env vars are set. `jsat connect claude` automatically sets `JSAT_MCP_ALLOW_INSECURE=1` in the server environment to silence the warning for local dev.
+
+| Env var | Effect |
+|---------|--------|
+| *(none)* | Open access — all tools available, warning logged at startup |
+| `JSAT_MCP_ALLOW_INSECURE=1` | Open access, warning silenced (set automatically by `jsat connect claude`) |
+| `JSAT_MCP_TOKEN=<secret>` | Enforce single-token auth — callers must pass this token |
+| `JSAT_MCP_TOKEN_ROLES=<json>` | RBAC: `{"token": "role"}` — roles are `admin`, `developer`, `viewer` |
+
+To enforce auth, export `JSAT_MCP_TOKEN` or `JSAT_MCP_TOKEN_ROLES` in your shell before starting Claude Code.
+
+---
+
 ## MCP Tools
 
-In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced `jsat__*`. JSAT defines 47 tool slots; 17 are currently wired and active in the MCP server.
+In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced `jsat__*`.
 
 ### Index and graph tools
 

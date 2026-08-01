@@ -215,9 +215,11 @@ jsat disconnect gemini                     # Gemini CLI
 jsat disconnect all                        # every tool at once
 ```
 
-### Claude Code — slash commands (34 total)
+### Claude Code — slash commands (39 subcommands + `/jsat-help`)
 
-`jsat connect claude` installs a single `/jsat` dispatcher with 34 subcommands, organized by category:
+`jsat connect claude` installs two slash commands:
+- `/jsat <subcommand>` — 39 subcommands organized by category (see table below)
+- `/jsat-help [command]` — no args lists all commands; `/jsat-help magic` shows full flags and examples for that command
 
 **Graph exploration**
 | Command | What it does |
@@ -279,6 +281,12 @@ jsat disconnect all                        # every tool at once
 | `/jsat smart <question>` | Terse compressed answer, filler stripped |
 | `/jsat lazy <task>` | Reuse-first planning — 5-rung ladder before suggesting new code |
 | `/jsat aw <task>` | Workflow advisor — classify task, run optimal tool sequence |
+
+**Help**
+| Command | What it does |
+|---|---|
+| `/jsat-help` | List all 39 commands with one-liner descriptions |
+| `/jsat-help <command>` | Full description, flags, and examples for a specific command (e.g. `/jsat-help magic`) |
 
 ### Open Claude with JSAT context pre-loaded
 

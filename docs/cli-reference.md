@@ -385,7 +385,7 @@ JSAT works as an MCP server with any AI tool that supports the Model Context Pro
 
 ### `jsat connect claude`
 
-Wire JSAT into Claude Code as an MCP server and install 31 `/jsat-*` slash commands.
+Wire JSAT into Claude Code as an MCP server and install the `/jsat` dispatcher (39 subcommands) and `/jsat-help`.
 
 ```
 jsat connect claude [OPTIONS]
@@ -411,24 +411,40 @@ Restart Claude Code after running.
 
 ### `/jsat` dispatcher
 
-`jsat connect claude` installs a single `/jsat` dispatcher command rather than 34 individual
-`/jsat-*` commands. All 34 skills are accessible as subcommands:
+`jsat connect claude` installs two commands:
+
+- **`/jsat <subcommand>`** — single dispatcher routing to all 39 skills
+- **`/jsat-help [command]`** — standalone help command; no args lists all 39 commands with one-liners; `/jsat-help <command>` shows full flags and examples
 
 ```bash
-/jsat help               # list all 34 subcommands with descriptions
+/jsat-help               # list all 39 subcommands with descriptions
+/jsat-help magic         # full flags and examples for /jsat magic
 /jsat query <question>   # answer codebase questions (6-phase Discuss→Verify)
 /jsat crack <task>       # multi-agent war room (artifact carry-forward)
 /jsat aw <task>          # workflow advisor (classify + run optimal sequence)
 /jsat lazy <task>        # reuse-first: check what exists before writing new code
 /jsat smart <question>   # terse mode: compressed answers, no filler
 /jsat security [path]    # OWASP scan + CVE check + secret detection
-/jsat blast <target>     # blast radius analysis
+/jsat blast-radius <target>  # blast radius analysis
 /jsat review <diff>      # multi-model code review
 ```
 
 Skill files are bundled in the JSAT package at `jsat/commands/jsat-*.md` and read
 directly by `_write_jsat_dispatcher()` when `jsat connect claude` runs. Updates to
 skill files are picked up automatically on next `jsat connect claude`.
+
+### MCP server authentication
+
+The MCP server defaults to **open access with a startup warning** when no auth env vars are set. Auth is only enforced when explicitly configured.
+
+| Env var | Effect |
+|---------|--------|
+| *(none)* | Open access — tools work, warning logged at startup |
+| `JSAT_MCP_ALLOW_INSECURE=1` | Open access, warning silenced — written automatically by `jsat connect claude` |
+| `JSAT_MCP_TOKEN=<secret>` | Legacy single-token auth — all callers must pass this token |
+| `JSAT_MCP_TOKEN_ROLES=<json>` | RBAC map `{"token": "role"}` — roles: `admin`, `developer`, `viewer` |
+
+`jsat connect claude` automatically sets `JSAT_MCP_ALLOW_INSECURE=1` in the MCP server environment so local dev works without additional config. To enforce auth, add `JSAT_MCP_TOKEN` or `JSAT_MCP_TOKEN_ROLES` to your shell environment before starting Claude Code.
 
 ---
 
