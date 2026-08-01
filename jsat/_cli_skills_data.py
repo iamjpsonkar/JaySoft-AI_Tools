@@ -1355,6 +1355,19 @@ Examples:
   /jsat-aw --dry investigate the checkout 500 errors from this morning
     → prints the "incident" workflow plan without executing anything""",
         ),
+        "jsat-help": (
+            "Show flags, params, and examples for any /jsat command. No args = full command list.",
+            """/jsat-help <command>
+
+No args → print a one-liner table of all 39 commands and stop.
+With a command name → print that command's full description, all flags, and examples.
+
+Examples:
+  /jsat-help              → list all available commands with one-liner descriptions
+  /jsat-help magic        → full explanation of magic: flags, depth levels, examples
+  /jsat-help crack        → phases, --single, --continue, phase-split table
+  /jsat-help blast-radius → --file/--diff/--symbol/--severity flags and examples""",
+        ),
 }
 
 # Appended to every generated command so the assistant delivers a real answer
