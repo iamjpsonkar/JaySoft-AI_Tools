@@ -8,21 +8,47 @@ All notable changes to JSAT.
 
 ### Added
 
-- **`dashboard=true` universal flag** — any `/jsat` command now accepts `dashboard=true`
-  to open a real-time browser dashboard for that call. Pass as `_dashboard=True` in MCP
-  tool args (`jsat__crack(task='...', _dashboard=True)`).
-- **`jsat/mcp/dashboard.py`** — new stdlib-only module (~200 lines). Starts a single-use
-  `http.server.HTTPServer` on `localhost:7432` (overrideable with `JSAT_DASHBOARD_PORT`),
-  serves an inline dark-terminal HTML page, and streams events via Server-Sent Events (SSE).
-  Server closes automatically 10 s after the call completes.
-- Dashboard event types: `start`, `event` (MCP progress notifications), `checkpoint`
-  (`_budget_checkpoint` calls), `over_budget`, `result`, `error`, `done`.
-- `_budget_checkpoint` now checks `_call_ctx.dashboard_push` so internal checkpoints
-  appear on the dashboard without any handler changes.
-- `_call()` accepts a 4th `_dashboard_push` arg that is stored on `_call_ctx` so
-  the callback propagates into the tool's execution thread.
-- All 40 command skill files updated: BUDGET section now documents both `timeout=<N>`
-  and `dashboard=true` as universal flags with examples.
+- **Single-tab session tree dashboard** — `dashboard=true` now opens ONE persistent
+  browser tab per `/jsat` command at `http://localhost:7432/jsat/dashboard/<command>`
+  (e.g., `/jsat crack ... dashboard=true` → `localhost:7432/jsat/dashboard/crack`).
+  All tool calls in the session stream into the same collapsible tree; sub-calls nest
+  under their parent. Previously opened a new tab per tool call.
+- **Dashboard landing page** at `http://localhost:7432/jsat/dashboard` — lists all active
+  and recently completed sessions with links. Auto-refreshes every 5 s. Bookmark this to
+  always find what's running without knowing the session name.
+- **Crack agent full text in dashboard** — when `/jsat crack dashboard=true` is used,
+  the complete response from every war room agent (architect, security, implementer,
+  tester, skeptic, moderator) appears in the dashboard tree in blue, not just a 120-char
+  preview. Final synthesis also shown in full.
+- **`dashboard_only(label, event_type)`** in `jsat/_call_context.py` — push an event to
+  the dashboard only, without adding to the timeout event log. Used for large text that
+  would be noisy in timeout messages (agent responses, synthesis outputs).
+- **`_dashboard_session` MCP param** — groups all tool calls from one `/jsat` command
+  into one tab. Handled automatically by skill files; no manual action needed.
+- **Idle watcher** — background thread fires `session_done()` after 30 s of no active
+  calls so the session closes cleanly without an explicit signal from skills.
+- **`jsat/mcp/dashboard.py`** — complete session tree redesign. `_DashboardSession` /
+  `_CallNode` data model; module-level singleton server (stays alive across sessions);
+  backward-compat redirects `/events` → `/jsat/events`, `/dashboard/session/<x>` →
+  `/jsat/dashboard/<x>`.
+- **`jsat/_call_context.py`** — extracted from `server.py` to avoid circular imports.
+  Contains `_call_ctx` (thread-local), `checkpoint()`, and the new `dashboard_only()`.
+- Dashboard color-coding: 🟡 amber checkpoints, 🟢 green results, 🔵 blue agent
+  responses (`agent_response` CSS class, pre-wrap with left-border indent), 🔴 red
+  errors, 🟠 orange over-budget warnings.
+- **`JSAT_DASHBOARD_PORT`** env var to override the default port `7432`.
+- All 40 command skill files updated with `_dashboard_session` carry-through rules and
+  correct dashboard URL format.
+- **Docs overhaul**: README, `docs/claude-integration.md`, `docs/cli-reference.md`, and
+  `docs/tools.md` all updated to reflect the new single-tab URL, session lifecycle, tree
+  UI, landing page, and crack agent text.
+
+### Fixed
+
+- Resolved all ruff lint errors (E501, I001, F541, SIM105, SIM102, F401) across 17 files.
+- Added `per-file-ignores` for template-string files (`_cli_skills_data.py`) and inline
+  HTML/CSS/JS generation (`dashboard.py`, `server.py`) to avoid spurious E501 warnings.
+- Added `.git/hooks/pre-push` to run `ruff check jsat/` before every push.
 
 ## [0.4.5] — 2026-08-01
 
