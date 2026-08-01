@@ -15,13 +15,16 @@ if TYPE_CHECKING:
     from jsat._core import JSAT
 
 # ── Hierarchical timeout budgets ──────────────────────────────────────────────
-# Each MCP tool call runs in a thread with a hard per-tool deadline.
-# Sub-operations inside a tool get half the parent's remaining budget.
-# Nested call depth is tracked; anything beyond _MAX_CALL_DEPTH is rejected
-# with guidance for the AI to break the work into separate smaller tasks.
+# Each call level gets a fixed budget. Budgets halve each level so deeply
+# nested work is forced to be fast or broken into separate tasks.
 #
-# Hierarchy (seconds):  main(60) → sub(30) → sub-sub(15) → ... → depth-7 = break
+# depth:    0     1     2     3    4    5    6   ≥7 → reject
+# budget:  60s   30s   15s   8s   4s   2s   1s
+#
+# The top-level budget (depth 0) may be overridden per-tool via _TOOL_BUDGETS.
+# Anything at depth ≥ _MAX_CALL_DEPTH is rejected — AI must split the task.
 _MAX_CALL_DEPTH: int = 7
+_DEPTH_BUDGETS: list[float] = [60.0, 30.0, 15.0, 8.0, 4.0, 2.0, 1.0]
 
 _TOOL_BUDGETS: dict[str, float] = {
     "blast_radius":        30.0,
@@ -479,11 +482,11 @@ class MCPServer:
             self._log.warning("mcp_call_depth_exceeded", tool=name, depth=depth)
             return _depth_exceeded_response(name, depth)
         _call_ctx.depth = depth + 1
-        # Initialize thread-local budget context (sub-deadline = half the tool's budget)
+        # Initialize thread-local budget context.
+        # Sub-operations inside this call get the budget for depth+1 from _DEPTH_BUDGETS.
         _call_ctx.events = []
-        _call_ctx.sub_deadline = (
-            time.monotonic() + _TOOL_BUDGETS.get(name, _TOOL_BUDGETS["_default"]) * 0.5
-        )
+        sub_level = min(depth + 1, len(_DEPTH_BUDGETS) - 1)
+        _call_ctx.sub_deadline = time.monotonic() + _DEPTH_BUDGETS[sub_level]
         try:
             # Inject _notify so handlers that support progress can call it
             if _notify is not None:
