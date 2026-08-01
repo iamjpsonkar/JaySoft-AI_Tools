@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 if TYPE_CHECKING:
@@ -236,8 +237,11 @@ class KnowledgeTool(BaseTool):
         import structlog
         log = structlog.get_logger(__name__)
         log.info("knowledge_query_start", question=question[:120])
+        checkpoint(f"knowledge: query start — '{question[:80]}'")
         t0 = time.monotonic()
 
+        mode = "graphiti" if self._graphiti_mode else "regex+ai"
+        checkpoint(f"knowledge: using {mode} query mode")
         if self._graphiti_mode:
             result = self._query_graphiti(question)
         else:
@@ -251,6 +255,12 @@ class KnowledgeTool(BaseTool):
             entities_found=len(result.entities_found),
             stale_flagged=len(result.stale_flagged),
             duration_ms=duration_ms,
+        )
+        checkpoint(
+            f"knowledge: DONE — confidence={result.confidence:.2f} "
+            f"sources={len(result.sources)} entities={len(result.entities_found)} "
+            f"stale_flagged={len(result.stale_flagged)} answer_len={len(result.answer)} "
+            f"{duration_ms}ms"
         )
         return result
 
@@ -429,10 +439,13 @@ class KnowledgeTool(BaseTool):
         import structlog
         log = structlog.get_logger(__name__)
 
+        checkpoint("knowledge: searching and ranking entries")
         ctx_entries, sources = self._search_ranked(question)
         log.debug("knowledge_search_results", count=len(sources))
+        checkpoint(f"knowledge: {len(sources)} relevant entries found")
 
         # Decay detection: check code references in top results
+        checkpoint(f"knowledge: running decay detection on {len(ctx_entries)} entries")
         stale_flagged: list[str] = []
         for entry in ctx_entries:
             entry_id = entry.get("id", "")
@@ -457,8 +470,13 @@ class KnowledgeTool(BaseTool):
             if not e.get("properties", {}).get("stale", False)
         )
 
+        ctx_len = sum(len(e.get("properties", {}).get("text", "")) for e in ctx_entries)
+        checkpoint(f"knowledge: calling AI synthesis ({ctx_len} chars context)")
         answer = self._synthesize(question, context)
+        checkpoint(f"knowledge: AI answer received ({len(answer)} chars)")
+        checkpoint("knowledge: estimating confidence score")
         confidence = self._estimate_confidence(question, ctx_entries)
+        checkpoint(f"knowledge: confidence={confidence:.2f}")
 
         # Collect entity names from matched entries for caller context
         entity_names: list[str] = []

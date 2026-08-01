@@ -4,6 +4,46 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.6] — 2026-08-01
+
+### Added
+
+- **`dashboard=true` universal flag** — any `/jsat` command now accepts `dashboard=true`
+  to open a real-time browser dashboard for that call. Pass as `_dashboard=True` in MCP
+  tool args (`jsat__crack(task='...', _dashboard=True)`).
+- **`jsat/mcp/dashboard.py`** — new stdlib-only module (~200 lines). Starts a single-use
+  `http.server.HTTPServer` on `localhost:7432` (overrideable with `JSAT_DASHBOARD_PORT`),
+  serves an inline dark-terminal HTML page, and streams events via Server-Sent Events (SSE).
+  Server closes automatically 10 s after the call completes.
+- Dashboard event types: `start`, `event` (MCP progress notifications), `checkpoint`
+  (`_budget_checkpoint` calls), `over_budget`, `result`, `error`, `done`.
+- `_budget_checkpoint` now checks `_call_ctx.dashboard_push` so internal checkpoints
+  appear on the dashboard without any handler changes.
+- `_call()` accepts a 4th `_dashboard_push` arg that is stored on `_call_ctx` so
+  the callback propagates into the tool's execution thread.
+- All 40 command skill files updated: BUDGET section now documents both `timeout=<N>`
+  and `dashboard=true` as universal flags with examples.
+
+## [0.4.5] — 2026-08-01
+
+### Changed
+
+- **MCP budget = soft notification threshold, not a hard kill** (`jsat/mcp/server.py`):
+  Tool time budgets (`_TOOL_BUDGETS`, `_DEPTH_BUDGETS`) now trigger an `⏱` MCP progress
+  notification to the AI when exceeded — the tool call **keeps running**. A hard safety-net
+  timeout fires at 5× the soft budget and is the only thing that force-kills a call.
+  AI receives: which tool is slow, elapsed time, last progress events, and a suggested remedy.
+  AI decides: wait / skip / split / optimize — on its next turn.
+- `_timeout_response` renamed to `_hard_timeout_response`; result key changed from `_timeout`
+  to `_hard_timeout` to distinguish hard kills from soft-budget notifications.
+- Added `_monitor_budget` background thread per tool call: polls until budget or call completion,
+  then fires `_notify` exactly once with context, then exits.
+- Slow-completed calls (finished after soft budget) annotate the result with `_slow=True`,
+  `elapsed_s`, `budget_s` so AI can factor in the delay without it being an error.
+- Slash command guidance updated in all affected command files (`jsat-magic`, `jsat-query`,
+  `jsat-cohesion`, `jsat-incident`, `jsat-test-gaps`, `jsat-coverage`) to explain
+  `⏱ notification` vs `⛔ hard timeout` semantics.
+
 ## [0.4.4] — 2026-08-01
 
 ### Added

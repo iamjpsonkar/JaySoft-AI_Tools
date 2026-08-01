@@ -38,6 +38,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 # ── Data models ───────────────────────────────────────────────────────────────
@@ -686,6 +687,9 @@ class PromptOptimizer(BaseTool):
         provider = ai_provider or getattr(getattr(self._cfg,"ai",None),"provider","ollama")
         tokens_before = _tok(raw_input)
 
+        checkpoint(f"prompt: start — input={tokens_before} tokens provider={provider} "
+                   f"rewrite={'yes' if (rewrite or n_agents>0) else 'no'}")
+
         prompt_cfg = getattr(self._cfg,"prompt",None)
         depth = getattr(prompt_cfg,"context_depth",2)
         compress_threshold = getattr(prompt_cfg,"compress_threshold",4000)  # tighter
@@ -696,12 +700,18 @@ class PromptOptimizer(BaseTool):
 
         # Stage 1: Classify (fast, sequential — informs parallel agents)
         t = time.monotonic()
+        checkpoint("prompt: stage 1 — classifying task type")
         classify = ClassifyAgent().run(raw_input)
         task_type = classify.task_type
         timings["classify"] = round((time.monotonic()-t)*1000,1)
+        checkpoint(
+            f"prompt: classified as '{task_type}' "
+            f"(confidence={classify.confidence:.2f} keyword='{classify.matched_keyword}')"
+        )
 
         # Stages 2-4: Parallel offline agents (zero LLM)
         context_budget = max(500, int(max_context_tokens * 0.30))  # 30% for context
+        checkpoint("prompt: stages 2-4 — context + constraints + few-shot (parallel, no LLM)")
 
         def run_ctx() -> ContextResult:
             if no_context:
@@ -731,18 +741,38 @@ class PromptOptimizer(BaseTool):
             ff = pool.submit(run_fs)
             ctx_r, con_r, fs_r = fc.result(), fn.result(), ff.result()
 
+        checkpoint(
+            f"prompt: offline agents done — context={ctx_r.tokens} tokens "
+            f"({len(ctx_r.node_ids)} nodes), constraints={con_r.count}, "
+            f"few-shot examples={len(fs_r.examples)}"
+        )
+
         # Stage 5: Format (offline)
         t = time.monotonic()
+        checkpoint(f"prompt: stage 5 — formatting for provider='{provider}' cot={cot}")
         fmt_r = FormatAgent().run(
             raw_input, task_type, ctx_r, con_r, fs_r, output_format, provider, cot
         )
         timings["format"] = round((time.monotonic()-t)*1000,1)
+        checkpoint(f"prompt: formatted as '{fmt_r.model_format}' — {_tok(fmt_r.prompt)} tokens")
 
         # Stage 6: Compress (offline, aggressive threshold)
         t = time.monotonic()
         if compress and _tok(fmt_r.prompt) > compress_threshold:
+            checkpoint(
+                f"prompt: stage 6 — compressing ({_tok(fmt_r.prompt)} tokens > "
+                f"threshold {compress_threshold})"
+            )
             cmp_r = CompressAgent().run(fmt_r.prompt, max_context_tokens)
+            checkpoint(
+                f"prompt: compressed — {cmp_r.original_tokens} → {cmp_r.final_tokens} tokens "
+                f"in {cmp_r.passes} pass(es)"
+            )
         else:
+            checkpoint(
+                f"prompt: stage 6 — no compression needed "
+                f"({_tok(fmt_r.prompt)} tokens ≤ threshold {compress_threshold})"
+            )
             cmp_r = CompressResult(prompt=fmt_r.prompt, original_tokens=_tok(fmt_r.prompt),
                                    final_tokens=_tok(fmt_r.prompt), passes=0)
         timings["compress"] = round((time.monotonic()-t)*1000,1)
@@ -763,6 +793,7 @@ class PromptOptimizer(BaseTool):
         if _n > 0:
             if self._ai is not None and self._ai.is_available():  # type: ignore[attr-defined]
                 log.info("prompt_rewrite_start", n_agents=_n, task=task_type)
+                checkpoint(f"prompt: phase 2 — LLM rewriting with {_n} parallel agent(s)")
                 rw_prompt, rw_agent, rw_score, rw_elapsed = _run_llm_rewrite(
                     cmp_r.prompt, raw_input, ctx_r.node_ids, _n, self._ai
                 )
@@ -775,18 +806,30 @@ class PromptOptimizer(BaseTool):
                     winning_agent = rw_agent
                     stages.append(f"rewrite({rw_agent})")
                     timings[f"rewrite_{rw_agent}"] = rw_elapsed
+                    checkpoint(
+                        f"prompt: rewrite done — winner='{rw_agent}' "
+                        f"score={rw_score:.3f} elapsed={rw_elapsed:.0f}ms"
+                    )
                 else:
                     rewrite_skip_reason = "all_agents_failed"
+                    checkpoint("prompt: rewrite skipped — all LLM agents failed")
             else:
                 rewrite_skip_reason = "ai_unavailable"
                 log.warning("rewrite_skipped", reason="ai_unavailable", requested_agents=_n)
+                checkpoint("prompt: rewrite skipped — AI unavailable")
 
         llm_calls = (1 if rewrite_applied else 0)
+        total_ms = round((time.monotonic()-t0)*1000,1)
         log.info("prompt_optimizer_done", task=task_type, before=tokens_before,
                  after=_tok(final_prompt), llm_calls=llm_calls,
                  rewrite_applied=rewrite_applied, winning_agent=winning_agent,
                  rewrite_skip_reason=rewrite_skip_reason,
-                 total_ms=round((time.monotonic()-t0)*1000,1))
+                 total_ms=total_ms)
+        checkpoint(
+            f"prompt: DONE — task_type='{task_type}' "
+            f"{tokens_before} → {_tok(final_prompt)} tokens "
+            f"stages={stages} {total_ms}ms"
+        )
 
         return PromptResult(
             raw_input=raw_input, optimized_prompt=final_prompt, task_type=task_type,

@@ -16,9 +16,14 @@ Examples:
   /jsat-query --service PaymentService how is retry handled?
     → jsat__query(question="how is retry handled?", service="PaymentService")
 
-TIMEOUT RECOVERY: If jsat__query times out or returns "[AI unavailable]":
-  1. Narrow scope: add --service <name> to limit context
-  2. Use /jsat-short for a briefer answer (≤3 sentences)
-  3. Break complex questions into smaller focused queries
+BUDGET HANDLING: jsat__query has a soft time budget (notification-only — call keeps running).
+  Override: /jsat query timeout=120 what does checkout do?  → soft budget 120s
+  ⏱ progress notification while running: query is still running, AI can wait or decide to skip
+  ⏱ _slow in response: completed after budget — result is valid, consider scoping next time
+  ⛔ _hard_timeout in response: force-killed at 5× budget — must retry with narrower scope
+  Recovery steps:
+    1. Narrow scope: add --service <name> to limit context
+    2. Use /jsat-short for a briefer answer (≤3 sentences)
+    3. Break complex questions into smaller focused queries
 
 HOW TO RESPOND: Actually invoke the tool(s) described above, then reply with a direct, useful answer built from the result — interpret it for the user in plain language. Do not merely describe what the tool does, and do not echo raw JSON. If a tool returns an intermediate artifact (e.g. an optimized prompt), use it to finish the task rather than presenting it as the final answer.

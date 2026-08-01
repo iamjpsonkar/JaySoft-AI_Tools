@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 if TYPE_CHECKING:
@@ -67,14 +68,20 @@ class IndexerTool(BaseTool):
         jsat_dir.mkdir(parents=True, exist_ok=True)
         manifest_path = jsat_dir / "index-manifest.json"
 
+        checkpoint(f"indexer: start — path='{path}' force={force} langs={sorted(langs)}")
         mgr = IndexManifest()
+        checkpoint(f"indexer: loading manifest from '{manifest_path}'")
         prev_manifest = {} if force else mgr.load(manifest_path)
+        checkpoint(f"indexer: manifest loaded — {len(prev_manifest)} previous entries")
 
         # ── Collect files ──────────────────────────────────────────────────────
+        checkpoint(f"indexer: collecting files (langs={sorted(langs)}, exclude={sorted(exclude)})")
         all_files = self._collect_files(Path(path), langs, exclude, max_kb)
         log.info("indexer_files_found", count=len(all_files))
+        checkpoint(f"indexer: found {len(all_files)} file(s) to consider")
 
         # ── Compute incremental delta ──────────────────────────────────────────
+        checkpoint("indexer: computing incremental delta (mtime + sha256 check)")
         delta = mgr.compute_delta(prev_manifest, all_files, Path(path))
         is_incremental = bool(prev_manifest) and not force
 
@@ -83,12 +90,19 @@ class IndexerTool(BaseTool):
                      to_parse=len(delta.to_parse),
                      skipped=len(delta.unchanged),
                      deleted=len(delta.deleted))
+            checkpoint(
+                f"indexer: incremental — to_parse={len(delta.to_parse)} "
+                f"unchanged={len(delta.unchanged)} deleted={len(delta.deleted)}"
+            )
             # Remove stale nodes/edges for deleted and modified files (batched)
             stale = delta.deleted + [str(f.relative_to(path)) for f in delta.modified]
+            if stale:
+                checkpoint(f"indexer: removing {len(stale)} stale file node(s)")
             self._remove_files_batch(stale)
             files_to_parse = delta.to_parse
             files_skipped = len(delta.unchanged)
         else:
+            checkpoint(f"indexer: full index — parsing all {len(all_files)} file(s)")
             files_to_parse = all_files
             files_skipped = 0
 
@@ -104,10 +118,13 @@ class IndexerTool(BaseTool):
             lang = detect_language(fpath)
             if lang:
                 lang_map[fpath] = lang
+        checkpoint(f"indexer: {len(lang_map)} file(s) identified for parsing ({workers} workers)")
 
+        checkpoint(f"indexer: submitting parse jobs to thread pool")
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futs = {pool.submit(_parse_file, fpath, Path(path), lang): fpath
                     for fpath, lang in lang_map.items()}
+            batch_flush_count = 0
             for fut in as_completed(futs):
                 fpath = futs[fut]
                 nodes, edges = fut.result()
@@ -121,7 +138,15 @@ class IndexerTool(BaseTool):
                 rel, entry = mgr.file_entry(fpath, Path(path), len(nodes))
                 new_manifest_entries[rel] = entry
 
+                if files_done % 25 == 0:
+                    checkpoint(
+                        f"indexer: parsed {files_done}/{len(lang_map)} files — "
+                        f"{nodes_total} nodes so far"
+                    )
+
                 if len(batch_nodes) >= BATCH:
+                    batch_flush_count += 1
+                    checkpoint(f"indexer: flushing batch {batch_flush_count} ({len(batch_nodes)} nodes) to graph")
                     self._graph.bulk_add_nodes(batch_nodes)   # type: ignore[attr-defined]
                     self._graph.bulk_add_edges(batch_edges)   # type: ignore[attr-defined]
                     self._graph.commit()                       # type: ignore[attr-defined]
@@ -133,13 +158,19 @@ class IndexerTool(BaseTool):
 
         # Flush remaining batch
         if batch_nodes:
+            checkpoint(f"indexer: flushing final batch ({len(batch_nodes)} nodes) to graph")
             self._graph.bulk_add_nodes(batch_nodes)   # type: ignore[attr-defined]
             self._graph.bulk_add_edges(batch_edges)   # type: ignore[attr-defined]
             self._graph.commit()                       # type: ignore[attr-defined]
 
         # ── Symbol resolution pass ────────────────────────────────────────────
+        if files_done > 0:
+            checkpoint(f"indexer: running symbol resolution pass ({nodes_total} nodes, {edges_total} edges)")
         resolved = self._resolve_edges() if files_done > 0 else 0
+        if files_done > 0:
+            checkpoint(f"indexer: symbol resolution done — {resolved} edge(s) resolved")
 
+        checkpoint("indexer: saving updated manifest")
         duration_ms = round((time.monotonic() - t0) * 1000)
         commit = self._get_commit(Path(path))
 
@@ -153,6 +184,7 @@ class IndexerTool(BaseTool):
         mgr.save(manifest_path, new_manifest_entries, commit)
 
         # Gather complexity hotspots
+        checkpoint("indexer: gathering top-5 complexity hotspots")
         hotspots = self._complexity_hotspots(top_n=5)
 
         result = IndexResult(
@@ -168,6 +200,11 @@ class IndexerTool(BaseTool):
             resolved_edges=resolved,
             parallel_workers=workers,
             complexity_hotspots=hotspots,
+        )
+        checkpoint(
+            f"indexer: DONE — {nodes_total} nodes, {edges_total} edges indexed, "
+            f"{files_skipped} unchanged skipped, {resolved} edges resolved, "
+            f"{duration_ms}ms"
         )
         self._write_index_md(Path(path), result)
         return result

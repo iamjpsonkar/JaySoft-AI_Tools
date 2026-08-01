@@ -26,6 +26,7 @@ from typing import Any
 
 import structlog
 
+from jsat._call_context import checkpoint, dashboard_only
 from jsat.tools import BaseTool
 
 log = structlog.get_logger(__name__)
@@ -276,21 +277,28 @@ class CrackTool(BaseTool):
             active_roles.append("moderator")
 
         log.info("crack_start", task=task[:80], roles=active_roles, rounds=rounds)
+        checkpoint(f"crack: start — task='{task[:60]}' roles={active_roles} rounds={rounds}")
 
         # Check AI availability
         ai_ok = self._ai is not None and self._ai.is_available()  # type: ignore[attr-defined]
         if not ai_ok:
             log.warning("crack_ai_unavailable", note="returning offline placeholders")
+            checkpoint("crack: WARNING — AI unavailable, using offline placeholders")
+        else:
+            checkpoint("crack: AI available")
 
         # Load codebase context (reuse ContextAgent from prompt_optimizer)
         context = ""
         _notify("Loading codebase context…", 0, rounds * 2 + 1)
+        checkpoint("crack: building codebase context (ContextAgent, depth=2)")
         try:
             from jsat.tools.prompt_optimizer import ContextAgent
             context = ContextAgent(self._graph, depth=2, max_tokens=3000).run(task).text
             log.debug("crack_context_loaded", chars=len(context))
+            checkpoint(f"crack: codebase context loaded — {len(context)} chars")
         except Exception as e:
             log.debug("crack_context_failed", error=str(e))
+            checkpoint(f"crack: context load failed — {e}")
 
         # Run rounds
         all_statements: list[CrackStatement] = []
@@ -303,7 +311,9 @@ class CrackTool(BaseTool):
             step = (round_num - 1) * 2 + 1
             label = _round_labels.get(round_num, f"Round {round_num}")
             _notify(f"Round {round_num}/{rounds}: {label}…", step, total_steps)
+            checkpoint(f"crack: ── Round {round_num}/{rounds}: {label} ──")
             log.info("crack_round_start", round=round_num, agents=len(non_moderator))
+            checkpoint(f"crack: launching {len(non_moderator)} agents in parallel: {non_moderator}")
             history = _format_history(all_statements)
 
             if ai_ok:
@@ -317,6 +327,17 @@ class CrackTool(BaseTool):
                     for fut in as_completed(futs):
                         stmt = fut.result()
                         all_statements.append(stmt)
+                        emoji = _ROLE_EMOJI.get(stmt.role, "•")
+                        preview = stmt.text[:120].replace("\n", " ")
+                        checkpoint(
+                            f"crack: {emoji} {stmt.role.upper()} done "
+                            f"({round(stmt.elapsed_ms)}ms) — {preview}"
+                        )
+                        dashboard_only(
+                            f"{'─' * 60}\n{emoji} {stmt.role.upper()} — full response:"
+                            f"\n\n{stmt.text}\n{'─' * 60}",
+                            "agent_response",
+                        )
                         log.debug("crack_statement_received", role=stmt.role,
                                   round=round_num, chars=len(stmt.text))
 
@@ -324,45 +345,73 @@ class CrackTool(BaseTool):
                 _notify(f"Round {round_num}/{rounds}: Moderator synthesising…",
                         step + 1, total_steps)
                 if "moderator" in active_roles:
+                    checkpoint(f"crack: 🎯 MODERATOR synthesising round {round_num}…")
                     full_history = _format_history(all_statements)
                     mod_stmt = _agent_turn(
                         "moderator", task, context, full_history,
                         round_num, rounds, self._ai
                     )
                     all_statements.append(mod_stmt)
+                    mod_preview = mod_stmt.text[:200].replace("\n", " ")
+                    checkpoint(
+                        f"crack: 🎯 MODERATOR done ({round(mod_stmt.elapsed_ms)}ms) — "
+                        f"{mod_preview}"
+                    )
+                    dashboard_only(
+                        f"{'─' * 60}\n🎯 MODERATOR — full synthesis:"
+                        f"\n\n{mod_stmt.text}\n{'─' * 60}",
+                        "agent_response",
+                    )
             else:
                 # Offline fallback
                 for role in active_roles:
                     all_statements.append(_offline_statement(role, round_num, task, context))
+                    checkpoint(f"crack: offline placeholder for {role} (no AI)")
 
-            log.info("crack_round_done", round=round_num,
-                     statements=len([s for s in all_statements if s.round_num == round_num]))
+            round_statements = [s for s in all_statements if s.round_num == round_num]
+            log.info("crack_round_done", round=round_num, statements=len(round_statements))
+            checkpoint(f"crack: round {round_num} complete — {len(round_statements)} statements")
 
         # Synthesis = last moderator statement
         synthesis = next(
             (s.text for s in reversed(all_statements) if s.role == "moderator"), ""
         )
+        if synthesis:
+            syn_preview = synthesis[:200].replace("\n", " ")
+            checkpoint(f"crack: final synthesis — {syn_preview}")
+            dashboard_only(
+                f"{'─' * 60}\n🎯 FINAL SYNTHESIS:\n\n{synthesis}\n{'─' * 60}",
+                "agent_response",
+            )
 
         # Render and write output
         _notify("Writing discussion document…", total_steps, total_steps)
+        checkpoint("crack: rendering Markdown document")
         md = _render_markdown(task, all_statements, synthesis)
+        checkpoint(f"crack: document rendered — {len(md)} chars")
         resolved_output: str | None = None
 
         if output_file:
             Path(output_file).parent.mkdir(parents=True, exist_ok=True)
             Path(output_file).write_text(md, encoding="utf-8")
             resolved_output = output_file
+            checkpoint(f"crack: document written to '{output_file}'")
         elif repo_path:
             slug = re.sub(r"\W+", "-", task[:40]).strip("-").lower()
             out_path = repo_path / ".jsat" / "crack" / f"{slug}.md"
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text(md, encoding="utf-8")
             resolved_output = str(out_path)
+            checkpoint(f"crack: document written to '{out_path}'")
 
         elapsed = round((time.monotonic() - t0) * 1000, 1)
         log.info("crack_done", roles=active_roles, rounds=rounds,
                  statements=len(all_statements), elapsed_ms=elapsed,
                  output=resolved_output)
+        checkpoint(
+            f"crack: DONE — {rounds} rounds, {len(all_statements)} statements, "
+            f"{len(active_roles)} agents, {elapsed}ms"
+        )
 
         return CrackResult(
             task=task,

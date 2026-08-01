@@ -1101,11 +1101,32 @@ The server speaks JSON-RPC 2.0 over stdin/stdout. It starts immediately and load
 
 ---
 
+## Universal Flags (Claude Code slash commands)
+
+Two flags work on every `/jsat` command — strip them before routing and pass to every tool call:
+
+| Flag | Behavior | Passes to tool |
+|------|----------|----------------|
+| `timeout=<N>` | Soft budget N s; hard kill at 5×N s | `_budget=N` |
+| `dashboard=true` | Open `localhost:7432/jsat/dashboard/<command>` — one persistent tab per command, collapsible tree of all tool calls. Tab stays open until session done. Browse all sessions at `localhost:7432/jsat/dashboard`. | `_dashboard=True` + `_dashboard_session=<command>` |
+
+```bash
+/jsat blast-radius timeout=120 src/payment/
+/jsat crack dashboard=true redesign the auth flow
+# → opens localhost:7432/jsat/dashboard/crack
+
+/jsat magic timeout=180 dashboard=true investigate the auth flow
+# → opens localhost:7432/jsat/dashboard/magic
+```
+
+---
+
 ## Environment Variables
 
 | Variable | Used by |
 |---------|---------|
 | `JSAT_CONFIG` | Override config file path |
+| `JSAT_DASHBOARD_PORT` | Override live dashboard port (default `7432`) |
 | `ANTHROPIC_API_KEY` | Anthropic API provider |
 | `OPENAI_API_KEY` | OpenAI provider |
 | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Gemini provider |

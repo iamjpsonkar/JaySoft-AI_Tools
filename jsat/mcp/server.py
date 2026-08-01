@@ -11,6 +11,8 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
+from jsat._call_context import _call_ctx, checkpoint as _budget_checkpoint  # noqa: F401
+
 if TYPE_CHECKING:
     from jsat._core import JSAT
 
@@ -61,14 +63,8 @@ _TIMEOUT_SUGGESTIONS: dict[str, str] = {
 }
 
 # Thread-local context: tracks depth, deadline, and event log for each tool call.
-_call_ctx = threading.local()
-
-
-def _budget_checkpoint(label: str) -> None:
-    """Record a named progress step — surfaced in timeout messages."""
-    events: list | None = getattr(_call_ctx, "events", None)
-    if events is not None:
-        events.append(label)
+# Imported from jsat._call_context so tool files can also import it without
+# creating a circular dependency on this module.
 
 
 def _budget_timed_out() -> bool:
@@ -82,25 +78,26 @@ def _budget_depth() -> int:
     return getattr(_call_ctx, "depth", 0)
 
 
-def _timeout_response(tool: str, budget_s: float, elapsed_s: float,
-                      completed: str = "") -> dict:
-    """Structured timeout payload the AI can read and act on."""
+def _hard_timeout_response(tool: str, budget_s: float, hard_limit_s: float,
+                           elapsed_s: float) -> dict:
+    """Structured hard-timeout payload — fired only when the safety-net fires (5× budget)."""
     suggestion = _TIMEOUT_SUGGESTIONS.get(tool, _TIMEOUT_SUGGESTIONS["_default"])
     events: list = getattr(_call_ctx, "events", [])[-5:]
     return {
-        "_timeout": True,
+        "_hard_timeout": True,
         "tool": tool,
         "budget_s": budget_s,
+        "hard_limit_s": hard_limit_s,
         "elapsed_s": elapsed_s,
-        "completed": completed,
         "last_events": events,
         "suggestion": suggestion,
         "ai_guidance": (
-            f"Tool '{tool}' exceeded its {budget_s}s budget (elapsed: {elapsed_s}s). "
-            + (f"Completed before cut: {completed}. " if completed else "")
+            f"Tool '{tool}' was force-killed after {elapsed_s}s "
+            f"(hard limit: {hard_limit_s}s, soft budget: {budget_s}s). "
+            "The tool did not complete. "
             + suggestion
-            + " Decide: (a) retry with narrower scope, "
-            "(b) split into smaller tasks, or (c) skip and proceed with available data."
+            + " You MUST retry with a narrower scope, split the work, "
+            "or skip this tool and proceed with available data."
         ),
     }
 
@@ -121,29 +118,37 @@ def _depth_exceeded_response(tool: str, depth: int) -> dict:
 
 
 def _format_timeout_text(result: dict) -> str:
-    """Format a timeout or depth-exceeded result as readable text for the AI."""
+    """Format a hard-timeout or depth-exceeded result as readable text for the AI."""
     if result.get("_depth_exceeded"):
         return (
             f"🔁 DEPTH EXCEEDED: Tool '{result['tool']}' reached call depth "
             f"{result['depth']}/{result['max_depth']}.\n\n"
             f"🤖 {result['ai_guidance']}"
         )
-    lines = [
-        f"⏱ TIMEOUT: Tool '{result['tool']}' exceeded {result['budget_s']}s budget "
-        f"(elapsed: {result['elapsed_s']}s).",
-        "",
-    ]
-    if result.get("completed"):
-        lines.append(f"✅ Completed before cut: {result['completed']}")
-    if result.get("last_events"):
-        lines.append("📍 Last operations:")
-        for ev in result["last_events"]:
-            lines.append(f"  · {ev}")
+    if result.get("_hard_timeout"):
+        lines = [
+            f"⛔ HARD TIMEOUT: Tool '{result['tool']}' force-killed after "
+            f"{result['elapsed_s']}s (hard limit: {result['hard_limit_s']}s, "
+            f"soft budget: {result['budget_s']}s).",
+            "",
+        ]
+        if result.get("last_events"):
+            lines.append("📍 Last operations before kill:")
+            for ev in result["last_events"]:
+                lines.append(f"  · {ev}")
+            lines.append("")
+        lines.append(f"💡 Suggestion: {result['suggestion']}")
         lines.append("")
-    lines.append(f"💡 Suggestion: {result['suggestion']}")
-    lines.append("")
-    lines.append(f"🤖 AI Guidance: {result['ai_guidance']}")
-    return "\n".join(lines)
+        lines.append(f"🤖 AI Guidance: {result['ai_guidance']}")
+        return "\n".join(lines)
+    # Slow-completed result (over soft budget but finished — annotate, don't error)
+    if result.get("_slow"):
+        return (
+            f"⏱ SLOW: Tool '{result['tool']}' completed in {result['elapsed_s']}s "
+            f"(soft budget: {result['budget_s']}s). Result is valid but was late. "
+            f"Consider scoping with service_filter or reducing max_depth on future calls."
+        )
+    return json.dumps(result, default=str)
 
 
 # ── Role definitions ──────────────────────────────────────────────────────────
@@ -374,21 +379,127 @@ class MCPServer:
                 }
                 print(json.dumps(notif), flush=True)
 
-            budget = _TOOL_BUDGETS.get(name, _TOOL_BUDGETS["_default"])
+            # Allow callers to pass _budget=N (seconds) to override the default soft budget.
+            # This is the user-facing timeout=<N> flag, stripped before the handler sees args.
+            caller_budget = args.pop("_budget", None)
+            try:
+                caller_budget = float(caller_budget) if caller_budget is not None else None
+            except (TypeError, ValueError):
+                caller_budget = None
+            budget = caller_budget if (caller_budget and caller_budget > 0) else \
+                _TOOL_BUDGETS.get(name, _TOOL_BUDGETS["_default"])
+            hard_limit = budget * 5  # last-resort kill; budget is notification-only
+
+            # dashboard=true → start a real-time browser dashboard for this call.
+            # _dashboard_session=<name> groups all calls for a /jsat command into one tab.
+            import uuid as _uuid
+            _use_dashboard = bool(args.pop("_dashboard", False))
+            _args_had_session = "_dashboard_session" in args
+            _dashboard_session_name = str(args.pop("_dashboard_session", "")) or name
+            _call_id = _uuid.uuid4().hex[:8]
+            _parent_call_id: str | None = getattr(_call_ctx, "call_id", None)
+            _dash_push = None
+            _dash_finish = None      # type: ignore[assignment]
+            _dash_session_done = None  # type: ignore[assignment]
+            if _use_dashboard:
+                from jsat.mcp.dashboard import (
+                    finish_call as _dash_finish,
+                    push_call_event as _dash_push_fn,
+                    session_done as _dash_session_done,
+                    start_dashboard,
+                )
+                dash_port = int(os.environ.get("JSAT_DASHBOARD_PORT", "7432"))
+                dash_url, _open_browser = start_dashboard(
+                    _dashboard_session_name, _call_id, name, _parent_call_id, dash_port
+                )
+                _notify(
+                    f"📊 Dashboard: {dash_url}",
+                    progress=0, total=100,
+                )
+                self._log.info("mcp_dashboard_registered", tool=name, session=_dashboard_session_name,
+                               call_id=_call_id, url=dash_url)
+                # Wrap _notify so progress messages also appear on the dashboard
+                _orig_notify = _notify
+
+                def _notify(message: str, progress: int = 0, total: int = 100,  # noqa: F811
+                            _cid: str = _call_id) -> None:
+                    _orig_notify(message, progress, total)
+                    _dash_push_fn(_cid, "event", message, progress=progress)
+
+                _dash_push = lambda etype, msg, **kw: _dash_push_fn(_call_id, etype, msg, **kw)  # noqa: E731
+
             t0 = time.monotonic()
             error_occurred = False
+            _budget_notified = threading.Event()
             pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+            def _monitor_budget(future: concurrent.futures.Future) -> None:
+                """Fire _notify when soft budget is exceeded; call keeps running."""
+                deadline = t0 + budget
+                while not future.done():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        break
+                    time.sleep(min(remaining, 0.25))
+                if future.done() or _budget_notified.is_set():
+                    return
+                _budget_notified.set()
+                elapsed = round(time.monotonic() - t0, 1)
+                suggestion = _TIMEOUT_SUGGESTIONS.get(name, _TIMEOUT_SUGGESTIONS["_default"])
+                events: list = getattr(_call_ctx, "events", [])[-5:]
+                events_text = ", ".join(events) if events else "no progress recorded"
+                self._log.warning(
+                    "mcp_tool_over_budget",
+                    name=name, budget_s=budget, elapsed_s=elapsed,
+                    last_events=events,
+                )
+                over_budget_msg = (
+                    f"⏱ '{name}' has run {elapsed:.0f}s (soft budget: {budget}s). "
+                    f"Still running — last steps: [{events_text}]. "
+                    f"AI: decide to wait, skip, split, or optimize. {suggestion}"
+                )
+                _notify(over_budget_msg, progress=int(elapsed), total=int(hard_limit))
+                if _dash_push is not None:
+                    _dash_push("over_budget", over_budget_msg,
+                               budget_s=budget, elapsed_s=elapsed)
+
             try:
-                future = pool.submit(self._call, name, args, _notify)
+                future = pool.submit(self._call, name, args, _notify, _dash_push, _call_id)
+                monitor = threading.Thread(
+                    target=_monitor_budget, args=(future,), daemon=True, name=f"jsat-budget-{name}"
+                )
+                monitor.start()
                 try:
-                    result = future.result(timeout=budget)
+                    result = future.result(timeout=hard_limit)
+                    elapsed = round(time.monotonic() - t0, 1)
+                    if _budget_notified.is_set():
+                        self._log.info(
+                            "mcp_tool_slow_completed",
+                            name=name, budget_s=budget, elapsed_s=elapsed,
+                        )
+                        if isinstance(result, dict):
+                            result.setdefault("_slow", True)
+                            result.setdefault("elapsed_s", elapsed)
+                            result.setdefault("budget_s", budget)
+                            result.setdefault("tool", name)
+                    if _dash_push is not None:
+                        _dash_push("result",
+                                   f"completed in {elapsed}s — {len(str(result))} chars",
+                                   tool=name)
                 except concurrent.futures.TimeoutError:
                     elapsed = round(time.monotonic() - t0, 1)
-                    result = _timeout_response(name, budget, elapsed)
-                    self._log.warning("mcp_tool_timeout", name=name,
-                                      budget_s=budget, elapsed_s=elapsed)
+                    result = _hard_timeout_response(name, budget, hard_limit, elapsed)
+                    self._log.error(
+                        "mcp_tool_hard_timeout",
+                        name=name, budget_s=budget, hard_limit_s=hard_limit, elapsed_s=elapsed,
+                    )
+                    if _dash_push is not None:
+                        _dash_push("error", f"hard timeout after {elapsed}s", tool=name)
+                finally:
+                    _budget_notified.set()  # signal monitor to stop polling
                 if isinstance(result, dict) and (
-                    result.get("_timeout") or result.get("_depth_exceeded")
+                    result.get("_hard_timeout") or result.get("_depth_exceeded")
+                    or result.get("_slow")
                 ):
                     text = _format_timeout_text(result)
                 else:
@@ -398,10 +509,20 @@ class MCPServer:
             except Exception as e:
                 error_occurred = True
                 self._log.error("mcp_tool_error", name=name, error=str(e))
+                if _dash_push is not None:
+                    _dash_push("error", str(e), tool=name)
                 return {"jsonrpc": "2.0", "id": id_,
                         "error": {"code": -32603, "message": str(e)}}
             finally:
-                pool.shutdown(wait=False)  # don't block on timed-out threads
+                pool.shutdown(wait=False)
+                if _use_dashboard and _dash_finish is not None:
+                    _elapsed = round(time.monotonic() - t0, 1)
+                    _dash_finish(_call_id, _elapsed,
+                                 status="error" if error_occurred else "done")
+                    # Single tool call (no _dashboard_session passed) → close session now.
+                    # Multi-call sessions rely on the idle-watcher to close after 30s idle.
+                    if not _args_had_session and _dash_session_done is not None:
+                        _dash_session_done(_elapsed)
                 elapsed_ms = (time.monotonic() - t0) * 1000
                 self._record_metric(name, elapsed_ms, error=error_occurred)
 
@@ -473,7 +594,8 @@ class MCPServer:
                  "inputSchema": tool["schema"]}
                 for name, tool in self._registry.items()]
 
-    def _call(self, name: str, args: dict, _notify=None) -> Any:
+    def _call(self, name: str, args: dict, _notify=None, _dashboard_push=None,
+              _call_id: str | None = None) -> Any:
         if name not in self._registry:
             raise ValueError(f"Unknown tool: {name}")
         # Track and enforce call nesting depth
@@ -485,6 +607,9 @@ class MCPServer:
         # Initialize thread-local budget context.
         # Sub-operations inside this call get the budget for depth+1 from _DEPTH_BUDGETS.
         _call_ctx.events = []
+        _call_ctx.dashboard_push = _dashboard_push  # picked up by _budget_checkpoint
+        if _call_id:
+            _call_ctx.call_id = _call_id  # enables sub-tools to find their parent
         sub_level = min(depth + 1, len(_DEPTH_BUDGETS) - 1)
         _call_ctx.sub_deadline = time.monotonic() + _DEPTH_BUDGETS[sub_level]
         try:
@@ -494,6 +619,7 @@ class MCPServer:
             return self._registry[name]["handler"](args)
         finally:
             _call_ctx.depth = depth  # restore depth on return
+            _call_ctx.dashboard_push = None
 
     # ── Registry ──────────────────────────────────────────────────────────────
 

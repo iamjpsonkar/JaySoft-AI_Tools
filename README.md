@@ -11,17 +11,32 @@
 
 ---
 
-## What is JSAT?
+## 🧠 What is JSAT?
 
 Every AI session starts with the same problem: you spend the first ten minutes re-explaining your architecture, re-pasting function signatures, and re-describing how services talk to each other. JSAT solves this by building a persistent graph of your codebase once — functions, classes, files, services, API endpoints, database tables, Kafka topics, and every relationship between them — and making that context instantly available to any AI you use.
 
 JSAT works as a CLI, a Python SDK, and an MCP server that plugs directly into Claude Code. If Claude Code CLI is installed, JSAT uses it automatically with no API key required. For everything else — Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches the provider.
 
-Long-running tools (`jsat__crack`, `jsat__query`, `jsat__short`, prompt rewriting) stream **live progress notifications** back to Claude Code so you see what's happening in real time — no more blank screens during 30-second operations.
+Long-running tools stream **live progress notifications** to Claude Code — and with `dashboard=true` on any command, a real-time browser dashboard opens automatically showing every event as it happens.
 
 ---
 
-## Quick Start
+## 🌟 Key Features
+
+| Feature | What it does |
+|---------|-------------|
+| **Persistent graph** | Index once, query forever — functions, classes, services, endpoints, Kafka topics, DB tables |
+| **40 slash commands** | `/jsat magic`, `/jsat crack`, `/jsat blast-radius`, `/jsat security` and 36 more |
+| **Universal flags** | `timeout=<N>` sets a soft budget on any call; `dashboard=true` opens a live browser dashboard |
+| **Smart budgets** | Over-budget → AI gets notified (call keeps running). Force-kill only at 5× the budget |
+| **Session files** | All major skills write resumable session files — `--continue` picks up where it left off |
+| **Zero-dep dashboard** | Stdlib-only SSE server streams every event to a dark-terminal browser view in real time |
+| **Multi-provider** | Claude Code CLI, Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches |
+| **SDK + CLI + MCP** | Use as a shell, Python SDK, or MCP server — same graph, same tools |
+
+---
+
+## ⚡ Quick Start
 
 ```bash
 pip install jsat
@@ -63,7 +78,7 @@ Inside any connected tool you can use JSAT commands:
 
 ---
 
-## Installation
+## 📦 Installation
 
 JSAT ships as a minimal core with optional extras. Install only what you need.
 
@@ -90,7 +105,7 @@ pip install 'jsat[all]'            # everything
 
 ---
 
-## AI Providers
+## 🤖 AI Providers
 
 JSAT auto-detects available providers at startup and picks the best one in priority order:
 
@@ -137,9 +152,64 @@ switch lmstudio  → LM Studio
 
 ---
 
-## AI Tool Integration
+## 🔌 AI Tool Integration
 
 JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — the tool picks up all JSAT MCP tools automatically.
+
+### ⏱ Universal Flags
+
+Two flags work on **every** `/jsat` command — strip them from ARGS before routing, pass as tool args:
+
+```bash
+# Set a custom soft time budget (notification-only; hard kill at 5×N)
+/jsat blast-radius timeout=60 src/payment/
+  → jsat__blast_radius(target='src/payment/', _budget=60)
+
+# Open a live browser dashboard for this call
+/jsat crack dashboard=true redesign the auth flow
+  → jsat__crack(task='redesign the auth flow', _dashboard=True)
+
+# Combine both
+/jsat magic timeout=180 dashboard=true --service payments investigate the auth flow
+```
+
+| Flag | Soft budget behavior | Hard kill |
+|------|----------------------|-----------|
+| `timeout=<N>` | After N s: ⏱ AI notified with last steps, call keeps running | At 5×N s |
+| *(default)* | Per-tool budget (blast_radius: 30s, crack: 55s, query: 45s) | At 5× budget |
+
+### 📊 Live Dashboard
+
+Add `dashboard=true` to any `/jsat` command and a real-time browser dashboard opens automatically. Each `/jsat` command gets **one persistent tab** — all tool calls in that session stream into the same collapsible tree, not separate tabs.
+
+```bash
+/jsat magic dashboard=true investigate the checkout flow
+/jsat crack dashboard=true redesign the payment retry system
+/jsat blast-radius dashboard=true timeout=60 src/payment/
+```
+
+**URL**: `http://localhost:7432/jsat/dashboard/<command>` — e.g., `/jsat crack ...` opens `localhost:7432/jsat/dashboard/crack`.
+
+**What the tree shows:**
+- Session header with live elapsed timer and status badge (● RUNNING → ✓ DONE)
+- Each tool call as a collapsible section with its name and elapsed time
+- Sub-calls nested under their parent (e.g., crack phases under a parent crack call)
+- Every checkpoint, result, and event streamed in real-time, color-coded by type:
+  - 🟡 Amber — checkpoints (substep progress)
+  - 🟢 Green — results (completed)
+  - 🔵 Blue — agent full responses (crack war room agents)
+  - 🔴 Red — errors
+  - 🟠 Orange — over-budget warnings
+- **Copy logs** button to capture the full session
+
+**Session lifecycle:**
+- Tab opens on the first tool call; subsequent calls in the same `/jsat` session stream into the same tab.
+- Tab stays open until the entire `/jsat` command finishes. An idle watcher fires `session_done` automatically after 30 s with no active calls.
+- After session done the tree dims (✓ DONE) — the tab stays open indefinitely for reading.
+
+For multi-tool sessions (magic, crack, sprint) the skill files automatically pass `_dashboard_session=<command>` in every tool call so all calls share one tab — no manual action needed.
+
+The dashboard runs on `localhost:7432` (override with `JSAT_DASHBOARD_PORT`), served by a pure stdlib SSE server — no extra dependencies.
 
 ### Connect
 
@@ -170,7 +240,7 @@ Each connect command writes both an MCP config **and** a guidance file so the AI
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
-| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (31 files) | Slash commands |
+| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (40 files) | Slash commands |
 | Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` | Slash commands |
 | Codex (project) | `.codex/config.json` | `.codex/instructions.md` | Agent instructions |
 | Codex (global) | `~/.codex/config.json` | `~/.codex/instructions.md` | Agent instructions |
@@ -188,10 +258,10 @@ Pass `--no-instructions` to skip writing the guidance file (MCP only).
 
 ### `/jsat` dispatcher
 
-`jsat connect claude` installs a single `/jsat` command rather than 34 individual `/jsat-*` commands. All skills are accessible as subcommands:
+`jsat connect claude` installs a single `/jsat` command rather than 40 individual `/jsat-*` commands. All skills are accessible as subcommands:
 
 ```bash
-/jsat help               # list all 34 subcommands
+/jsat help               # list all 40 subcommands
 /jsat query <question>   # answer codebase questions (Discuss→Verify pipeline)
 /jsat crack <task>       # multi-agent war room with artifact carry-forward
 /jsat aw <task>          # workflow advisor
@@ -215,10 +285,10 @@ jsat disconnect gemini                     # Gemini CLI
 jsat disconnect all                        # every tool at once
 ```
 
-### Claude Code — slash commands (39 subcommands + `/jsat-help`)
+### Claude Code — slash commands (40 subcommands + `/jsat-help`)
 
 `jsat connect claude` installs two slash commands:
-- `/jsat <subcommand>` — 39 subcommands organized by category (see table below)
+- `/jsat <subcommand>` — 40 subcommands organized by category (see table below)
 - `/jsat-help [command]` — no args lists all commands; `/jsat-help magic` shows full flags and examples for that command
 
 **Graph exploration**
@@ -285,7 +355,7 @@ jsat disconnect all                        # every tool at once
 **Help**
 | Command | What it does |
 |---|---|
-| `/jsat-help` | List all 39 commands with one-liner descriptions |
+| `/jsat-help` | List all 40 commands with one-liner descriptions |
 | `/jsat-help <command>` | Full description, flags, and examples for a specific command (e.g. `/jsat-help magic`) |
 
 ### Open Claude with JSAT context pre-loaded
@@ -296,7 +366,7 @@ jsat claude
 
 ---
 
-## JSAT Crack — Multi-Agent War Room
+## ⚔️ JSAT Crack — Multi-Agent War Room
 
 Run a complex engineering decision past a panel of six specialist AI agents that argue, challenge, and respond to each other — like a real architecture meeting.
 
@@ -358,7 +428,7 @@ jsat crack --single "should we use Redis or Postgres for sessions?"
 
 ---
 
-## JSAT Short — Minimum-Word Answers
+## 💬 JSAT Short — Minimum-Word Answers
 
 Get the shortest possible correct answer to any question.
 
@@ -374,7 +444,7 @@ jsat short --words 20 "explain the retry logic"
 
 ---
 
-## Prompt Optimizer
+## 🔧 Prompt Optimizer
 
 JSAT optimizes every query through a two-phase pipeline before sending to the AI.
 
@@ -475,7 +545,7 @@ jsat remove                                   # remove all JSAT artifacts from t
 
 ---
 
-## JSAT Smart — Terse Mode
+## 🧩 JSAT Smart — Terse Mode
 
 Get compressed, fragment-based answers with filler stripped. Preserves code, function names, file paths, and data byte-for-byte.
 
@@ -497,7 +567,7 @@ Use as a fast fallback when `/jsat query` times out on large contexts.
 
 ---
 
-## JSAT Lazy — Reuse-First Planning
+## ♻️ JSAT Lazy — Reuse-First Planning
 
 Before writing new code, runs a 5-rung reuse ladder against the indexed codebase graph. Stops at the first match.
 
@@ -522,7 +592,7 @@ Before writing new code, runs a 5-rung reuse ladder against the indexed codebase
 
 ---
 
-## JSAT Aw — Workflow Advisor
+## 🗺️ JSAT Aw — Workflow Advisor
 
 Classifies your task type and runs the optimal JSAT tool sequence end-to-end — no more guessing which tool to use or in what order.
 
@@ -549,7 +619,7 @@ Classifies your task type and runs the optimal JSAT tool sequence end-to-end —
 
 ---
 
-## JSAT Magic — AI-Orchestrated Skill Composer
+## ✨ JSAT Magic — AI-Orchestrated Skill Composer
 
 The only JSAT skill with no fixed template. Given any task, it:
 
@@ -580,7 +650,7 @@ Depth flags: `--depth quick` (4 skills), `--depth standard` (8, default), `--dep
 
 ---
 
-## JSAT Plan — Pre-Implementation Planning Gate
+## 📋 JSAT Plan — Pre-Implementation Planning Gate
 
 Runs before writing any code. Surfaces assumptions, scope risks, and architectural concerns
 by answering six forcing questions, then reviewing from three perspectives.
@@ -606,7 +676,7 @@ Output: a one-page planning brief with recommended decision, architecture approa
 
 ---
 
-## JSAT Decide — Architectural Decision Journal
+## 📓 JSAT Decide — Architectural Decision Journal
 
 Log architectural decisions into the knowledge base and retrieve them by file, topic,
 or blast-radius context — so past decisions inform future changes.
@@ -623,7 +693,7 @@ Subcommands: `log [--impact h|m|l]`, `list [<category>]`, `search <query>`, `con
 
 ---
 
-## JSAT Sprint — Seven-Stage Delivery Workflow
+## 🚀 JSAT Sprint — Seven-Stage Delivery Workflow
 
 Structured end-to-end delivery. Each stage runs focused JSAT tools and passes its
 findings forward to the next.
@@ -646,7 +716,7 @@ jsat sprint --dry "redesign auth flow"       # show plan without running
 
 ---
 
-## JSAT Cohesion — Code Health Analysis
+## 🏥 JSAT Cohesion — Code Health Analysis
 
 Flags files and functions that have grown beyond healthy boundaries, then cross-references
 with blast-radius to prioritize the most urgent refactoring targets.
@@ -665,7 +735,7 @@ Output: RED / YELLOW / GREEN priority report with specific extraction suggestion
 
 ---
 
-## Session Files & Auto-Execute
+## 💾 Session Files & Auto-Execute
 
 Every major skill (`magic`, `crack`, `sprint`, `prompt`) writes two files automatically:
 
@@ -702,7 +772,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 
 ---
 
-## CLI Reference
+## 📖 CLI Reference
 
 ### Core commands
 
@@ -760,7 +830,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 
 | Command | Description |
 |---|---|
-| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 31 slash commands |
+| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 40 slash commands |
 | `jsat connect claude --global` | Wire JSAT into Claude Code globally (all projects) |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
 | `jsat connect codex` | Wire JSAT into OpenAI Codex CLI (project scope) |
@@ -806,7 +876,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 
 ---
 
-## Python SDK
+## 🐍 Python SDK
 
 ```python
 from jsat import JSAT

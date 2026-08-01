@@ -942,6 +942,19 @@ print(result.output_path)     # .jsat/crack/redesign-payment-retry-system.md
 ⚡ Writing discussion document…
 ```
 
+### Dashboard agent responses
+
+When `dashboard=true` is passed, the full text of every war room agent appears in the live dashboard tree — not just the 120-char preview shown in Claude Code's progress area:
+
+```bash
+/jsat crack dashboard=true redesign the payment retry system
+# → opens localhost:7432/jsat/dashboard/crack
+```
+
+Each agent's complete response is shown in the dashboard as a blue (`agent_response`) block under the crack call node — architect, security, implementer, tester, skeptic, and moderator all visible in sequence. The final moderator synthesis is also shown in full. You can read the entire war room discussion without leaving the browser tab.
+
+Browse all active and recent sessions at `http://localhost:7432/jsat/dashboard`.
+
 ### Graceful degradation
 
 If no AI is configured, each agent returns a structural placeholder based on the task text and graph context (BFS keywords). The discussion still happens — it just uses offline templates instead of LLM completions.

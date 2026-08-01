@@ -10,6 +10,7 @@ from concurrent.futures import TimeoutError as FutureTimeoutError
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 if TYPE_CHECKING:
@@ -328,11 +329,13 @@ class ReviewTool(BaseTool):
         )
 
         # ── 1. Get diff (once, before dispatching) ────────────────────────────
+        checkpoint(f"review: fetching git diff {base}...{head}")
         if diff is None:
             diff = self._get_diff(base, head)
 
         if not diff.strip():
             log.warning("review_empty_diff", base=base, head=head)
+            checkpoint("review: WARNING — empty diff, nothing to review")
             return ReviewReport(
                 findings=[],
                 high_confidence=[],
@@ -341,15 +344,20 @@ class ReviewTool(BaseTool):
             )
 
         log.info("review_diff_ready", diff_bytes=len(diff))
+        checkpoint(f"review: diff ready — {len(diff)} bytes")
 
         # ── 2. Build prompt ───────────────────────────────────────────────────
+        checkpoint("review: building review prompt")
         prompt = self._build_prompt(diff)
+        checkpoint(f"review: prompt built — {len(prompt)} chars")
 
         # ── 3. Build model list ───────────────────────────────────────────────
+        checkpoint("review: resolving AI providers")
         providers = self._resolve_providers(configured_models, cfg, log)
 
         if not providers:
             log.error("review_no_providers_available")
+            checkpoint("review: ERROR — no AI providers available")
             return ReviewReport(
                 findings=[],
                 high_confidence=[],
@@ -357,7 +365,9 @@ class ReviewTool(BaseTool):
                 duration_ms=round((time.monotonic() - t0) * 1000),
             )
 
-        log.info("review_dispatch", providers=[lbl for lbl, _ in providers])
+        provider_labels = [lbl for lbl, _ in providers]
+        log.info("review_dispatch", providers=provider_labels)
+        checkpoint(f"review: dispatching to {len(providers)} model(s): {', '.join(provider_labels)}")
 
         # ── 4. Parallel dispatch ──────────────────────────────────────────────
         all_raw: list[tuple[str, dict]] = []
@@ -374,6 +384,7 @@ class ReviewTool(BaseTool):
                     result_label, findings = future.result(timeout=timeout)
                     successful_models.append(result_label)
                     all_raw.extend((result_label, f) for f in findings)
+                    checkpoint(f"review: model '{result_label}' done — {len(findings)} raw finding(s)")
                     log.debug(
                         "review_future_collected",
                         label=label,
@@ -385,12 +396,14 @@ class ReviewTool(BaseTool):
                         label=label,
                         timeout_seconds=timeout,
                     )
+                    checkpoint(f"review: model '{label}' timed out after {timeout}s")
                 except Exception as exc:
                     log.warning(
                         "review_future_error",
                         label=label,
                         error=str(exc),
                     )
+                    checkpoint(f"review: model '{label}' error — {exc}")
 
         log.info(
             "review_collection_complete",
@@ -398,16 +411,24 @@ class ReviewTool(BaseTool):
             models_succeeded=len(successful_models),
             raw_findings=len(all_raw),
         )
+        checkpoint(
+            f"review: all models done — "
+            f"{len(successful_models)}/{len(providers)} succeeded, "
+            f"{len(all_raw)} raw finding(s)"
+        )
 
         # ── 5. Deduplicate and rank ───────────────────────────────────────────
+        checkpoint("review: deduplicating and ranking findings across models")
         findings = _dedup_and_rank(all_raw)
 
         log.info(
             "review_dedup_complete",
             unique_findings=len(findings),
         )
+        checkpoint(f"review: {len(findings)} unique finding(s) after dedup")
 
         # ── 6. Filter by minimum confidence ──────────────────────────────────
+        checkpoint(f"review: filtering by min_confidence='{min_confidence}'")
         min_rank = _CONFIDENCE_ORDER.get(min_confidence, 2)
         findings = [
             f for f in findings
@@ -423,6 +444,11 @@ class ReviewTool(BaseTool):
             high_confidence=len(high),
             models_used=len(successful_models),
             duration_ms=duration_ms,
+        )
+        checkpoint(
+            f"review: DONE — {len(findings)} finding(s) "
+            f"({len(high)} high-confidence), "
+            f"{len(successful_models)} model(s) used, {duration_ms}ms"
         )
 
         return ReviewReport(

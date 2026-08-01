@@ -100,9 +100,24 @@ Print: "📄 Session: ~/.jsat/sessions/<filename>"
 
 ## Step 3 — Execute adaptively
 
+CRITICAL: Use ONLY jsat__* MCP tools for every skill step.
+  NEVER use Bash, Read, Explore, WebSearch, or other native tools as substitutes.
+  jsat tools have full graph access; native tools do not. No exceptions.
+
+Universal flag carry-through: if _BUDGET or _DASHBOARD were set by the universal flags
+preamble, add them to EVERY jsat MCP tool call in this section:
+  - _BUDGET set      → add _budget=<N> to every tool call
+  - _DASHBOARD True  → add _dashboard=True AND _dashboard_session="magic" to every tool call
+                       (all calls share ONE browser tab at …/jsat/dashboard/magic)
+Example: /jsat magic timeout=300 dashboard=true <task>
+  → every tool call: jsat__query(question='...', _budget=300, _dashboard=True,
+                                 _dashboard_session="magic")
+  → first tool call opens the browser tab; all subsequent calls stream into the same tab
+
 For each selected skill in layer order:
   1. Print: "▶ [Layer N] <skill> — <what it checks for this specific task>"
   2. Call the corresponding JSAT MCP tool with task-specific parameters
+     (append _budget and _dashboard if set — see carry-through rules above)
   3. Show result under: "✅ <skill>: <1-sentence finding>"
   4. ADAPT: if the finding reveals new information needs, add skills from later layers
      (example: blast-radius shows breaking changes → add test-gaps --generate to Layer 5)
@@ -111,14 +126,22 @@ For each selected skill in layer order:
   6. Update session file: change "- [ ] <skill>" → "- [x] <skill> (finding: <1-sentence>)"
      and append to ## Findings: "**<skill>:** <1-sentence finding>"
 
-Timeout handling: all JSAT tools have hierarchical per-tool budgets (60s top-level,
-halved at each sub-level, max 7 nested calls). When a tool returns a ⏱ TIMEOUT or
-🔁 DEPTH EXCEEDED marker in its response:
-  1. Read the "💡 Suggestion" line — it tells you exactly how to retry with smaller scope
-  2. Read the "🤖 AI Guidance" line — it tells you whether to retry, wait, or split
-  3. Act: either re-call with service_filter + reduced max_depth, OR skip this step
-     and note: "(timed out — answer based on available data)"
-  4. If still timing out: break the task into separate /jsat magic calls, one per service
+Timeout handling: all JSAT tools have soft budgets (notification-only) and hard limits (5× soft).
+  Pass timeout=<N> to override the soft budget for the entire magic run:
+    /jsat magic timeout=300 investigate the payment flow  → soft budget 300s per tool
+  ⏱ SLOW NOTIFICATION (via progress notification while running):
+     The tool exceeded its soft budget but is STILL RUNNING. Last steps are reported.
+     Decide: wait / skip / split / optimize. The result will arrive.
+  ⏱ SLOW COMPLETED (in response, _slow=true):
+     The tool finished after its soft budget. Result is valid; consider scoping future calls.
+  ⛔ HARD TIMEOUT (in response, _hard_timeout=true):
+     The tool was force-killed after 5× the soft budget. No result. MUST act:
+     1. Read the "💡 Suggestion" line — retry with narrower scope
+     2. Read the "🤖 AI Guidance" — split or skip
+     3. Re-call with service_filter + reduced max_depth, OR skip
+     4. If still hitting hard timeout: break into separate /jsat magic calls per service
+  🔁 DEPTH EXCEEDED (in response, _depth_exceeded=true):
+     Too many nested tool calls. Break into separate tasks.
 
 Blast-radius calls in magic default to max_depth=3 (not 5). Pass --depth deep to the
 blast-radius sub-call if you need deeper traversal on a fast repo.

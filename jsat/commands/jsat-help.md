@@ -29,6 +29,41 @@ If COMMAND is not found: print `Unknown command: <COMMAND>` and show the Full Co
 
 ---
 
+### universal-flags
+Two flags work on EVERY /jsat command. Extract them from ARGS before routing to the subcommand,
+then pass as tool call arguments (_budget=N, _dashboard=True).
+```
+Universal flags (any command):
+  timeout=<N>     → soft time budget in seconds (notification-only; hard kill at 5×N)
+  dashboard=true  → open a real-time browser dashboard for this call
+
+How they work:
+  timeout=<N>
+    • After N seconds: ⏱ progress notification sent to AI (tool still running)
+    • After 5×N seconds: ⛔ force-killed (hard limit)
+    • Default budgets vary per tool (blast_radius: 30s, crack: 55s, query: 45s, …)
+    • Pass as _budget=N in the tool call: jsat__crack(task='...', _budget=300)
+
+  dashboard=true
+    • Starts a local HTTP server at http://localhost:7432 (or JSAT_DASHBOARD_PORT)
+    • Opens the browser automatically
+    • Streams all events in real time: start, progress, checkpoints, over-budget warnings, result, done
+    • Server closes 10 s after the call completes (clears on the next dashboard=true call)
+    • Pass as _dashboard=True in the tool call: jsat__crack(task='...', _dashboard=True)
+
+Examples:
+  /jsat crack timeout=300 redesign the payment retry system
+    → jsat__crack(task='redesign the payment retry system', _budget=300)
+
+  /jsat blast-radius dashboard=true src/payment/
+    → jsat__blast_radius(target='src/payment/', _dashboard=True)
+
+  /jsat magic timeout=180 dashboard=true --service payments investigate the auth flow
+    → jsat__query(…, _budget=180, _dashboard=True)  (and all sub-calls inherit budget)
+```
+
+---
+
 ### aw
 Workflow advisor — classifies your task and runs the optimal tool sequence end-to-end.
 ```
@@ -701,3 +736,13 @@ Examples:
 | `trace` | Trace call chain from a symbol, supports --upstream |
 
 Run `/jsat-help <command>` for flags and examples on any specific command.
+
+BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):
+  timeout=<N>     → override soft budget to N seconds (default varies per tool)
+  dashboard=true  → open a real-time browser dashboard for this call (closes 10s after done)
+                    Example: /jsat crack dashboard=true timeout=300 redesign the auth flow
+                             → jsat__crack(task='...', _budget=300, _dashboard=True)
+  ⏱ progress notification = still running (wait, skip, or split — AI decides)
+  ⏱ _slow in response = completed after budget (result is valid)
+  ⛔ _hard_timeout in response = force-killed at 5× budget (retry with narrower scope)
+

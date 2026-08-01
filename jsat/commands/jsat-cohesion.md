@@ -44,6 +44,8 @@ have the highest downstream impact (most urgent to refactor).
 
   Top recommendation: <one specific first action — most impactful>
 
-TIMEOUT STRATEGY: For large repos, scope with --service <name> to avoid timeout.
+BUDGET STRATEGY: For large repos, scope with --service <name> to stay within budget.
+  Override budget: /jsat cohesion timeout=120 --service payments
+  ⏱ progress notification = still running (wait or skip). ⛔ _hard_timeout = retry with --service.
 
 HOW TO RESPOND: Actually invoke the tool(s) described above, then reply with a direct, useful answer built from the result — interpret it for the user in plain language. Do not merely describe what the tool does, and do not echo raw JSON. If a tool returns an intermediate artifact (e.g. an optimized prompt), use it to finish the task rather than presenting it as the final answer.

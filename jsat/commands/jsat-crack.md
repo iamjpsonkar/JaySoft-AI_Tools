@@ -31,6 +31,16 @@ Phase splits (strip --phases flag; task = everything else):
   N=5: [architect] / [security] / [implementer] / [tester,skeptic] / [moderator]
   N=6 (default): one agent per phase — maximum granularity
 
+## Universal flag carry-through
+
+If _BUDGET or _DASHBOARD were set by the universal flags preamble, add them to EVERY
+jsat MCP tool call in every phase:
+  - _BUDGET set      → add _budget=<N> to every jsat__* call
+  - _DASHBOARD True  → add _dashboard=True AND _dashboard_session="crack" to every call
+                       (all phase calls share ONE browser tab at …/jsat/dashboard/crack)
+Example: /jsat crack timeout=300 dashboard=true <task>
+  → every call: jsat__crack(..., _budget=300, _dashboard=True, _dashboard_session="crack")
+
 ## Phase 0 — Codebase Context (run before Phase 1)
 
 Call: jsat__get_index_status()
@@ -175,5 +185,14 @@ When all done: status → completed. Print: "✅ All actions complete: <path>"
 ## --single Flag
 If --single: call jsat__crack(task=<task>) with all defaults (6 agents, 3 rounds).
 Note: agents do not receive prior findings in single mode.
+
+## Budget & Timing
+crack has a 55s soft budget. Override: /jsat crack timeout=300 <task>
+When the soft budget is exceeded:
+  ⏱ progress notification (mid-call): crack is still running — wait unless you need to skip
+  ⏱ _slow in response: completed after budget — result is valid
+  ⛔ _hard_timeout in response: force-killed at 5× budget — retry with --phases 2 or --single
+Default phased mode (6 phases) is the most reliable for large tasks because each phase
+runs within its own budget window. Use --phases 2 if crack is consistently slow.
 
 HOW TO RESPOND: Actually invoke the tool(s) described above, then reply with a direct, useful answer built from the result — interpret it for the user in plain language. Do not merely describe what the tool does, and do not echo raw JSON. If a tool returns an intermediate artifact (e.g. an optimized prompt), use it to finish the task rather than presenting it as the final answer.

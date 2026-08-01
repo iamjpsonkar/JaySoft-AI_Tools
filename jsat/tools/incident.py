@@ -5,6 +5,7 @@ import math
 import time
 from typing import TYPE_CHECKING
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 if TYPE_CHECKING:
@@ -38,11 +39,17 @@ class IncidentTool(BaseTool):
                  services=services)
         t0 = time.monotonic()
 
+        checkpoint(f"incident: fetching git commits from last {since}")
         commits = self._recent_commits(since)
         log.info("incident_commits_found", count=len(commits))
+        checkpoint(f"incident: found {len(commits)} commit(s) in range")
 
+        capped = commits[:20]
+        checkpoint(f"incident: scoring {len(capped)} candidate commit(s)")
         hypotheses: list[Hypothesis] = []
-        for commit in commits[:20]:  # cap at 20 candidates
+        for i, commit in enumerate(capped, 1):
+            if i == 1 or i % 5 == 0:
+                checkpoint(f"incident: scoring commit {i}/{len(capped)} — {commit['hash'][:8]} {commit['summary'][:50]}")
             score = self._score(commit, description, commits)
             hypotheses.append(Hypothesis(
                 score=round(score, 3),
@@ -56,9 +63,23 @@ class IncidentTool(BaseTool):
                 ),
             ))
 
+        checkpoint(f"incident: sorting {len(hypotheses)} hypotheses by score")
         hypotheses.sort(key=lambda h: h.score, reverse=True)
+        if hypotheses:
+            top = hypotheses[0]
+            checkpoint(
+                f"incident: top hypothesis — {top.commit_hash[:8]} "
+                f"score={top.score:.3f} '{top.commit_summary[:60]}'"
+            )
+
+        checkpoint("incident: generating mitigation steps")
         duration_ms = round((time.monotonic() - t0) * 1000)
         log.info("incident_done", hypotheses=len(hypotheses), duration_ms=duration_ms)
+        top_score = f"{hypotheses[0].score:.3f}" if hypotheses else "n/a"
+        checkpoint(
+            f"incident: DONE — {len(hypotheses)} hypotheses ranked, "
+            f"top score={top_score}, {duration_ms}ms"
+        )
 
         return IncidentReport(
             description=description,

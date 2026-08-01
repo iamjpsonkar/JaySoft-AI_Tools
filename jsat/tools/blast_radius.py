@@ -4,6 +4,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 if TYPE_CHECKING:
@@ -45,20 +46,29 @@ class BlastRadiusTool(BaseTool):
         log.info("blast_radius_start", target=target, max_depth=max_depth)
         t0 = time.monotonic()
 
+        checkpoint(f"blast_radius: resolving target '{target}'")
         # Resolve start nodes from target (file path or node id)
         start_ids = self._resolve_target(target)
+        checkpoint(f"blast_radius: resolved {len(start_ids)} start node(s)")
         if not start_ids:
             log.warning("blast_radius_no_start_nodes", target=target)
+            checkpoint("blast_radius: WARNING — no start nodes found for target")
 
         # Augment start_ids from diff if provided
         if diff is not None:
+            checkpoint("blast_radius: expanding diff to find changed file nodes")
             diff_ids = self._start_ids_from_diff(diff)
             log.info("blast_radius_diff_ids", diff_ids_count=len(diff_ids))
+            checkpoint(f"blast_radius: diff yielded {len(diff_ids)} additional node(s)")
             start_ids += diff_ids
             start_ids = list(dict.fromkeys(start_ids))  # deduplicate, preserve order
+            checkpoint(f"blast_radius: {len(start_ids)} total start nodes after dedup")
 
+        checkpoint(f"blast_radius: starting BFS from {len(start_ids)} node(s), max_depth={max_depth}")
         impacts: list[ImpactItem] = []
         visited: set[str] = set(start_ids)
+        last_depth = -1
+        depth_counts: dict[int, int] = {}
 
         for node_id, depth, edge_path in self._graph.bfs(start_ids, max_depth):
             if node_id in visited:
@@ -66,6 +76,16 @@ class BlastRadiusTool(BaseTool):
             visited.add(node_id)
             if depth == 0:
                 continue
+            if depth != last_depth:
+                if last_depth >= 0:
+                    checkpoint(
+                        f"blast_radius: depth {last_depth} done — "
+                        f"{depth_counts.get(last_depth, 0)} new node(s)"
+                    )
+                checkpoint(f"blast_radius: traversing depth {depth}/{max_depth}")
+                last_depth = depth
+            depth_counts[depth] = depth_counts.get(depth, 0) + 1
+
             edge_type = edge_path[-1] if edge_path else "UNKNOWN"
             severity = _classify(edge_type)
             if severity_filter and severity not in severity_filter:
@@ -83,13 +103,27 @@ class BlastRadiusTool(BaseTool):
                 reason=f"Reached via {edge_type}",
             ))
 
+        if last_depth >= 0:
+            checkpoint(
+                f"blast_radius: depth {last_depth} done — "
+                f"{depth_counts.get(last_depth, 0)} new node(s)"
+            )
+        checkpoint(f"blast_radius: BFS complete — {len(impacts)} impact(s) found")
+
         # Sort: breaking first
+        checkpoint("blast_radius: sorting impacts by severity")
         impacts.sort(key=lambda i: SEVERITY_ORDER.get(i.severity, 99))
 
         summary = {"breaking": 0, "degraded": 0, "warning": 0, "safe": 0}
         for imp in impacts:
             summary[imp.severity] = summary.get(imp.severity, 0) + 1
+        checkpoint(
+            f"blast_radius: summary — "
+            f"breaking={summary['breaking']} degraded={summary['degraded']} "
+            f"warning={summary['warning']} safe={summary['safe']}"
+        )
 
+        checkpoint(f"blast_radius: generating Mermaid diagram ({min(len(impacts), 20)} nodes)")
         duration_ms = round((time.monotonic() - t0) * 1000)
         log.info("blast_radius_done", impacts=len(impacts),
                  breaking=summary["breaking"], duration_ms=duration_ms)

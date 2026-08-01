@@ -51,10 +51,21 @@ def cmd_index(
         p.update(task, completed=100, total=100)
 
     elapsed = time.monotonic() - t0
-    console.print(
-        f"[green]✓[/] Indexed [bold]{result.nodes_indexed}[/] nodes, "
-        f"[bold]{result.edges_indexed}[/] edges in [bold]{elapsed:.1f}s[/]"
-    )
+    if result.incremental and result.files_skipped and result.nodes_indexed == 0:
+        console.print(
+            f"[green]✓[/] Up to date — [bold]{result.files_skipped}[/] files unchanged "
+            f"[dim](graph already has the latest nodes/edges)[/dim]  "
+            f"[dim]{elapsed:.1f}s[/dim]"
+        )
+        console.print("[dim]  Tip: use --force to rebuild from scratch.[/dim]")
+    else:
+        skipped = (f"  [dim]+{result.files_skipped} unchanged skipped[/dim]"
+                   if result.files_skipped else "")
+        console.print(
+            f"[green]✓[/] Indexed [bold]{result.nodes_indexed}[/] nodes, "
+            f"[bold]{result.edges_indexed}[/] edges in [bold]{elapsed:.1f}s[/]"
+            + skipped
+        )
     if watch:
         import shutil
         import subprocess

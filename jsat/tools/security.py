@@ -10,6 +10,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 _SCAN_EXTS = frozenset({".py", ".js", ".ts", ".go", ".yaml", ".env", ".json"})
@@ -56,10 +57,26 @@ class SecurityTool(BaseTool):
                  include_deps=include_deps)
         t0 = time.monotonic()
 
+        checkpoint(f"security: starting semgrep scan on '{path}'")
         findings = self._run_semgrep(path, severity_threshold, log)
-        secrets_count, secret_findings = self._detect_secrets(path, log)
-        cve_list = self._check_cves(path, log) if include_deps else []
+        checkpoint(f"security: semgrep done — {len(findings)} finding(s) at threshold={severity_threshold}")
 
+        checkpoint(f"security: starting secret detection scan on '{path}'")
+        secrets_count, secret_findings = self._detect_secrets(path, log)
+        checkpoint(f"security: secret scan done — {secrets_count} potential secret(s)")
+
+        if include_deps:
+            checkpoint("security: starting CVE check for dependencies")
+            cve_list = self._check_cves(path, log)
+            checkpoint(f"security: CVE check done — {len(cve_list)} CVE(s)")
+        else:
+            cve_list = []
+            checkpoint("security: CVE check skipped (include_deps=False)")
+
+        checkpoint(
+            f"security: all checks complete — "
+            f"semgrep={len(findings)} secrets={secrets_count} cves={len(cve_list)}"
+        )
         duration_ms = round((time.monotonic() - t0) * 1000)
         log.info("security_done", semgrep_findings=len(findings),
                  secrets=secrets_count, cves=len(cve_list), duration_ms=duration_ms)
@@ -77,11 +94,13 @@ class SecurityTool(BaseTool):
         from jsat._models import SecurityFinding
 
         try:
+            checkpoint("security: launching semgrep (owasp-top-ten + secrets rules, timeout=120s)")
             result = subprocess.run(
                 ["semgrep", "--json", "--config=p/owasp-top-ten",
                  "--config=p/secrets", str(path)],
                 capture_output=True, text=True, timeout=120,
             )
+            checkpoint("security: semgrep process returned")
             raw = json.loads(result.stdout or "{}")
             findings = []
             for item in raw.get("results", []):
@@ -112,16 +131,18 @@ class SecurityTool(BaseTool):
         entropy_threshold = 4.8   # raised from 4.5 — eliminates false positives on CLI help text / test fixtures
         min_token_len = 24         # raised from 20 — further reduces noise from short high-entropy identifiers
         files_scanned = 0
+        all_files = [f for f in path.rglob("*") if f.is_file() and f.suffix in _SCAN_EXTS]
+        checkpoint(f"security: scanning {len(all_files)} file(s) for secrets")
 
-        for fpath in path.rglob("*"):
-            if not fpath.is_file() or fpath.suffix not in _SCAN_EXTS:
-                continue
+        for fpath in all_files:
             try:
                 lines = fpath.read_text(errors="ignore").splitlines()
             except Exception:
                 continue
 
             files_scanned += 1
+            if files_scanned % 50 == 0:
+                checkpoint(f"security: secret scan progress — {files_scanned}/{len(all_files)} files")
             for lineno, line in enumerate(lines, 1):
                 # Regex-based patterns — precise, with file + line context
                 for pattern_name, (pattern, severity) in _SECRET_PATTERNS.items():
@@ -175,12 +196,17 @@ class SecurityTool(BaseTool):
         if not packages:
             log.debug("security_cve_no_packages",
                       detail="No requirements*.txt found; skipping CVE lookup")
+            checkpoint("security: no requirements*.txt found — CVE check skipped")
             return []
 
         cves: list[CVEFinding] = []
         log.info("security_cve_start", packages=len(packages))
+        capped = packages[:30]
+        checkpoint(f"security: querying osv.dev for {len(capped)} package(s)")
 
-        for pkg_name, version in packages[:30]:  # cap to avoid rate limits
+        for i, (pkg_name, version) in enumerate(capped, 1):  # cap to avoid rate limits
+            if i % 5 == 0 or i == 1:
+                checkpoint(f"security: CVE check {i}/{len(capped)} — {pkg_name} {version}")
             try:
                 query: dict = {"package": {"name": pkg_name, "ecosystem": "PyPI"}}
                 if version:

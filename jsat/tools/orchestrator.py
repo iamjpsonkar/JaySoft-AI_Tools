@@ -4,6 +4,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
+from jsat._call_context import checkpoint
 from jsat.tools import BaseTool
 
 # Full agent prompts from plan.md Section K — complete specification for each agent role.
@@ -227,26 +228,41 @@ class OrchestratorTool(BaseTool):
         log.info("orchestrator_start", task=task[:80], mode=mode)
         t0 = time.monotonic()
 
+        checkpoint(f"orchestrator: start — task='{task[:60]}' mode={mode}")
+
         decomposed = self._decompose(task)
         if agents:
             requested = set(agents)
             decomposed = [(a, s) for a, s in decomposed if a in requested]
 
+        agent_names = [a for a, _ in decomposed]
+        checkpoint(f"orchestrator: decomposed into {len(decomposed)} subtasks — agents={agent_names}")
+
         results: list[SubtaskResult] = []
         context = ""
         conflicts = 0
 
-        for agent, subtask in decomposed:
+        for i, (agent, subtask) in enumerate(decomposed, 1):
+            checkpoint(f"orchestrator: step {i}/{len(decomposed)} — agent='{agent}'")
             result = self._run_agent(agent, subtask, context)
             results.append(result)
             if result.status == "conflict":
                 conflicts += 1
+                checkpoint(f"orchestrator: ⚠️  '{agent}' reported a conflict")
             elif result.status == "success":
+                preview = result.output[:100].replace("\n", " ")
+                checkpoint(f"orchestrator: ✓ '{agent}' done — {preview}")
                 context += f"\n[{agent}]: {result.output[:400]}"
+            else:
+                checkpoint(f"orchestrator: '{agent}' skipped (no AI or error)")
 
         duration_ms = round((time.monotonic() - t0) * 1000)
         log.info("orchestrator_done", subtasks=len(results), conflicts=conflicts,
                  duration_ms=duration_ms)
+        checkpoint(
+            f"orchestrator: DONE — {len(results)} subtasks, {conflicts} conflict(s), "
+            f"{duration_ms}ms"
+        )
         return OrchestratorResult(task=task, subtasks=results,
                                   conflicts_detected=conflicts, mode=mode,
                                   duration_ms=duration_ms)

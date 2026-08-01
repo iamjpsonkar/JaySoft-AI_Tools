@@ -64,10 +64,33 @@ jsat connect list
 
 ## Slash Commands
 
-A single `/jsat` dispatcher is installed into Claude Code when you run `jsat connect claude`. It routes to 39 subcommands, organized into layers:
+A single `/jsat` dispatcher is installed into Claude Code when you run `jsat connect claude`. It routes to 40 subcommands, organized into layers:
 
 ```
 /jsat <subcommand> [args]
+```
+
+### Universal flags
+
+Two flags work on **every** `/jsat` command — strip them from `$ARGUMENTS` before routing, pass as tool call args:
+
+| Flag | Behavior | Passes to tool |
+|------|----------|----------------|
+| `timeout=<N>` | Soft budget N s (notification-only); hard kill at 5×N s | `_budget=N` |
+| `dashboard=true` | Open a live browser dashboard at `localhost:7432/jsat/dashboard/<command>`. One persistent tab per `/jsat` command — all tool calls stream as a collapsible tree. Tab stays open until the session finishes. Browse all sessions at `localhost:7432/jsat/dashboard`. | `_dashboard=True` + `_dashboard_session=<command>` |
+
+```bash
+# Custom budget — AI notified at 120s, force-killed at 600s
+/jsat blast-radius timeout=120 src/payment/
+
+# Live dashboard — one persistent tab at localhost:7432/jsat/dashboard/crack
+/jsat crack dashboard=true redesign the auth flow
+
+# Both combined — tab at localhost:7432/jsat/dashboard/magic
+/jsat magic timeout=180 dashboard=true --service payments investigate the auth flow
+
+# See all active/recent sessions
+# Open: http://localhost:7432/jsat/dashboard
 ```
 
 ### Quick reference
@@ -84,7 +107,7 @@ A single `/jsat` dispatcher is installed into Claude Code when you run `jsat con
 | **Tokens** | `tokens`, `token-budget`, `prompt-diff`, `prompt-rewrite` |
 | **Index** | `index`, `ithinking` |
 
-> **`/jsat-help`** is a separate command (not a subcommand of `/jsat`): `/jsat-help` lists all 39 with one-liners; `/jsat-help <command>` shows full flags and examples for that command.
+> **`/jsat-help`** is a separate command (not a subcommand of `/jsat`): `/jsat-help` lists all 40 with one-liners; `/jsat-help <command>` shows full flags and examples for that command. `/jsat-help universal-flags` explains `timeout=<N>` and `dashboard=true`.
 
 ### Common examples
 
@@ -161,6 +184,33 @@ MCP tools for programmatic use:
 |------|-------------|
 | `jsat__prompt_optimize` | Return the optimized prompt for a query without sending it |
 | `jsat__prompt_diff` | Return raw input and optimized prompt as a structured diff |
+
+---
+
+## Live Dashboard
+
+Any `/jsat` command accepts `dashboard=true` to open a real-time browser dashboard. Each `/jsat` command gets **one persistent tab** — all tool calls in that session stream into the same collapsible tree.
+
+```python
+# Claude passes these in every tool call when dashboard=true is set
+jsat__blast_radius(target="src/payment/", _dashboard=True, _budget=60)
+jsat__crack(task="...", _dashboard=True, _dashboard_session="crack")
+```
+
+**URL**: `http://localhost:7432/jsat/dashboard/<command>` — e.g., `/jsat crack ...` opens `localhost:7432/jsat/dashboard/crack`.
+
+**Landing page**: `http://localhost:7432/jsat/dashboard` — lists all active and recent sessions. Auto-refreshes every 5s. Bookmark this to always see what's running.
+
+The dashboard:
+- Starts a local HTTP + SSE server at `localhost:7432` (override with `JSAT_DASHBOARD_PORT`)
+- Opens the session URL automatically in the browser on the first tool call
+- Shows a dark-terminal collapsible tree: each tool call is a section; sub-calls nest under their parent
+- Color-coded event types: 🟡 amber checkpoints, 🟢 green results, 🔵 blue agent responses (crack), 🔴 red errors, 🟠 orange over-budget
+- Tab stays open until the session finishes — an idle watcher fires `session_done` after 30s with no active calls
+- For `/jsat crack dashboard=true`: the full text of every war room agent (architect, security, implementer, tester, skeptic, moderator) appears in the tree in blue
+- **Copy logs** button to capture the full session
+
+The dashboard uses Python stdlib only (`http.server`, SSE) — no extra packages required.
 
 ---
 

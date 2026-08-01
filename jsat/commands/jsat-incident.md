@@ -28,6 +28,8 @@ Examples:
     → jsat__generate_runbook(target="PaymentService")
 
 Show top hypotheses ranked by score. For each: commit hash, author, changed files, keyword evidence.
-TIMEOUT STRATEGY: Use --since 24h to narrow the commit range on large repos.
+BUDGET STRATEGY: Use --since 24h to narrow the commit range on large repos.
+  Override budget: /jsat incident timeout=120 <description>
+  ⏱ progress notification = still running (wait or skip). ⛔ _hard_timeout = retry with narrower --since window.
 
 HOW TO RESPOND: Actually invoke the tool(s) described above, then reply with a direct, useful answer built from the result — interpret it for the user in plain language. Do not merely describe what the tool does, and do not echo raw JSON. If a tool returns an intermediate artifact (e.g. an optimized prompt), use it to finish the task rather than presenting it as the final answer.

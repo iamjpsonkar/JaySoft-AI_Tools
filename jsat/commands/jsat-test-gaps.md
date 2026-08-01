@@ -25,7 +25,9 @@ Examples:
   /jsat-test-gaps --contract PaymentService RefundService
     → jsat__generate_contract_test(producer="PaymentService", consumer="RefundService")
 
-LARGE CODEBASE STRATEGY: Run per-service to avoid timeout:
+LARGE CODEBASE STRATEGY: Run per-service to stay within budget:
   /jsat-test-gaps --service PaymentService   then   /jsat-test-gaps --service RefundService
+  Override budget: /jsat test-gaps timeout=120 src/payment/
+  ⏱ progress notification = still running (wait or skip). ⛔ _hard_timeout = retry scoped.
 
 HOW TO RESPOND: Actually invoke the tool(s) described above, then reply with a direct, useful answer built from the result — interpret it for the user in plain language. Do not merely describe what the tool does, and do not echo raw JSON. If a tool returns an intermediate artifact (e.g. an optimized prompt), use it to finish the task rather than presenting it as the final answer.
