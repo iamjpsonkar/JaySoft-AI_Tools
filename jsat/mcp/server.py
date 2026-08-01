@@ -18,13 +18,13 @@ if TYPE_CHECKING:
 # Each call level gets a fixed budget. Budgets halve each level so deeply
 # nested work is forced to be fast or broken into separate tasks.
 #
-# depth:    0     1     2     3    4    5    6   ≥7 → reject
-# budget:  60s   30s   15s   8s   4s   2s   1s
+# depth:    0      1     2     3    4    5    6   ≥7 → reject
+# budget:  120s   30s   15s   8s   4s   2s   1s
 #
 # The top-level budget (depth 0) may be overridden per-tool via _TOOL_BUDGETS.
 # Anything at depth ≥ _MAX_CALL_DEPTH is rejected — AI must split the task.
 _MAX_CALL_DEPTH: int = 7
-_DEPTH_BUDGETS: list[float] = [60.0, 30.0, 15.0, 8.0, 4.0, 2.0, 1.0]
+_DEPTH_BUDGETS: list[float] = [120.0, 30.0, 15.0, 8.0, 4.0, 2.0, 1.0]
 
 _TOOL_BUDGETS: dict[str, float] = {
     "blast_radius":        30.0,
@@ -555,6 +555,39 @@ class MCPServer:
                 "description": "Return graph index statistics (node/edge counts, freshness).",
                 "schema": {"type": "object", "properties": {}},
                 "handler": lambda a: _ser(js.index_status),  # type: ignore[attr-defined]
+            },
+            "create_index_md": {
+                "description": (
+                    "Generate or refresh INDEX.md — a structured map of every file in the repo "
+                    "with its purpose, key symbols, and the service it belongs to. "
+                    "Writes to <path>/INDEX.md (default: repo root). "
+                    "Run after indexing to make future JSAT queries faster and more accurate."
+                ),
+                "schema": {"type": "object", "properties": {
+                    "path": {"type": "string",
+                             "description": "Directory to write INDEX.md (default: repo root)"},
+                    "max_files": {"type": "integer", "default": 500,
+                                  "description": "Max files to include (default 500)"}}},
+                "handler": lambda a: _create_index_md_impl(
+                    js, a.get("path", "."), a.get("max_files", 500),
+                    _notify=a.get("_notify"),
+                ),
+            },
+            "lookup_index_md": {
+                "description": (
+                    "Fast pattern search in the project's INDEX.md. "
+                    "Returns matching file entries without re-scanning the graph. "
+                    "Much faster than query() for 'where is X?' lookups when INDEX.md exists."
+                ),
+                "schema": {"type": "object", "required": ["pattern"],
+                           "properties": {
+                               "pattern": {"type": "string",
+                                           "description": "Substring to search for in file paths or descriptions"},
+                               "path": {"type": "string",
+                                        "description": "Directory containing INDEX.md (default: repo root)"}}},
+                "handler": lambda a: _lookup_index_md_impl(
+                    a["pattern"], a.get("path", ".")
+                ),
             },
             "get_jsat_version": {
                 "description": "Return JSAT version, AI provider, and graph backend.",
@@ -1351,6 +1384,89 @@ class MCPServer:
 
 # ── Graph-backed helper implementations ───────────────────────────────────────
 
+def _infer_services_from_files(g: object, language: str | None) -> list[dict]:
+    """Derive service list from File nodes when no explicit Service nodes exist."""
+    files = g.nodes_by_label("File")  # type: ignore[attr-defined]
+    service_map: dict[str, dict] = {}
+    for node in files:
+        props = node.get("properties", {}) if isinstance(node, dict) else {}
+        path = props.get("path", node.get("id", "") if isinstance(node, dict) else "")
+        lang = props.get("language", "")
+        if language and lang.lower() != language.lower():
+            continue
+        parts = path.replace("\\", "/").split("/")
+        # Use first meaningful directory as service name
+        svc = parts[0] if parts else "root"
+        if svc in (".", "src", "app", "lib", "pkg") and len(parts) > 1:
+            svc = parts[1]
+        if svc not in service_map:
+            service_map[svc] = {
+                "name": svc,
+                "language": lang or "unknown",
+                "file_count": 0,
+                "entry_point": "",
+                "_source": "inferred_from_files",
+            }
+        service_map[svc]["file_count"] += 1
+        if not service_map[svc]["entry_point"] and any(
+            path.endswith(ep) for ep in
+            ("main.py", "app.py", "__main__.py", "server.py", "manage.py", "index.js")
+        ):
+            service_map[svc]["entry_point"] = path
+    return sorted(service_map.values(), key=lambda x: -x["file_count"])[:30]  # type: ignore[arg-type]
+
+
+def _infer_endpoints_from_functions(
+    g: object, service: str | None, method: str | None
+) -> list[dict]:
+    """Derive endpoints from Function nodes when no explicit Endpoint nodes exist."""
+    _HTTP_METHODS = frozenset({"get", "post", "put", "delete", "patch", "options", "head"})
+    _HANDLER_HINTS = frozenset({
+        "handler", "view", "endpoint", "route", "webhook", "callback", "api", "controller"
+    })
+    results: list[dict] = []
+    for node in g.nodes_by_label("Function"):  # type: ignore[attr-defined]
+        props = node.get("properties", {}) if isinstance(node, dict) else {}
+        name = props.get("name", "").lower()
+        file_path = props.get("file", "")
+        lang = props.get("language", "")
+        file_lower = file_path.lower()
+
+        # Infer HTTP method from function/class name
+        inferred_method: str | None = None
+        for m in _HTTP_METHODS:
+            if name.startswith(m + "_") or name.endswith("_" + m) or name == m:
+                inferred_method = m.upper()
+                break
+
+        is_handler = (
+            inferred_method is not None
+            or any(h in file_lower for h in _HANDLER_HINTS)
+            or any(h in name for h in _HANDLER_HINTS)
+        )
+        if not is_handler:
+            continue
+
+        svc = file_path.replace("\\", "/").split("/")[0] if file_path else ""
+        if service and svc.lower() != service.lower():
+            continue
+        if method and inferred_method and inferred_method.upper() != method.upper():
+            continue
+
+        results.append({
+            "method": inferred_method or "UNKNOWN",
+            "route": props.get("name", ""),
+            "file": file_path,
+            "line": props.get("line", 0),
+            "service": svc,
+            "language": lang,
+            "_source": "inferred_from_functions",
+        })
+        if len(results) >= 200:
+            break
+    return results
+
+
 def _list_services_impl(js: object, language: str | None) -> list[dict]:
     import structlog
     log = structlog.get_logger(__name__)
@@ -1362,8 +1478,15 @@ def _list_services_impl(js: object, language: str | None) -> list[dict]:
             nodes = [n for n in nodes
                      if str((n.get("properties") or n).get("language", "")).lower()
                      == language.lower()]
-        log.info("list_services_done", count=len(nodes))
-        return nodes
+        if nodes:
+            log.info("list_services_done", count=len(nodes), source="explicit")
+            return nodes
+        # Fallback: derive services from File node directory structure
+        inferred = _infer_services_from_files(g, language)
+        log.info("list_services_done", count=len(inferred), source="inferred_from_files")
+        if inferred:
+            return inferred
+        return [{"message": "No services found. Run 'jsat index .' to build the graph."}]
     except Exception as e:
         log.error("list_services_error", error=str(e))
         return [{"error": str(e)}]
@@ -1391,8 +1514,15 @@ def _list_endpoints_impl(
             if auth is not None and bool(props.get("auth_required")) != auth:
                 continue
             results.append(n)
-        log.info("list_endpoints_done", count=len(results))
-        return results
+        if results:
+            log.info("list_endpoints_done", count=len(results), source="explicit")
+            return results
+        # Fallback: infer endpoints from Function node naming and file path patterns
+        inferred = _infer_endpoints_from_functions(g, service, method)
+        log.info("list_endpoints_done", count=len(inferred), source="inferred_from_functions")
+        if inferred:
+            return inferred
+        return [{"message": "No endpoints found. Run 'jsat index .' to build the graph."}]
     except Exception as e:
         log.error("list_endpoints_error", error=str(e))
         return [{"error": str(e)}]
@@ -1450,6 +1580,29 @@ def _get_class_impl(js: object, name: str | None, file: str | None) -> dict | st
         return {"error": str(e)}
 
 
+def _infer_tables_from_classes(g: object) -> list[dict]:
+    """Derive DB tables from ORM Model/Base classes when no Table nodes exist."""
+    _MODEL_SUFFIXES = ("model", "table", "schema", "entity", "record", "orm")
+    _MODEL_BASES = ("base", "model", "declarativebase", "abstractmodel")
+    results: list[dict] = []
+    for node in g.nodes_by_label("Class"):  # type: ignore[attr-defined]
+        props = node.get("properties", {}) if isinstance(node, dict) else {}
+        name = props.get("name", "")
+        name_lower = name.lower()
+        docstring = props.get("docstring", "").lower()
+        if (
+            any(name_lower.endswith(s) for s in _MODEL_SUFFIXES)
+            or any(b in docstring for b in ("sqlalchemy", "django model", "peewee", "tortoise"))
+        ):
+            results.append({
+                "name": name,
+                "file": props.get("file", ""),
+                "schema": "",
+                "_source": "inferred_from_class",
+            })
+    return results[:100]
+
+
 def _list_tables_impl(js: object) -> list[dict]:
     import structlog
     log = structlog.get_logger(__name__)
@@ -1457,11 +1610,160 @@ def _list_tables_impl(js: object) -> list[dict]:
     try:
         g = js._get_graph()  # type: ignore[attr-defined]
         nodes = g.nodes_by_label("Table")  # type: ignore[attr-defined]
-        log.info("list_tables_done", count=len(nodes))
-        return nodes
+        if nodes:
+            log.info("list_tables_done", count=len(nodes), source="explicit")
+            return nodes
+        # Fallback: infer from ORM model class names
+        inferred = _infer_tables_from_classes(g)
+        log.info("list_tables_done", count=len(inferred), source="inferred_from_classes")
+        return inferred or [{"message": "No tables found. Run 'jsat index .' to build the graph."}]
     except Exception as e:
         log.error("list_tables_error", error=str(e))
         return [{"error": str(e)}]
+
+
+def _create_index_md_impl(js: object, path: str, max_files: int,
+                          _notify=None) -> dict:
+    """Generate INDEX.md — a file map with purpose, key symbols, and service grouping."""
+    from pathlib import Path
+
+    import structlog
+    log = structlog.get_logger(__name__)
+    notify = _notify or (lambda msg, p=0, t=100: None)
+    log.info("create_index_md", path=path, max_files=max_files)
+
+    out_dir = Path(path)
+    index_path = out_dir / "INDEX.md"
+
+    try:
+        # ── Step 1: clear old index ───────────────────────────────────────────
+        if index_path.exists():
+            notify(f"Clearing existing INDEX.md at {index_path}…", 0, 5)
+            log.info("create_index_md_clearing", path=str(index_path))
+            index_path.unlink()
+
+        # ── Step 2: load graph ────────────────────────────────────────────────
+        notify("Loading graph — reading File nodes…", 1, 5)
+        _budget_checkpoint("create_index_md: loading File nodes")
+        g = js._get_graph()  # type: ignore[attr-defined]
+        file_nodes = g.nodes_by_label("File")  # type: ignore[attr-defined]
+        log.info("create_index_md_files_loaded", count=len(file_nodes))
+        notify(f"Found {len(file_nodes)} files. Building symbol map…", 2, 5)
+
+        # ── Step 3: build symbol map (file → top symbols + docstrings) ────────
+        _budget_checkpoint(f"create_index_md: building symbol map for {len(file_nodes)} files")
+        sym_map: dict[str, list[str]] = {}
+        sym_total = 0
+        for label in ("Class", "Function"):
+            for node in g.nodes_by_label(label):  # type: ignore[attr-defined]
+                props = node.get("properties", {}) if isinstance(node, dict) else {}
+                fp = props.get("file", "")
+                if not fp:
+                    continue
+                name = props.get("name", "")
+                doc = (props.get("docstring", "") or "").split("\n")[0][:80]
+                entry = f"`{name}`" + (f" — {doc}" if doc else "")
+                sym_map.setdefault(fp, []).append(entry)
+                sym_total += 1
+        log.info("create_index_md_symbols_built", total=sym_total)
+
+        # ── Step 4: group files by service (top-level directory) ──────────────
+        notify(f"Grouping {min(len(file_nodes), max_files)} files by service…", 3, 5)
+        _budget_checkpoint("create_index_md: grouping files by service")
+        service_groups: dict[str, list[dict]] = {}
+        for node in file_nodes[:max_files]:
+            props = node.get("properties", {}) if isinstance(node, dict) else {}
+            fp = props.get("path", node.get("id", "") if isinstance(node, dict) else "")
+            if not fp:
+                continue
+            parts = fp.replace("\\", "/").split("/")
+            svc = parts[0] if parts else "root"
+            service_groups.setdefault(svc, []).append({
+                "path": fp,
+                "language": props.get("language", ""),
+                "loc": props.get("loc", 0),
+                "symbols": sym_map.get(fp, [])[:5],
+            })
+
+        # ── Step 5: write INDEX.md ────────────────────────────────────────────
+        notify(f"Writing INDEX.md — {len(service_groups)} services…", 4, 5)
+        _budget_checkpoint("create_index_md: writing INDEX.md")
+        lines = [
+            "# INDEX",
+            "",
+            "> Auto-generated by `jsat create_index_md`. Re-run after `jsat index` to refresh.",
+            f"> Files: {len(file_nodes)}  |  Services: {len(service_groups)}  |  Symbols: {sym_total}",
+            "",
+        ]
+        for svc, files in sorted(service_groups.items()):
+            lines.append(f"## {svc}  ({len(files)} files)")
+            lines.append("")
+            for f in sorted(files, key=lambda x: x["path"]):
+                fp = f["path"]
+                syms = ", ".join(f["symbols"][:3])
+                lang = f"[{f['language']}] " if f["language"] else ""
+                loc = f" ({f['loc']} loc)" if f["loc"] else ""
+                sym_str = f" — {syms}" if syms else ""
+                lines.append(f"- [{fp}]({fp}){loc} {lang}{sym_str}")
+            lines.append("")
+        lines.append("---")
+        lines.append("*Use `jsat lookup_index_md <pattern>` for fast lookups.*")
+
+        index_path.write_text("\n".join(lines), encoding="utf-8")
+        notify(f"✅ INDEX.md written ({len(file_nodes)} files, {len(service_groups)} services)", 5, 5)
+        log.info("create_index_md_done", path=str(index_path),
+                 files=len(file_nodes), services=len(service_groups), symbols=sym_total)
+        return {
+            "success": True,
+            "path": str(index_path),
+            "files": len(file_nodes),
+            "services": len(service_groups),
+            "symbols": sym_total,
+            "message": (
+                f"INDEX.md written to {index_path} "
+                f"({len(file_nodes)} files, {len(service_groups)} services, {sym_total} symbols)"
+            ),
+        }
+    except Exception as e:
+        log.error("create_index_md_error", error=str(e))
+        return {"success": False, "error": str(e)}
+
+
+def _lookup_index_md_impl(pattern: str, path: str) -> dict:
+    """Fast pattern search in INDEX.md — much quicker than re-querying the graph."""
+    from pathlib import Path
+
+    import structlog
+    log = structlog.get_logger(__name__)
+    log.info("lookup_index_md", pattern=pattern, path=path)
+    index_path = Path(path) / "INDEX.md"
+    if not index_path.exists():
+        return {
+            "found": False,
+            "message": (
+                f"INDEX.md not found at {index_path}. "
+                "Run create_index_md first to generate it."
+            ),
+        }
+    try:
+        text = index_path.read_text(encoding="utf-8")
+        pat_lower = pattern.lower()
+        matches = [
+            line.strip()
+            for line in text.splitlines()
+            if pat_lower in line.lower() and line.strip().startswith("-")
+        ]
+        log.info("lookup_index_md_done", pattern=pattern, matches=len(matches))
+        return {
+            "found": bool(matches),
+            "pattern": pattern,
+            "matches": matches[:50],
+            "total": len(matches),
+            "index_path": str(index_path),
+        }
+    except Exception as e:
+        log.error("lookup_index_md_error", error=str(e))
+        return {"found": False, "error": str(e)}
 
 
 def _trace_call_chain_impl(js: object, source: str, target: str) -> dict:
