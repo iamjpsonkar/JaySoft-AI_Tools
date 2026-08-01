@@ -4,6 +4,17 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.7] — 2026-08-01
+
+### Fixed
+
+- **Universal MCP params now declared in every tool schema** — `_dashboard`, `_dashboard_session`,
+  and `_budget` are injected into every tool's `inputSchema.properties` at `tools/list` time via a
+  new `_UNIVERSAL_SCHEMA_PARAMS` constant in `server.py`. Previously, Claude Code validated params
+  against `inputSchema` and silently dropped any undeclared param, so `_dashboard=true` was never
+  passed to the server even when explicitly requested. All three params remain optional and are
+  still popped by `_handle()` before handlers see them — no handler behaviour changes.
+
 ## [0.4.6] — 2026-08-01
 
 ### Added
