@@ -10,10 +10,15 @@ import structlog
 import typer
 
 from ._cli_common import (
-    app, connect_app, console, err,
-    _jsat_binary, _read_json, _write_json,
+    _jsat_binary,
+    _read_json,
+    _write_json,
+    app,
+    connect_app,
+    console,
+    err,
 )
-from ._cli_skills_data import _JSAT_SKILLS, _write_jsat_dispatcher, _write_bob_commands
+from ._cli_skills_data import _JSAT_SKILLS, _write_bob_commands, _write_jsat_dispatcher
 
 _log = structlog.get_logger(__name__)
 
@@ -78,7 +83,11 @@ def cmd_connect_claude(
     # (prompt_rewrite, prompt_multi_agent, etc.) using the claude CLI that is
     # already running in this session — no API key required.
     import shutil as _shutil
-    _ai_env: dict[str, str] = {}
+    _ai_env: dict[str, str] = {
+        # Silences the "no auth configured" startup warning for local/dev use.
+        # Remove this and set JSAT_MCP_TOKEN or JSAT_MCP_TOKEN_ROLES for auth enforcement.
+        "JSAT_MCP_ALLOW_INSECURE": "1",
+    }
     if _shutil.which("claude"):
         _ai_env["JSAT_AI_PROVIDER"] = "claude_cli"
     jsat_entry = {
@@ -551,7 +560,7 @@ def cmd_connect_bob(
     # Bob itself — guaranteed available under `jsat bob`, no API key required — so
     # they work out of the box instead of falling back to the no-op provider.
     _connect_mcp_tool(label, config_path, binary, repo_path, "Restart Bob Shell",
-                      env={"JSAT_AI_PROVIDER": "bob_cli"})
+                      env={"JSAT_AI_PROVIDER": "bob_cli", "JSAT_MCP_ALLOW_INSECURE": "1"})
 
     if install_commands:
         cmds_dir = _write_bob_commands(effective_scope)

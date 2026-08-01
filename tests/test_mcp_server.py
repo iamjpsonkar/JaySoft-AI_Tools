@@ -92,22 +92,25 @@ def test_allowed_unknown_role_denies_everything():
 # ── Fail-closed: no auth configured ──────────────────────────────────────────
 
 @pytest.mark.ci
-def test_no_auth_no_insecure_rejects_tool_calls():
-    """Default state (no env vars set) must reject all tool calls."""
+def test_no_auth_allows_tool_calls_with_warning():
+    """Default state (no env vars set) must allow tool calls — MCP over stdio is local-only."""
     server = _make_server()
+    # No auth configured → server warns at startup but does NOT reject calls
+    assert not server._auth_token
+    assert not server._token_roles
+    # The call proceeds past auth (may fail for other reasons, but not with a 401)
     resp = _tool_call(server, "query")
-    assert resp["error"]["code"] == -32600
-    assert "Unauthorized" in resp["error"]["message"]
-    assert "JSAT_MCP_ALLOW_INSECURE" in resp["error"]["message"]
+    if "error" in resp:
+        assert resp["error"]["code"] != -32600
 
 
 @pytest.mark.ci
-def test_no_auth_no_insecure_rejects_tools_list():
-    """tools/list should also be rejected when no auth is configured."""
+def test_no_auth_tools_list_succeeds():
+    """tools/list must succeed when no auth is configured."""
     server = _make_server()
     msg = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
     resp = server._handle(msg)
-    assert resp is not None and resp["error"]["code"] == -32600
+    assert resp is not None and "result" in resp
 
 
 @pytest.mark.ci
@@ -131,8 +134,8 @@ def test_no_auth_notifications_initialized_succeeds():
 # ── JSAT_MCP_ALLOW_INSECURE=1 opt-in ─────────────────────────────────────────
 
 @pytest.mark.ci
-def test_allow_insecure_permits_tool_calls(monkeypatch):
-    """JSAT_MCP_ALLOW_INSECURE=1 must allow unauthenticated tool calls to proceed."""
+def test_allow_insecure_flag_suppresses_warning(monkeypatch):
+    """JSAT_MCP_ALLOW_INSECURE=1 sets _allow_insecure=True (silences startup warning)."""
     monkeypatch.setenv("JSAT_MCP_ALLOW_INSECURE", "1")
     monkeypatch.delenv("JSAT_MCP_TOKEN", raising=False)
     monkeypatch.delenv("JSAT_MCP_TOKEN_ROLES", raising=False)
@@ -143,11 +146,11 @@ def test_allow_insecure_permits_tool_calls(monkeypatch):
     jsat.index_status = {"nodes": 0, "edges": 0}
     jsat._get_graph.return_value = MagicMock()
     server = MCPServer(jsat)
-    # _handle should not return an auth error; the tool may fail (unknown), but not 401
+    assert server._allow_insecure is True
+    # Tool calls still proceed (same as no-auth default)
     resp = _tool_call(server, "query")
-    # Either succeeds or fails with a non-auth error (e.g. tool runtime error)
     if "error" in resp:
-        assert resp["error"]["code"] != -32600 or "Unauthorized" not in resp["error"]["message"]
+        assert resp["error"]["code"] != -32600
 
 
 # ── Legacy single-token auth (JSAT_MCP_TOKEN) ────────────────────────────────
@@ -270,6 +273,8 @@ def test_rbac_malformed_json_disables_rbac_gracefully(monkeypatch):
     # Should not raise during construction
     server = MCPServer(jsat)
     assert server._token_roles == {}
-    # With no valid auth configured, tool calls must be rejected (fail-closed)
+    # Malformed JSON → RBAC disabled, no other token configured → open access with warning
     resp = _tool_call(server, "query")
-    assert resp["error"]["code"] == -32600
+    # Must NOT be a 401 — tool calls proceed (open access fallback)
+    if "error" in resp:
+        assert resp["error"]["code"] != -32600

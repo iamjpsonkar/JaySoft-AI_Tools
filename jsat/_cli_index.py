@@ -15,7 +15,7 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from ._cli_common import app, console, err, _jsat, _ok, _read_json, _write_json
+from ._cli_common import _jsat, _ok, _read_json, _write_json, app, console, err
 from ._cli_connect import _CONNECT_LOCATIONS
 
 _log = structlog.get_logger(__name__)
@@ -313,6 +313,7 @@ def cmd_remove(
     Does NOT touch other .claude/ config, your source code, or git history.
     """
     import shutil
+
     from jsat._config import jsat_data_dir
 
     cwd = Path.cwd()

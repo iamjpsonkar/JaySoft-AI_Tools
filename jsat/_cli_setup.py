@@ -9,7 +9,7 @@ from pathlib import Path
 import structlog
 import typer
 
-from ._cli_common import app, skills_app, console, err, _jsat, _jsat_binary, _read_json, _write_json
+from ._cli_common import _jsat, _jsat_binary, _read_json, _write_json, app, console, err, skills_app
 from ._cli_connect import _remove_jsat_block
 
 _log = structlog.get_logger(__name__)

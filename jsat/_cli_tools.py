@@ -10,9 +10,10 @@ import structlog
 import typer
 from rich import box
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from ._cli_common import app, console, err, _jsat
+from ._cli_common import _jsat, app, console, err
 
 _log = structlog.get_logger(__name__)
 

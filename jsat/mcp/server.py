@@ -63,10 +63,13 @@ class MCPServer:
     Exposes JSAT tools to any MCP-compatible AI client (Claude Code, Cursor, Continue, etc.).
 
     Environment variables:
-      JSAT_MCP_TOKEN          — single shared bearer token (legacy, backward-compat)
+      JSAT_MCP_TOKEN          — single shared bearer token; when set, all requests must match
       JSAT_MCP_TOKEN_ROLES    — JSON map of token→role, e.g. {"tok1": "admin", "tok2": "viewer"}
-      JSAT_MCP_ALLOW_INSECURE — set to "1" to allow unauthenticated access (local/dev only)
+      JSAT_MCP_ALLOW_INSECURE — set to "1" to silence the no-auth warning (local/dev explicit opt-in)
       JSAT_METRICS_PORT       — if set, start Prometheus HTTP server on that port (optional dep)
+
+    Default behaviour (no env vars set): open access with a startup warning.
+    Auth is only enforced when JSAT_MCP_TOKEN or JSAT_MCP_TOKEN_ROLES is configured.
     """
 
     def __init__(self, jsat_instance: JSAT) -> None:
@@ -92,28 +95,29 @@ class MCPServer:
                                  "Fix the env var to restore access control.")
             self._token_roles = {}
 
-        # Fail-closed: require explicit opt-in when neither auth mechanism is configured.
-        # Without this, every tool (list_secrets, validate_migration, index writes, etc.)
-        # runs unauthenticated by default, which is unsafe in shared or remote environments.
+        # Whether the user has explicitly acknowledged running without auth.
+        # When neither token nor roles are configured and this is not set, we warn but still allow —
+        # MCP over stdio is inherently local (only the local process connects). Auth is only
+        # enforced when the user has deliberately configured a token or roles.
         self._allow_insecure: bool = os.environ.get("JSAT_MCP_ALLOW_INSECURE", "").strip() == "1"
 
         if self._auth_token:
             self._log.info("mcp_auth_enabled",
                            mode="legacy_token",
-                           note="All requests must include Authorization: Bearer <token>")
+                           note="All requests must include _auth_token matching JSAT_MCP_TOKEN")
         elif self._token_roles:
             self._log.info("mcp_rbac_enabled", token_count=len(self._token_roles))
         elif self._allow_insecure:
-            self._log.warning("mcp_auth_insecure",
-                              note="JSAT_MCP_ALLOW_INSECURE=1 set — "
-                                   "all tools accessible without authentication. "
-                                   "Do NOT use this in shared or production environments.")
+            self._log.info("mcp_auth_insecure_acknowledged",
+                           note="JSAT_MCP_ALLOW_INSECURE=1 — running without auth (local/dev)")
         else:
-            self._log.error("mcp_auth_unconfigured",
-                            note="No auth configured and JSAT_MCP_ALLOW_INSECURE is not set. "
-                                 "All tool calls will be rejected. "
-                                 "Set JSAT_MCP_TOKEN, JSAT_MCP_TOKEN_ROLES, "
-                                 "or JSAT_MCP_ALLOW_INSECURE=1 (local/dev only).")
+            # No auth configured — warn and allow. This is the default local-dev experience.
+            # To silence this warning, set JSAT_MCP_ALLOW_INSECURE=1 in the MCP server env.
+            self._log.warning("mcp_auth_not_configured",
+                              note="Running without authentication. "
+                                   "All tools are accessible to any local caller. "
+                                   "To silence this warning: set JSAT_MCP_ALLOW_INSECURE=1. "
+                                   "To enforce auth: set JSAT_MCP_TOKEN or JSAT_MCP_TOKEN_ROLES.")
 
         # Optional Prometheus side-car
         try:
@@ -157,23 +161,8 @@ class MCPServer:
         id_ = msg.get("id")
         params = msg.get("params") or {}
 
-        # ── Fail-closed: reject tool calls when no auth is configured ───────
-        # Protects list_secrets, validate_migration, knowledge writes, index writes.
-        # initialize/notifications/initialized are exempt so the MCP handshake completes.
-        if (not self._auth_token and not self._token_roles and not self._allow_insecure
-                and method not in ("initialize", "notifications/initialized")):
-            self._log.warning("mcp_auth_rejected_unconfigured", method=method)
-            if id_ is not None:
-                return {"jsonrpc": "2.0", "id": id_,
-                        "error": {"code": -32600,
-                                  "message": (
-                                      "Unauthorized: MCP server has no auth configured. "
-                                      "Set JSAT_MCP_TOKEN, JSAT_MCP_TOKEN_ROLES, "
-                                      "or JSAT_MCP_ALLOW_INSECURE=1 (local/dev only)."
-                                  )}}
-            return None
-
         # ── Legacy single-token auth (JSAT_MCP_TOKEN) ───────────────────────
+        # Only enforced when a token has been explicitly configured.
         if self._auth_token and method not in ("initialize", "notifications/initialized"):
             provided = params.get("_auth_token", "")
             if not hmac.compare_digest(provided, self._auth_token):

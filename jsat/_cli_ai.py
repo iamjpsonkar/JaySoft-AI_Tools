@@ -10,7 +10,7 @@ import typer
 from rich import box
 from rich.table import Table
 
-from ._cli_common import ai_app, console, err, _jsat
+from ._cli_common import _jsat, ai_app, console, err
 
 _log = structlog.get_logger(__name__)
 
