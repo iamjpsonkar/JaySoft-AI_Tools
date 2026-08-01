@@ -1353,6 +1353,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#universal-flags-claude-code-slash-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Universal Flags (Claude Code slash commands)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#environment-variables" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2239,6 +2250,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#universal-flags-claude-code-slash-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Universal Flags (Claude Code slash commands)
+      
+    </span>
+  </a>
   
 </li>
       
@@ -3795,6 +3817,37 @@ skill files are picked up automatically on next <code>jsat connect claude</code>
 </code></pre></div>
 <p>The server speaks JSON-RPC 2.0 over stdin/stdout. It starts immediately and loads JSAT lazily to avoid startup timeout errors in Claude Code.</p>
 <hr />
+<h2 id="universal-flags-claude-code-slash-commands">Universal Flags (Claude Code slash commands)<a class="headerlink" href="#universal-flags-claude-code-slash-commands" title="Permanent link">&para;</a></h2>
+<p>Two flags work on every <code>/jsat</code> command — strip them before routing and pass to every tool call:</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Behavior</th>
+<th>Passes to tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timeout=&lt;N&gt;</code></td>
+<td>Soft budget N s; hard kill at 5×N s</td>
+<td><code>_budget=N</code></td>
+</tr>
+<tr>
+<td><code>dashboard=true</code></td>
+<td>Open <code>localhost:7432/jsat/dashboard/&lt;command&gt;</code> — one persistent tab per command, collapsible tree of all tool calls. Tab stays open until session done. Browse all sessions at <code>localhost:7432/jsat/dashboard</code>.</td>
+<td><code>_dashboard=True</code> + <code>_dashboard_session=&lt;command&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a>/jsat<span class="w"> </span>blast-radius<span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">120</span><span class="w"> </span>src/payment/
+<a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a>/jsat<span class="w"> </span>crack<span class="w"> </span><span class="nv">dashboard</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>redesign<span class="w"> </span>the<span class="w"> </span>auth<span class="w"> </span>flow
+<a id="__codelineno-79-3" name="__codelineno-79-3" href="#__codelineno-79-3"></a><span class="c1"># → opens localhost:7432/jsat/dashboard/crack</span>
+<a id="__codelineno-79-4" name="__codelineno-79-4" href="#__codelineno-79-4"></a>
+<a id="__codelineno-79-5" name="__codelineno-79-5" href="#__codelineno-79-5"></a>/jsat<span class="w"> </span>magic<span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">180</span><span class="w"> </span><span class="nv">dashboard</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>auth<span class="w"> </span>flow
+<a id="__codelineno-79-6" name="__codelineno-79-6" href="#__codelineno-79-6"></a><span class="c1"># → opens localhost:7432/jsat/dashboard/magic</span>
+</code></pre></div>
+<hr />
 <h2 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -3807,6 +3860,10 @@ skill files are picked up automatically on next <code>jsat connect claude</code>
 <tr>
 <td><code>JSAT_CONFIG</code></td>
 <td>Override config file path</td>
+</tr>
+<tr>
+<td><code>JSAT_DASHBOARD_PORT</code></td>
+<td>Override live dashboard port (default <code>7432</code>)</td>
 </tr>
 <tr>
 <td><code>ANTHROPIC_API_KEY</code></td>

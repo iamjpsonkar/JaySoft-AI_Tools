@@ -1168,6 +1168,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#dashboard-agent-responses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard agent responses
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#graceful-degradation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2223,6 +2234,17 @@
     <span class="md-ellipsis">
       
         Live progress
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dashboard-agent-responses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard agent responses
       
     </span>
   </a>
@@ -3769,15 +3791,22 @@
 <a id="__codelineno-48-7" name="__codelineno-48-7" href="#__codelineno-48-7"></a>⚡ Round 3/3: Moderator synthesising…
 <a id="__codelineno-48-8" name="__codelineno-48-8" href="#__codelineno-48-8"></a>⚡ Writing discussion document…
 </code></pre></div>
+<h3 id="dashboard-agent-responses">Dashboard agent responses<a class="headerlink" href="#dashboard-agent-responses" title="Permanent link">&para;</a></h3>
+<p>When <code>dashboard=true</code> is passed, the full text of every war room agent appears in the live dashboard tree — not just the 120-char preview shown in Claude Code's progress area:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>/jsat<span class="w"> </span>crack<span class="w"> </span><span class="nv">dashboard</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>redesign<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>retry<span class="w"> </span>system
+<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a><span class="c1"># → opens localhost:7432/jsat/dashboard/crack</span>
+</code></pre></div>
+<p>Each agent's complete response is shown in the dashboard as a blue (<code>agent_response</code>) block under the crack call node — architect, security, implementer, tester, skeptic, and moderator all visible in sequence. The final moderator synthesis is also shown in full. You can read the entire war room discussion without leaving the browser tab.</p>
+<p>Browse all active and recent sessions at <code>http://localhost:7432/jsat/dashboard</code>.</p>
 <h3 id="graceful-degradation">Graceful degradation<a class="headerlink" href="#graceful-degradation" title="Permanent link">&para;</a></h3>
 <p>If no AI is configured, each agent returns a structural placeholder based on the task text and graph context (BFS keywords). The discussion still happens — it just uses offline templates instead of LLM completions.</p>
 <hr />
 <h2 id="tool-17-jsat-short">Tool 17 — JSAT Short<a class="headerlink" href="#tool-17-jsat-short" title="Permanent link">&para;</a></h2>
 <p>Get the briefest possible correct answer to any question. Prepends a brevity constraint to any query.</p>
 <h3 id="cli-usage_4">CLI usage<a class="headerlink" href="#cli-usage_4" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>jsat<span class="w"> </span>short<span class="w"> </span><span class="s2">&quot;what does process_refund do&quot;</span>
-<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>jsat<span class="w"> </span>short<span class="w"> </span>--one-line<span class="w"> </span><span class="s2">&quot;is PaymentService.process async&quot;</span>
-<a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>jsat<span class="w"> </span>short<span class="w"> </span>--words<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="s2">&quot;explain the retry logic&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>jsat<span class="w"> </span>short<span class="w"> </span><span class="s2">&quot;what does process_refund do&quot;</span>
+<a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>jsat<span class="w"> </span>short<span class="w"> </span>--one-line<span class="w"> </span><span class="s2">&quot;is PaymentService.process async&quot;</span>
+<a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>jsat<span class="w"> </span>short<span class="w"> </span>--words<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="s2">&quot;explain the retry logic&quot;</span>
 </code></pre></div>
 <table>
 <thead>
@@ -3801,7 +3830,7 @@
 </tbody>
 </table>
 <h3 id="shell-usage_2">Shell usage<a class="headerlink" href="#shell-usage_2" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>&gt; short is the checkout flow async
+<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>&gt; short is the checkout flow async
 </code></pre></div>
 <h3 id="mcp-tool_1">MCP tool<a class="headerlink" href="#mcp-tool_1" title="Permanent link">&para;</a></h3>
 <table>
@@ -3820,7 +3849,7 @@
 </table>
 <p><code>jsat__short</code> emits a progress notification ("Asking AI…") immediately so Claude Code shows activity during the AI call.</p>
 <h3 id="claude-code-slash-command">Claude Code slash command<a class="headerlink" href="#claude-code-slash-command" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>/jsat-short what does process_refund do
+<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>/jsat-short what does process_refund do
 </code></pre></div>
 <hr />
 <h2 id="tool-18-smart">Tool 18 — Smart<a class="headerlink" href="#tool-18-smart" title="Permanent link">&para;</a></h2>
@@ -3860,9 +3889,9 @@
 </tbody>
 </table>
 <h3 id="cli-usage_5">CLI usage<a class="headerlink" href="#cli-usage_5" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>jsat<span class="w"> </span>smart<span class="w"> </span><span class="s2">&quot;what does the payment service do?&quot;</span>
-<a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--ultra<span class="w"> </span><span class="s2">&quot;what does process_refund return?&quot;</span>
-<a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--lite<span class="w"> </span><span class="s2">&quot;explain the checkout flow&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>jsat<span class="w"> </span>smart<span class="w"> </span><span class="s2">&quot;what does the payment service do?&quot;</span>
+<a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--ultra<span class="w"> </span><span class="s2">&quot;what does process_refund return?&quot;</span>
+<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--lite<span class="w"> </span><span class="s2">&quot;explain the checkout flow&quot;</span>
 </code></pre></div>
 <h3 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3932,9 +3961,9 @@
 </tbody>
 </table>
 <h3 id="cli-usage-slash-command">CLI usage (slash command)<a class="headerlink" href="#cli-usage-slash-command" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>add<span class="w"> </span>exponential<span class="w"> </span>backoff<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service
-<a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>--audit<span class="w"> </span>src/payments/retry.py
-<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>--review<span class="w"> </span><span class="s2">&quot;def process_refund(order_id, amount)...&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>add<span class="w"> </span>exponential<span class="w"> </span>backoff<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service
+<a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>--audit<span class="w"> </span>src/payments/retry.py
+<a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>--review<span class="w"> </span><span class="s2">&quot;def process_refund(order_id, amount)...&quot;</span>
 </code></pre></div>
 <hr />
 <h2 id="tool-20-aw-workflow-advisor">Tool 20 — Aw (Workflow Advisor)<a class="headerlink" href="#tool-20-aw-workflow-advisor" title="Permanent link">&para;</a></h2>
@@ -4007,9 +4036,9 @@
 </tbody>
 </table>
 <h3 id="cli-usage_6">CLI usage<a class="headerlink" href="#cli-usage_6" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>add<span class="w"> </span>idempotency<span class="w"> </span>keys<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>mutation<span class="w"> </span>endpoint
-<a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>--type<span class="w"> </span>security<span class="w"> </span>src/auth/
-<a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>--dry<span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span><span class="m">500</span><span class="w"> </span>errors
+<div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>add<span class="w"> </span>idempotency<span class="w"> </span>keys<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>mutation<span class="w"> </span>endpoint
+<a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>--type<span class="w"> </span>security<span class="w"> </span>src/auth/
+<a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>--dry<span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span><span class="m">500</span><span class="w"> </span>errors
 </code></pre></div>
 <hr />
 <h2 id="tool-21-magic">Tool 21 — Magic<a class="headerlink" href="#tool-21-magic" title="Permanent link">&para;</a></h2>
@@ -4056,10 +4085,10 @@ each skill adaptively, and converges when the task is answerable.</p>
 </tbody>
 </table>
 <h3 id="cli-usage_7">CLI usage<a class="headerlink" href="#cli-usage_7" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>add<span class="w"> </span>retry<span class="w"> </span>logic<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service
-<a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>--depth<span class="w"> </span>deep<span class="w"> </span>redesign<span class="w"> </span>the<span class="w"> </span>authentication<span class="w"> </span>flow
-<a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>--preview<span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span><span class="m">500</span><span class="w"> </span>errors
-<a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>--service<span class="w"> </span>PaymentService<span class="w"> </span>what<span class="w"> </span>are<span class="w"> </span>the<span class="w"> </span><span class="nb">test</span><span class="w"> </span>gaps?
+<div class="highlight"><pre><span></span><code><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>add<span class="w"> </span>retry<span class="w"> </span>logic<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service
+<a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>--depth<span class="w"> </span>deep<span class="w"> </span>redesign<span class="w"> </span>the<span class="w"> </span>authentication<span class="w"> </span>flow
+<a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>--preview<span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span><span class="m">500</span><span class="w"> </span>errors
+<a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>--service<span class="w"> </span>PaymentService<span class="w"> </span>what<span class="w"> </span>are<span class="w"> </span>the<span class="w"> </span><span class="nb">test</span><span class="w"> </span>gaps?
 </code></pre></div>
 <h3 id="flags_2">Flags<a class="headerlink" href="#flags_2" title="Permanent link">&para;</a></h3>
 <table>
@@ -4114,10 +4143,10 @@ then runs up to three review perspectives.</p>
 - <strong>Security</strong> — calls <code>jsat__get_auth_coverage</code> to flag risks before implementation</p>
 <p><strong>Output:</strong> one-page planning brief: recommended decision, architecture approach, top risk, first concrete step.</p>
 <h3 id="cli-usage_8">CLI usage<a class="headerlink" href="#cli-usage_8" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>add<span class="w"> </span>idempotency<span class="w"> </span>keys<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>mutation
-<a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--scope<span class="w"> </span>refactor<span class="w"> </span>the<span class="w"> </span>retry<span class="w"> </span>logic
-<a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--architecture<span class="w"> </span>add<span class="w"> </span>a<span class="w"> </span>new<span class="w"> </span>admin<span class="w"> </span>endpoint
-<a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--security<span class="w"> </span>add<span class="w"> </span>file<span class="w"> </span>upload<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>API
+<div class="highlight"><pre><span></span><code><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>add<span class="w"> </span>idempotency<span class="w"> </span>keys<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>mutation
+<a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--scope<span class="w"> </span>refactor<span class="w"> </span>the<span class="w"> </span>retry<span class="w"> </span>logic
+<a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--architecture<span class="w"> </span>add<span class="w"> </span>a<span class="w"> </span>new<span class="w"> </span>admin<span class="w"> </span>endpoint
+<a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--security<span class="w"> </span>add<span class="w"> </span>file<span class="w"> </span>upload<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>API
 </code></pre></div>
 <hr />
 <h2 id="tool-23-decide">Tool 23 — Decide<a class="headerlink" href="#tool-23-decide" title="Permanent link">&para;</a></h2>
@@ -4152,11 +4181,11 @@ Decisions are retrievable by file, topic, or blast-radius context.</p>
 </tbody>
 </table>
 <h3 id="cli-usage_9">CLI usage<a class="headerlink" href="#cli-usage_9" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>--impact<span class="w"> </span>h<span class="w"> </span>Chose<span class="w"> </span>PostgreSQL<span class="w"> </span>over<span class="w"> </span>MongoDB<span class="w"> </span><span class="k">for</span><span class="w"> </span>ACID<span class="w"> </span>compliance
-<a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>Switched<span class="w"> </span>caching<span class="w"> </span>from<span class="w"> </span>Redis<span class="w"> </span>to<span class="w"> </span><span class="k">in</span>-memory<span class="w"> </span>—<span class="w"> </span>cost<span class="w"> </span><span class="nv">$500</span>/month,<span class="w"> </span>latency<span class="w"> </span>acceptable
-<a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>context<span class="w"> </span>src/payments/service.py
-<a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>search<span class="w"> </span>caching<span class="w"> </span>strategy
-<a id="__codelineno-57-5" name="__codelineno-57-5" href="#__codelineno-57-5"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>list<span class="w"> </span>adr
+<div class="highlight"><pre><span></span><code><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>--impact<span class="w"> </span>h<span class="w"> </span>Chose<span class="w"> </span>PostgreSQL<span class="w"> </span>over<span class="w"> </span>MongoDB<span class="w"> </span><span class="k">for</span><span class="w"> </span>ACID<span class="w"> </span>compliance
+<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>Switched<span class="w"> </span>caching<span class="w"> </span>from<span class="w"> </span>Redis<span class="w"> </span>to<span class="w"> </span><span class="k">in</span>-memory<span class="w"> </span>—<span class="w"> </span>cost<span class="w"> </span><span class="nv">$500</span>/month,<span class="w"> </span>latency<span class="w"> </span>acceptable
+<a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>context<span class="w"> </span>src/payments/service.py
+<a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>search<span class="w"> </span>caching<span class="w"> </span>strategy
+<a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>list<span class="w"> </span>adr
 </code></pre></div>
 <hr />
 <h2 id="tool-24-sprint">Tool 24 — Sprint<a class="headerlink" href="#tool-24-sprint" title="Permanent link">&para;</a></h2>
@@ -4210,9 +4239,9 @@ findings as context to the next stage.</p>
 </tbody>
 </table>
 <h3 id="cli-usage_10">CLI usage<a class="headerlink" href="#cli-usage_10" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>add<span class="w"> </span>rate<span class="w"> </span>limiting<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span>API
-<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>--stage<span class="w"> </span><span class="m">4</span><span class="w"> </span>add<span class="w"> </span>rate<span class="w"> </span>limiting<span class="w">    </span><span class="c1"># resume from Review</span>
-<a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>--dry<span class="w"> </span>redesign<span class="w"> </span>auth<span class="w"> </span>flow<span class="w">       </span><span class="c1"># show plan without running</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>add<span class="w"> </span>rate<span class="w"> </span>limiting<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span>API
+<a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>--stage<span class="w"> </span><span class="m">4</span><span class="w"> </span>add<span class="w"> </span>rate<span class="w"> </span>limiting<span class="w">    </span><span class="c1"># resume from Review</span>
+<a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>--dry<span class="w"> </span>redesign<span class="w"> </span>auth<span class="w"> </span>flow<span class="w">       </span><span class="c1"># show plan without running</span>
 </code></pre></div>
 <h3 id="final-output">Final output<a class="headerlink" href="#final-output" title="Permanent link">&para;</a></h3>
 <p>Ship readiness (yes/no based on Stage 6), plus decisions worth logging.</p>
@@ -4246,10 +4275,10 @@ refactoring targets by downstream impact.</p>
 </tbody>
 </table>
 <h3 id="cli-usage_11">CLI usage<a class="headerlink" href="#cli-usage_11" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>src/
-<a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>--threshold<span class="w"> </span><span class="m">600</span><span class="w"> </span>--service<span class="w"> </span>PaymentService
-<a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>--functions<span class="w"> </span>jsat/cli.py
-<a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>--service<span class="w"> </span>PaymentService<span class="w">   </span><span class="c1"># scope to avoid timeout</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>src/
+<a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>--threshold<span class="w"> </span><span class="m">600</span><span class="w"> </span>--service<span class="w"> </span>PaymentService
+<a id="__codelineno-60-3" name="__codelineno-60-3" href="#__codelineno-60-3"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>--functions<span class="w"> </span>jsat/cli.py
+<a id="__codelineno-60-4" name="__codelineno-60-4" href="#__codelineno-60-4"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>--service<span class="w"> </span>PaymentService<span class="w">   </span><span class="c1"># scope to avoid timeout</span>
 </code></pre></div>
 <h3 id="output-format">Output format<a class="headerlink" href="#output-format" title="Permanent link">&para;</a></h3>
 <p>Findings ranked RED (extract immediately) / YELLOW (schedule refactor) / GREEN (healthy),
