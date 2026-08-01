@@ -717,6 +717,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#mcp-server-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP Server Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mcp-tools" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1245,6 +1256,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#mcp-server-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP Server Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mcp-tools" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1450,6 +1472,7 @@
 <ol>
 <li>Writes an MCP server entry into <code>.claude/settings.json</code> (or <code>~/.claude/settings.json</code> for global scope)</li>
 <li>Installs the <code>/jsat</code> dispatcher skill file (<code>~/.claude/commands/jsat.md</code>) containing all 39 subcommands</li>
+<li>Installs <code>/jsat-help</code> as a standalone skill file (<code>~/.claude/commands/jsat-help.md</code>)</li>
 </ol>
 <p>Claude Code reads these on startup, starts the <code>jsat mcp-server</code> process, and makes all JSAT tools available during your session.</p>
 <hr />
@@ -1463,7 +1486,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global
 </code></pre></div>
 <h3 id="without-slash-commands">Without slash commands<a class="headerlink" href="#without-slash-commands" title="Permanent link">&para;</a></h3>
-<p>Connect the MCP server only, skip installing <code>/jsat-*</code> skill files:</p>
+<p>Connect the MCP server only, skip installing <code>/jsat</code> and <code>/jsat-help</code> skill files:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--no-skills
 </code></pre></div>
 <h3 id="show-the-written-config">Show the written config<a class="headerlink" href="#show-the-written-config" title="Permanent link">&para;</a></h3>
@@ -1526,6 +1549,9 @@
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong><code>/jsat-help</code></strong> is a separate command (not a subcommand of <code>/jsat</code>): <code>/jsat-help</code> lists all 39 with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples for that command.</p>
+</blockquote>
 <h3 id="common-examples">Common examples<a class="headerlink" href="#common-examples" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Understand</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>/jsat<span class="w"> </span>query<span class="w"> </span>what<span class="w"> </span>does<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service<span class="w"> </span><span class="k">do</span>?
@@ -1597,8 +1623,38 @@
 </tbody>
 </table>
 <hr />
+<h2 id="mcp-server-authentication">MCP Server Authentication<a class="headerlink" href="#mcp-server-authentication" title="Permanent link">&para;</a></h2>
+<p>The MCP server runs locally over stdin/stdout and defaults to <strong>open access with a startup warning</strong> when no auth env vars are set. <code>jsat connect claude</code> automatically sets <code>JSAT_MCP_ALLOW_INSECURE=1</code> in the server environment to silence the warning for local dev.</p>
+<table>
+<thead>
+<tr>
+<th>Env var</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>(none)</em></td>
+<td>Open access — all tools available, warning logged at startup</td>
+</tr>
+<tr>
+<td><code>JSAT_MCP_ALLOW_INSECURE=1</code></td>
+<td>Open access, warning silenced (set automatically by <code>jsat connect claude</code>)</td>
+</tr>
+<tr>
+<td><code>JSAT_MCP_TOKEN=&lt;secret&gt;</code></td>
+<td>Enforce single-token auth — callers must pass this token</td>
+</tr>
+<tr>
+<td><code>JSAT_MCP_TOKEN_ROLES=&lt;json&gt;</code></td>
+<td>RBAC: <code>{"token": "role"}</code> — roles are <code>admin</code>, <code>developer</code>, <code>viewer</code></td>
+</tr>
+</tbody>
+</table>
+<p>To enforce auth, export <code>JSAT_MCP_TOKEN</code> or <code>JSAT_MCP_TOKEN_ROLES</code> in your shell before starting Claude Code.</p>
+<hr />
 <h2 id="mcp-tools">MCP Tools<a class="headerlink" href="#mcp-tools" title="Permanent link">&para;</a></h2>
-<p>In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced <code>jsat__*</code>. JSAT defines 47 tool slots; 17 are currently wired and active in the MCP server.</p>
+<p>In addition to the slash commands, Claude can call JSAT tools directly during a conversation whenever the context suggests they would be useful. The tools are namespaced <code>jsat__*</code>.</p>
 <h3 id="index-and-graph-tools">Index and graph tools<a class="headerlink" href="#index-and-graph-tools" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

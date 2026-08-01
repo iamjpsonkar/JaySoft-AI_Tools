@@ -893,6 +893,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#mcp-server-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP server authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#jsat-connect-codex" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1765,6 +1776,17 @@
     <span class="md-ellipsis">
       
         /jsat dispatcher
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-server-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP server authentication
       
     </span>
   </a>
@@ -2744,7 +2766,7 @@ and runs them in the optimal order.</p>
 <h2 id="3-connect-commands-jsat-connect">3. Connect Commands (<code>jsat connect</code>)<a class="headerlink" href="#3-connect-commands-jsat-connect" title="Permanent link">&para;</a></h2>
 <p>JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — all 55 JSAT tools are immediately available to the AI.</p>
 <h3 id="jsat-connect-claude"><code>jsat connect claude</code><a class="headerlink" href="#jsat-connect-claude" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into Claude Code as an MCP server and install 31 <code>/jsat-*</code> slash commands.</p>
+<p>Wire JSAT into Claude Code as an MCP server and install the <code>/jsat</code> dispatcher (39 subcommands) and <code>/jsat-help</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>jsat connect claude [OPTIONS]
 </code></pre></div>
 <table>
@@ -2791,21 +2813,54 @@ and runs them in the optimal order.</p>
 </code></pre></div>
 <p>Restart Claude Code after running.</p>
 <h3 id="jsat-dispatcher"><code>/jsat</code> dispatcher<a class="headerlink" href="#jsat-dispatcher" title="Permanent link">&para;</a></h3>
-<p><code>jsat connect claude</code> installs a single <code>/jsat</code> dispatcher command rather than 34 individual
-<code>/jsat-*</code> commands. All 34 skills are accessible as subcommands:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>/jsat<span class="w"> </span><span class="nb">help</span><span class="w">               </span><span class="c1"># list all 34 subcommands with descriptions</span>
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>/jsat<span class="w"> </span>query<span class="w"> </span>&lt;question&gt;<span class="w">   </span><span class="c1"># answer codebase questions (6-phase Discuss→Verify)</span>
-<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>/jsat<span class="w"> </span>crack<span class="w"> </span>&lt;task&gt;<span class="w">       </span><span class="c1"># multi-agent war room (artifact carry-forward)</span>
-<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>&lt;task&gt;<span class="w">          </span><span class="c1"># workflow advisor (classify + run optimal sequence)</span>
-<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>&lt;task&gt;<span class="w">        </span><span class="c1"># reuse-first: check what exists before writing new code</span>
-<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>/jsat<span class="w"> </span>smart<span class="w"> </span>&lt;question&gt;<span class="w">   </span><span class="c1"># terse mode: compressed answers, no filler</span>
-<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>/jsat<span class="w"> </span>security<span class="w"> </span><span class="o">[</span>path<span class="o">]</span><span class="w">    </span><span class="c1"># OWASP scan + CVE check + secret detection</span>
-<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>/jsat<span class="w"> </span>blast<span class="w"> </span>&lt;target&gt;<span class="w">     </span><span class="c1"># blast radius analysis</span>
-<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>/jsat<span class="w"> </span>review<span class="w"> </span>&lt;diff&gt;<span class="w">      </span><span class="c1"># multi-model code review</span>
+<p><code>jsat connect claude</code> installs two commands:</p>
+<ul>
+<li><strong><code>/jsat &lt;subcommand&gt;</code></strong> — single dispatcher routing to all 39 skills</li>
+<li><strong><code>/jsat-help [command]</code></strong> — standalone help command; no args lists all 39 commands with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>/jsat-help<span class="w">               </span><span class="c1"># list all 39 subcommands with descriptions</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>/jsat-help<span class="w"> </span>magic<span class="w">         </span><span class="c1"># full flags and examples for /jsat magic</span>
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>/jsat<span class="w"> </span>query<span class="w"> </span>&lt;question&gt;<span class="w">   </span><span class="c1"># answer codebase questions (6-phase Discuss→Verify)</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>/jsat<span class="w"> </span>crack<span class="w"> </span>&lt;task&gt;<span class="w">       </span><span class="c1"># multi-agent war room (artifact carry-forward)</span>
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>/jsat<span class="w"> </span>aw<span class="w"> </span>&lt;task&gt;<span class="w">          </span><span class="c1"># workflow advisor (classify + run optimal sequence)</span>
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>&lt;task&gt;<span class="w">        </span><span class="c1"># reuse-first: check what exists before writing new code</span>
+<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>/jsat<span class="w"> </span>smart<span class="w"> </span>&lt;question&gt;<span class="w">   </span><span class="c1"># terse mode: compressed answers, no filler</span>
+<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>/jsat<span class="w"> </span>security<span class="w"> </span><span class="o">[</span>path<span class="o">]</span><span class="w">    </span><span class="c1"># OWASP scan + CVE check + secret detection</span>
+<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>/jsat<span class="w"> </span>blast-radius<span class="w"> </span>&lt;target&gt;<span class="w">  </span><span class="c1"># blast radius analysis</span>
+<a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a>/jsat<span class="w"> </span>review<span class="w"> </span>&lt;diff&gt;<span class="w">      </span><span class="c1"># multi-model code review</span>
 </code></pre></div>
 <p>Skill files are bundled in the JSAT package at <code>jsat/commands/jsat-*.md</code> and read
 directly by <code>_write_jsat_dispatcher()</code> when <code>jsat connect claude</code> runs. Updates to
 skill files are picked up automatically on next <code>jsat connect claude</code>.</p>
+<h3 id="mcp-server-authentication">MCP server authentication<a class="headerlink" href="#mcp-server-authentication" title="Permanent link">&para;</a></h3>
+<p>The MCP server defaults to <strong>open access with a startup warning</strong> when no auth env vars are set. Auth is only enforced when explicitly configured.</p>
+<table>
+<thead>
+<tr>
+<th>Env var</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>(none)</em></td>
+<td>Open access — tools work, warning logged at startup</td>
+</tr>
+<tr>
+<td><code>JSAT_MCP_ALLOW_INSECURE=1</code></td>
+<td>Open access, warning silenced — written automatically by <code>jsat connect claude</code></td>
+</tr>
+<tr>
+<td><code>JSAT_MCP_TOKEN=&lt;secret&gt;</code></td>
+<td>Legacy single-token auth — all callers must pass this token</td>
+</tr>
+<tr>
+<td><code>JSAT_MCP_TOKEN_ROLES=&lt;json&gt;</code></td>
+<td>RBAC map <code>{"token": "role"}</code> — roles: <code>admin</code>, <code>developer</code>, <code>viewer</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>jsat connect claude</code> automatically sets <code>JSAT_MCP_ALLOW_INSECURE=1</code> in the MCP server environment so local dev works without additional config. To enforce auth, add <code>JSAT_MCP_TOKEN</code> or <code>JSAT_MCP_TOKEN_ROLES</code> to your shell environment before starting Claude Code.</p>
 <hr />
 <h3 id="jsat-connect-codex"><code>jsat connect codex</code><a class="headerlink" href="#jsat-connect-codex" title="Permanent link">&para;</a></h3>
 <p>Wire JSAT into the OpenAI Codex CLI as an MCP server and write agent instructions.</p>
