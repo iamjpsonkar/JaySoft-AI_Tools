@@ -197,6 +197,32 @@ def _allowed(role: str, tool: str) -> bool:
     return tool in perms
 
 
+_UNIVERSAL_SCHEMA_PARAMS: dict = {
+    "_dashboard": {
+        "type": "boolean",
+        "default": False,
+        "description": (
+            "Open a real-time browser dashboard for this call at "
+            "localhost:7432/jsat/dashboard/<session>."
+        ),
+    },
+    "_dashboard_session": {
+        "type": "string",
+        "description": (
+            "Session name for the dashboard tab (e.g. 'magic', 'crack'). "
+            "All tool calls sharing the same session_name appear in one tab."
+        ),
+    },
+    "_budget": {
+        "type": "integer",
+        "description": (
+            "Override the soft timeout budget in seconds. "
+            "Hard kill fires at 5× this value."
+        ),
+    },
+}
+
+
 class MCPServer:
     """
     Minimal MCP server over stdin/stdout JSON-RPC 2.0.
@@ -589,9 +615,19 @@ class MCPServer:
     # ── Tool dispatch ─────────────────────────────────────────────────────────
 
     def _list_tools(self) -> list[dict]:
-        return [{"name": name, "description": tool["description"],
-                 "inputSchema": tool["schema"]}
-                for name, tool in self._registry.items()]
+        tools = []
+        for name, tool in self._registry.items():
+            schema = dict(tool["schema"])
+            schema["properties"] = {
+                **schema.get("properties", {}),
+                **_UNIVERSAL_SCHEMA_PARAMS,
+            }
+            tools.append({
+                "name": name,
+                "description": tool["description"],
+                "inputSchema": schema,
+            })
+        return tools
 
     def _call(self, name: str, args: dict, _notify=None, _dashboard_push=None,
               _call_id: str | None = None) -> Any:
