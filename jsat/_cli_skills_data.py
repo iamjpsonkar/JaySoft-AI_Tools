@@ -1484,6 +1484,15 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
         ]
 
     (commands_dir / "jsat.md").write_text("\n".join(lines), encoding="utf-8")
+
+    # Also install jsat-help.md as a standalone command so /jsat-help <command>
+    # works as a direct slash command (separate from the /jsat dispatcher).
+    help_src = pkg_commands_dir / "jsat-help.md"
+    if help_src.exists():
+        (commands_dir / "jsat-help.md").write_text(
+            help_src.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+
     return commands_dir
 
 
