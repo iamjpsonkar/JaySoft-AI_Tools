@@ -4,6 +4,30 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.4] — 2026-08-01
+
+### Added
+
+- **`/jsat-help` slash command**: lists all 39 commands with one-liners when called with
+  no args; `/jsat-help <command>` shows full description, flags, and examples for that command.
+  Installed as a standalone `jsat-help.md` file alongside the `/jsat` dispatcher.
+- `_write_jsat_dispatcher` now writes `jsat-help.md` as a separate file after building
+  `jsat.md`, ensuring `/jsat-help` survives the dispatcher's glob-delete step.
+- `jsat connect claude` and `jsat connect bob` automatically set `JSAT_MCP_ALLOW_INSECURE=1`
+  in the MCP server environment so local dev works without manual env var setup.
+
+### Changed
+
+- MCP server default reverted to **warn-but-allow** (open access with startup warning) when
+  no auth env vars are set. Auth is only enforced when `JSAT_MCP_TOKEN` or
+  `JSAT_MCP_TOKEN_ROLES` is explicitly configured. This restores local/single-user dev
+  connectivity that the v0.4.3 fail-closed change broke.
+
+### Fixed
+
+- CI ruff I001 (import sort) and F821 (undefined names) in all 7 new `_cli_*` modules
+  introduced by the cli.py split.
+
 ## [0.4.3] — 2026-08-01
 
 ### Security
