@@ -110,6 +110,11 @@ def cmd_disconnect(
                         f"[green]✓[/] Removed {len(removed)} JSAT skill file(s) from [bold]{cd}[/]"
                     )
                     removed_any = True
+        if not keep_skills:
+            # Symmetric with `jsat connect claude --claude-md`: strip only the
+            # marked block, leaving any of the user's own CLAUDE.md content.
+            for md in (Path.cwd() / "CLAUDE.md", Path.home() / "CLAUDE.md"):
+                _remove_jsat_block(md)
 
     # ── codex ─────────────────────────────────────────────────────────────────
     if tool_lower in ("codex", "all"):

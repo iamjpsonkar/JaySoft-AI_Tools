@@ -39,6 +39,11 @@ def cmd_connect_claude(
         help="Also install /jsat-* slash commands in Claude Code",
     ),
     show: bool = typer.Option(False, "--show", help="Print the config that was written"),
+    write_claude_md: bool = typer.Option(
+        True, "--claude-md/--no-claude-md",
+        help="Also write JSAT guidance into CLAUDE.md so Claude reaches for JSAT "
+             "without being asked (slash commands alone are opt-in)",
+    ),
 ) -> None:
     """Wire JSAT into Claude Code as an MCP server and install /jsat-* commands.
 
@@ -128,6 +133,18 @@ def cmd_connect_claude(
             "  [cyan]/jsat blast[/] <target>   — blast radius analysis\n"
             "  [cyan]/jsat review[/] <diff>    — multi-model code review\n"
             f"  ... {len(_JSAT_SKILLS)} total — type [cyan]/jsat help[/] to see all\n"
+        )
+
+    # CLAUDE.md is loaded automatically every session, so this is what makes Claude
+    # reach for JSAT unprompted — slash commands only fire when the user types one.
+    if write_claude_md:
+        claude_md = (Path.home() if effective_scope == "global" else Path(repo).resolve()) \
+            / "CLAUDE.md"
+        _write_instructions_file(claude_md)
+        _print_instructions_written(
+            claude_md, "Claude Code",
+            "Claude now suggests JSAT tools proactively and reports what each one "
+            "found. Remove with: jsat disconnect claude",
         )
 
     console.print(
@@ -238,12 +255,58 @@ JSAT is connected as an MCP server. The following tools are available for you to
 - `jsat__token_compress` — offline compression (whitespace, dedup, import collapse)
 - `jsat__token_budget` — check budget against a model's context window
 
-### When to use JSAT tools
-- Before answering "what does X do?" → call `jsat__query` or `jsat__get_function`
-- Before editing a file → call `jsat__blast_radius` to understand downstream impact
-- Before writing a test → call `jsat__get_test_gaps` to find untested paths
-- Before a large refactor → call `jsat__ithinking_plan` for structured planning
-- When context is getting long → call `jsat__token_compress` to shrink it
+### Self-improvement
+- `jsat__improve_status` — friction JSAT has recorded in itself (read-only)
+
+## Reach for JSAT FIRST — this is not optional
+
+This repository is indexed in a JSAT graph. The graph knows things grep and file
+reading cannot: who calls what, what breaks downstream, which paths are untested,
+which endpoints lack auth. **Use it before falling back to generic tools.**
+
+Apply this rule on every turn, without being asked:
+
+| The user asks… | Call this FIRST | Not this |
+|---|---|---|
+| "what does X do?" / "where is X?" | `jsat__query`, `jsat__get_function` | random grep |
+| "what calls X?" / "what breaks if I change it?" | `jsat__trace_call_chain` | guessing |
+| anything before an edit to shared code | `jsat__blast_radius` | editing and hoping |
+| "is this secure?" / auth questions | `jsat__security_review` | eyeballing the code |
+| "what should I test?" | `jsat__get_test_gaps` | writing tests blind |
+| a DB migration | `jsat__validate_migration` | reading the SQL |
+| "why did this break?" | `jsat__investigate_incident` | scanning git log |
+| a big or risky design decision | `jsat__crack`, `jsat__ithinking_plan` | answering off the cuff |
+| context is getting long | `jsat__token_compress` | truncating arbitrarily |
+
+**Suggest JSAT proactively.** When a user is about to do something JSAT covers,
+say so before they ask — e.g. "before that refactor, let me check the blast radius"
+or "there's a `/jsat security` scan that would catch this class of bug".
+
+Useful shell commands to recommend (they are not MCP tools):
+- `jsat session list` / `jsat session resume` — resume an interrupted skill run
+- `jsat note add "…"` / `jsat note search …` — capture and recall project knowledge
+- `jsat improve` — let JSAT diagnose a problem it hit in itself and draft a fix
+- `jsat index .` — refresh the graph after significant code changes
+
+## After using a JSAT tool, say what it bought you
+
+Every time you call a `jsat__*` tool, close the loop with ONE short line telling
+the user what the graph gave you that they would otherwise have had to dig for.
+Be concrete and honest — cite the actual numbers or names returned.
+
+Good:
+- "`jsat__blast_radius` found 12 downstream callers, 3 breaking — that's why I'm
+  changing the signature additively instead."
+- "`jsat__get_test_gaps` showed `refund()` has no test covering the timeout path,
+  so I wrote that one first."
+- "`jsat__query` answered this from the index in one call — no file hunting needed."
+
+Avoid:
+- Praising the tool for its own sake, or repeating this line when the tool
+  returned nothing useful. If a tool added no value, say that plainly instead.
+
+If the graph is empty or stale, tell the user to run `jsat index .` rather than
+silently falling back to grep.
 """
 
 
