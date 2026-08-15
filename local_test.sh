@@ -97,7 +97,11 @@ check_env() {
 
   local ver src
   ver=$("$py" -c 'import importlib.metadata as m;print(m.version("jsat"))' 2>/dev/null || echo "?")
-  src=$("$py" -c 'import jsat,pathlib;print(pathlib.Path(jsat.__file__).resolve().parent)' 2>/dev/null || echo "?")
+  # MUST run from a neutral directory. `python -c` puts cwd on sys.path[0], so running
+  # this from the repo root makes ./jsat shadow site-packages and a plain copied
+  # install looks editable. Console scripts do NOT get cwd on the path, which is how a
+  # stale copy can silently serve the `jsat` binary while every check here says fine.
+  src=$(cd /tmp && "$py" -c 'import jsat,pathlib;print(pathlib.Path(jsat.__file__).resolve().parent)' 2>/dev/null || echo "?")
 
   echo -e "  ${BOLD}$label${RESET}"
   echo "    jsat     $ver"
