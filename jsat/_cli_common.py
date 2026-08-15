@@ -11,6 +11,7 @@ from pathlib import Path
 import structlog
 import typer
 from rich.console import Console
+from typer.core import TyperGroup
 
 _log = structlog.get_logger(__name__)
 
@@ -47,7 +48,58 @@ skills_app = typer.Typer(
     ),
     rich_markup_mode="rich",
 )
+def _usage_errors() -> tuple[type[BaseException], ...]:
+    """Both UsageError classes: the real click one and typer's vendored copy.
+
+    Typer >=0.27 ships `typer._click`, whose `UsageError` is a *different class*
+    from `click.UsageError`. Catching only one silently misses the other depending
+    on which path invoked the command, so catch whichever exist.
+    """
+    import click
+    errors: list[type[BaseException]] = [click.exceptions.UsageError]
+    try:
+        from typer._click.exceptions import UsageError as _VendoredUsageError
+        if _VendoredUsageError not in errors:
+            errors.append(_VendoredUsageError)
+    except Exception:
+        pass
+    return tuple(errors)
+
+
+class ConnectGroup(TyperGroup):
+    """Turns `jsat connect <unknown>` into an actionable error.
+
+    The common mistake is naming an AI provider (`jsat connect ollama`) where an
+    MCP-capable tool is expected — those are configured with `jsat ai use` instead.
+    """
+
+    def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
+        try:
+            return super().resolve_command(ctx, args)
+        except _usage_errors():
+            name = args[0] if args else ""
+            from jsat._ai.aliases import MCP_TOOLS, is_provider_alias, suggest
+            registered = list(self.list_commands(ctx))
+            # Only the tool subcommands are useful here — hide `list`/`remove`.
+            valid = [c for c in registered if c in MCP_TOOLS] or registered
+
+            was_provider = is_provider_alias(name)
+            err.print(f"[red]Unknown connect target:[/] {name!r}")
+            if was_provider:
+                err.print(
+                    f"[bold]{name}[/] is an AI provider, not an MCP tool — "
+                    f"configure it with:\n  [bold]jsat ai use {name}[/]"
+                )
+            else:
+                close = suggest(name, valid)
+                if close:
+                    err.print(f"Did you mean [bold]jsat connect {close[0]}[/]?")
+            err.print("Connectable tools: " + " | ".join(valid))
+            raise typer.Exit(1) from None
+
+
 connect_app = typer.Typer(
+    cls=ConnectGroup,
     help=(
         "Wire JSAT into AI tools as an MCP server.\n\n"
         "[bold]One-time global setup (recommended):[/bold]\n\n"

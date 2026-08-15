@@ -107,49 +107,18 @@ class JSAT:
           custom, compat        → any OpenAI-compatible URL (pass base_url=)
         """
 
-        # Resolve provider alias + default model
-        import shutil as _shutil
-        _claude_cli_available = bool(_shutil.which("claude"))
+        # Resolve provider alias + default model (shared with `jsat ai use`)
+        from jsat._ai.aliases import alias_names, normalize_alias, resolve_alias
 
-        _aliases: dict[str, tuple[str, str, str | None]] = {
-            # alias → (internal_provider, default_model, base_url)
-            # "claude" prefers CLI if installed (no API key needed), else falls back to API
-            "claude":     ("claude_cli" if _claude_cli_available else "anthropic",
-                           "claude-sonnet-4-6", None),
-            "claude-api": ("anthropic",    "claude-sonnet-4-6",             None),
-            "claude-cli": ("claude_cli",   "claude-sonnet-4-6",             None),
-            "anthropic":  ("anthropic",    "claude-sonnet-4-6",             None),
-            "haiku":      ("anthropic",    "claude-haiku-4-5-20251001",     None),
-            "opus":       ("anthropic",    "claude-opus-4-8",               None),
-            "bob":        ("bob_cli",      "premium",                       None),
-            "bob-cli":    ("bob_cli",      "premium",                       None),
-            "gpt":        ("openai",       "gpt-4o",                        None),
-            "openai":     ("openai",       "gpt-4o",                        None),
-            "chatgpt":    ("openai",       "gpt-4o",                        None),
-            "gpt4":       ("openai",       "gpt-4o",                        None),
-            "gpt4mini":   ("openai",       "gpt-4o-mini",                   None),
-            "codex":      ("openai",       "gpt-4o",                        None),
-            "ollama":     ("ollama",       "llama3.2",                      None),
-            "llama":      ("ollama",       "llama3.2",                      None),
-            "phi":        ("ollama",       "phi3:mini",                     None),
-            "gemini":     ("openai_compat","gemini-1.5-flash",
-                           "https://generativelanguage.googleapis.com/v1beta/openai"),
-            "gemini-pro": ("openai_compat","gemini-1.5-pro",
-                           "https://generativelanguage.googleapis.com/v1beta/openai"),
-            "lmstudio":   ("openai_compat","local-model",                   "http://localhost:1234/v1"),
-            "lm-studio":  ("openai_compat","local-model",                   "http://localhost:1234/v1"),
-            "custom":     ("openai_compat","local-model",                    base_url or "http://localhost:1234/v1"),
-            "compat":     ("openai_compat","local-model",                    base_url or "http://localhost:1234/v1"),
-        }
-
-        alias = provider.lower().strip()
-        if alias not in _aliases:
+        alias = normalize_alias(provider)
+        resolved = resolve_alias(provider, base_url)
+        if resolved is None:
             raise ValueError(
                 f"Unknown provider '{provider}'.\n"
-                f"Available: {', '.join(sorted(_aliases))}"
+                f"Available: {', '.join(alias_names())}"
             )
 
-        internal, default_model, resolved_url = _aliases[alias]
+        internal, default_model, resolved_url = resolved
         chosen_model = model or default_model
         chosen_url = base_url or resolved_url
 

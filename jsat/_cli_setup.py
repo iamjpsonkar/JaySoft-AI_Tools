@@ -56,8 +56,18 @@ def cmd_disconnect(
     _valid_tools = ("claude", "codex", "cursor", "windsurf", "continue", "zed",
                     "gemini", "bob", "all")
     if tool_lower not in _valid_tools:
-        err.print(f"[red]Unknown tool:[/] {tool}. "
-                  f"Choose: {' | '.join(_valid_tools)}")
+        from jsat._ai.aliases import is_provider_alias, suggest
+        err.print(f"[red]Unknown tool:[/] {tool}")
+        if is_provider_alias(tool):
+            err.print(
+                f"[bold]{tool}[/] is an AI provider, not a connected tool — "
+                f"switch away from it with [bold]jsat ai use <other-provider>[/]."
+            )
+        else:
+            close = suggest(tool, _valid_tools)
+            if close:
+                err.print(f"Did you mean [bold]jsat disconnect {close[0]}[/]?")
+        err.print(f"Choose: {' | '.join(_valid_tools)}")
         raise typer.Exit(1)
 
     removed_any = False

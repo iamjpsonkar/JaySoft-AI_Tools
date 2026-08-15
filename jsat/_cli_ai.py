@@ -115,6 +115,32 @@ def cmd_ai_status() -> None:
     )
 
 
+def _preflight_ollama(model: str) -> None:
+    """Warn when Ollama is unreachable, or the chosen model has not been pulled."""
+    try:
+        import httpx
+        resp = httpx.get("http://localhost:11434/api/tags", timeout=1.0)
+        installed = [m.get("name", "") for m in resp.json().get("models", [])]
+    except Exception:
+        console.print(
+            "[yellow]⚠[/] Ollama is not running.\n"
+            "  Start it:   [bold]ollama serve[/]\n"
+            f"  Pull model: [bold]ollama pull {model}[/]\n"
+        )
+        return
+
+    def _same(a: str, b: str) -> bool:
+        return a == b or a.split(":")[0] == b.split(":")[0]
+
+    if installed and not any(_same(m, model) for m in installed):
+        console.print(
+            f"[yellow]⚠[/] Model [bold]{model}[/] is not pulled — requests will fail with 404.\n"
+            f"  Installed:  {', '.join(installed[:5])}\n"
+            f"  Pull it:    [bold]ollama pull {model}[/]\n"
+            f"  Or use:     [bold]jsat ai use ollama --model {installed[0]}[/]\n"
+        )
+
+
 @ai_app.command("use")
 def cmd_ai_use(
     provider: str = typer.Argument(...,
@@ -144,45 +170,49 @@ def cmd_ai_use(
     """
     import os
 
-    # Defaults per provider
-    defaults = {
-        "ollama":     {"model": "llama3.2",         "provider_key": "ollama"},
-        "anthropic":  {"model": "claude-sonnet-4-6", "provider_key": "anthropic"},
-        "openai":     {"model": "gpt-4o-mini",       "provider_key": "openai"},
-        "lmstudio":   {"model": "local-model",       "provider_key": "openai_compat",
-                       "base_url": "http://localhost:1234/v1"},
-    }
-    if provider not in defaults:
-        err.print(
-            f"[red]Unknown provider:[/] {provider!r}\n"
-            "Valid: ollama | anthropic | openai | lmstudio"
-        )
+    from jsat._ai.aliases import MCP_TOOLS, alias_names, normalize_alias, resolve_alias, suggest
+
+    # Same alias table the SDK and shell use, so every documented name works here.
+    resolved = resolve_alias(provider)
+    if resolved is None:
+        lines = [f"[red]Unknown provider:[/] {provider!r}"]
+        # An MCP tool name is a category mistake, not a typo — check it before fuzzy matching.
+        if normalize_alias(provider) in MCP_TOOLS:
+            lines.append(
+                f"[bold]{provider}[/] is an editor/CLI, not an AI provider — "
+                f"wire it up with [bold]jsat connect {provider}[/] instead."
+            )
+        else:
+            close = suggest(provider, alias_names())
+            if close:
+                lines.append(f"Did you mean [bold]{close[0]}[/]?")
+        lines.append("Valid: " + " | ".join(alias_names()))
+        err.print("\n".join(lines))
         raise typer.Exit(1)
 
-    d = defaults[provider]
-    chosen_model = model or d["model"]
-    chosen_provider = d["provider_key"]
-    base_url = d.get("base_url")
+    chosen_provider, default_model, base_url = resolved
+    chosen_model = model or default_model
 
-    # Pre-flight checks
-    if provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
+    # Pre-flight checks — keyed on the resolved backend, not the alias the user typed
+    if chosen_provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
         console.print("[yellow]⚠[/] ANTHROPIC_API_KEY is not set.")
         console.print("  Add to your shell: [bold]export ANTHROPIC_API_KEY=sk-ant-...[/]\n")
 
-    if provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
+    if chosen_provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
         console.print("[yellow]⚠[/] OPENAI_API_KEY is not set.")
         console.print("  Add to your shell: [bold]export OPENAI_API_KEY=sk-...[/]\n")
 
-    if provider == "ollama":
-        try:
-            import httpx
-            httpx.get("http://localhost:11434/api/tags", timeout=1.0)
-        except Exception:
-            console.print(
-                "[yellow]⚠[/] Ollama is not running.\n"
-                "  Start it:  [bold]ollama serve[/]\n"
-                "  Pull model: [bold]ollama pull llama3.2[/]\n"
-            )
+    for binary, install_hint in (("claude_cli", "claude"), ("bob_cli", "bob")):
+        if chosen_provider == binary:
+            import shutil
+            if not shutil.which(install_hint):
+                console.print(
+                    f"[yellow]⚠[/] The [bold]{install_hint}[/] binary was not found on PATH.\n"
+                    f"  Install it, or pick another provider with [bold]jsat ai status[/].\n"
+                )
+
+    if chosen_provider == "ollama":
+        _preflight_ollama(chosen_model)
 
     # Resolve config path
     if global_:
