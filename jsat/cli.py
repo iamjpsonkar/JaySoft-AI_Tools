@@ -11,6 +11,7 @@ import jsat._cli_connect  # noqa: F401  — registers connect subcommands
 import jsat._cli_improve  # noqa: F401  — registers the improve command
 import jsat._cli_index  # noqa: F401  — registers index/graph commands
 import jsat._cli_launchers  # noqa: F401  — registers launcher commands
+import jsat._cli_session  # noqa: F401  — registers session/note commands
 import jsat._cli_setup  # noqa: F401  — registers setup/config commands
 import jsat._cli_skills_data  # noqa: F401  — registers _JSAT_SKILLS
 import jsat._cli_tools  # noqa: F401  — registers tool commands
