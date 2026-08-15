@@ -585,6 +585,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#always-on-guidance-via-claudemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Always-on guidance via CLAUDE.md
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#project-scope-default" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1146,6 +1157,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#always-on-guidance-via-claudemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Always-on guidance via CLAUDE.md
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#project-scope-default" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1521,6 +1543,22 @@
 <p>Claude Code reads these on startup, starts the <code>jsat mcp-server</code> process, and makes all JSAT tools available during your session.</p>
 <hr />
 <h2 id="connecting">Connecting<a class="headerlink" href="#connecting" title="Permanent link">&para;</a></h2>
+<h3 id="always-on-guidance-via-claudemd">Always-on guidance via CLAUDE.md<a class="headerlink" href="#always-on-guidance-via-claudemd" title="Permanent link">&para;</a></h3>
+<p><code>jsat connect claude</code> writes a marked block into <code>CLAUDE.md</code> (project root, or <code>~/CLAUDE.md</code>
+with <code>--global</code>). Claude Code loads that file every session, which is what makes Claude
+reach for JSAT <strong>without being asked</strong> — slash commands only fire when you type one.</p>
+<p>The block tells Claude to:</p>
+<ul>
+<li>call <code>jsat__query</code> / <code>jsat__get_function</code> before answering "what does X do?"</li>
+<li>call <code>jsat__blast_radius</code> before editing shared code</li>
+<li>call <code>jsat__get_test_gaps</code> before writing tests, <code>jsat__security_review</code> for auth questions</li>
+<li>suggest JSAT proactively when you are about to do something it covers</li>
+<li><strong>report in one line what the tool actually found</strong> after each call — e.g.
+  "<code>jsat__blast_radius</code> found 12 downstream callers, 3 breaking — that's why I'm changing
+  the signature additively" — and to say so plainly when a tool added nothing</li>
+</ul>
+<p>Skip it with <code>jsat connect claude --no-claude-md</code>. <code>jsat disconnect claude</code> removes only the
+marked block, leaving the rest of your <code>CLAUDE.md</code> intact.</p>
 <h3 id="project-scope-default">Project scope (default)<a class="headerlink" href="#project-scope-default" title="Permanent link">&para;</a></h3>
 <p>Applies only to the current repository. The MCP config goes into <code>.claude/settings.json</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude
@@ -1543,7 +1581,7 @@
 <p><strong>After any connect command, restart Claude Code to activate the tools.</strong></p>
 <hr />
 <h2 id="slash-commands">Slash Commands<a class="headerlink" href="#slash-commands" title="Permanent link">&para;</a></h2>
-<p>A single <code>/jsat</code> dispatcher is installed into Claude Code when you run <code>jsat connect claude</code>. It routes to 40 subcommands, organized into layers:</p>
+<p>A single <code>/jsat</code> dispatcher is installed into Claude Code when you run <code>jsat connect claude</code>. It routes to 41 subcommands, organized into layers:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>/jsat &lt;subcommand&gt; [args]
 </code></pre></div>
 <h3 id="universal-flags">Universal flags<a class="headerlink" href="#universal-flags" title="Permanent link">&para;</a></h3>
@@ -1626,10 +1664,14 @@
 <td><strong>Index</strong></td>
 <td><code>index</code>, <code>ithinking</code></td>
 </tr>
+<tr>
+<td><strong>Maintain</strong></td>
+<td><code>improve</code></td>
+</tr>
 </tbody>
 </table>
 <blockquote>
-<p><strong><code>/jsat-help</code></strong> is a separate command (not a subcommand of <code>/jsat</code>): <code>/jsat-help</code> lists all 40 with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples for that command. <code>/jsat-help universal-flags</code> explains <code>timeout=&lt;N&gt;</code> and <code>dashboard=true</code>.</p>
+<p><strong><code>/jsat-help</code></strong> is a separate command (not a subcommand of <code>/jsat</code>): <code>/jsat-help</code> lists all 41 with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples for that command. <code>/jsat-help universal-flags</code> explains <code>timeout=&lt;N&gt;</code> and <code>dashboard=true</code>.</p>
 </blockquote>
 <h3 id="common-examples">Common examples<a class="headerlink" href="#common-examples" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Understand</span>

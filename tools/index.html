@@ -1600,6 +1600,100 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#tool-26-improve-self-improvement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 26 — Improve (self-improvement)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tool 26 — Improve (self-improvement)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#signals-captured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals captured
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-privacy-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The privacy contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safety-jsat-never-patches-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Safety: JSAT never patches itself
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-usage_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintainer-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maintainer flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2662,6 +2756,100 @@
     <span class="md-ellipsis">
       
         Output format
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-26-improve-self-improvement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 26 — Improve (self-improvement)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tool 26 — Improve (self-improvement)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#signals-captured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals captured
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-privacy-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The privacy contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safety-jsat-never-patches-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Safety: JSAT never patches itself
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-usage_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintainer-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maintainer flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
       
     </span>
   </a>
@@ -4283,6 +4471,134 @@ refactoring targets by downstream impact.</p>
 <h3 id="output-format">Output format<a class="headerlink" href="#output-format" title="Permanent link">&para;</a></h3>
 <p>Findings ranked RED (extract immediately) / YELLOW (schedule refactor) / GREEN (healthy),
 with specific extraction suggestions and blast-radius-derived priority ordering.</p>
+<hr />
+<h2 id="tool-26-improve-self-improvement">Tool 26 — Improve (self-improvement)<a class="headerlink" href="#tool-26-improve-self-improvement" title="Permanent link">&para;</a></h2>
+<p><strong>CLI:</strong> <code>jsat improve</code> · <strong>Slash command:</strong> <code>/jsat improve</code> · <strong>MCP tool:</strong> <code>jsat__improve_status</code></p>
+<p>Every JSAT bug normally dies silently on one developer's machine. This tool closes that
+loop: JSAT records friction it hits in <strong>itself</strong>, tells the developer when an issue
+recurs, and on request drafts a patch to JSAT's own source.</p>
+<h3 id="signals-captured">Signals captured<a class="headerlink" href="#signals-captured" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Source</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>crash</code></td>
+<td>CLI, shell, MCP handler, <code>main()</code> crash net</td>
+<td>an unhandled <code>IndexNotFound</code></td>
+</tr>
+<tr>
+<td><code>capability_gap</code></td>
+<td>code paths that log "unsupported" / "not implemented"</td>
+<td><code>sqlite_graph_unsupported_query</code> returning 0 context nodes</td>
+</tr>
+<tr>
+<td><code>ux_friction</code></td>
+<td>unknown command/provider rejections</td>
+<td><code>jsat connect ollama</code> naming a provider where a tool is expected</td>
+</tr>
+<tr>
+<td><code>performance</code></td>
+<td>MCP soft-budget and hard-timeout paths</td>
+<td>a tool repeatedly exceeding its budget</td>
+</tr>
+</tbody>
+</table>
+<p>Signals are folded into <strong>clusters</strong> by a fingerprint over
+<code>(kind, exception type, message class, operation, top 3 JSAT frames)</code>. Line numbers and
+version are deliberately excluded so one bug spanning releases stays one cluster, with a
+<code>versions: {"0.4.6": 31, "0.4.7": 19}</code> breakdown instead of fragmenting.</p>
+<h3 id="pipeline">Pipeline<a class="headerlink" href="#pipeline" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>except block → record_signal()  [stdlib only, never raises, no I/O on the hot path]
+<a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>                    ↓
+<a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>              in-memory buffer → flush at 10 records / 60s / atexit
+<a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a>                    ↓
+<a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a>        sanitize → verify → ~/.jsat/improve/{signals.jsonl, clusters.json}
+<a id="__codelineno-61-6" name="__codelineno-61-6" href="#__codelineno-61-6"></a>                    ↓
+<a id="__codelineno-61-7" name="__codelineno-61-7" href="#__codelineno-61-7"></a>              atexit nudge (TTY only, threshold + 24h cooldown)
+<a id="__codelineno-61-8" name="__codelineno-61-8" href="#__codelineno-61-8"></a>                    ↓
+<a id="__codelineno-61-9" name="__codelineno-61-9" href="#__codelineno-61-9"></a>        human runs `jsat improve` → AI diagnosis → unified diff
+<a id="__codelineno-61-10" name="__codelineno-61-10" href="#__codelineno-61-10"></a>                    ↓
+<a id="__codelineno-61-11" name="__codelineno-61-11" href="#__codelineno-61-11"></a>        validated in a temp sandbox → inert bundle → optional pre-filled issue
+</code></pre></div>
+<h3 id="the-privacy-contract">The privacy contract<a class="headerlink" href="#the-privacy-contract" title="Permanent link">&para;</a></h3>
+<p>Two independent stages, and the rule throughout is <strong>drop, never redact</strong> — a regex
+substitution that misses one case leaks proprietary data.</p>
+<p><strong>Stage 1 — construction.</strong> Records are built only from provably safe sources: stack
+frames rendered relative to the package root (anything else becomes the literal marker
+<code>&lt;external&gt;</code>), exception <em>type</em> names, and a finite allowlist of context keys. Exception
+<em>messages</em> are never stored verbatim — they interpolate user data (<code>IndexNotFound</code> embeds
+<code>repo_path</code>), so only a matched prefix from JSAT's own source is kept.</p>
+<p><strong>Stage 2 — verification.</strong> Every finished record — and every bundle file, <em>including AI
+output</em> — is re-checked and discarded whole if it contains a non-<code>jsat/</code> path, the user's
+home dir / username / cwd, a known secret pattern, a high-entropy token, or any
+environment-variable value.</p>
+<table>
+<thead>
+<tr>
+<th>Recorded</th>
+<th>Never recorded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JSAT frames as <code>jsat/tools/x.py:func</code></td>
+<td>Your file paths, code, identifiers</td>
+</tr>
+<tr>
+<td>Exception type names</td>
+<td>Exception message bodies</td>
+</tr>
+<tr>
+<td>Tool names, versions, Python version, OS</td>
+<td>Your queries or graph contents</td>
+</tr>
+<tr>
+<td>Config <em>keys</em> + allowlisted JSAT-owned values</td>
+<td>Config <em>values</em> you supplied</td>
+</tr>
+</tbody>
+</table>
+<h3 id="safety-jsat-never-patches-itself">Safety: JSAT never patches itself<a class="headerlink" href="#safety-jsat-never-patches-itself" title="Permanent link">&para;</a></h3>
+<p>The dev-side path performs <strong>zero</strong> writes targeting the installed package. This is
+structural, not conventional: all writes funnel through <code>_safe_write()</code>, which raises on
+any target outside the improve store, and patch validation happens on a <code>tempfile</code>
+copy that is always removed. A test monkeypatches <code>open</code>/<code>write_text</code>/<code>write_bytes</code> and
+asserts nothing under the package root is opened for writing during a full run.</p>
+<p>The reason it must stay this way: the patch is LLM output. Writing it into the live
+package would mean the next command executes unreviewed generated code with the
+developer's privileges inside their private codebase — and pip has no record of the
+change, so an upgrade silently reverts it or leaves stale bytecode. The bundle is inert
+data; it becomes code only after a human reviews it in a pull request.</p>
+<h3 id="cli-usage_12">CLI usage<a class="headerlink" href="#cli-usage_12" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>jsat<span class="w"> </span>improve<span class="w"> </span>--list<span class="w">                  </span><span class="c1"># read-only, costs no tokens</span>
+<a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>jsat<span class="w"> </span>improve<span class="w">                         </span><span class="c1"># diagnose top issue, write a bundle</span>
+<a id="__codelineno-62-3" name="__codelineno-62-3" href="#__codelineno-62-3"></a>jsat<span class="w"> </span>improve<span class="w"> </span>--id<span class="w"> </span>85be55de<span class="w">           </span><span class="c1"># target one cluster</span>
+<a id="__codelineno-62-4" name="__codelineno-62-4" href="#__codelineno-62-4"></a>jsat<span class="w"> </span>improve<span class="w"> </span>--report<span class="w">                </span><span class="c1"># pre-filled GitHub issue, human submits</span>
+</code></pre></div>
+<h3 id="maintainer-flow">Maintainer flow<a class="headerlink" href="#maintainer-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>jsat<span class="w"> </span>improve<span class="w"> </span>--submit<span class="w"> </span>~/.jsat/improve/bundles/&lt;id&gt;/
+</code></pre></div>
+<p>Refuses to run unless <code>git remote origin</code> is the JSAT repository, <code>pyproject.toml</code>
+declares the <code>jsat</code> package, and the tree is clean. Verifies each file's pre-patch
+<code>sha256</code> from the manifest against the checkout (drift requires <code>--force</code>), applies with
+<code>git apply --3way</code>, runs the test suite, commits, and only pushes/opens a PR with
+<code>--yes</code>.</p>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="nt">improve</span><span class="p">:</span>
+<a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a><span class="w">  </span><span class="nt">nudge</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-64-4" name="__codelineno-64-4" href="#__codelineno-64-4"></a><span class="w">  </span><span class="nt">nudge_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<a id="__codelineno-64-5" name="__codelineno-64-5" href="#__codelineno-64-5"></a><span class="w">  </span><span class="nt">nudge_cooldown_s</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">86400</span>
+<a id="__codelineno-64-6" name="__codelineno-64-6" href="#__codelineno-64-6"></a><span class="w">  </span><span class="nt">github_repo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iamjpsonkar/JaySoft-AI_Tools</span>
+</code></pre></div>
+<p>Kill switches: <code>JSAT_NO_IMPROVE=1</code>, <code>privacy.no_telemetry: true</code>, or
+<code>improve.enabled: false</code>. Capture is automatically disabled when <code>CI</code> is set.</p>
 
 
 
