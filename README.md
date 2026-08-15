@@ -229,6 +229,7 @@ jsat connect continue                      # Continue.dev
 jsat connect zed                           # Zed editor
 jsat connect gemini                        # Google Gemini CLI
 
+jsat connect github                        # GitHub MCP server, beside JSAT
 jsat connect list                          # show every active connection
 ```
 
@@ -743,6 +744,39 @@ Output: RED / YELLOW / GREEN priority report with specific extraction suggestion
 
 ---
 
+## 🐙 GitHub MCP — turn errors into resolved issues
+
+JSAT knows what broke *in your codebase*. GitHub knows whether anyone has hit it
+before. `jsat connect github` wires GitHub's MCP server in beside JSAT so an AI has
+both.
+
+```bash
+jsat connect github                  # Docker image, Claude Code, this repo
+jsat connect github cursor --global  # Cursor, all projects
+jsat connect github --remote         # GitHub's hosted endpoint (no Docker)
+
+export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...   # `repo` scope; `read:org` to search orgs
+```
+
+**Your token never touches disk.** Only the environment variable *name* is written
+into the config (`${GITHUB_PERSONAL_ACCESS_TOKEN}`); the MCP client expands it at run
+time.
+
+With both connected, the guidance JSAT writes tells the AI to work in this order:
+
+| Step | Tool |
+|---|---|
+| 1. Locate the failure in your code | `jsat__query`, `jsat__get_function`, `jsat__blast_radius` |
+| 2. Check whether it is already known | GitHub MCP issue/PR search |
+| 3. Find what changed | `jsat__get_recent_changes` + the PR via GitHub MCP |
+| 4. Report only if genuinely new | `jsat improve` bundle → issue body |
+
+Raw tracebacks are never pasted into GitHub — a `jsat improve` bundle is
+privacy-filtered, a traceback is not. Reading is unprompted; **creating an issue,
+comment, or PR asks you first.**
+
+---
+
 ## 📝 Notes & Knowledge
 
 Capture something worth remembering without leaving the terminal. Notes are stored as
@@ -1245,6 +1279,14 @@ JSAT finds its config file by checking these locations in order (first found win
 ## Contributing
 
 Contributions are welcome. Please open an issue or pull request on GitHub.
+
+### Developing JSAT with an AI agent
+
+**[`AGENTS.md`](AGENTS.md)** is the complete context file: repo map, call flow, an
+extension cookbook for each surface (CLI / MCP tool / slash command / config /
+provider), enforced conventions, testing, the environment traps that actually cost
+time, the privacy and safety invariants, known debt, and a pre-flight checklist.
+Point any AI agent at it before it touches the code.
 
 ### Running the tests
 

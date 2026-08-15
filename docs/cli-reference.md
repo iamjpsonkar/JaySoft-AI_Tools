@@ -157,6 +157,41 @@ jsat doctor --json | jq '.ai'
 
 ---
 
+### `jsat connect github`
+
+Wire GitHub's MCP server into the same config JSAT uses, so an AI can pair codebase
+knowledge with issue history.
+
+```
+jsat connect github [TOOL] [OPTIONS]
+```
+
+| Argument / Flag | Default | Description |
+|---|---|---|
+| `TOOL` | `claude` | `claude`, `cursor`, `codex`, `bob`, `windsurf`, `gemini` |
+| `--scope` / `-s` | `project` | `project` (this repo) or `global` (all projects) |
+| `--global` / `-g` | false | Shorthand for `--scope global` |
+| `--remote` | false | Use GitHub's hosted endpoint instead of the local Docker image |
+| `--token-env` | `GITHUB_PERSONAL_ACCESS_TOKEN` | Name of the env var holding your PAT |
+
+```bash
+jsat connect github
+jsat connect github cursor --global
+jsat connect github --remote
+export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...     # `repo` scope; `read:org` for orgs
+```
+
+**The token value is never written to disk.** Only the variable *name* goes into the
+config as `${GITHUB_PERSONAL_ACCESS_TOKEN}`; the MCP client expands it at run time.
+Adding GitHub preserves an existing `jsat` entry — the two sit side by side.
+
+The workflow the guidance instructs the AI to follow: locate the failure with the
+graph → search GitHub for a known issue → read the PR that caused a regression →
+file a report built from a privacy-filtered `jsat improve` bundle. Raw tracebacks are
+never pasted into GitHub, and creating an issue, comment, or PR asks you first.
+
+---
+
 ### `jsat session`
 
 Inspect and resume the sessions written by long-running skills (`magic`, `crack`,

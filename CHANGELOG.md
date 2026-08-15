@@ -4,6 +4,34 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.9] — 2026-08-15
+
+### Added
+
+- **`jsat connect github`** — wires GitHub's MCP server into the same config JSAT uses
+  (Claude Code, Cursor, Codex, Bob, Windsurf, Gemini), so an AI can pair codebase
+  knowledge with issue history: locate a failure with the graph, search GitHub for a
+  known issue, read the PR that caused a regression, and file a report built from a
+  privacy-filtered `jsat improve` bundle. Local Docker image by default,
+  `--remote` for GitHub's hosted endpoint. **The token value is never written to
+  disk** — only the env var name (`${GITHUB_PERSONAL_ACCESS_TOKEN}`), expanded by the
+  MCP client at run time. The guidance block gained the matching workflow, including
+  "search before filing" and "never paste raw tracebacks into GitHub".
+- **`AGENTS.md`** — complete context for an AI agent doing further development on
+  JSAT: repo map, call flow, extension cookbook for each surface, enforced
+  conventions, testing, the environment traps that actually cost time (copied installs
+  shadowing the checkout, typer's vendored click, the long-lived MCP server, cwd on
+  `sys.path`), privacy/safety invariants, known debt, and a pre-flight checklist.
+
+### Fixed
+
+- **`local_test.sh --doctor` reported a copied install as editable.** It probed with
+  `python -c` from the repo root, where cwd is `sys.path[0]` and `./jsat` shadows
+  site-packages — so the check could never fail. Console scripts do *not* get cwd on
+  the path, which is exactly how a stale copy silently served the `jsat` binary while
+  every check said the environment was fine. The probe now runs from a neutral
+  directory.
+
 ## [0.4.8] — 2026-08-15
 
 ### Added
