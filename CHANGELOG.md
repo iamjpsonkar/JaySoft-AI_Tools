@@ -31,6 +31,13 @@ All notable changes to JSAT.
 
 ### Changed
 
+- **Dependency upper bounds on `typer` and `click`** — `typer[all]>=0.12,<0.28`,
+  `click>=8,<9`. Typer 0.27 began vendoring click as `typer._click`, whose `UsageError`
+  is a *different class* from `click.UsageError`; that silently broke
+  `jsat connect <unknown>` on the real CLI while the test suite — running an older typer
+  — stayed green. JSAT now handles both, but the majors are capped so a future release
+  cannot shift these internals again unnoticed. Tested against typer 0.23.x/0.27.x and
+  click 8.1.x/8.4.x.
 - **Console entry point is now `jsat.cli:main`** (was `jsat.cli:app`) so unhandled crashes can be
   recorded before being re-raised unchanged. Behaviour is otherwise identical; pip regenerates the
   script on install/upgrade, so existing installs pick this up on their next `pip install -U jsat`.
