@@ -9,7 +9,6 @@ import pytest
 
 from jsat.mcp.server import MCPServer, _allowed
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _make_server(env: dict[str, str] | None = None) -> MCPServer:

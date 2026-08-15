@@ -1,10 +1,11 @@
 """Tests for jsat.tools.migration. CI-safe: writes temp .sql files."""
 from __future__ import annotations
-from pathlib import Path
-from typing import Any, Iterator
+
 import pytest
+
 from jsat._models import JSATConfig
 from jsat.tools.migration import MigrationTool
+
 
 class NoOpGraph:
     def node_count(self): return 0
@@ -21,7 +22,9 @@ class NoOpGraph:
 def tool(): return MigrationTool(graph=NoOpGraph(), cfg=JSATConfig(), ai=None)
 
 def _sql(tmp_path, sql, name="m.sql"):
-    p = tmp_path / name; p.write_text(sql); return p
+    p = tmp_path / name
+    p.write_text(sql)
+    return p
 
 # Risk
 @pytest.mark.ci
@@ -29,7 +32,8 @@ def test_create_table_safe(tool, tmp_path):
     assert tool.run(_sql(tmp_path, "CREATE TABLE foo (id INT PRIMARY KEY);")).risk_level == "safe"
 @pytest.mark.ci
 def test_alter_column_dangerous(tool, tmp_path):
-    assert tool.run(_sql(tmp_path, "ALTER TABLE orders ALTER COLUMN status TYPE TEXT;")).risk_level == "dangerous"
+    sql = _sql(tmp_path, "ALTER TABLE orders ALTER COLUMN status TYPE TEXT;")
+    assert tool.run(sql).risk_level == "dangerous"
 @pytest.mark.ci
 def test_drop_table_dangerous(tool, tmp_path):
     assert tool.run(_sql(tmp_path, "DROP TABLE legacy;")).risk_level == "dangerous"
@@ -51,7 +55,8 @@ def test_create_table_lock_none(tool, tmp_path):
 # Lock duration
 @pytest.mark.ci
 def test_lock_estimate_non_negative(tool, tmp_path):
-    assert tool.run(_sql(tmp_path, "ALTER TABLE t ALTER COLUMN x TYPE TEXT;")).lock_estimate_seconds >= 0
+    sql = _sql(tmp_path, "ALTER TABLE t ALTER COLUMN x TYPE TEXT;")
+    assert tool.run(sql).lock_estimate_seconds >= 0
 @pytest.mark.ci
 def test_lock_scales_with_rows(tool, tmp_path):
     sql = "ALTER TABLE orders ALTER COLUMN status TYPE TEXT;"
@@ -97,20 +102,26 @@ def test_block_comment_ignored(tool, tmp_path):
 
 # Table name detection
 @pytest.mark.ci
-def test_table_name_alter(tool): assert tool._table_name("ALTER TABLE orders ALTER COLUMN x TYPE TEXT") == "orders"
+def test_table_name_alter(tool):
+    assert tool._table_name("ALTER TABLE orders ALTER COLUMN x TYPE TEXT") == "orders"
 @pytest.mark.ci
-def test_table_name_create(tool): assert tool._table_name("CREATE TABLE payments (id SERIAL)") == "payments"
+def test_table_name_create(tool):
+    assert tool._table_name("CREATE TABLE payments (id SERIAL)") == "payments"
 @pytest.mark.ci
-def test_table_name_drop(tool): assert tool._table_name("DROP TABLE legacy_orders") == "legacy_orders"
+def test_table_name_drop(tool):
+    assert tool._table_name("DROP TABLE legacy_orders") == "legacy_orders"
 @pytest.mark.ci
 def test_table_name_none(tool): assert tool._table_name("SELECT 1") is None
 
 # Meta
 @pytest.mark.ci
-def test_duration_non_negative(tool, tmp_path): assert tool.run(_sql(tmp_path, "CREATE TABLE t(id INT);")).duration_ms >= 0
+def test_duration_non_negative(tool, tmp_path):
+    assert tool.run(_sql(tmp_path, "CREATE TABLE t(id INT);")).duration_ms >= 0
 @pytest.mark.ci
-def test_orm_issues_is_list(tool, tmp_path): assert isinstance(tool.run(_sql(tmp_path, "CREATE TABLE t(id INT);")).orm_issues, list)
+def test_orm_issues_is_list(tool, tmp_path):
+    assert isinstance(tool.run(_sql(tmp_path, "CREATE TABLE t(id INT);")).orm_issues, list)
 @pytest.mark.ci
 def test_dangerous_has_safe_alt(tool, tmp_path):
-    ops = [o for o in tool.run(_sql(tmp_path, "ALTER TABLE t ALTER COLUMN x TYPE TEXT;")).operations if o.is_dangerous]
+    sql = _sql(tmp_path, "ALTER TABLE t ALTER COLUMN x TYPE TEXT;")
+    ops = [o for o in tool.run(sql).operations if o.is_dangerous]
     assert all(o.safe_alternative for o in ops)

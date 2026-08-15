@@ -1,8 +1,12 @@
 """Tests for jsat._models. No external deps beyond pydantic."""
 import pytest
+
 from jsat._models import (
-    JSATConfig, GraphConfig, AIConfig, CacheConfig, EmbeddingsConfig,
-    SystemProfile, IndexResult, BlastRadiusReport, ImpactItem,
+    BlastRadiusReport,
+    ImpactItem,
+    IndexResult,
+    JSATConfig,
+    SystemProfile,
 )
 
 

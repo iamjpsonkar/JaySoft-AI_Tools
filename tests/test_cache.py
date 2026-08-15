@@ -1,8 +1,10 @@
 """Tests for jsat._cache.memory and disk. CI-safe — no external deps."""
 import time
+
 import pytest
-from jsat._cache.memory import MemoryCache
+
 from jsat._cache.disk import DiskCache
+from jsat._cache.memory import MemoryCache
 
 
 @pytest.mark.ci

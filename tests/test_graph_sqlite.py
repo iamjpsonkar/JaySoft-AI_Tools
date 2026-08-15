@@ -1,5 +1,6 @@
 """Tests for jsat._graph.sqlite. CI-safe — only needs sqlite3."""
 import pytest
+
 from jsat._graph.sqlite import SQLiteGraph
 from jsat._models import GraphConfig
 

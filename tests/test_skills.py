@@ -1,11 +1,12 @@
 """Tests for jsat.skills: registry, clusters, manifest. CI-safe."""
 from __future__ import annotations
-from pathlib import Path
+
 import pytest
-from jsat.skills.registry import SkillsRegistry
+
+from jsat._exceptions import SkillNotFound
 from jsat.skills.clusters import list_clusters, run_cluster
 from jsat.skills.manifest import SkillManifest
-from jsat._exceptions import SkillNotFound
+from jsat.skills.registry import SkillsRegistry
 
 MINIMAL_YAML = """\
 name: my-skill

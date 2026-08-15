@@ -3,7 +3,7 @@ import pytest
 
 from jsat._graph.sqlite import SQLiteGraph
 from jsat._models import GraphConfig, JSATConfig
-from jsat.tools.blast_radius import BlastRadiusTool, SEVERITY_ORDER, _classify
+from jsat.tools.blast_radius import SEVERITY_ORDER, BlastRadiusTool, _classify
 
 
 @pytest.fixture
@@ -88,5 +88,6 @@ def test_imports_edge_is_warning(graph):
 
 @pytest.mark.ci
 def test_impacts_sorted_by_severity(graph):
-    order = [SEVERITY_ORDER.get(i.severity, 99) for i in _tool(graph).run("fn::a", max_depth=5).impacts]
+    impacts = _tool(graph).run("fn::a", max_depth=5).impacts
+    order = [SEVERITY_ORDER.get(i.severity, 99) for i in impacts]
     assert order == sorted(order)

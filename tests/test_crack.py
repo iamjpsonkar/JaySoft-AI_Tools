@@ -1,10 +1,18 @@
 """Tests for jsat.tools.crack — CI-safe: all offline, zero LLM calls."""
-import pytest
 from pathlib import Path
+
+import pytest
+
 from jsat.tools.crack import (
-    CrackTool, CrackStatement, CrackResult,
-    _ROLE_PROMPTS, _DEFAULT_ROLES, _format_history,
-    _build_agent_prompt, _offline_statement, _render_markdown,
+    _DEFAULT_ROLES,
+    _ROLE_PROMPTS,
+    CrackResult,
+    CrackStatement,
+    CrackTool,
+    _build_agent_prompt,
+    _format_history,
+    _offline_statement,
+    _render_markdown,
 )
 
 

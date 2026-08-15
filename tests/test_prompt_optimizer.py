@@ -1,12 +1,21 @@
 """Tests for jsat.tools.prompt_optimizer. CI-safe: all offline, zero LLM calls."""
 import pytest
+
 from jsat._models import JSATConfig
 from jsat.tools.prompt_optimizer import (
-    ClassifyAgent, ContextAgent, ConstraintAgent,
-    FewShotAgent, FormatAgent, CompressAgent,
-    PromptOptimizer, _tok,
-    RewriteResult, _score_rewrite,
-    LLMRewriteAgent, LLMContextExpandAgent, LLMConstraintHardenAgent,
+    ClassifyAgent,
+    CompressAgent,
+    ConstraintAgent,
+    ContextAgent,
+    FewShotAgent,
+    FormatAgent,
+    LLMConstraintHardenAgent,
+    LLMContextExpandAgent,
+    LLMRewriteAgent,
+    PromptOptimizer,
+    RewriteResult,
+    _score_rewrite,
+    _tok,
 )
 
 
@@ -161,7 +170,7 @@ def test_fewshot_filters_by_task_type(tmp_path):
 
 @pytest.mark.ci
 def test_format_claude_xml(graph):
-    from jsat.tools.prompt_optimizer import ContextResult, ConstraintResult, FewShotResult
+    from jsat.tools.prompt_optimizer import ConstraintResult, ContextResult, FewShotResult
     r = FormatAgent().run("test task", "code_gen",
                           ContextResult(text="fn foo()", node_ids=[], tokens=5),
                           ConstraintResult(text="- use tenacity", count=1),
@@ -173,7 +182,7 @@ def test_format_claude_xml(graph):
 
 @pytest.mark.ci
 def test_format_gpt_markdown(graph):
-    from jsat.tools.prompt_optimizer import ContextResult, ConstraintResult, FewShotResult
+    from jsat.tools.prompt_optimizer import ConstraintResult, ContextResult, FewShotResult
     r = FormatAgent().run("test task", "code_gen",
                           ContextResult(text="", node_ids=[], tokens=0),
                           ConstraintResult(text="", count=0),
@@ -184,7 +193,7 @@ def test_format_gpt_markdown(graph):
 
 @pytest.mark.ci
 def test_format_plain_ollama(graph):
-    from jsat.tools.prompt_optimizer import ContextResult, ConstraintResult, FewShotResult
+    from jsat.tools.prompt_optimizer import ConstraintResult, ContextResult, FewShotResult
     r = FormatAgent().run("test task", "code_gen",
                           ContextResult(text="", node_ids=[], tokens=0),
                           ConstraintResult(text="", count=0),
@@ -195,7 +204,7 @@ def test_format_plain_ollama(graph):
 
 @pytest.mark.ci
 def test_format_output_spec_injected():
-    from jsat.tools.prompt_optimizer import ContextResult, ConstraintResult, FewShotResult
+    from jsat.tools.prompt_optimizer import ConstraintResult, ContextResult, FewShotResult
     r = FormatAgent().run("task", "code_gen",
                           ContextResult(text="", node_ids=[], tokens=0),
                           ConstraintResult(text="", count=0),
@@ -205,7 +214,7 @@ def test_format_output_spec_injected():
 
 @pytest.mark.ci
 def test_format_cot_appended():
-    from jsat.tools.prompt_optimizer import ContextResult, ConstraintResult, FewShotResult
+    from jsat.tools.prompt_optimizer import ConstraintResult, ContextResult, FewShotResult
     r = FormatAgent().run("task", "debug",
                           ContextResult(text="", node_ids=[], tokens=0),
                           ConstraintResult(text="", count=0),
@@ -395,7 +404,7 @@ class MockAI:
     available = True
     def is_available(self): return self.available
     def complete(self, prompt: str, max_tokens: int = 512) -> str:
-        return f"ensure process_refund(order_id: str) raises ValueError when order_id is None"
+        return "ensure process_refund(order_id: str) raises ValueError when order_id is None"
 
 
 class FailingAI:

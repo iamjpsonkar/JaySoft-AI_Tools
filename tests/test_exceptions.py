@@ -1,8 +1,15 @@
 """Tests for jsat._exceptions. No external deps required — always runs in CI."""
 import pytest
+
 from jsat._exceptions import (
-    JSATError, ConfigFileNotFound, IndexNotFound, IndexOutOfDate,
-    AIRateLimitError, AIAuthError, ProfileError, ImportVersionMismatch,
+    AIAuthError,
+    AIRateLimitError,
+    ConfigFileNotFound,
+    ImportVersionMismatch,
+    IndexNotFound,
+    IndexOutOfDate,
+    JSATError,
+    ProfileError,
     SkillNotFound,
 )
 

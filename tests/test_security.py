@@ -1,11 +1,11 @@
 """Tests for jsat.tools.security. CI-safe: no Semgrep binary needed."""
 from __future__ import annotations
-import math
-from pathlib import Path
-from typing import Any, Iterator
+
 import pytest
+
 from jsat._models import JSATConfig
 from jsat.tools.security import SecurityTool, _entropy
+
 
 class NoOpGraph:
     def node_count(self): return 0

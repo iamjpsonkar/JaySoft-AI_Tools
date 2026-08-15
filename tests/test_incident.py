@@ -1,11 +1,14 @@
 """Tests for jsat.tools.incident. CI-safe: scores methods directly (no git)."""
 from __future__ import annotations
+
 import math
-from datetime import datetime, timezone, timedelta
-from typing import Any, Iterator
+from datetime import datetime, timedelta, timezone
+
 import pytest
+
 from jsat._models import JSATConfig
 from jsat.tools.incident import IncidentTool
+
 
 class NoOpGraph:
     def node_count(self): return 0
@@ -35,7 +38,8 @@ def test_recent_scores_higher(tool):
 def test_pattern_match_raises_score(tool):
     matching  = _commit("payment timeout regression", 10.0)
     unrelated = _commit("update README docs", 10.0)
-    assert tool._score(matching, "timeout in payment") > tool._score(unrelated, "timeout in payment")
+    incident = "timeout in payment"
+    assert tool._score(matching, incident) > tool._score(unrelated, incident)
 
 @pytest.mark.ci
 def test_score_in_unit_interval(tool):
@@ -82,5 +86,7 @@ def test_mitigations_non_empty_empty_list(tool):
 @pytest.mark.ci
 def test_incident_report_model():
     from jsat._models import IncidentReport
-    r = IncidentReport(description="err", hypotheses=[], mitigation_steps=["check infra"], duration_ms=0)
+    r = IncidentReport(
+        description="err", hypotheses=[], mitigation_steps=["check infra"], duration_ms=0,
+    )
     assert r.hypotheses == [] and len(r.mitigation_steps) >= 1

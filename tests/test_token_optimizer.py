@@ -1,16 +1,17 @@
 """Tests for jsat.tools.token_optimizer. CI-safe: all offline, zero LLM calls."""
 import pytest
+
 from jsat.tools.token_optimizer import (
+    MODEL_LIMITS,
     TokenOptimizer,
+    _apply_comment_strip,
+    _apply_dedup,
+    _apply_import_collapse,
+    _apply_recency_pin,
+    _apply_stopphrase,
+    _apply_whitespace,
     estimate_tokens,
     section_breakdown,
-    MODEL_LIMITS,
-    _apply_whitespace,
-    _apply_stopphrase,
-    _apply_import_collapse,
-    _apply_dedup,
-    _apply_comment_strip,
-    _apply_recency_pin,
 )
 
 

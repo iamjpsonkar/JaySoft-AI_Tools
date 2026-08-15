@@ -1,8 +1,8 @@
 """Tests for jsat.tools.indexer — end-to-end CI-safe tests using LightGraph + tmp_path."""
 import json
-import time
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 @pytest.fixture

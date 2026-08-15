@@ -45,7 +45,7 @@ jobs:
         run: pip install ruff
 
       - name: Lint
-        run: |
-          ruff check jsat/ \
-            --select E,F,I \
-            --ignore E501,E402,E701,E702,E741,F841,F401
+        # No inline rule list: ruff reads [tool.ruff] from pyproject.toml, so CI
+        # enforces exactly what the project declares. The previous permissive
+        # override hid 84 real findings in tests/ and never linted tests/ at all.
+        run: ruff check jsat/ tests/
