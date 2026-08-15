@@ -207,7 +207,15 @@ def test_issue_url_stays_under_limit_and_prefills():
 
 @pytest.mark.ci
 def test_report_url_never_contains_the_local_bundle_path():
-    """Regression: the bundle path embeds the username and must not be published."""
+    """Regression: the bundle path embeds the username and must not be published.
+
+    Asserts on the URL only, not the whole terminal output. Printing the local
+    bundle path and the config search paths to the user's own terminal is correct
+    and expected — the invariant is that neither reaches the *published* URL.
+    """
+    import re
+    import urllib.parse
+
     from jsat._improve._sanitize import verify_clean
 
     cluster = _seed()
@@ -215,8 +223,14 @@ def test_report_url_never_contains_the_local_bundle_path():
     result = runner.invoke(app, ["improve", "--id", cluster["fingerprint"][:8],
                                  "--report", "--dry-run"])
 
-    assert str(bundle) not in result.output
-    assert str(Path.home()) not in result.output.replace("\n", "")
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", result.output).replace("\n", "")
+    match = re.search(r"https://github\.com/\S+", plain)
+    assert match, f"no issue URL in output: {plain[:200]}"
+    url = urllib.parse.unquote(match.group(0))
+
+    assert str(bundle) not in url
+    assert str(Path.home()) not in url
+    assert "/tmp/" not in url
     # And the body that would be posted passes the privacy filter.
     assert verify_clean((bundle / "issue.md").read_text())
 
