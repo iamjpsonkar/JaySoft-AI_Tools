@@ -234,14 +234,21 @@ jsat connect list                          # show every active connection
 
 Restart the AI tool after connecting. JSAT's MCP tools are immediately available.
 
+**Claude reaches for JSAT on its own.** `jsat connect claude` also writes a marked block
+into `CLAUDE.md`, which Claude Code loads every session. Slash commands only fire when you
+type one; the `CLAUDE.md` block is what makes Claude *proactively* run `jsat__blast_radius`
+before an edit, `jsat__get_test_gaps` before writing tests, and say in one line what each
+tool actually found. Skip it with `--no-claude-md`; `jsat disconnect claude` removes the
+block and leaves the rest of your `CLAUDE.md` untouched.
+
 ### Files written per tool
 
 Each connect command writes both an MCP config **and** a guidance file so the AI knows what JSAT tools exist and when to use them — without being asked.
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
-| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (41 files) | Slash commands |
-| Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` | Slash commands |
+| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (41 files) + `CLAUDE.md` | Slash commands + always-on guidance |
+| Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` + `~/CLAUDE.md` | Slash commands + always-on guidance |
 | Codex (project) | `.codex/config.json` | `.codex/instructions.md` | Agent instructions |
 | Codex (global) | `~/.codex/config.json` | `~/.codex/instructions.md` | Agent instructions |
 | Bob Shell (project) | `.bob/settings.json` | `BOB.md` + `.bob/commands/jsat-*.md` | Slash commands |
@@ -736,6 +743,26 @@ Output: RED / YELLOW / GREEN priority report with specific extraction suggestion
 
 ---
 
+## 📝 Notes & Knowledge
+
+Capture something worth remembering without leaving the terminal. Notes are stored as
+knowledge entries (`category: note`), so they are searchable alongside your ADRs and
+runbooks — and visible to every connected AI tool through the MCP knowledge tools.
+
+```bash
+jsat note add "retry logic uses tenacity per ADR-007"
+jsat note add -c adr "all payment mutations require idempotency keys"
+jsat note list                    # notes only
+jsat note list -c all             # every knowledge entry
+jsat note search retry            # semantic search across notes + ADRs + runbooks
+```
+
+There is no second store to keep in sync: `jsat note` is a thin CLI over the same
+`KnowledgeTool` that backs `jsat__knowledge_query`, `/jsat knowledge`, and
+`/jsat decide`.
+
+---
+
 ## 🔁 JSAT Improve — Self-Improvement
 
 JSAT watches for friction in **itself** — crashes, capability gaps, unhelpful errors, tools that
@@ -806,7 +833,21 @@ Every major skill (`magic`, `crack`, `sprint`, `prompt`) writes two files automa
 
 `~/.jsat/sessions/<skill>-<slug>-<YYYYMMDD-HHMM>.md`
 
-Tracks which steps completed. If a session times out or you interrupt it, pass `--continue` to pick up where it left off:
+Tracks which steps completed. Inspect and resume sessions from the shell:
+
+```bash
+jsat session list                 # every session, newest first, with progress
+jsat session show                 # steps and findings of the newest session
+jsat session resume               # where it stopped + how to continue
+jsat session rm <fragment>        # delete one
+jsat session prune --keep 20      # tidy up (unfinished ones are kept)
+```
+
+The format is implemented in `jsat/_sessions.py`, so skills, `--continue`, and the
+CLI all read and write the same thing. Files stay plain markdown — tick a checkbox
+in your editor and JSAT honours it. Override the location with `JSAT_SESSIONS_DIR`.
+
+Inside an AI tool, pass `--continue` to pick up where a run left off:
 
 ```bash
 /jsat magic --continue        # resume most recent interrupted magic session
@@ -866,6 +907,11 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat prompt --diff <query>` | Show raw input vs optimized prompt side by side |
 | `jsat doctor` | System health check (graph, AI, services, connected tools) |
 | `jsat doctor --json` | Health check as raw JSON |
+| `jsat session list` | List skill sessions with progress and status |
+| `jsat session resume` | Show where the newest session stopped and how to continue |
+| `jsat session prune --keep 20` | Delete old session files (unfinished kept) |
+| `jsat note add "<text>"` | Save a note into the knowledge base |
+| `jsat note search <query>` | Search notes, ADRs, and runbooks |
 | `jsat improve --list` | Show friction JSAT has recorded in itself |
 | `jsat improve` | Diagnose the top issue and draft a patch for JSAT |
 | `jsat improve --report` | Open a pre-filled GitHub issue to review and submit |
@@ -1199,6 +1245,22 @@ JSAT finds its config file by checking these locations in order (first found win
 ## Contributing
 
 Contributions are welcome. Please open an issue or pull request on GitHub.
+
+### Running the tests
+
+```bash
+./local_test.sh --install    # editable install + dev deps in every venv it finds
+./local_test.sh              # lint (identical command to CI) + CI-safe tests
+./local_test.sh --doctor     # environment check, no tests
+./local_test.sh --all        # everything (needs Neo4j, Qdrant, Redis)
+./local_test.sh --both       # run the suite in every venv that has jsat
+./local_test.sh --fix        # auto-fix lint
+```
+
+`--doctor` is worth running first. It catches the two environment problems that waste the
+most time: a **stale non-editable install shadowing your checkout** (so your edits do
+nothing), and **typer/click drift between venvs** — typer ≥0.27 vendors its own click, so
+the CLI can behave differently in two environments while the test suite stays green in both.
 
 - Repository: [github.com/iamjpsonkar/JaySoft-AI_Tools](https://github.com/iamjpsonkar/JaySoft-AI_Tools)
 - Bug reports: open an issue on GitHub

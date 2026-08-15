@@ -578,6 +578,7 @@ All secrets should be passed via environment variables, never stored in config:
 | `JSAT_DATA_DIR` | Override data directory (graph, cache, vectors). Useful in CI or Docker |
 | `JSAT_NO_IMPROVE` | If set, disables self-improvement signal capture and the nudge entirely |
 | `JSAT_IMPROVE_DIR` | Override the self-improvement store (default `~/.jsat/improve/`) |
+| `JSAT_SESSIONS_DIR` | Override where skill sessions are written (default `~/.jsat/sessions/`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `GEMINI_API_KEY` | Gemini API key (`GOOGLE_API_KEY` also accepted) |

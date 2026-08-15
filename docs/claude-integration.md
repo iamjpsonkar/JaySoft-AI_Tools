@@ -20,6 +20,25 @@ Claude Code reads these on startup, starts the `jsat mcp-server` process, and ma
 
 ## Connecting
 
+### Always-on guidance via CLAUDE.md
+
+`jsat connect claude` writes a marked block into `CLAUDE.md` (project root, or `~/CLAUDE.md`
+with `--global`). Claude Code loads that file every session, which is what makes Claude
+reach for JSAT **without being asked** — slash commands only fire when you type one.
+
+The block tells Claude to:
+
+- call `jsat__query` / `jsat__get_function` before answering "what does X do?"
+- call `jsat__blast_radius` before editing shared code
+- call `jsat__get_test_gaps` before writing tests, `jsat__security_review` for auth questions
+- suggest JSAT proactively when you are about to do something it covers
+- **report in one line what the tool actually found** after each call — e.g.
+  "`jsat__blast_radius` found 12 downstream callers, 3 breaking — that's why I'm changing
+  the signature additively" — and to say so plainly when a tool added nothing
+
+Skip it with `jsat connect claude --no-claude-md`. `jsat disconnect claude` removes only the
+marked block, leaving the rest of your `CLAUDE.md` intact.
+
 ### Project scope (default)
 
 Applies only to the current repository. The MCP config goes into `.claude/settings.json`:

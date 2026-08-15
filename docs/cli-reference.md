@@ -157,6 +157,67 @@ jsat doctor --json | jq '.ai'
 
 ---
 
+### `jsat session`
+
+Inspect and resume the sessions written by long-running skills (`magic`, `crack`,
+`sprint`, `prompt`).
+
+```
+jsat session list  [--skill <name>] [--status <s>] [--limit N]
+jsat session show  [<fragment>]
+jsat session resume [<fragment>]
+jsat session rm    <fragment>
+jsat session prune [--keep N] [--all]
+```
+
+| Subcommand | Purpose |
+|---|---|
+| `list` | Every session, newest first, with `done/total` progress and status |
+| `show` | Steps and findings for one session (default: newest) |
+| `resume` | Where it stopped, the findings carried forward, and how to continue |
+| `rm` | Delete one session file |
+| `prune` | Delete old sessions; unfinished ones are kept unless `--all` |
+
+```bash
+jsat session list --status in_progress
+jsat session resume
+jsat session prune --keep 20
+```
+
+Sessions live in `~/.jsat/sessions/` (override with `JSAT_SESSIONS_DIR`) as plain
+markdown with YAML frontmatter, a `## Steps` checklist, and a `## Findings` section.
+The format is implemented in `jsat/_sessions.py`, so skills, `--continue`, and this
+CLI all agree on it — and because the files stay human-editable, ticking a checkbox
+by hand is honoured on the next read.
+
+---
+
+### `jsat note`
+
+Capture and recall project knowledge. Notes are knowledge entries with
+`category: note`, so they are searchable next to ADRs and runbooks and visible to
+every AI tool through the MCP knowledge tools — there is no separate notes store.
+
+```
+jsat note add    <text> [--category <cat>]
+jsat note list   [--category <cat>] [--limit N]
+jsat note search <query> [--limit N]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--category` / `-c` | `note` | `note`, `adr`, `runbook`, `pattern`, `decision`. `list -c all` shows everything |
+| `--limit` / `-n` | 20 / 10 | Rows to display |
+
+```bash
+jsat note add "retry logic uses tenacity per ADR-007"
+jsat note add -c adr "all payment mutations require idempotency keys"
+jsat note list -c all
+jsat note search retry
+```
+
+---
+
 ### `jsat improve`
 
 Diagnose problems JSAT hit in **itself** and draft a patch to JSAT's own source.

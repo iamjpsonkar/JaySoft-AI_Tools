@@ -8,6 +8,22 @@ All notable changes to JSAT.
 
 ### Added
 
+- **Session management is real code now** (`jsat/_sessions.py` + `jsat session` CLI). The
+  session format was previously only prose in each skill's markdown telling the *AI* to
+  hand-write the file, so no two skills produced quite the same thing and `--continue` had
+  nothing dependable to read. Create/load/list/resume/prune are implemented once, the
+  on-disk format is unchanged and still hand-editable (ticking a checkbox in your editor is
+  honoured), and `JSAT_SESSIONS_DIR` overrides the location.
+  New: `jsat session list|show|resume|rm|prune`.
+- **Notes** — `jsat note add|list|search`, stored as knowledge entries with
+  `category: note`. Deliberately a thin CLI over the existing `KnowledgeTool` rather than a
+  second store, so notes are searchable next to ADRs and runbooks and are visible to every
+  AI tool through the MCP knowledge tools.
+- **`jsat connect claude` now writes a `CLAUDE.md` block** so Claude reaches for JSAT
+  unprompted — slash commands only fire when the user types one. The guidance is directive
+  (a table of "user asks X → call this FIRST") and instructs Claude to report, in one line,
+  what each JSAT call actually found, and to say plainly when a tool added nothing.
+  Opt out with `--no-claude-md`; `jsat disconnect claude` removes only the marked block.
 - **`jsat improve` — self-improvement.** JSAT now passively records friction it hits in *itself*
   (crashes, capability gaps, bad errors, budget overruns), nudges the developer when one issue
   recurs, and on request uses their configured AI provider to diagnose it and draft a patch to
@@ -31,6 +47,25 @@ All notable changes to JSAT.
 
 ### Changed
 
+- **`local_test.sh` rewritten.** It now finds every venv that has jsat (preferring this
+  repo's `.jsat.venv`, deduped by `sys.prefix`), and adds `--doctor` (flags a stale
+  non-editable install shadowing the checkout, a version mismatch against `pyproject.toml`,
+  and typer/click drift between environments) and `--both` (run the suite in every venv).
+  Test runs are isolated with a temp `JSAT_IMPROVE_DIR`/`JSAT_SESSIONS_DIR` so a
+  local run never touches real user data.
+  Fixes: `--watch` passed an invalid `--no-watch` argument and aborted; Python discovery was
+  macOS/pyenv-only and never looked at `.jsat.venv`.
+- **Lint now enforces what `pyproject.toml` declares.** CI ran
+  `ruff check jsat/ --select E,F,I --ignore E501,E402,E701,E702,E741,F841,F401` — a
+  permissive override that ignored the project's own `[tool.ruff]` config and never linted
+  `tests/` at all. That hid **84 real findings**, every one of them in `tests/`: 29
+  semicolon-joined statements, 20 unsorted import blocks, 16 over-length lines, 15 unused
+  imports, 3 deprecated `typing` imports, 1 pointless f-string. All 84 are fixed, and both
+  CI and `local_test.sh` now run the same bare `ruff check jsat/ tests/`, so the declared
+  config is the single source of truth and the two cannot drift apart again.
+  The semicolon splits were done via `tokenize` rather than string splitting, because
+  several of those lines contain semicolons *inside string literals* (embedded Rust/SQL
+  fixtures) that a naive split would have corrupted. Test count is unchanged at 490.
 - **Dependency upper bounds on `typer` and `click`** — `typer[all]>=0.12,<0.28`,
   `click>=8,<9`. Typer 0.27 began vendoring click as `typer._click`, whose `UsageError`
   is a *different class* from `click.UsageError`; that silently broke
