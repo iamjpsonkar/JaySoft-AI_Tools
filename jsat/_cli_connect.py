@@ -15,6 +15,7 @@ from ._cli_common import (
     _write_json,
     connect_app,
     console,
+    err,
 )
 from ._cli_skills_data import _JSAT_SKILLS, _write_bob_commands, _write_jsat_dispatcher
 
@@ -216,6 +217,138 @@ def cmd_connect_cursor(
         )
 
 
+_GITHUB_MCP_IMAGE = "ghcr.io/github/github-mcp-server"
+_GITHUB_MCP_REMOTE = "https://api.githubcopilot.com/mcp/"
+
+# Where each AI tool keeps its MCP server map. Same files `jsat connect <tool>`
+# already writes, so JSAT and GitHub end up side by side.
+_MCP_CONFIG_PATHS: dict[str, tuple[str, str]] = {
+    # tool -> (project-scope path, global-scope path) relative to cwd / home
+    "claude":   (".claude/settings.json",  ".claude/settings.json"),
+    "cursor":   (".cursor/mcp.json",       ".cursor/mcp.json"),
+    "codex":    (".codex/config.json",     ".codex/config.json"),
+    "bob":      (".bob/settings.json",     ".bob/settings.json"),
+    "windsurf": (".codeium/windsurf/mcp_config.json", ".codeium/windsurf/mcp_config.json"),
+    "gemini":   (".gemini/settings.json",  ".gemini/settings.json"),
+}
+
+
+@connect_app.command("github")
+def cmd_connect_github(
+    tool: str = typer.Argument(
+        "claude", help="AI tool to wire GitHub into: claude | cursor | codex | bob "
+                       "| windsurf | gemini",
+    ),
+    scope: str = typer.Option(
+        "project", "--scope", "-s", help="'project' (this repo) | 'global' (all projects)",
+    ),
+    global_: bool = typer.Option(False, "--global", "-g", help="Shorthand for --scope global"),
+    remote: bool = typer.Option(
+        False, "--remote",
+        help="Use GitHub's hosted MCP endpoint instead of the local Docker image",
+    ),
+    token_env: str = typer.Option(
+        "GITHUB_PERSONAL_ACCESS_TOKEN", "--token-env",
+        help="Name of the env var holding your PAT. The VALUE is never written to disk.",
+    ),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Wire the GitHub MCP server in alongside JSAT, so errors become fixes.
+
+    \b
+    JSAT tells the AI what broke and where (graph, blast radius, improve bundles).
+    GitHub tells it whether anyone has hit this before. Together the AI can search
+    existing issues, read the PR that introduced a regression, and file a report
+    with real context instead of a guess.
+
+    \b
+    jsat connect github                  Docker image, Claude Code, this repo
+    jsat connect github cursor --global  Cursor, all projects
+    jsat connect github --remote         GitHub's hosted endpoint (no Docker)
+
+    \b
+    Your token is read from the environment at run time by the MCP client — only
+    the variable NAME is written into the config file, never the token itself.
+    Needs `repo` scope (add `read:org` for org-wide issue search).
+    """
+    import os
+    import shutil as _shutil
+
+    tool_key = tool.strip().lower()
+    if tool_key not in _MCP_CONFIG_PATHS:
+        from jsat._ai.aliases import suggest
+        err.print(f"[red]Unknown tool:[/] {tool}")
+        close = suggest(tool_key, list(_MCP_CONFIG_PATHS))
+        if close:
+            err.print(f"Did you mean [bold]jsat connect github {close[0]}[/]?")
+        err.print("Supported: " + " | ".join(_MCP_CONFIG_PATHS))
+        raise typer.Exit(1)
+
+    effective_scope = "global" if global_ else scope
+    project_rel, global_rel = _MCP_CONFIG_PATHS[tool_key]
+    config_path = (
+        Path.home() / global_rel if effective_scope == "global"
+        else Path(repo).resolve() / project_rel
+    )
+
+    if remote:
+        entry: dict = {"type": "http", "url": _GITHUB_MCP_REMOTE}
+        transport = f"hosted endpoint ({_GITHUB_MCP_REMOTE})"
+    else:
+        if not _shutil.which("docker"):
+            console.print(
+                "[yellow]⚠[/] Docker was not found on PATH. The local GitHub MCP server "
+                "runs as a container.\n"
+                "  Install Docker, or use the hosted endpoint: "
+                "[bold]jsat connect github --remote[/]\n"
+            )
+        entry = {
+            "command": "docker",
+            "args": [
+                "run", "-i", "--rm",
+                "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+                _GITHUB_MCP_IMAGE,
+            ],
+            # Name only — the client expands this from its own environment.
+            "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": f"${{{token_env}}}"},
+        }
+        transport = f"local container ({_GITHUB_MCP_IMAGE})"
+
+    settings = _read_json(config_path)
+    settings.setdefault("mcpServers", {})
+    already = "github" in settings["mcpServers"]
+    settings["mcpServers"]["github"] = entry
+    _write_json(config_path, settings)
+
+    action = "Updated" if already else "Added"
+    console.print(
+        f"\n[green]✓[/] {action} GitHub MCP server for [bold]{tool_key}[/] "
+        f"({effective_scope})"
+    )
+    console.print(f"  Transport : [cyan]{transport}[/]")
+    console.print(f"  Config    : [cyan]{config_path}[/]")
+    console.print(f"  Token from: [cyan]${token_env}[/] [dim](name only — value never stored)[/]\n")
+
+    if not os.environ.get(token_env):
+        console.print(
+            f"[yellow]⚠[/] [bold]${token_env}[/] is not set in this shell.\n"
+            f"  export {token_env}=ghp_...   [dim](needs `repo` scope)[/]\n"
+        )
+
+    has_jsat = "jsat" in settings.get("mcpServers", {})
+    if not has_jsat:
+        console.print(
+            "[dim]Tip: JSAT is not wired into this config yet — "
+            f"run [bold]jsat connect {tool_key}[/] so the AI has both.[/]\n"
+        )
+
+    console.print(
+        f"[bold yellow]→ Restart {tool_key}[/] to activate.\n"
+        "  The AI can now search issues, read PRs, and file a report straight from a "
+        "[bold]jsat improve[/] bundle.\n"
+    )
+
+
 def _jsat_instructions_block() -> str:
     """Return the standard JSAT tool-guidance block for AI instruction files."""
     return """\
@@ -307,6 +440,34 @@ Avoid:
 
 If the graph is empty or stale, tell the user to run `jsat index .` rather than
 silently falling back to grep.
+
+## When something breaks: pair JSAT with GitHub MCP
+
+If a `github` MCP server is also connected (`jsat connect github`), use the two
+together. JSAT knows what broke *in this codebase*; GitHub knows whether anyone
+has hit it before. Neither is much use alone.
+
+On any error, stack trace, or failing test the user shares:
+
+1. **Locate it locally first** — `jsat__query` / `jsat__get_function` to find the
+   code, `jsat__blast_radius` to see what else the fix would touch. Never open a
+   GitHub issue about code you have not read.
+2. **Check whether it is known** — search the GitHub MCP server for issues and PRs
+   matching the exception type and the JSAT-internal frame (e.g.
+   `IndexNotFound jsat/_core.py`). Report the issue number and status if you find
+   one, and stop: the answer may already be there.
+3. **Find what changed** — if it is a regression, use `jsat__get_recent_changes`
+   for local commits and GitHub MCP to read the PR that introduced the change.
+4. **Report only if genuinely new.** Run `jsat improve` to produce a bundle
+   (diagnosis + patch + privacy-filtered issue body), then file the issue through
+   GitHub MCP using `issue.md` from that bundle as the body.
+
+Rules that are not optional:
+- **Never paste raw errors, paths, or code from the user's project into GitHub.**
+  A `jsat improve` bundle is already privacy-filtered; a raw traceback is not.
+- **Search before filing.** Duplicate issues cost maintainers more than silence.
+- **Ask before writing anything public** — creating an issue, comment, or PR is
+  outward-facing and hard to undo. Reading is fine unprompted; writing is not.
 """
 
 
