@@ -4,6 +4,50 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.8] — 2026-08-15
+
+### Added
+
+- **`jsat improve` — self-improvement.** JSAT now passively records friction it hits in *itself*
+  (crashes, capability gaps, bad errors, budget overruns), nudges the developer when one issue
+  recurs, and on request uses their configured AI provider to diagnose it and draft a patch to
+  JSAT's own source. The result is an inert "improvement bundle" plus an optional pre-filled
+  GitHub issue the developer reviews and submits themselves.
+  - New `jsat/_improve/` package: `record_signal()` (never raises, stdlib-only, zero cost on the
+    happy path), an atexit flush + nudge, and an on-disk store at `~/.jsat/improve/`.
+  - **Privacy contract:** capture is JSAT-internal-only and hard-filtered. Only JSAT's own stack
+    frames (relative paths), exception *type* names, tool names, versions and config *keys* are
+    stored. Anything referencing the user's code, paths, identifiers or queries is **dropped, not
+    redacted**, and a second adversarial pass re-checks every record — and every bundle file,
+    including AI output — for machine identifiers, secrets and env-var values.
+  - **JSAT never patches its own installed source.** Patches are validated in a throwaway temp
+    copy and stay inert data until a human reviews them in a PR. All writes funnel through
+    `_safe_write()`, which refuses any target outside the improve store.
+  - Opt out with `JSAT_NO_IMPROVE=1`, `privacy.no_telemetry: true`, or `improve.enabled: false`.
+    Capture is automatically disabled in CI.
+  - New read-only MCP tool `improve_status` and slash command `/jsat improve`.
+  - New `ImproveConfig` config section; new `jsat/_secrets.py` (secret patterns extracted from
+    `tools/security.py`, re-exported there for compatibility).
+
+### Changed
+
+- **Console entry point is now `jsat.cli:main`** (was `jsat.cli:app`) so unhandled crashes can be
+  recorded before being re-raised unchanged. Behaviour is otherwise identical; pip regenerates the
+  script on install/upgrade, so existing installs pick this up on their next `pip install -U jsat`.
+- `jsat connect <unknown>` and `jsat disconnect <unknown>` now redirect AI provider names to
+  `jsat ai use` and suggest the closest tool for typos, instead of a bare Typer error.
+- `jsat ai use` accepts every documented provider alias (`claude_cli`, `gpt`, `bob`, `haiku`, …)
+  via a new shared alias table in `jsat/_ai/aliases.py`, used by the SDK, shell and CLI alike.
+
+### Fixed
+
+- **Ollama provider ignored `ai.base_url`** — `complete()` and `stream()` used the module-level
+  client, which always talks to `localhost:11434`, silently discarding a configured host.
+- **Opaque Ollama 404s** — a missing model now reports which models *are* installed and the exact
+  command to use one, instead of `model 'x' not found (status code: 404)`.
+- `jsat ai use claude_cli` / `bob` / `gpt` previously failed with "Unknown provider" despite being
+  documented in the README and in the command's own `--help`.
+
 ## [0.4.7] — 2026-08-01
 
 ### Fixed

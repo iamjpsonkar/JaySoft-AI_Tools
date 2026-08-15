@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import contextlib
 import json
-import math
 import re
 import subprocess
 import time
@@ -12,36 +11,16 @@ from pathlib import Path
 from typing import Any
 
 from jsat._call_context import checkpoint
+
+# Re-exported from jsat._secrets so low-level code can scan without importing BaseTool.
+from jsat._secrets import _SECRET_PATTERNS, _entropy
 from jsat.tools import BaseTool
+
+__all__ = ["SecurityTool", "_SECRET_PATTERNS", "_entropy"]
 
 _SCAN_EXTS = frozenset({".py", ".js", ".ts", ".go", ".yaml", ".env", ".json"})
 _SEVERITY_ORDER = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 _SEMGREP_MAP = {"ERROR": "critical", "WARNING": "high", "INFO": "medium"}
-
-_SECRET_PATTERNS: dict[str, tuple[re.Pattern[str], str]] = {
-    "aws_access_key_id":    (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), "critical"),
-    "github_token":         (re.compile(r'\bgh[ps]_[A-Za-z0-9]{36}\b'), "critical"),
-    "github_fine_grained":  (re.compile(r'\bgithub_pat_[A-Za-z0-9_]{82}\b'), "critical"),
-    "google_api_key":       (re.compile(r'\bAIza[0-9A-Za-z\-_]{35}\b'), "high"),
-    "slack_token":          (re.compile(r'\bxox[baprs]-[0-9A-Za-z\-]{10,48}\b'), "high"),
-    "stripe_live_key":      (re.compile(r'\bsk_live_[0-9A-Za-z]{24}\b'), "critical"),
-    "private_key_header":   (re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'), "critical"),  # noqa: E501
-    "jwt_token":            (re.compile(r'\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.'), "medium"),  # noqa: E501
-    "generic_token":        (re.compile(
-        r'(?i)(?:api[_\-]?key|access[_\-]?token|auth[_\-]?token|secret[_\-]?key)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,64})["\']'
-    ), "high"),
-}
-
-
-def _entropy(s: str) -> float:
-    """Shannon entropy of a string. Exported for tests."""
-    if not s:
-        return 0.0
-    freq: dict[str, int] = {}
-    for c in s:
-        freq[c] = freq.get(c, 0) + 1
-    n = len(s)
-    return -sum((f / n) * math.log2(f / n) for f in freq.values())
 
 
 class SecurityTool(BaseTool):

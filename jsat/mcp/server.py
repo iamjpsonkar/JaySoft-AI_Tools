@@ -163,7 +163,7 @@ _ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "list_services", "list_endpoints", "list_tables",
         "trace_call_chain", "get_consumers",
         "knowledge_query", "knowledge_search", "knowledge_list",
-        "get_metrics",
+        "get_metrics", "improve_status",
     }),
     "developer": frozenset({
         # inherits viewer
@@ -172,7 +172,7 @@ _ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "list_services", "list_endpoints", "list_tables",
         "trace_call_chain", "get_consumers",
         "knowledge_query", "knowledge_search", "knowledge_list",
-        "get_metrics",
+        "get_metrics", "improve_status",
         # developer extras
         "blast_radius", "blast_radius_diff", "blast_radius_symbol",
         "security_review", "list_secrets", "get_auth_coverage",
@@ -478,6 +478,14 @@ class MCPServer:
                     name=name, budget_s=budget, elapsed_s=elapsed,
                     last_events=events,
                 )
+                try:
+                    from jsat._improve import record_signal
+                    record_signal(
+                        kind="performance", source="mcp", op=name,
+                        detail={"budget_s": budget, "elapsed_s": elapsed, "phase": "soft"},
+                    )
+                except Exception:
+                    pass
                 over_budget_msg = (
                     f"⏱ '{name}' has run {elapsed:.0f}s (soft budget: {budget}s). "
                     f"Still running — last steps: [{events_text}]. "
@@ -518,6 +526,14 @@ class MCPServer:
                         "mcp_tool_hard_timeout",
                         name=name, budget_s=budget, hard_limit_s=hard_limit, elapsed_s=elapsed,
                     )
+                    try:
+                        from jsat._improve import record_signal
+                        record_signal(
+                            kind="performance", source="mcp", op=name,
+                            detail={"budget_s": budget, "elapsed_s": elapsed, "phase": "hard"},
+                        )
+                    except Exception:
+                        pass
                     if _dash_push is not None:
                         _dash_push("error", f"hard timeout after {elapsed}s", tool=name)
                 finally:
@@ -534,6 +550,11 @@ class MCPServer:
             except Exception as e:
                 error_occurred = True
                 self._log.error("mcp_tool_error", name=name, error=str(e))
+                try:
+                    from jsat._improve import record_signal
+                    record_signal(kind="crash", source="mcp", exc=e, op=name)
+                except Exception:
+                    pass
                 if _dash_push is not None:
                     _dash_push("error", str(e), tool=name)
                 return {"jsonrpc": "2.0", "id": id_,
@@ -759,6 +780,16 @@ class MCPServer:
                     "model": js._cfg.ai.model,  # type: ignore[attr-defined]
                     "graph_backend": js._cfg.graph.backend,  # type: ignore[attr-defined]
                 }),
+            },
+            "improve_status": {
+                "description": (
+                    "List friction JSAT has recorded in ITSELF (crashes, capability gaps, "
+                    "UX friction, timeouts) as issue clusters with counts. Read-only, no AI. "
+                    "Contains only JSAT-internal data — never anything from this codebase. "
+                    "Run `jsat improve` in a terminal to diagnose and draft a patch."
+                ),
+                "schema": {"type": "object", "properties": {}},
+                "handler": lambda a: _ser(_improve_status_impl()),
             },
             "health": {
                 "description": (
@@ -2712,6 +2743,37 @@ def _token_budget_impl(js: object, args: dict) -> dict:
     except Exception as e:
         log.error("mcp_token_budget_error", error=str(e))
         return {"error": str(e)}
+
+
+def _improve_status_impl() -> dict:
+    """Recorded self-improvement clusters. Read-only; never triggers AI or writes."""
+    try:
+        from jsat._improve import read_state
+        from jsat.tools.improve import list_clusters
+
+        clusters = list_clusters()
+        return {
+            "clusters": [
+                {
+                    "id": c["fingerprint"][:8],
+                    "kind": c.get("kind"),
+                    "issue": c.get("exc_type") or c.get("message_class"),
+                    "where": c.get("op"),
+                    "count": c.get("count", 0),
+                    "last_seen": c.get("last_seen"),
+                    "reported": bool(c.get("reported")),
+                }
+                for c in clusters[:25]
+            ],
+            "total": len(clusters),
+            "dropped_by_privacy_filter": read_state().get("dropped_count", 0),
+            "next_step": (
+                "Run `jsat improve` in a terminal to diagnose the top issue and "
+                "draft a patch." if clusters else "Nothing recorded — no action needed."
+            ),
+        }
+    except Exception as e:
+        return {"error": str(e), "clusters": [], "total": 0}
 
 
 def _crack_impl(js: object, args: dict) -> dict:

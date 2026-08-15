@@ -190,8 +190,19 @@ security:
 # ── Privacy ────────────────────────────────────────────────────────────────────
 privacy:
   hash_pii: false                 # hash PII values before storing in the graph
+  no_telemetry: false             # true also disables self-improvement capture
   audit_log: false                # write an audit log of all JSAT operations
   audit_log_path: .jsat/audit.log
+
+# ── Self-improvement (see `jsat improve`) ──────────────────────────────────────
+improve:
+  enabled: true                   # record friction JSAT hits in ITSELF (local file only)
+  nudge: true                     # hint to run `jsat improve` when an issue recurs
+  nudge_threshold: 3              # occurrences of one issue before the hint appears
+  nudge_cooldown_s: 86400         # minimum seconds between hints (24h)
+  max_signals: 5000               # signal log line cap before rotation
+  max_clusters: 500               # issue clusters retained
+  github_repo: iamjpsonkar/JaySoft-AI_Tools   # target for --report
 ```
 
 ---
@@ -522,6 +533,39 @@ Controls how JSAT handles potentially sensitive data in the graph and logs.
 
 Neither setting is enabled by default. Enable both in regulated environments or wherever a record of AI-assisted operations is required for compliance.
 
+- `no_telemetry: true` — also disables self-improvement capture (see `improve` below).
+
+---
+
+### `improve`
+
+Controls the self-improvement loop behind `jsat improve`. JSAT records friction it hits in **itself** so it can later propose a fix to its own source.
+
+- `enabled: true` (default) — record signals to a local file. Capture is **JSAT-internal-only**: JSAT's own stack frames (as paths relative to the package), exception *type* names, tool names, versions, and config *keys*. Anything referencing your code, paths, identifiers, or queries is **dropped, not redacted**, and every record is re-checked against machine identifiers, secret patterns, and environment-variable values before being written.
+- `nudge: true` — after a command that produced a signal, print one line suggesting `jsat improve`. Only ever printed when both stdout and stderr are TTYs, so it can never corrupt MCP stdio, pipes, or `--json` output.
+- `nudge_threshold: 3` — how many times one issue must recur before the hint appears.
+- `nudge_cooldown_s: 86400` — minimum interval between hints; any single issue is nudged at most three times ever.
+- `max_signals` / `max_clusters` — retention caps; the signal log rotates and the least significant clusters are evicted.
+- `github_repo` — the repository `jsat improve --report` targets. Change it if you maintain a fork.
+
+Nothing is transmitted anywhere by capture itself. `--report` opens a *pre-filled* GitHub issue in your browser, which you read and submit yourself. **JSAT never modifies its own installed files** — a generated patch is validated against a throwaway copy and remains inert data until a human merges it.
+
+Three independent kill switches, any of which disables capture entirely:
+
+```bash
+export JSAT_NO_IMPROVE=1
+```
+```yaml
+improve:
+  enabled: false
+privacy:
+  no_telemetry: true
+```
+
+Capture is also disabled automatically whenever `CI` is set.
+
+Data lives in `~/.jsat/improve/` — deliberately **not** the per-repo data directory, which can resolve to `{repo}/.jsat/` inside your private codebase.
+
 ---
 
 ## Environment Variables
@@ -532,6 +576,8 @@ All secrets should be passed via environment variables, never stored in config:
 |---------|---------|
 | `JSAT_CONFIG` | Override config file path |
 | `JSAT_DATA_DIR` | Override data directory (graph, cache, vectors). Useful in CI or Docker |
+| `JSAT_NO_IMPROVE` | If set, disables self-improvement signal capture and the nudge entirely |
+| `JSAT_IMPROVE_DIR` | Override the self-improvement store (default `~/.jsat/improve/`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `GEMINI_API_KEY` | Gemini API key (`GOOGLE_API_KEY` also accepted) |

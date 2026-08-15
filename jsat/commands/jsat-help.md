@@ -198,6 +198,35 @@ Examples:
   /jsat doctor
 ```
 
+### improve
+Diagnose problems JSAT hit in itself and draft a patch to JSAT's own source.
+```
+/jsat improve [--list] [--id <fp8>] [--report]
+
+Flags:
+  --list        show what has been recorded, analyse nothing (read-only, no tokens)
+  --id <fp8>    work on one specific recorded issue (ids come from --list)
+  --report      after diagnosing, open a pre-filled GitHub issue in the browser
+
+What it does:
+  JSAT passively records friction it hits in ITSELF — crashes, capability gaps,
+  unhelpful errors, tools that blow their time budget. This turns the most frequent
+  one into a diagnosis plus a candidate patch, written to ~/.jsat/improve/bundles/.
+
+Privacy:
+  Only JSAT-internal data is recorded — JSAT's own stack frames, exception type
+  names, tool names, versions, config KEYS. The user's code, paths, identifiers and
+  queries are DROPPED, never redacted. Capture is a local file; nothing is
+  transmitted unless the user runs --report and presses Submit themselves.
+  JSAT never modifies its own installed files.
+  Disable: JSAT_NO_IMPROVE=1, privacy.no_telemetry, or improve.enabled: false.
+
+Examples:
+  /jsat improve --list
+  /jsat improve
+  /jsat improve --id 85be55de --report
+```
+
 ### find-class
 Find a class in the indexed codebase.
 ```
@@ -705,6 +734,7 @@ Examples:
 | `doctor` | Full JSAT system health check |
 | `find-class` | Find a class in the indexed codebase |
 | `find-function` | Find a function or method in the indexed codebase |
+| `improve` | Diagnose problems JSAT hit in itself and draft a patch for JSAT |
 | `incident` | Investigate a production incident with ranked root-cause hypotheses |
 | `index` | Build or refresh the codebase graph index |
 | `ithinking` | Meta-cognitive plan/reflect/audit/estimate (IThinking) |

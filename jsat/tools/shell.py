@@ -222,6 +222,11 @@ class JSATShell:
             try:
                 handlers[cmd](args)
             except Exception as e:
+                try:
+                    from jsat._improve import record_signal
+                    record_signal(kind="crash", source="shell", exc=e, op=cmd)
+                except Exception:
+                    pass
                 self._console.print(f"[red]Error:[/] {e}")
         else:
             # Everything else → AI chat

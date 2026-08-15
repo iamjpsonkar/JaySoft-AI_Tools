@@ -80,6 +80,14 @@ class JSAT:
         )
         setup_logging(self._cfg)
 
+        # Prime the self-improvement gates from the loaded config, so the capture
+        # and atexit paths never have to load config themselves.
+        try:
+            from jsat._improve import _capture as _improve_capture
+            _improve_capture.set_config(self._cfg)
+        except Exception:
+            pass
+
         self._graph: GraphClient | None = None
         self._ai: AIProvider | None = None
         self._active_provider: str = self._cfg.ai.provider

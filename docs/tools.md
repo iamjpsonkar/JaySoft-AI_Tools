@@ -1263,3 +1263,115 @@ refactoring targets by downstream impact.
 
 Findings ranked RED (extract immediately) / YELLOW (schedule refactor) / GREEN (healthy),
 with specific extraction suggestions and blast-radius-derived priority ordering.
+
+---
+
+## Tool 26 — Improve (self-improvement)
+
+**CLI:** `jsat improve` · **Slash command:** `/jsat improve` · **MCP tool:** `jsat__improve_status`
+
+Every JSAT bug normally dies silently on one developer's machine. This tool closes that
+loop: JSAT records friction it hits in **itself**, tells the developer when an issue
+recurs, and on request drafts a patch to JSAT's own source.
+
+### Signals captured
+
+| Kind | Source | Example |
+|---|---|---|
+| `crash` | CLI, shell, MCP handler, `main()` crash net | an unhandled `IndexNotFound` |
+| `capability_gap` | code paths that log "unsupported" / "not implemented" | `sqlite_graph_unsupported_query` returning 0 context nodes |
+| `ux_friction` | unknown command/provider rejections | `jsat connect ollama` naming a provider where a tool is expected |
+| `performance` | MCP soft-budget and hard-timeout paths | a tool repeatedly exceeding its budget |
+
+Signals are folded into **clusters** by a fingerprint over
+`(kind, exception type, message class, operation, top 3 JSAT frames)`. Line numbers and
+version are deliberately excluded so one bug spanning releases stays one cluster, with a
+`versions: {"0.4.6": 31, "0.4.7": 19}` breakdown instead of fragmenting.
+
+### Pipeline
+
+```
+except block → record_signal()  [stdlib only, never raises, no I/O on the hot path]
+                    ↓
+              in-memory buffer → flush at 10 records / 60s / atexit
+                    ↓
+        sanitize → verify → ~/.jsat/improve/{signals.jsonl, clusters.json}
+                    ↓
+              atexit nudge (TTY only, threshold + 24h cooldown)
+                    ↓
+        human runs `jsat improve` → AI diagnosis → unified diff
+                    ↓
+        validated in a temp sandbox → inert bundle → optional pre-filled issue
+```
+
+### The privacy contract
+
+Two independent stages, and the rule throughout is **drop, never redact** — a regex
+substitution that misses one case leaks proprietary data.
+
+**Stage 1 — construction.** Records are built only from provably safe sources: stack
+frames rendered relative to the package root (anything else becomes the literal marker
+`<external>`), exception *type* names, and a finite allowlist of context keys. Exception
+*messages* are never stored verbatim — they interpolate user data (`IndexNotFound` embeds
+`repo_path`), so only a matched prefix from JSAT's own source is kept.
+
+**Stage 2 — verification.** Every finished record — and every bundle file, *including AI
+output* — is re-checked and discarded whole if it contains a non-`jsat/` path, the user's
+home dir / username / cwd, a known secret pattern, a high-entropy token, or any
+environment-variable value.
+
+| Recorded | Never recorded |
+|---|---|
+| JSAT frames as `jsat/tools/x.py:func` | Your file paths, code, identifiers |
+| Exception type names | Exception message bodies |
+| Tool names, versions, Python version, OS | Your queries or graph contents |
+| Config *keys* + allowlisted JSAT-owned values | Config *values* you supplied |
+
+### Safety: JSAT never patches itself
+
+The dev-side path performs **zero** writes targeting the installed package. This is
+structural, not conventional: all writes funnel through `_safe_write()`, which raises on
+any target outside the improve store, and patch validation happens on a `tempfile`
+copy that is always removed. A test monkeypatches `open`/`write_text`/`write_bytes` and
+asserts nothing under the package root is opened for writing during a full run.
+
+The reason it must stay this way: the patch is LLM output. Writing it into the live
+package would mean the next command executes unreviewed generated code with the
+developer's privileges inside their private codebase — and pip has no record of the
+change, so an upgrade silently reverts it or leaves stale bytecode. The bundle is inert
+data; it becomes code only after a human reviews it in a pull request.
+
+### CLI usage
+
+```bash
+jsat improve --list                  # read-only, costs no tokens
+jsat improve                         # diagnose top issue, write a bundle
+jsat improve --id 85be55de           # target one cluster
+jsat improve --report                # pre-filled GitHub issue, human submits
+```
+
+### Maintainer flow
+
+```bash
+jsat improve --submit ~/.jsat/improve/bundles/<id>/
+```
+
+Refuses to run unless `git remote origin` is the JSAT repository, `pyproject.toml`
+declares the `jsat` package, and the tree is clean. Verifies each file's pre-patch
+`sha256` from the manifest against the checkout (drift requires `--force`), applies with
+`git apply --3way`, runs the test suite, commits, and only pushes/opens a PR with
+`--yes`.
+
+### Configuration
+
+```yaml
+improve:
+  enabled: true
+  nudge: true
+  nudge_threshold: 3
+  nudge_cooldown_s: 86400
+  github_repo: iamjpsonkar/JaySoft-AI_Tools
+```
+
+Kill switches: `JSAT_NO_IMPROVE=1`, `privacy.no_telemetry: true`, or
+`improve.enabled: false`. Capture is automatically disabled when `CI` is set.

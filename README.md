@@ -26,7 +26,7 @@ Long-running tools stream **live progress notifications** to Claude Code — and
 | Feature | What it does |
 |---------|-------------|
 | **Persistent graph** | Index once, query forever — functions, classes, services, endpoints, Kafka topics, DB tables |
-| **40 slash commands** | `/jsat magic`, `/jsat crack`, `/jsat blast-radius`, `/jsat security` and 36 more |
+| **41 slash commands** | `/jsat magic`, `/jsat crack`, `/jsat improve`, `/jsat security` and 37 more |
 | **Universal flags** | `timeout=<N>` sets a soft budget on any call; `dashboard=true` opens a live browser dashboard |
 | **Smart budgets** | Over-budget → AI gets notified (call keeps running). Force-kill only at 5× the budget |
 | **Session files** | All major skills write resumable session files — `--continue` picks up where it left off |
@@ -240,7 +240,7 @@ Each connect command writes both an MCP config **and** a guidance file so the AI
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
-| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (40 files) | Slash commands |
+| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (41 files) | Slash commands |
 | Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` | Slash commands |
 | Codex (project) | `.codex/config.json` | `.codex/instructions.md` | Agent instructions |
 | Codex (global) | `~/.codex/config.json` | `~/.codex/instructions.md` | Agent instructions |
@@ -258,10 +258,10 @@ Pass `--no-instructions` to skip writing the guidance file (MCP only).
 
 ### `/jsat` dispatcher
 
-`jsat connect claude` installs a single `/jsat` command rather than 40 individual `/jsat-*` commands. All skills are accessible as subcommands:
+`jsat connect claude` installs a single `/jsat` command rather than 41 individual `/jsat-*` commands. All skills are accessible as subcommands:
 
 ```bash
-/jsat help               # list all 40 subcommands
+/jsat help               # list all 41 subcommands
 /jsat query <question>   # answer codebase questions (Discuss→Verify pipeline)
 /jsat crack <task>       # multi-agent war room with artifact carry-forward
 /jsat aw <task>          # workflow advisor
@@ -285,10 +285,10 @@ jsat disconnect gemini                     # Gemini CLI
 jsat disconnect all                        # every tool at once
 ```
 
-### Claude Code — slash commands (40 subcommands + `/jsat-help`)
+### Claude Code — slash commands (41 subcommands + `/jsat-help`)
 
 `jsat connect claude` installs two slash commands:
-- `/jsat <subcommand>` — 40 subcommands organized by category (see table below)
+- `/jsat <subcommand>` — 41 subcommands organized by category (see table below)
 - `/jsat-help [command]` — no args lists all commands; `/jsat-help magic` shows full flags and examples for that command
 
 **Graph exploration**
@@ -303,6 +303,7 @@ jsat disconnect all                        # every tool at once
 | `/jsat index [path]` | Rebuild the codebase graph (incremental) |
 | `/jsat status` | Node/edge counts |
 | `/jsat doctor` | Full system health check |
+| `/jsat improve` | Diagnose problems JSAT hit in itself and draft a patch for JSAT |
 
 **Impact & safety**
 | Command | What it does |
@@ -355,7 +356,7 @@ jsat disconnect all                        # every tool at once
 **Help**
 | Command | What it does |
 |---|---|
-| `/jsat-help` | List all 40 commands with one-liner descriptions |
+| `/jsat-help` | List all 41 commands with one-liner descriptions |
 | `/jsat-help <command>` | Full description, flags, and examples for a specific command (e.g. `/jsat-help magic`) |
 
 ### Open Claude with JSAT context pre-loaded
@@ -624,7 +625,7 @@ Classifies your task type and runs the optimal JSAT tool sequence end-to-end —
 The only JSAT skill with no fixed template. Given any task, it:
 
 1. **Analyzes** the task to understand what information is needed
-2. **Composes** a minimal effective skill sequence from all 39 skills, organized in layers
+2. **Composes** a minimal effective skill sequence from all 40 skills, organized in layers
 3. **Executes** each skill with task-specific parameters, adapting based on findings
 4. **Converges** when the task is answerable — skips remaining skills once sufficient data exists
 
@@ -735,6 +736,68 @@ Output: RED / YELLOW / GREEN priority report with specific extraction suggestion
 
 ---
 
+## 🔁 JSAT Improve — Self-Improvement
+
+JSAT watches for friction in **itself** — crashes, capability gaps, unhelpful errors, tools that
+blow their time budget — and can turn what it finds into a fix proposal for JSAT.
+
+```bash
+jsat improve --list      # what JSAT has recorded about itself
+jsat improve             # diagnose the top issue, draft a patch → bundle on disk
+jsat improve --report    # open a pre-filled GitHub issue for you to review and submit
+```
+
+When one issue recurs, JSAT tells you:
+
+```
+💡 JSAT hit IndexNotFound 3x and may be able to fix itself — run: jsat improve
+```
+
+`jsat improve` reads the recorded issue, pulls the relevant JSAT source, asks **your configured AI
+provider** to diagnose it and produce a unified diff, validates that diff in a throwaway sandbox,
+and writes a bundle to `~/.jsat/improve/bundles/`:
+
+| File | Contents |
+|---|---|
+| `manifest.json` | version, install kind, cluster, pre-patch file hashes, patch status |
+| `analysis.md` | root cause and the reasoning behind the fix |
+| `patch.diff` | the candidate unified diff |
+| `issue.md` | ready-to-post issue body |
+
+### What is collected — and what is not
+
+| Recorded | Never recorded |
+|---|---|
+| JSAT's own stack frames, as paths relative to the package | Your file paths, code, or identifiers |
+| Exception **type** names (`IndexNotFound`) | Exception message bodies (they embed your paths) |
+| Tool/command names, JSAT version, Python version, OS | Your queries, graph contents, or repo name |
+| Config **keys** and a finite allowlist of JSAT-owned values | Config **values** you supplied |
+
+Anything that cannot be proven JSAT-internal is **dropped, not redacted** — a record that trips the
+filter is discarded whole, and `jsat improve --list` tells you how many were dropped. Capture writes
+to a local file only; **nothing leaves your machine** unless you run `--report`, which opens a
+pre-filled issue in your browser for you to read and submit yourself.
+
+**JSAT never modifies its own installed files.** A generated patch is inert data — it is validated
+against a temporary copy and only becomes code after a human reviews it in a pull request.
+
+### Turning it off
+
+```bash
+export JSAT_NO_IMPROVE=1              # this shell
+```
+```yaml
+improve:
+  enabled: false                      # or nudge: false to keep capture, drop the hint
+privacy:
+  no_telemetry: true                  # also disables capture
+```
+Capture is automatically disabled in CI.
+
+**In Claude Code:** `/jsat improve` · **MCP tool:** `jsat__improve_status` (read-only)
+
+---
+
 ## 💾 Session Files & Auto-Execute
 
 Every major skill (`magic`, `crack`, `sprint`, `prompt`) writes two files automatically:
@@ -803,6 +866,9 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat prompt --diff <query>` | Show raw input vs optimized prompt side by side |
 | `jsat doctor` | System health check (graph, AI, services, connected tools) |
 | `jsat doctor --json` | Health check as raw JSON |
+| `jsat improve --list` | Show friction JSAT has recorded in itself |
+| `jsat improve` | Diagnose the top issue and draft a patch for JSAT |
+| `jsat improve --report` | Open a pre-filled GitHub issue to review and submit |
 | `jsat version` | Print JSAT version |
 
 ### Configuration
@@ -830,7 +896,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 
 | Command | Description |
 |---|---|
-| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 40 slash commands |
+| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 41 slash commands |
 | `jsat connect claude --global` | Wire JSAT into Claude Code globally (all projects) |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
 | `jsat connect codex` | Wire JSAT into OpenAI Codex CLI (project scope) |
@@ -937,7 +1003,7 @@ print(health["profile"], health["graph"]["backend"])
 
 ---
 
-## Tools Overview (25 tools)
+## Tools Overview (26 tools)
 
 | # | Tool | Description |
 |---|---|---|
@@ -967,6 +1033,7 @@ print(health["profile"], health["graph"]["backend"])
 | 23 | **JSAT Decide** | Architectural decision journal — log decisions and surface them by file or blast-radius context |
 | 24 | **JSAT Sprint** | Seven-stage delivery workflow — Think → Plan → Build → Review → Test → Ship → Reflect |
 | 25 | **JSAT Cohesion** | Code health analysis — flags oversized files, high complexity, and mixed responsibilities |
+| 26 | **JSAT Improve** | Self-improvement — records friction JSAT hits in itself, then diagnoses it and drafts a patch to JSAT's own source (privacy-filtered, local-only) |
 
 ### Multi-Model Review
 
@@ -1083,6 +1150,13 @@ ithinking:
   enabled: true
   mode: interactive        # interactive | silent
   gate_level: medium       # low | medium | high
+
+improve:
+  enabled: true            # record friction JSAT hits in itself (local file only)
+  nudge: true              # hint to run `jsat improve` when an issue recurs
+  nudge_threshold: 3       # occurrences before the hint appears
+  nudge_cooldown_s: 86400  # min seconds between hints
+  github_repo: iamjpsonkar/JaySoft-AI_Tools
 ```
 
 ### Profiles at a glance

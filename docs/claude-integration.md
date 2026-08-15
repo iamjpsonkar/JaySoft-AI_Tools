@@ -64,7 +64,7 @@ jsat connect list
 
 ## Slash Commands
 
-A single `/jsat` dispatcher is installed into Claude Code when you run `jsat connect claude`. It routes to 40 subcommands, organized into layers:
+A single `/jsat` dispatcher is installed into Claude Code when you run `jsat connect claude`. It routes to 41 subcommands, organized into layers:
 
 ```
 /jsat <subcommand> [args]
@@ -106,8 +106,9 @@ Two flags work on **every** `/jsat` command — strip them from `$ARGUMENTS` bef
 | **Record** | `decide log`, `reflect`, `knowledge-add`, `runbook` |
 | **Tokens** | `tokens`, `token-budget`, `prompt-diff`, `prompt-rewrite` |
 | **Index** | `index`, `ithinking` |
+| **Maintain** | `improve` |
 
-> **`/jsat-help`** is a separate command (not a subcommand of `/jsat`): `/jsat-help` lists all 40 with one-liners; `/jsat-help <command>` shows full flags and examples for that command. `/jsat-help universal-flags` explains `timeout=<N>` and `dashboard=true`.
+> **`/jsat-help`** is a separate command (not a subcommand of `/jsat`): `/jsat-help` lists all 41 with one-liners; `/jsat-help <command>` shows full flags and examples for that command. `/jsat-help universal-flags` explains `timeout=<N>` and `dashboard=true`.
 
 ### Common examples
 

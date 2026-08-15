@@ -157,6 +157,58 @@ jsat doctor --json | jq '.ai'
 
 ---
 
+### `jsat improve`
+
+Diagnose problems JSAT hit in **itself** and draft a patch to JSAT's own source.
+
+JSAT passively records friction it encounters internally — crashes, capability gaps,
+unhelpful error messages, and tools that exceed their time budget. This command turns
+the most frequent recorded issue into a diagnosis plus a candidate patch.
+
+```
+jsat improve [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--list` / `-l` | false | Show what has been recorded; analyse nothing |
+| `--id <fp8>` | — | Work on one specific issue (ids come from `--list`) |
+| `--report` | false | Open a pre-filled GitHub issue in the browser |
+| `--dry-run` | false | With `--report`, print the URL instead of opening a browser |
+| `--submit <bundle>` | — | **Maintainer only** — apply a bundle in a JSAT checkout |
+
+```bash
+jsat improve --list
+jsat improve
+jsat improve --id 85be55de --report
+```
+
+Output is an *inert* bundle at `~/.jsat/improve/bundles/<id>/`:
+
+| File | Contents |
+|---|---|
+| `manifest.json` | version, install kind, cluster, pre-patch file hashes, patch status |
+| `analysis.md` | root cause and reasoning |
+| `patch.diff` | candidate unified diff |
+| `issue.md` | ready-to-post issue body |
+
+`patch_status` is one of `validated` (the diff applies cleanly), `did_not_apply`,
+`no_patch` (model returned no diff), `ai_error`, or `no_ai` (no provider reachable —
+a diagnosis-only bundle is still written and the command exits 0).
+
+**Privacy.** Only JSAT-internal data is recorded: JSAT's own stack frames as paths
+relative to the package, exception *type* names, tool names, versions, and config
+*keys*. Anything referencing your code, paths, identifiers or queries is **dropped,
+not redacted**. Capture writes to a local file only; nothing leaves the machine unless
+you run `--report`, which opens a pre-filled issue for you to read and submit
+yourself. **JSAT never modifies its own installed files** — a patch is validated
+against a throwaway copy and stays data until a human merges it.
+
+Disable with `JSAT_NO_IMPROVE=1`, `privacy.no_telemetry: true`, or
+`improve.enabled: false`. Capture is automatically off in CI.
+
+---
+
 ### `jsat version`
 
 Print the installed JSAT version.
@@ -413,7 +465,7 @@ Restart Claude Code after running.
 
 `jsat connect claude` installs two commands:
 
-- **`/jsat <subcommand>`** — single dispatcher routing to all 39 skills
+- **`/jsat <subcommand>`** — single dispatcher routing to all 41 skills
 - **`/jsat-help [command]`** — standalone help command; no args lists all 39 commands with one-liners; `/jsat-help <command>` shows full flags and examples
 
 ```bash

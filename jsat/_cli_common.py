@@ -84,6 +84,18 @@ class ConnectGroup(TyperGroup):
             valid = [c for c in registered if c in MCP_TOOLS] or registered
 
             was_provider = is_provider_alias(name)
+            # Record the SHAPE of the mistake only — `name` is user input and is
+            # never stored.
+            try:
+                from jsat._improve import record_signal
+                record_signal(
+                    kind="ux_friction", source="cli", op="connect",
+                    detail={"reason": "unknown_target",
+                            "was_provider_alias": was_provider},
+                )
+            except Exception:
+                pass
+
             err.print(f"[red]Unknown connect target:[/] {name!r}")
             if was_provider:
                 err.print(
@@ -137,6 +149,11 @@ def _jsat(repo: str = ".", verbose: bool = False):
     try:
         return JSAT(repo=repo, log_level="DEBUG" if verbose else "WARNING")
     except JSATError as e:
+        try:
+            from jsat._improve import record_signal
+            record_signal(kind="crash", source="cli", exc=e, op="init")
+        except Exception:
+            pass
         err.print(f"[bold red]Config error:[/] {e}")
         raise typer.Exit(1) from e
 

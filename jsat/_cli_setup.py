@@ -460,6 +460,14 @@ def cmd_mcp_server(
 
     from pathlib import Path
 
+    # In stdio MCP, stdout carries ONLY JSON-RPC. Mark the process so the
+    # self-improvement nudge can never print into that stream.
+    try:
+        from jsat._improve import set_mode
+        set_mode("mcp")
+    except Exception:
+        pass
+
     repo_path = Path(repo).resolve()
 
     # ── CRITICAL: route ALL logging to stderr before anything logs.

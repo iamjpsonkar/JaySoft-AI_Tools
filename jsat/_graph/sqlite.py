@@ -151,6 +151,16 @@ class SQLiteGraph(GraphClient):
                 )
 
         self._log.warning("sqlite_graph_unsupported_query", query=s)
+        # Capability gap: the query TEXT is never recorded — it can embed user
+        # identifiers. Only the fact that this backend could not serve it.
+        try:
+            from jsat._improve import record_signal
+            record_signal(
+                kind="capability_gap", source="graph", op="sqlite_query",
+                detail={"reason": "unsupported_query", "backend": "sqlite"},
+            )
+        except Exception:
+            pass
         return []
 
     def execute_sql(self, sql: str, params: list[Any] | None = None) -> list[dict[str, Any]]:

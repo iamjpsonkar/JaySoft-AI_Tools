@@ -76,6 +76,29 @@ Flag as ⚠️ WARN: graph not indexed, no AI configured, stale index (>7 days o
 Flag as ❌ ERROR: graph backend unavailable, AI provider failing test call
 For each issue: suggest the fix command (e.g. /jsat-index ., jsat ai use ollama)."""
         ),
+        "jsat-improve": (
+            "Diagnose problems JSAT hit in itself and draft a patch to JSAT's own source.",
+            """Parse $ARGUMENTS for optional flags:
+  --list      → only show what has been recorded
+  --id <fp8>  → work on one specific recorded issue
+  --report    → open a pre-filled GitHub issue after diagnosing
+
+Step 1: call jsat__improve_status() — read-only, returns recorded issue clusters.
+If there are no clusters, say there is nothing to improve and stop.
+
+Step 2 (unless --list): tell the user to run `jsat improve` in the terminal. The
+diagnosis is a CLI command, not an MCP tool, because it calls their AI provider and
+writes a bundle to disk. Report the issue chosen, the patch status, and bundle path.
+
+Step 3 (if --report): `jsat improve --report` opens a pre-filled GitHub issue.
+Stress that nothing is transmitted until they read it and press Submit.
+
+PRIVACY: only JSAT-internal data is recorded — JSAT's own frames, exception type
+names, tool names, versions, config KEYS. The user's code, paths, identifiers and
+queries are dropped, never redacted. Capture is a local file; nothing leaves the
+machine without --report. Disable with JSAT_NO_IMPROVE=1. JSAT never modifies its
+own installed files."""
+        ),
         "jsat-find-function": (
             "Find a function or method in the indexed codebase. Supports service scoping.",
             """Parse $ARGUMENTS for optional --service flag, then call jsat__get_function:

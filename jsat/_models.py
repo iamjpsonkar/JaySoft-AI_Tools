@@ -124,6 +124,23 @@ class PrivacyConfig(BaseModel):
     audit_log_path: str = ".jsat/audit.log"
 
 
+class ImproveConfig(BaseModel):
+    """Self-improvement settings — see `jsat improve`.
+
+    Capture is local-file-only and JSAT-internal-only: nothing about the indexed
+    codebase is ever recorded, and nothing leaves the machine without a human
+    explicitly running `jsat improve --report`. Disable entirely with
+    `enabled: false`, `privacy.no_telemetry: true`, or `JSAT_NO_IMPROVE=1`.
+    """
+    enabled: bool = True
+    nudge: bool = True              # print a hint when a signal cluster crosses the threshold
+    nudge_threshold: int = 3        # occurrences of one issue before nudging
+    nudge_cooldown_s: int = 86400   # min seconds between nudges (24h)
+    max_signals: int = 5000         # JSONL line cap before rotation
+    max_clusters: int = 500
+    github_repo: str = "iamjpsonkar/JaySoft-AI_Tools"
+
+
 class SecurityConfig(BaseModel):
     """Security thresholds for the security review tool."""
     cvss_threshold: float = 7.0
@@ -177,6 +194,7 @@ class JSATConfig(BaseModel):
     log: LogConfig = Field(default_factory=LogConfig)
     skills: SkillsConfig = Field(default_factory=SkillsConfig)
     privacy: PrivacyConfig = Field(default_factory=PrivacyConfig)
+    improve: ImproveConfig = Field(default_factory=ImproveConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)
     prompt: PromptConfig = Field(default_factory=PromptConfig)
