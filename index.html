@@ -937,11 +937,11 @@
 <a href="https://www.python.org/downloads/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10+-blue.svg" /></a>
 <a href="https://pypi.org/project/jsat/"><img alt="PyPI" src="https://img.shields.io/pypi/v/jsat.svg" /></a></p>
 <h2 id="what-is-jsat">What is JSAT?<a class="headerlink" href="#what-is-jsat" title="Permanent link">&para;</a></h2>
-<p>JSAT gives any AI (Claude, GPT, Gemini, or local Ollama) deep, structured understanding of your codebase — so you spend less time explaining context and more time shipping.</p>
+<p>JSAT gives any AI (Claude, Codex, GPT, Gemini, Bob Shell, or local Ollama) deep, structured understanding of your codebase — so you spend less time explaining context and more time shipping.</p>
 <ul>
 <li><strong>Interactive shell</strong> — IPython-style REPL for codebase intelligence</li>
 <li><strong>Python SDK</strong> — <code>from jsat import JSAT</code> for programmatic access</li>
-<li><strong>Claude Code integration</strong> — works as an MCP server with <code>/jsat-*</code> slash commands</li>
+<li><strong>AI tool integrations</strong> — works as an MCP server with Claude Code, Codex, Cursor, Bob Shell, Gemini CLI, and more</li>
 <li><strong>Works offline</strong> — local Ollama or LM Studio, no API keys required</li>
 <li><strong>Lightweight by default</strong> — <code>pip install jsat</code> is ~80 MB and starts in under 800 ms</li>
 <li><strong>Graph-native</strong> — SQLite (solo) or Neo4j (team) codebase graph, indexed by tree-sitter</li>
@@ -953,7 +953,7 @@
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>jsat<span class="w"> </span>shell<span class="w">                        </span><span class="c1"># open the interactive shell</span>
 </code></pre></div>
 <p>Inside the shell:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>JSAT Shell v0.1.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>JSAT Shell v0.4.10
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>&gt; what does this project do?
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>&gt; which services write to the orders table?
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&gt; blast-radius src/payment/refund.py
@@ -1109,7 +1109,8 @@
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="getting-started/">Getting Started</a> — step-by-step setup</li>
-<li><a href="claude-integration/">Claude Integration</a> — MCP server + <code>/jsat-*</code> commands</li>
+<li><a href="ai-integrations/">AI Integrations</a> — MCP setup for Claude Code, Codex, Cursor, Bob Shell, and more</li>
+<li><a href="claude-integration/">Claude Integration</a> — Claude-specific MCP server + <code>/jsat-*</code> commands</li>
 <li><a href="ai-providers/">AI Providers</a> — configure any AI backend</li>
 <li><a href="cli-reference/">CLI Reference</a> — every command and flag</li>
 <li><a href="tools/">Tools</a> — the 15 JSAT tools explained</li>

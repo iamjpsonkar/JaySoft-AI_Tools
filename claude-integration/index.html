@@ -1530,14 +1530,14 @@
 
 
 <h1 id="claude-integration">Claude Integration<a class="headerlink" href="#claude-integration" title="Permanent link">&para;</a></h1>
-<p>JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the <code>/jsat</code> slash command with 39 subcommands.</p>
+<p>JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the <code>/jsat</code> slash command with 41 subcommands.</p>
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←→  Graph DB
 </code></pre></div>
 <p>When you run <code>jsat connect claude</code>, JSAT:</p>
 <ol>
 <li>Writes an MCP server entry into <code>.claude/settings.json</code> (or <code>~/.claude/settings.json</code> for global scope)</li>
-<li>Installs the <code>/jsat</code> dispatcher skill file (<code>~/.claude/commands/jsat.md</code>) containing all 39 subcommands</li>
+<li>Installs the <code>/jsat</code> dispatcher skill file (<code>~/.claude/commands/jsat.md</code>) containing all 41 subcommands</li>
 <li>Installs <code>/jsat-help</code> as a standalone skill file (<code>~/.claude/commands/jsat-help.md</code>)</li>
 </ol>
 <p>Claude Code reads these on startup, starts the <code>jsat mcp-server</code> process, and makes all JSAT tools available during your session.</p>
@@ -1675,10 +1675,10 @@ marked block, leaving the rest of your <code>CLAUDE.md</code> intact.</p>
 </blockquote>
 <h3 id="common-examples">Common examples<a class="headerlink" href="#common-examples" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Understand</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>/jsat<span class="w"> </span>query<span class="w"> </span>what<span class="w"> </span>does<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service<span class="w"> </span><span class="k">do</span>?
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>/jsat<span class="w"> </span>query<span class="w"> </span>what<span class="w"> </span>does<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service<span class="w"> </span>do?
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>/jsat<span class="w"> </span>find-function<span class="w"> </span>process_refund
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>/jsat<span class="w"> </span>trace<span class="w"> </span>PaymentService.charge<span class="w"> </span>--depth<span class="w"> </span><span class="m">3</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>/jsat<span class="w"> </span>short<span class="w"> </span>what<span class="w"> </span>does<span class="w"> </span>validate_cart<span class="w"> </span><span class="k">return</span>?
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>/jsat<span class="w"> </span>short<span class="w"> </span>what<span class="w"> </span>does<span class="w"> </span>validate_cart<span class="w"> </span>return?
 <a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
 <a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Analyze</span>
 <a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>/jsat<span class="w"> </span>blast-radius<span class="w"> </span>src/payment/service.py
@@ -1722,7 +1722,7 @@ marked block, leaving the rest of your <code>CLAUDE.md</code> intact.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>/jsat-prompt-diff &lt;your query&gt;
 </code></pre></div></p>
 <p>To pre-inspect before sending:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--diff<span class="w"> </span><span class="s2">&quot;your query&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--diff<span class="w"> </span><span class="s2">"your query"</span>
 </code></pre></div></p>
 <p>MCP tools for programmatic use:</p>
 <table>
@@ -1747,8 +1747,8 @@ marked block, leaving the rest of your <code>CLAUDE.md</code> intact.</p>
 <h2 id="live-dashboard">Live Dashboard<a class="headerlink" href="#live-dashboard" title="Permanent link">&para;</a></h2>
 <p>Any <code>/jsat</code> command accepts <code>dashboard=true</code> to open a real-time browser dashboard. Each <code>/jsat</code> command gets <strong>one persistent tab</strong> — all tool calls in that session stream into the same collapsible tree.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Claude passes these in every tool call when dashboard=true is set</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">jsat__blast_radius</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="s2">&quot;src/payment/&quot;</span><span class="p">,</span> <span class="n">_dashboard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">_budget</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">jsat__crack</span><span class="p">(</span><span class="n">task</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="n">_dashboard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">_dashboard_session</span><span class="o">=</span><span class="s2">&quot;crack&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">jsat__blast_radius</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="s2">"src/payment/"</span><span class="p">,</span> <span class="n">_dashboard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">_budget</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">jsat__crack</span><span class="p">(</span><span class="n">task</span><span class="o">=</span><span class="s2">"..."</span><span class="p">,</span> <span class="n">_dashboard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">_dashboard_session</span><span class="o">=</span><span class="s2">"crack"</span><span class="p">)</span>
 </code></pre></div>
 <p><strong>URL</strong>: <code>http://localhost:7432/jsat/dashboard/&lt;command&gt;</code> — e.g., <code>/jsat crack ...</code> opens <code>localhost:7432/jsat/dashboard/crack</code>.</p>
 <p><strong>Landing page</strong>: <code>http://localhost:7432/jsat/dashboard</code> — lists all active and recent sessions. Auto-refreshes every 5s. Bookmark this to always see what's running.</p>
@@ -2093,11 +2093,11 @@ marked block, leaving the rest of your <code>CLAUDE.md</code> intact.</p>
 </table>
 <p>The MCP entry written into settings looks like:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="p">{</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nt">&quot;jsat&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/jsat&quot;</span><span class="p">,</span>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;mcp-server&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--repo&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/project&quot;</span><span class="p">],</span>
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="nt">"mcpServers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nt">"jsat"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">      </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/path/to/jsat"</span><span class="p">,</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">      </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"mcp-server"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--repo"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/project"</span><span class="p">],</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">      </span><span class="nt">"env"</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
 <a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">    </span><span class="p">}</span>
 <a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="p">}</span>

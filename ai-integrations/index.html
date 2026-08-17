@@ -898,7 +898,7 @@
 <h1 id="jsat-ai-tool-integrations">JSAT — AI Tool Integrations<a class="headerlink" href="#jsat-ai-tool-integrations" title="Permanent link">&para;</a></h1>
 <p>JSAT works as an MCP server with every major AI coding tool. Each integration gives you the same
 depth of codebase intelligence: a launcher command, auto-connection on first use, a full set of
-skills or custom commands, and shell <code>switch</code> support.</p>
+MCP tools, and shell <code>switch</code> support.</p>
 <hr />
 <h2 id="feature-matrix">Feature Matrix<a class="headerlink" href="#feature-matrix" title="Permanent link">&para;</a></h2>
 <table>
@@ -952,7 +952,7 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <tr>
 <td><code>--scope project/global</code></td>
 <td>✅</td>
-<td>✅</td>
+<td>Global only</td>
 <td>✅</td>
 <td>— (global)</td>
 <td>— (global)</td>
@@ -962,14 +962,14 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 </tr>
 <tr>
 <td>Skills / custom commands</td>
-<td>31 slash cmds</td>
-<td>instructions.md</td>
+<td>41 slash cmds</td>
+<td>MCP tools only</td>
 <td>.cursorrules</td>
 <td>.windsurfrules</td>
-<td>31 slash cmds</td>
+<td>10 custom cmds</td>
 <td>.zed/JSAT.md</td>
 <td>GEMINI.md</td>
-<td>31 slash cmds + BOB.md</td>
+<td>41 slash cmds + BOB.md</td>
 </tr>
 <tr>
 <td><code>switch &lt;tool&gt;</code> in shell</td>
@@ -1020,7 +1020,7 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>jsat<span class="w"> </span>zed<span class="w">         </span><span class="c1"># Zed editor</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>jsat<span class="w"> </span>bob<span class="w">         </span><span class="c1"># Bob Shell</span>
 </code></pre></div>
-<p>Each launcher auto-connects JSAT if not already wired and opens the tool with 55 MCP tools ready.</p>
+<p>Each launcher auto-connects JSAT if not already wired and opens the tool with 69 MCP tools ready.</p>
 <hr />
 <h2 id="per-tool-details">Per-Tool Details<a class="headerlink" href="#per-tool-details" title="Permanent link">&para;</a></h2>
 <h3 id="claude-code">Claude Code<a class="headerlink" href="#claude-code" title="Permanent link">&para;</a></h3>
@@ -1031,10 +1031,10 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 </code></pre></div>
 <p><strong>What gets installed (global):</strong>
 - <code>~/.claude/settings.json</code> — MCP server config
-- <code>~/.claude/commands/jsat-*.md</code> — 31 slash commands</p>
+- <code>~/.claude/commands/jsat-*.md</code> — 41 slash commands</p>
 <p><strong>What gets installed (project):</strong>
 - <code>.claude/settings.json</code> — MCP server config
-- <code>.claude/commands/jsat-*.md</code> — 31 slash commands</p>
+- <code>.claude/commands/jsat-*.md</code> — 41 slash commands</p>
 <p><strong>Slash commands:</strong> <code>/jsat-query</code>, <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>,
 <code>/jsat-test-gaps</code>, <code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt</code>,
 <code>/jsat-tokens</code>, <code>/jsat-ithinking</code>, and 21 more.</p>
@@ -1044,16 +1044,22 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <hr />
 <h3 id="openai-codex-cli">OpenAI Codex CLI<a class="headerlink" href="#openai-codex-cli" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>codex<span class="w">                               </span><span class="c1"># open with JSAT pre-loaded</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w"> </span>--global<span class="w">              </span><span class="c1"># global — all sessions (recommended)</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                       </span><span class="c1"># project scope only</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                       </span><span class="c1"># one global MCP config entry</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>codex<span class="w"> </span>--repo<span class="w"> </span>/path/to/repo<span class="w">           </span><span class="c1"># launch Codex in a specific repo</span>
 </code></pre></div>
 <p><strong>What gets installed:</strong>
-- <code>.codex/config.json</code> — MCP server config
-- <code>.codex/instructions.md</code> — JSAT tool guidance (Codex reads at startup)</p>
+- <code>~/.codex/config.toml</code> — one <code>[mcp_servers.jsat]</code> entry</p>
+<p>JSAT does <strong>not</strong> generate <code>.codex/</code>, <code>AGENTS.md</code>, or <code>.agents/skills</code> inside the
+target repo for Codex. Run Codex from the repo you want to analyze, or use
+<code>jsat codex --repo /path/to/repo</code>; JSAT resolves that working directory at runtime.</p>
+<p><strong>Use in Codex:</strong> ask naturally, e.g. "use JSAT to trace the blast radius of
+<code>src/payment/service.py</code>", or inspect/call MCP tools such as <code>jsat__query</code>,
+<code>jsat__blast_radius</code>, <code>jsat__security_review</code>, <code>jsat__get_test_gaps</code>, and
+<code>jsat__submit_for_review</code>.</p>
 <p><strong>In the JSAT shell:</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>switch codex    → launch Codex CLI session
 </code></pre></div></p>
-<p><strong>Install Codex</strong> (all platforms): <code>npm install -g @openai/codex</code></p>
+<p><strong>Install Codex:</strong> <code>curl -fsSL https://chatgpt.com/codex/install.sh | sh</code></p>
 <hr />
 <h3 id="cursor">Cursor<a class="headerlink" href="#cursor" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>jsat<span class="w"> </span>cursor<span class="w">                              </span><span class="c1"># open Cursor with JSAT pre-loaded</span>
@@ -1083,14 +1089,13 @@ skills or custom commands, and shell <code>switch</code> support.</p>
 <h3 id="continuedev">Continue.dev<a class="headerlink" href="#continuedev" title="Permanent link">&para;</a></h3>
 <p>Continue is an IDE extension (VS Code, JetBrains). There's no <code>jsat continue</code> launcher since it
 runs inside your IDE.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span><span class="k">continue</span><span class="w">                    </span><span class="c1"># wire JSAT in + install 31 /jsat-* commands</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span><span class="k">continue</span><span class="w">                    </span><span class="c1"># wire JSAT in + install 10 /jsat-* commands</span>
 </code></pre></div>
 <p><strong>What gets installed:</strong>
-- <code>~/.continue/config.json</code> — MCP server + 31 <code>customCommands</code></p>
-<p><strong>Custom commands (same 31 as Claude's slash commands):</strong>
+- <code>~/.continue/config.json</code> — MCP server + 10 <code>customCommands</code></p>
+<p><strong>Custom commands (curated subset):</strong>
 <code>/jsat-query</code>, <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>, <code>/jsat-test-gaps</code>,
-<code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt</code>, <code>/jsat-tokens</code>, <code>/jsat-ithinking</code>,
-and 21 more.</p>
+<code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt-rewrite</code>, <code>/jsat-tokens</code>, <code>/jsat-ithinking</code>.</p>
 <p>After connecting, reload Continue: <code>Cmd/Ctrl+Shift+P → Continue: Reload</code>.</p>
 <hr />
 <h3 id="zed">Zed<a class="headerlink" href="#zed" title="Permanent link">&para;</a></h3>
@@ -1127,7 +1132,7 @@ and 21 more.</p>
 loaded from <code>.bob/</code> and <code>BOB.md</code>, so nothing is injected as a throwaway prompt.</p>
 <p><strong>What gets installed:</strong>
 - <code>.bob/settings.json</code> (project) or <code>~/.bob/settings.json</code> (global) — MCP server config
-- <code>.bob/commands/jsat-*.md</code> (or <code>~/.bob/commands/</code>) — 31 <code>/jsat-*</code> slash commands
+- <code>.bob/commands/jsat-*.md</code> (or <code>~/.bob/commands/</code>) — 41 <code>/jsat-*</code> slash commands
 - <code>BOB.md</code> — JSAT tool guidance (Bob Shell reads from project root)</p>
 <p><strong>Slash commands:</strong> type <code>/</code> in Bob Shell to browse them — <code>/jsat-query</code>,
 <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>, <code>/jsat-test-gaps</code>,
@@ -1147,7 +1152,7 @@ query and then answers it (use <code>--optimize-only</code> to just see the rewr
 <h2 id="jsat-shell-switch-reference">JSAT Shell — <code>switch</code> Reference<a class="headerlink" href="#jsat-shell-switch-reference" title="Permanent link">&para;</a></h2>
 <p>From inside <code>jsat shell</code>, you can switch to any tool:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>switch claude-cli   → full Claude Code + JSAT MCP (recommended for Claude)
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>switch codex        → Codex CLI (reads .codex/config.json)
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>switch codex        → Codex CLI (reads ~/.codex/config.toml)
 <a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>switch gemini       → Gemini CLI (reads ~/.gemini/settings.json + GEMINI.md)
 <a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>switch cursor       → open Cursor IDE in background
 <a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>switch windsurf     → open Windsurf IDE in background
@@ -1170,7 +1175,7 @@ query and then answers it (use <code>--optimize-only</code> to just see the rewr
 <a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>bob<span class="w">                      </span><span class="c1"># Bob Shell</span>
 <a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>all<span class="w">                      </span><span class="c1"># every tool at once</span>
 <a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>
-<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="c1"># Keep guidance files (instructions.md, .cursorrules, etc.)</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="c1"># Keep guidance files for integrations that generate them (.cursorrules, etc.)</span>
 <a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w"> </span>--keep-guidance
 </code></pre></div>
 <hr />
@@ -1180,7 +1185,7 @@ query and then answers it (use <code>--optimize-only</code> to just see the rewr
 </code></pre></div>
 <hr />
 <h2 id="mcp-tools-available-in-every-tool">MCP Tools Available in Every Tool<a class="headerlink" href="#mcp-tools-available-in-every-tool" title="Permanent link">&para;</a></h2>
-<p>All 55 JSAT MCP tools are available to every connected AI tool:</p>
+<p>All 69 JSAT MCP tools are available to every connected AI tool:</p>
 <table>
 <thead>
 <tr>

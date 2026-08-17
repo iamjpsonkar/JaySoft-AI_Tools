@@ -2882,9 +2882,9 @@
 
 
 <h1 id="tools">Tools<a class="headerlink" href="#tools" title="Permanent link">&para;</a></h1>
-<p>JSAT provides 17 tools (15 core + Token Optimizer + Crack + Short). Each tool is a focused capability that can be called from the CLI, the Python SDK, or automatically by Claude Code via MCP.</p>
+<p>JSAT provides focused codebase-intelligence tools through the CLI, Python SDK, and 69 MCP tools. Connected AI tools such as Claude Code, Codex, Cursor, Bob Shell, and Gemini CLI can call the same MCP surface.</p>
 <h2 id="live-progress-notifications">Live Progress Notifications<a class="headerlink" href="#live-progress-notifications" title="Permanent link">&para;</a></h2>
-<p>Long-running MCP tools emit <code>notifications/progress</code> messages during execution so Claude Code shows real-time status instead of a blank screen:</p>
+<p>Long-running MCP tools emit <code>notifications/progress</code> messages during execution so MCP clients can show real-time status instead of a blank screen:</p>
 <table>
 <thead>
 <tr>
@@ -2915,7 +2915,7 @@
 </tr>
 </tbody>
 </table>
-<p>This uses the standard MCP progress notification format (<code>method: notifications/progress</code>). No configuration needed — Claude Code picks it up automatically.</p>
+<p>This uses the standard MCP progress notification format (<code>method: notifications/progress</code>). No configuration is needed for clients that display MCP progress.</p>
 <p>The 15 tools correspond to the Python modules in <code>jsat/tools/</code>:</p>
 <table>
 <thead>
@@ -3017,7 +3017,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>&gt; what does this project do?           # natural language query
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>&gt; blast-radius src/payment/refund.py   # trace impact
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>&gt; security-review                      # OWASP scan
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&gt; incident &quot;500 errors since 14:00&quot;    # investigate
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&gt; incident "500 errors since 14:00"    # investigate
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>&gt; status                               # graph stats
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>&gt; switch ollama                        # change AI provider
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>&gt; switch claude                        # switch to Claude Code CLI
@@ -3180,14 +3180,14 @@
 <h3 id="python-sdk-usage">Python SDK usage<a class="headerlink" href="#python-sdk-usage" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">"."</span><span class="p">)</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Nodes: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">nodes_indexed</span><span class="si">}</span><span class="s2"> | Edges: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">edges_indexed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Files indexed: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">files_indexed</span><span class="si">}</span><span class="s2"> | Skipped: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">files_skipped</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Incremental: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">incremental</span><span class="si">}</span><span class="s2"> | Workers: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">parallel_workers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resolved edges: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">resolved_edges</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hotspots: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">complexity_hotspots</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Nodes: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">nodes_indexed</span><span class="si">}</span><span class="s2"> | Edges: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">edges_indexed</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Files indexed: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">files_indexed</span><span class="si">}</span><span class="s2"> | Skipped: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">files_skipped</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Incremental: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">incremental</span><span class="si">}</span><span class="s2"> | Workers: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">parallel_workers</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Resolved edges: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">resolved_edges</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hotspots: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">complexity_hotspots</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="indexresult-fields">IndexResult fields<a class="headerlink" href="#indexresult-fields" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">IndexResult</span><span class="p">:</span>
@@ -3219,10 +3219,10 @@
 <h2 id="tool-2-testhelper">Tool 2 — TestHelper<a class="headerlink" href="#tool-2-testhelper" title="Permanent link">&para;</a></h2>
 <p>Identifies test gaps in the codebase, generates unit tests, integration tests, and contract tests, and maps behaviors to coverage.</p>
 <p><strong>CLI usage:</strong></p>
-<p>Via MCP in Claude Code:</p>
+<p>Via MCP in any connected AI tool:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>/jsat-query find untested code paths in src/payment/
 </code></pre></div>
-<p>Or direct MCP tool call (Claude calls this automatically):</p>
+<p>Or direct MCP tool call:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>jsat__get_test_gaps service=payment_service type=unit
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>jsat__generate_unit_test function=process_refund
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>jsat__generate_integration_test endpoint=POST /api/v1/orders
@@ -3230,8 +3230,8 @@
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># TestHelper is exposed via MCP tools; direct SDK access is via the graph</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what functions in src/payment/ have no tests?&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">"."</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"what functions in src/payment/ have no tests?"</span><span class="p">)</span>
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 </code></pre></div>
 <hr />
@@ -3243,10 +3243,10 @@
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>/jsat-query<span class="w"> </span>what<span class="w"> </span>services<span class="w"> </span>would<span class="w"> </span>be<span class="w"> </span>affected<span class="w"> </span>by<span class="w"> </span>adding<span class="w"> </span>a<span class="w"> </span>new<span class="w"> </span>payment<span class="w"> </span>method?
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;where is the coupon system implemented?&quot;</span><span class="p">,</span> <span class="n">service</span><span class="o">=</span><span class="s2">&quot;promotions&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"where is the coupon system implemented?"</span><span class="p">,</span> <span class="n">service</span><span class="o">=</span><span class="s2">"promotions"</span><span class="p">)</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">sources</span><span class="p">:</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  - </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="tool-4-blastradius">Tool 4 — BlastRadius<a class="headerlink" href="#tool-4-blastradius" title="Permanent link">&para;</a></h2>
@@ -3256,27 +3256,27 @@
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>/jsat-blast-radius<span class="w"> </span>src/payment/refund.py
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>/jsat-blast-radius<span class="w"> </span>PaymentService.process_refund
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1"># Direct MCP tools (Claude calls these automatically):</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1"># Direct MCP tools (connected AI tools call these automatically):</span>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1"># jsat__blast_radius_file, jsat__blast_radius_symbol, jsat__blast_radius_diff</span>
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">&quot;src/payment/refund.py&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">"src/payment/refund.py"</span><span class="p">)</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1"># Or for a symbol:</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">&quot;PaymentService.process_refund&quot;</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">"PaymentService.process_refund"</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
 <a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="c1"># Filter by severity:</span>
 <a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="s2">&quot;src/payment/refund.py&quot;</span><span class="p">,</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">severity_filter</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;breaking&quot;</span><span class="p">,</span> <span class="s2">&quot;degraded&quot;</span><span class="p">]</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="s2">"src/payment/refund.py"</span><span class="p">,</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">severity_filter</span><span class="o">=</span><span class="p">[</span><span class="s2">"breaking"</span><span class="p">,</span> <span class="s2">"degraded"</span><span class="p">]</span>
 <a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">)</span>
 <a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
 <a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">impacts</span><span class="p">:</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">severity</span><span class="si">:</span><span class="s2">10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">node_name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">file</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">depth</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;           reason: </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">reason</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">severity</span><span class="si">:</span><span class="s2">10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">node_name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">file</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">depth</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"           reason: </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
-<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Summary: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">summary</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Summary: {&#39;breaking&#39;: 2, &#39;degraded&#39;: 5, &#39;warning&#39;: 12, &#39;safe&#39;: 31}</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Summary: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">summary</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Summary: {'breaking': 2, 'degraded': 5, 'warning': 12, 'safe': 31}</span>
 </code></pre></div>
 <p><strong>Example output snippet:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>breaking   OrderService.cancel_order (src/orders/service.py, depth=1)
@@ -3286,13 +3286,13 @@
 <a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>warning    AuditLogger (src/audit/logger.py, depth=3)
 <a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>           reason: subscribes to order.status_change events
 <a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>Summary: {&#39;breaking&#39;: 2, &#39;degraded&#39;: 1, &#39;warning&#39;: 1, &#39;safe&#39;: 8}
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>Summary: {'breaking': 2, 'degraded': 1, 'warning': 1, 'safe': 8}
 </code></pre></div>
 <hr />
 <h2 id="tool-5-contractvalidator">Tool 5 — ContractValidator<a class="headerlink" href="#tool-5-contractvalidator" title="Permanent link">&para;</a></h2>
 <p>Validates API contracts between services. Diffs OpenAPI or AsyncAPI specs, classifies changes as breaking or non-breaking, scores backward compatibility 0-100, and identifies all consumers of a changed endpoint.</p>
 <p><strong>CLI usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a># MCP tools in Claude Code (called automatically or via /jsat-query):
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a># MCP tools in connected AI tools (called automatically or via /jsat-query in Claude):
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>jsat__get_api_diff base=main head=feature/new-endpoints
 <a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>jsat__check_breaking_changes base=main head=feature/new-endpoints
 <a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>jsat__get_compat_score base=main head=feature/new-endpoints
@@ -3300,7 +3300,7 @@
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Via natural language query (ContractValidator backs the answer):</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;are there any breaking API changes between main and feature/payments-v2?&quot;</span><span class="p">)</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"are there any breaking API changes between main and feature/payments-v2?"</span><span class="p">)</span>
 <a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 </code></pre></div>
 <p>Requires <code>pip install jsat[standard]</code> for OpenAPI/AsyncAPI validation (adds <code>openapi-spec-validator</code> and <code>prance</code>).</p>
@@ -3317,17 +3317,17 @@
 <a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># jsat__list_secrets, jsat__get_dependency_cves, jsat__trace_data_flow</span>
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">security_review</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">severity_threshold</span><span class="o">=</span><span class="s2">&quot;medium&quot;</span><span class="p">,</span> <span class="n">include_deps</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">security_review</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="n">severity_threshold</span><span class="o">=</span><span class="s2">"medium"</span><span class="p">,</span> <span class="n">include_deps</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
 <a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="k">for</span> <span class="n">finding</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">findings</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">severity</span><span class="p">):</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">severity</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">file</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Fix: </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">remediation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">severity</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">file</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">line</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Fix: </span><span class="si">{</span><span class="n">finding</span><span class="o">.</span><span class="n">remediation</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="nb">print</span><span class="p">()</span>
 <a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
-<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Secrets detected: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">secrets_found</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CVEs: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">cves</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Secrets detected: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">secrets_found</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"CVEs: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">cves</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <p><strong>Example output snippet:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>[CRITICAL] SQL Injection in search endpoint
@@ -3352,22 +3352,22 @@
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">investigate_incident</span><span class="p">(</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>    <span class="s2">&quot;500 errors on checkout endpoint since 14:00&quot;</span><span class="p">,</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="n">since</span><span class="o">=</span><span class="s2">&quot;72h&quot;</span><span class="p">,</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    <span class="n">services</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;checkout_service&quot;</span><span class="p">,</span> <span class="s2">&quot;payment_service&quot;</span><span class="p">]</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>    <span class="s2">"500 errors on checkout endpoint since 14:00"</span><span class="p">,</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="n">since</span><span class="o">=</span><span class="s2">"72h"</span><span class="p">,</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    <span class="n">services</span><span class="o">=</span><span class="p">[</span><span class="s2">"checkout_service"</span><span class="p">,</span> <span class="s2">"payment_service"</span><span class="p">]</span>
 <a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="p">)</span>
 <a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Top hypotheses for: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Top hypotheses for: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">hypotheses</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Score=</span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">commit_summary</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Commit: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">commit_hash</span><span class="si">}</span><span class="s2">  Author: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">author</span><span class="si">}</span><span class="s2">  At: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"#</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Score=</span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">commit_summary</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    Commit: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">commit_hash</span><span class="si">}</span><span class="s2">  Author: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">author</span><span class="si">}</span><span class="s2">  At: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>    <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">evidence</span><span class="p">:</span>
-<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    - </span><span class="si">{</span><span class="n">ev</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Action: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">recommended_action</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    - </span><span class="si">{</span><span class="n">ev</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    Action: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">recommended_action</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>
-<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mitigation steps:&quot;</span><span class="p">)</span>
+<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Mitigation steps:"</span><span class="p">)</span>
 <a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">mitigation_steps</span><span class="p">:</span>
-<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  - </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <p><strong>Example output snippet:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>#1 Score=0.92  Add payment retries with exponential backoff
@@ -3380,13 +3380,13 @@
 <h2 id="tool-8-migrationvalidator">Tool 8 — MigrationValidator<a class="headerlink" href="#tool-8-migrationvalidator" title="Permanent link">&para;</a></h2>
 <p>Validates database migration files for safety: table-locking operations, reversibility, estimated lock duration, and zero-downtime alternatives.</p>
 <p><strong>CLI usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a># MCP tools (called by Claude automatically during code review):
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a># MCP tools (called by connected AI tools during code review):
 <a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>jsat__validate_migration file=migrations/20260725_add_index_orders.sql
 <a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>jsat__estimate_lock_duration operation=CREATE INDEX table=orders row_count=5000000
 <a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>jsat__suggest_zero_downtime operation=ADD COLUMN
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;is migrations/add_index.sql safe to run on a live database?&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"is migrations/add_index.sql safe to run on a live database?"</span><span class="p">)</span>
 <a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 </code></pre></div>
 <p>Requires <code>pip install jsat[standard]</code> for full migration analysis.</p>
@@ -3406,28 +3406,28 @@
 <li><code>min_confidence</code> — <code>low</code> surfaces any finding, <code>medium</code> requires 2+ models to agree, <code>high</code> requires all models to agree.</li>
 </ul>
 <p><strong>CLI usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a># MCP tools in Claude Code:
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>jsat__submit_for_review diff=&quot;$(git diff main)&quot; base=main head=HEAD
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a># MCP tools in connected AI tools:
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>jsat__submit_for_review diff="$(git diff main)" base=main head=HEAD
 <a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>jsat__get_review_findings min_confidence=high
 <a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>jsat__get_high_confidence_bugs
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;review the changes in the current branch for bugs&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"review the changes in the current branch for bugs"</span><span class="p">)</span>
 <a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="tool-10-knowledgebase">Tool 10 — KnowledgeBase<a class="headerlink" href="#tool-10-knowledgebase" title="Permanent link">&para;</a></h2>
 <p>A persistent notes store for the project. Add architectural decisions, gotchas, runbooks, and on-call notes. Supports semantic search. Entries can be flagged as stale when code changes.</p>
 <p><strong>CLI usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a># MCP tools in Claude Code:
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>jsat__knowledge_add text=&quot;The checkout service uses optimistic locking on order rows.&quot; category=architecture
-<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>jsat__knowledge_query question=&quot;how does checkout handle concurrent orders?&quot;
-<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>jsat__knowledge_search query=&quot;locking strategy&quot; limit=5
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a># MCP tools in connected AI tools:
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>jsat__knowledge_add text="The checkout service uses optimistic locking on order rows." category=architecture
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>jsat__knowledge_query question="how does checkout handle concurrent orders?"
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>jsat__knowledge_search query="locking strategy" limit=5
 <a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>jsat__knowledge_list category=architecture
 <a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>jsat__knowledge_flag_stale entry_id=kb_001
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what do we know about the checkout locking strategy?&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"what do we know about the checkout locking strategy?"</span><span class="p">)</span>
 <a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 </code></pre></div>
 <p>Requires <code>pip install jsat[team]</code> for Qdrant-backed semantic search. SQLite-VSS is used with <code>jsat[standard]</code>.</p>
@@ -3440,7 +3440,7 @@
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Orchestrator is invoked implicitly when a query spans multiple tools</span>
-<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what is the blast radius and security risk of the changes in src/auth/&quot;</span><span class="p">)</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"what is the blast radius and security risk of the changes in src/auth/"</span><span class="p">)</span>
 <a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 </code></pre></div>
 <hr />
@@ -3456,24 +3456,24 @@
 </code></pre></div>
 <p><strong>Python SDK usage:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="c1"># Export</span>
-<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="n">manifest</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="s2">&quot;backup.jsat.zip&quot;</span><span class="p">,</span> <span class="n">compress_level</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
-<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exported </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">nodes</span><span class="si">}</span><span class="s2"> nodes, </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">edges</span><span class="si">}</span><span class="s2"> edges to </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Size: </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">size_mb</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> MB&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="n">manifest</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="s2">"backup.jsat.zip"</span><span class="p">,</span> <span class="n">compress_level</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Exported </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">nodes</span><span class="si">}</span><span class="s2"> nodes, </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">edges</span><span class="si">}</span><span class="s2"> edges to </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Size: </span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">size_mb</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> MB"</span><span class="p">)</span>
 <a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>
 <a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="c1"># Import / restore</span>
 <a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
-<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="o">.</span><span class="n">from_import</span><span class="p">(</span><span class="s2">&quot;backup.jsat.zip&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="o">.</span><span class="n">from_import</span><span class="p">(</span><span class="s2">"backup.jsat.zip"</span><span class="p">)</span>
 <a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">js</span><span class="o">.</span><span class="n">index_status</span><span class="p">)</span>
 </code></pre></div>
 <p><strong>Example output:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>ExportManifest(
-<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>    path=&#39;backup.jsat.zip&#39;,
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>    path='backup.jsat.zip',
 <a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>    size_mb=4.2,
 <a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>    nodes=1842,
 <a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>    edges=4391,
-<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>    commit=&#39;a3f91cc&#39;,
-<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>    jsat_version=&#39;0.1.0&#39;,
-<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>    created_at=&#39;2026-07-25T12:00:00Z&#39;
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>    commit='a3f91cc',
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>    jsat_version='0.4.10',
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>    created_at='2026-07-25T12:00:00Z'
 <a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a>)
 </code></pre></div>
 <hr />
@@ -3483,25 +3483,25 @@
 <p><strong>Quick example:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
 <a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>
-<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">ai_provider</span><span class="o">=</span><span class="s2">&quot;ollama&quot;</span><span class="p">)</span>
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">"."</span><span class="p">,</span> <span class="n">ai_provider</span><span class="o">=</span><span class="s2">"ollama"</span><span class="p">)</span>
 <a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="n">js</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
 <a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>
-<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;what calls the refund endpoint?&quot;</span><span class="p">)</span>
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"what calls the refund endpoint?"</span><span class="p">)</span>
 <a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
 <a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>
-<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">&quot;src/payment/refund.py&quot;</span><span class="p">)</span>
+<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">blast_radius</span><span class="p">(</span><span class="s2">"src/payment/refund.py"</span><span class="p">)</span>
 <a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">summary</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="tool-14-ithinking">Tool 14 — IThinking<a class="headerlink" href="#tool-14-ithinking" title="Permanent link">&para;</a></h2>
 <p>A structured thinking and planning framework. Before executing a complex task, IThinking decomposes it into phases, audits assumptions, estimates token cost (local vs LLM), and optionally pauses for human review before proceeding.</p>
 <p><strong>CLI usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a># MCP tools in Claude Code (called by Claude on complex requests):
-<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>jsat__ithinking_plan task=&quot;Refactor the authentication module to support OAuth2&quot;
-<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>jsat__ithinking_execute task=&quot;Refactor the authentication module to support OAuth2&quot;
-<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>jsat__ithinking_reflect task=&quot;...&quot; result=&quot;...&quot;
-<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>jsat__ithinking_token_estimate task=&quot;Generate tests for all uncovered paths&quot;
-<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>jsat__ithinking_audit_assumptions subtask=&quot;Update the user schema to add MFA fields&quot;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a># MCP tools in connected AI tools:
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>jsat__ithinking_plan task="Refactor the authentication module to support OAuth2"
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>jsat__ithinking_execute task="Refactor the authentication module to support OAuth2"
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>jsat__ithinking_reflect task="..." result="..."
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>jsat__ithinking_token_estimate task="Generate tests for all uncovered paths"
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>jsat__ithinking_audit_assumptions subtask="Update the user schema to add MFA fields"
 </code></pre></div>
 <p>IThinking is controlled via <code>.jsat/config.yaml</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="nt">ithinking</span><span class="p">:</span>
@@ -3589,22 +3589,22 @@
 <p>Winner is chosen by: <strong>coverage × 0.45 + specificity × 0.40 + efficiency × 0.15</strong></p>
 <h3 id="cli-usage_1">CLI usage<a class="headerlink" href="#cli-usage_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="c1"># Phase 1 only (offline)</span>
-<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
-<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
-<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--diff<span class="w"> </span><span class="s2">&quot;improve the retry logic&quot;</span>
-<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--cot<span class="w"> </span>--verbose<span class="w"> </span><span class="s2">&quot;debug the 500 on checkout&quot;</span>
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>jsat<span class="w"> </span>prompt<span class="w"> </span><span class="s2">"improve the retry logic"</span>
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span><span class="s2">"improve the retry logic"</span>
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--diff<span class="w"> </span><span class="s2">"improve the retry logic"</span>
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--cot<span class="w"> </span>--verbose<span class="w"> </span><span class="s2">"debug the 500 on checkout"</span>
 <a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>
 <a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="c1"># Phase 1 + Phase 2: 1 LLM agent (fastest)</span>
-<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--rewrite<span class="w"> </span><span class="s2">&quot;fix logger in this branch&quot;</span>
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--rewrite<span class="w"> </span><span class="s2">"fix logger in this branch"</span>
 <a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>
 <a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a><span class="c1"># Phase 1 + Phase 2: 3 parallel LLM agents (best quality)</span>
-<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--agents<span class="w"> </span><span class="s2">&quot;fix logger in this branch&quot;</span>
+<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--agents<span class="w"> </span><span class="s2">"fix logger in this branch"</span>
 <a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a>
 <a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a><span class="c1"># Rewrite + send in one step</span>
-<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--agents<span class="w"> </span>--send<span class="w"> </span><span class="s2">&quot;fix logger in ValidateVPAHandler.post&quot;</span>
+<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--agents<span class="w"> </span>--send<span class="w"> </span><span class="s2">"fix logger in ValidateVPAHandler.post"</span>
 <a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a>
 <a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a><span class="c1"># All flags</span>
-<a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--agents<span class="w"> </span>--ai<span class="w"> </span>claude<span class="w"> </span>--format<span class="w"> </span>code<span class="w"> </span>--cot<span class="w"> </span><span class="s2">&quot;write test for refund()&quot;</span>
+<a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a>jsat<span class="w"> </span>prompt<span class="w"> </span>--send<span class="w"> </span>--agents<span class="w"> </span>--ai<span class="w"> </span>claude<span class="w"> </span>--format<span class="w"> </span>code<span class="w"> </span>--cot<span class="w"> </span><span class="s2">"write test for refund()"</span>
 </code></pre></div>
 <p>All flags:</p>
 <table>
@@ -3696,21 +3696,21 @@
 <h3 id="python-sdk-usage_1">Python SDK usage<a class="headerlink" href="#python-sdk-usage_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
 <a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>
-<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">"."</span><span class="p">)</span>
 <a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>
 <a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="c1"># Phase 1 only</span>
-<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">&quot;improve the retry logic&quot;</span><span class="p">)</span>
+<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">"improve the retry logic"</span><span class="p">)</span>
 <a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a>
 <a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a><span class="c1"># Phase 1 + 1 LLM agent</span>
-<a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">&quot;fix logger in payments&quot;</span><span class="p">,</span> <span class="n">rewrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">"fix logger in payments"</span><span class="p">,</span> <span class="n">rewrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a>
 <a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a><span class="c1"># Phase 1 + 3 parallel LLM agents</span>
-<a id="__codelineno-38-12" name="__codelineno-38-12" href="#__codelineno-38-12"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">&quot;fix logger in ValidateVPAHandler.post&quot;</span><span class="p">,</span> <span class="n">n_agents</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Winner: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">winning_agent</span><span class="si">}</span><span class="s2"> (score: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">winning_score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<a id="__codelineno-38-12" name="__codelineno-38-12" href="#__codelineno-38-12"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">"fix logger in ValidateVPAHandler.post"</span><span class="p">,</span> <span class="n">n_agents</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Winner: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">winning_agent</span><span class="si">}</span><span class="s2"> (score: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">winning_score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
 <a id="__codelineno-38-14" name="__codelineno-38-14" href="#__codelineno-38-14"></a>
 <a id="__codelineno-38-15" name="__codelineno-38-15" href="#__codelineno-38-15"></a><span class="c1"># Optimize + send</span>
-<a id="__codelineno-38-16" name="__codelineno-38-16" href="#__codelineno-38-16"></a><span class="n">r</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt_and_send</span><span class="p">(</span><span class="s2">&quot;write a test for refund()&quot;</span><span class="p">,</span> <span class="n">n_agents</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<a id="__codelineno-38-17" name="__codelineno-38-17" href="#__codelineno-38-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;response&quot;</span><span class="p">])</span>
+<a id="__codelineno-38-16" name="__codelineno-38-16" href="#__codelineno-38-16"></a><span class="n">r</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">prompt_and_send</span><span class="p">(</span><span class="s2">"write a test for refund()"</span><span class="p">,</span> <span class="n">n_agents</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-38-17" name="__codelineno-38-17" href="#__codelineno-38-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"response"</span><span class="p">])</span>
 </code></pre></div>
 <h3 id="mcp-tools">MCP tools<a class="headerlink" href="#mcp-tools" title="Permanent link">&para;</a></h3>
 <table>
@@ -3806,7 +3806,7 @@
 <p>Built-in table for 35+ models — Claude (200K), GPT-4o (128K), Gemini 1.5 (1M), llama3.2 (131K), etc.</p>
 <h3 id="cli-usage_2">CLI usage<a class="headerlink" href="#cli-usage_2" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="c1"># Count tokens</span>
-<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>jsat<span class="w"> </span>tokens<span class="w"> </span><span class="s2">&quot;explain the payment service&quot;</span>
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>jsat<span class="w"> </span>tokens<span class="w"> </span><span class="s2">"explain the payment service"</span>
 <a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>jsat<span class="w"> </span>tokens<span class="w"> </span>--file<span class="w"> </span>README.md
 <a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a>
 <a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a><span class="c1"># Check budget vs model limit</span>
@@ -3829,25 +3829,25 @@
 <h3 id="python-sdk-usage_2">Python SDK usage<a class="headerlink" href="#python-sdk-usage_2" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
 <a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>
-<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">"."</span><span class="p">)</span>
 <a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>
 <a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a><span class="c1"># Count tokens</span>
-<a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="n">count</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">token_count</span><span class="p">(</span><span class="s2">&quot;explain the payment service&quot;</span><span class="p">)</span>
+<a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="n">count</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">token_count</span><span class="p">(</span><span class="s2">"explain the payment service"</span><span class="p">)</span>
 <a id="__codelineno-42-7" name="__codelineno-42-7" href="#__codelineno-42-7"></a>
 <a id="__codelineno-42-8" name="__codelineno-42-8" href="#__codelineno-42-8"></a><span class="c1"># Compress a prompt</span>
 <a id="__codelineno-42-9" name="__codelineno-42-9" href="#__codelineno-42-9"></a><span class="n">report</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">token_compress</span><span class="p">(</span>
 <a id="__codelineno-42-10" name="__codelineno-42-10" href="#__codelineno-42-10"></a>    <span class="n">long_context</span><span class="p">,</span>
-<a id="__codelineno-42-11" name="__codelineno-42-11" href="#__codelineno-42-11"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">,</span>          <span class="c1"># sets ceiling to 85% of 128K</span>
+<a id="__codelineno-42-11" name="__codelineno-42-11" href="#__codelineno-42-11"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"gpt-4o"</span><span class="p">,</span>          <span class="c1"># sets ceiling to 85% of 128K</span>
 <a id="__codelineno-42-12" name="__codelineno-42-12" href="#__codelineno-42-12"></a>    <span class="n">strip_comments</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <a id="__codelineno-42-13" name="__codelineno-42-13" href="#__codelineno-42-13"></a>    <span class="n">dedup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <a id="__codelineno-42-14" name="__codelineno-42-14" href="#__codelineno-42-14"></a><span class="p">)</span>
-<a id="__codelineno-42-15" name="__codelineno-42-15" href="#__codelineno-42-15"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">savings_pct</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">% via: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">strategies_applied</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-42-15" name="__codelineno-42-15" href="#__codelineno-42-15"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Saved </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">savings_pct</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">% via: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">strategies_applied</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-42-16" name="__codelineno-42-16" href="#__codelineno-42-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">compressed_text</span><span class="p">)</span>
 <a id="__codelineno-42-17" name="__codelineno-42-17" href="#__codelineno-42-17"></a>
 <a id="__codelineno-42-18" name="__codelineno-42-18" href="#__codelineno-42-18"></a><span class="c1"># Budget check</span>
-<a id="__codelineno-42-19" name="__codelineno-42-19" href="#__codelineno-42-19"></a><span class="n">budget</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">token_budget</span><span class="p">(</span><span class="n">my_context</span><span class="p">,</span> <span class="s2">&quot;claude-cli&quot;</span><span class="p">)</span>
-<a id="__codelineno-42-20" name="__codelineno-42-20" href="#__codelineno-42-20"></a><span class="c1"># {&quot;tokens&quot;: 1240, &quot;limit&quot;: 200000, &quot;budget_pct&quot;: 0.62,</span>
-<a id="__codelineno-42-21" name="__codelineno-42-21" href="#__codelineno-42-21"></a><span class="c1">#  &quot;headroom_tokens&quot;: 198760, &quot;status&quot;: &quot;ok&quot;}</span>
+<a id="__codelineno-42-19" name="__codelineno-42-19" href="#__codelineno-42-19"></a><span class="n">budget</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">token_budget</span><span class="p">(</span><span class="n">my_context</span><span class="p">,</span> <span class="s2">"claude-cli"</span><span class="p">)</span>
+<a id="__codelineno-42-20" name="__codelineno-42-20" href="#__codelineno-42-20"></a><span class="c1"># {"tokens": 1240, "limit": 200000, "budget_pct": 0.62,</span>
+<a id="__codelineno-42-21" name="__codelineno-42-21" href="#__codelineno-42-21"></a><span class="c1">#  "headroom_tokens": 198760, "status": "ok"}</span>
 </code></pre></div>
 <h3 id="tokenreport-fields">TokenReport fields<a class="headerlink" href="#tokenreport-fields" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TokenReport</span><span class="p">:</span>
@@ -3855,7 +3855,7 @@
 <a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>    <span class="n">compressed_tokens</span><span class="p">:</span> <span class="nb">int</span>
 <a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a>    <span class="n">savings_tokens</span><span class="p">:</span> <span class="nb">int</span>
 <a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a>    <span class="n">savings_pct</span><span class="p">:</span> <span class="nb">float</span>             <span class="c1"># e.g. 28.4</span>
-<a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>    <span class="n">strategies_applied</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># e.g. [&quot;whitespace&quot;,&quot;stopphrase&quot;,&quot;dedup&quot;]</span>
+<a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>    <span class="n">strategies_applied</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># e.g. ["whitespace","stopphrase","dedup"]</span>
 <a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a>    <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
 <a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a>    <span class="n">model_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>        <span class="c1"># context window size</span>
 <a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a>    <span class="n">budget_used_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>  <span class="c1"># compressed / limit × 100</span>
@@ -3898,7 +3898,7 @@
 <a id="__codelineno-44-7" name="__codelineno-44-7" href="#__codelineno-44-7"></a>  ← collected →
 <a id="__codelineno-44-8" name="__codelineno-44-8" href="#__codelineno-44-8"></a>
 <a id="__codelineno-44-9" name="__codelineno-44-9" href="#__codelineno-44-9"></a>Round 2 — agents RESPOND to each other:
-<a id="__codelineno-44-10" name="__codelineno-44-10" href="#__codelineno-44-10"></a>  Each agent reads round-1 transcript, addresses others&#39; points directly
+<a id="__codelineno-44-10" name="__codelineno-44-10" href="#__codelineno-44-10"></a>  Each agent reads round-1 transcript, addresses others' points directly
 <a id="__codelineno-44-11" name="__codelineno-44-11" href="#__codelineno-44-11"></a>
 <a id="__codelineno-44-12" name="__codelineno-44-12" href="#__codelineno-44-12"></a>Round 3 — Moderator synthesis:
 <a id="__codelineno-44-13" name="__codelineno-44-13" href="#__codelineno-44-13"></a>  🎯 moderator reads all rounds and produces:
@@ -3910,9 +3910,9 @@
 - <code>prompt_multi_agent</code>: 3 agents run independently in parallel, pick best output
 - <code>crack</code>: agents <em>respond to each other's outputs</em> across rounds (cross-talk)</p>
 <h3 id="cli-usage_3">CLI usage<a class="headerlink" href="#cli-usage_3" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>jsat<span class="w"> </span>crack<span class="w"> </span><span class="s2">&quot;redesign payment retry system&quot;</span>
-<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>jsat<span class="w"> </span>crack<span class="w"> </span>--roles<span class="w"> </span>architect,security<span class="w"> </span><span class="s2">&quot;migrate users table to UUID&quot;</span>
-<a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>jsat<span class="w"> </span>crack<span class="w"> </span>--rounds<span class="w"> </span><span class="m">2</span><span class="w"> </span>--file<span class="w"> </span>output.md<span class="w"> </span><span class="s2">&quot;sync vs async webhooks&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>jsat<span class="w"> </span>crack<span class="w"> </span><span class="s2">"redesign payment retry system"</span>
+<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>jsat<span class="w"> </span>crack<span class="w"> </span>--roles<span class="w"> </span>architect,security<span class="w"> </span><span class="s2">"migrate users table to UUID"</span>
+<a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>jsat<span class="w"> </span>crack<span class="w"> </span>--rounds<span class="w"> </span><span class="m">2</span><span class="w"> </span>--file<span class="w"> </span>output.md<span class="w"> </span><span class="s2">"sync vs async webhooks"</span>
 </code></pre></div>
 <table>
 <thead>
@@ -3946,11 +3946,11 @@
 <h3 id="python-sdk">Python SDK<a class="headerlink" href="#python-sdk" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat.tools.crack</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrackTool</span>
 <a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">CrackTool</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span> <span class="n">ai</span><span class="o">=</span><span class="n">ai</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-<a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>    <span class="s2">&quot;redesign payment retry system&quot;</span><span class="p">,</span>
-<a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>    <span class="n">roles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;architect&quot;</span><span class="p">,</span> <span class="s2">&quot;security&quot;</span><span class="p">,</span> <span class="s2">&quot;skeptic&quot;</span><span class="p">],</span>
+<a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>    <span class="s2">"redesign payment retry system"</span><span class="p">,</span>
+<a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>    <span class="n">roles</span><span class="o">=</span><span class="p">[</span><span class="s2">"architect"</span><span class="p">,</span> <span class="s2">"security"</span><span class="p">,</span> <span class="s2">"skeptic"</span><span class="p">],</span>
 <a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>    <span class="n">rounds</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 <a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a><span class="p">)</span>
-<a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">synthesis</span><span class="p">)</span>       <span class="c1"># moderator&#39;s final synthesis</span>
+<a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">synthesis</span><span class="p">)</span>       <span class="c1"># moderator's final synthesis</span>
 <a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">output_path</span><span class="p">)</span>     <span class="c1"># .jsat/crack/redesign-payment-retry-system.md</span>
 </code></pre></div>
 <h3 id="mcp-tool">MCP tool<a class="headerlink" href="#mcp-tool" title="Permanent link">&para;</a></h3>
@@ -3992,9 +3992,9 @@
 <h2 id="tool-17-jsat-short">Tool 17 — JSAT Short<a class="headerlink" href="#tool-17-jsat-short" title="Permanent link">&para;</a></h2>
 <p>Get the briefest possible correct answer to any question. Prepends a brevity constraint to any query.</p>
 <h3 id="cli-usage_4">CLI usage<a class="headerlink" href="#cli-usage_4" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>jsat<span class="w"> </span>short<span class="w"> </span><span class="s2">&quot;what does process_refund do&quot;</span>
-<a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>jsat<span class="w"> </span>short<span class="w"> </span>--one-line<span class="w"> </span><span class="s2">&quot;is PaymentService.process async&quot;</span>
-<a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>jsat<span class="w"> </span>short<span class="w"> </span>--words<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="s2">&quot;explain the retry logic&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>jsat<span class="w"> </span>short<span class="w"> </span><span class="s2">"what does process_refund do"</span>
+<a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>jsat<span class="w"> </span>short<span class="w"> </span>--one-line<span class="w"> </span><span class="s2">"is PaymentService.process async"</span>
+<a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>jsat<span class="w"> </span>short<span class="w"> </span>--words<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="s2">"explain the retry logic"</span>
 </code></pre></div>
 <table>
 <thead>
@@ -4077,9 +4077,9 @@
 </tbody>
 </table>
 <h3 id="cli-usage_5">CLI usage<a class="headerlink" href="#cli-usage_5" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>jsat<span class="w"> </span>smart<span class="w"> </span><span class="s2">&quot;what does the payment service do?&quot;</span>
-<a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--ultra<span class="w"> </span><span class="s2">&quot;what does process_refund return?&quot;</span>
-<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--lite<span class="w"> </span><span class="s2">&quot;explain the checkout flow&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>jsat<span class="w"> </span>smart<span class="w"> </span><span class="s2">"what does the payment service do?"</span>
+<a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--ultra<span class="w"> </span><span class="s2">"what does process_refund return?"</span>
+<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>jsat<span class="w"> </span>smart<span class="w"> </span>--lite<span class="w"> </span><span class="s2">"explain the checkout flow"</span>
 </code></pre></div>
 <h3 id="when-to-use">When to use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h3>
 <ul>
@@ -4151,7 +4151,7 @@
 <h3 id="cli-usage-slash-command">CLI usage (slash command)<a class="headerlink" href="#cli-usage-slash-command" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>add<span class="w"> </span>exponential<span class="w"> </span>backoff<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service
 <a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>--audit<span class="w"> </span>src/payments/retry.py
-<a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>--review<span class="w"> </span><span class="s2">&quot;def process_refund(order_id, amount)...&quot;</span>
+<a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>/jsat<span class="w"> </span>lazy<span class="w"> </span>--review<span class="w"> </span><span class="s2">"def process_refund(order_id, amount)..."</span>
 </code></pre></div>
 <hr />
 <h2 id="tool-20-aw-workflow-advisor">Tool 20 — Aw (Workflow Advisor)<a class="headerlink" href="#tool-20-aw-workflow-advisor" title="Permanent link">&para;</a></h2>
@@ -4232,7 +4232,7 @@
 <h2 id="tool-21-magic">Tool 21 — Magic<a class="headerlink" href="#tool-21-magic" title="Permanent link">&para;</a></h2>
 <p><strong>Slash command:</strong> <code>/jsat magic &lt;task&gt;</code></p>
 <p>The only JSAT skill with no fixed template. Analyzes any task, composes a minimal
-sufficient skill sequence from all 39 tools using a 6-layer dependency model, executes
+sufficient skill sequence from all 41 JSAT commands using a 6-layer dependency model, executes
 each skill adaptively, and converges when the task is answerable.</p>
 <table>
 <thead>
@@ -4370,7 +4370,7 @@ Decisions are retrievable by file, topic, or blast-radius context.</p>
 </table>
 <h3 id="cli-usage_9">CLI usage<a class="headerlink" href="#cli-usage_9" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>--impact<span class="w"> </span>h<span class="w"> </span>Chose<span class="w"> </span>PostgreSQL<span class="w"> </span>over<span class="w"> </span>MongoDB<span class="w"> </span><span class="k">for</span><span class="w"> </span>ACID<span class="w"> </span>compliance
-<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>Switched<span class="w"> </span>caching<span class="w"> </span>from<span class="w"> </span>Redis<span class="w"> </span>to<span class="w"> </span><span class="k">in</span>-memory<span class="w"> </span>—<span class="w"> </span>cost<span class="w"> </span><span class="nv">$500</span>/month,<span class="w"> </span>latency<span class="w"> </span>acceptable
+<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>Switched<span class="w"> </span>caching<span class="w"> </span>from<span class="w"> </span>Redis<span class="w"> </span>to<span class="w"> </span>in-memory<span class="w"> </span>—<span class="w"> </span>cost<span class="w"> </span><span class="nv">$500</span>/month,<span class="w"> </span>latency<span class="w"> </span>acceptable
 <a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>context<span class="w"> </span>src/payments/service.py
 <a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>search<span class="w"> </span>caching<span class="w"> </span>strategy
 <a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>list<span class="w"> </span>adr

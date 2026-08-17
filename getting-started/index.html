@@ -557,10 +557,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-2-connect-claude-code-recommended" class="md-nav__link">
+  <a href="#step-2-connect-an-ai-tool" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Step 2: Connect Claude Code (Recommended)
+        Step 2: Connect an AI Tool
       
     </span>
   </a>
@@ -579,10 +579,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-4-open-claude-code-or-the-shell" class="md-nav__link">
+  <a href="#step-4-open-an-ai-tool-or-the-shell" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Step 4: Open Claude Code (or the Shell)
+        Step 4: Open an AI Tool (or the Shell)
       
     </span>
   </a>
@@ -879,10 +879,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-2-connect-claude-code-recommended" class="md-nav__link">
+  <a href="#step-2-connect-an-ai-tool" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Step 2: Connect Claude Code (Recommended)
+        Step 2: Connect an AI Tool
       
     </span>
   </a>
@@ -901,10 +901,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-4-open-claude-code-or-the-shell" class="md-nav__link">
+  <a href="#step-4-open-an-ai-tool-or-the-shell" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Step 4: Open Claude Code (or the Shell)
+        Step 4: Open an AI Tool (or the Shell)
       
     </span>
   </a>
@@ -981,7 +981,7 @@
 <ul>
 <li>Python 3.10 or later</li>
 <li>A project directory with source code to index</li>
-<li>(Optional) Claude Code CLI for the best experience — <a href="https://claude.ai/code">install at claude.ai/code</a></li>
+<li>(Optional) Claude Code CLI, OpenAI Codex CLI, or another MCP-capable AI tool</li>
 <li>(Optional) Ollama for local, offline AI — see <a href="../ai-providers/">AI Providers</a></li>
 </ul>
 <hr />
@@ -1017,12 +1017,12 @@
 </div>
 <p>Verify the install:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>jsat<span class="w"> </span>version
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># jsat 0.1.0</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># jsat 0.4.10</span>
 </code></pre></div>
 <hr />
-<h2 id="step-2-connect-claude-code-recommended">Step 2: Connect Claude Code (Recommended)<a class="headerlink" href="#step-2-connect-claude-code-recommended" title="Permanent link">&para;</a></h2>
-<p>If you have Claude Code CLI installed, connect JSAT as an MCP server. This gives you all JSAT tools directly inside Claude Code without leaving your AI session.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Global — one-time setup (recommended)</label><label for="__tabbed_2_2">Per-project</label></div>
+<h2 id="step-2-connect-an-ai-tool">Step 2: Connect an AI Tool<a class="headerlink" href="#step-2-connect-an-ai-tool" title="Permanent link">&para;</a></h2>
+<p>Connect JSAT as an MCP server so your AI tool can call JSAT without leaving the session.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Claude Code — global</label><label for="__tabbed_2_2">Claude Code — per-project</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w"> </span>--global
@@ -1036,18 +1036,29 @@
 </div>
 </div>
 </div>
-<p>Both commands:</p>
+<p>Claude commands:</p>
 <ol>
 <li>Write a JSAT MCP server entry into the Claude settings file</li>
-<li>Install 31 <code>/jsat-*</code> slash command skill files in the Claude commands directory</li>
+<li>Install 41 <code>/jsat-*</code> slash command skill files in the Claude commands directory</li>
 </ol>
-<p>After running, <strong>restart Claude Code</strong> to activate the MCP tools.</p>
-<p>See <a href="../claude-integration/">Claude Integration</a> for details.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:1"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">OpenAI Codex CLI</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex
+</code></pre></div>
+<p>Writes one <code>[mcp_servers.jsat]</code> entry to <code>~/.codex/config.toml</code>. JSAT does not
+create <code>.codex/</code>, <code>AGENTS.md</code>, or <code>.agents/skills</code> in your project. Launch Codex
+from the repo you want to inspect, or run <code>jsat codex --repo /path/to/repo</code>.</p>
+</div>
+</div>
+</div>
+<p>After running, <strong>restart the AI tool</strong> to activate the MCP tools.</p>
+<p>See <a href="../ai-integrations/">AI Integrations</a> for details.</p>
 <hr />
 <h2 id="step-3-index-your-project">Step 3: Index Your Project<a class="headerlink" href="#step-3-index-your-project" title="Permanent link">&para;</a></h2>
 <p>Navigate to your project root and build the codebase graph:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>my-project/
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>my-project/
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
 </code></pre></div>
 <p>JSAT will:</p>
 <ol>
@@ -1057,38 +1068,44 @@
 <li>Generate embeddings for semantic search (if a local or API embedding model is configured)</li>
 </ol>
 <p>Example output:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a> Indexing… ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:04
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>✓ Indexed 1,842 nodes, 4,391 edges in 4.2s
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a> Indexing… ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:04
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>✓ Indexed 1,842 nodes, 4,391 edges in 4.2s
 </code></pre></div>
 <p><strong>Re-indexing is incremental by default.</strong> Only changed files are re-parsed. Force a full re-index with <code>--force</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--force
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--force
 </code></pre></div>
 <p>Index only specific languages:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--languages<span class="w"> </span>python,go
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w"> </span>--languages<span class="w"> </span>python,go
 </code></pre></div>
 <hr />
-<h2 id="step-4-open-claude-code-or-the-shell">Step 4: Open Claude Code (or the Shell)<a class="headerlink" href="#step-4-open-claude-code-or-the-shell" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="3:4"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><input id="__tabbed_3_4" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Claude Code (recommended)</label><label for="__tabbed_3_2">Interactive Shell</label><label for="__tabbed_3_3">GPT session</label><label for="__tabbed_3_4">Ollama session (local)</label></div>
+<h2 id="step-4-open-an-ai-tool-or-the-shell">Step 4: Open an AI Tool (or the Shell)<a class="headerlink" href="#step-4-open-an-ai-tool-or-the-shell" title="Permanent link">&para;</a></h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:5"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><input id="__tabbed_4_4" name="__tabbed_4" type="radio" /><input id="__tabbed_4_5" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Claude Code (recommended)</label><label for="__tabbed_4_2">Codex CLI</label><label for="__tabbed_4_3">Interactive Shell</label><label for="__tabbed_4_4">GPT session</label><label for="__tabbed_4_5">Ollama session (local)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>jsat<span class="w"> </span>claude
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>jsat<span class="w"> </span>claude
 </code></pre></div>
 <p>Opens Claude Code with JSAT MCP tools automatically available. Claude can call tools like <code>jsat__query</code>, <code>jsat__blast_radius</code>, and <code>jsat__security_review</code> without any extra setup.</p>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>jsat<span class="w"> </span>shell
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>jsat<span class="w"> </span>codex<span class="w"> </span>--repo<span class="w"> </span>.
+</code></pre></div>
+<p>Opens Codex in the repo directory with JSAT MCP tools available. No project-local
+Codex files are generated.</p>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat<span class="w"> </span>shell
 </code></pre></div>
 <p>Opens a standalone REPL with all JSAT tools. No Claude Code required. You can switch AI providers from inside the shell.</p>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>sk-...
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>jsat<span class="w"> </span>gpt
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>sk-...
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>jsat<span class="w"> </span>gpt
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>ollama<span class="w"> </span>serve<span class="w">          </span><span class="c1"># in a separate terminal</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.2<span class="w">  </span><span class="c1"># first time only</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>jsat<span class="w"> </span>ollama
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ollama<span class="w"> </span>serve<span class="w">          </span><span class="c1"># in a separate terminal</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.2<span class="w">  </span><span class="c1"># first time only</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>jsat<span class="w"> </span>ollama
 </code></pre></div>
 </div>
 </div>
@@ -1096,21 +1113,21 @@
 <hr />
 <h2 id="step-5-try-a-query">Step 5: Try a Query<a class="headerlink" href="#step-5-try-a-query" title="Permanent link">&para;</a></h2>
 <p>Inside Claude Code after connecting:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>/jsat-query what does this project do?
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>/jsat-query which services call the payments API?
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>/jsat-blast-radius src/payment/refund.py
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>/jsat-security
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>/jsat-query what does this project do?
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>/jsat-query which services call the payments API?
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>/jsat-blast-radius src/payment/refund.py
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>/jsat-security
 </code></pre></div>
 <p>Inside the JSAT shell:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>&gt; what does this project do?
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>&gt; blast-radius src/payment/refund.py
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>&gt; security-review
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>&gt; incident &quot;500 errors on checkout since 14:00&quot;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>&gt; what does this project do?
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>&gt; blast-radius src/payment/refund.py
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>&gt; security-review
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>&gt; incident "500 errors on checkout since 14:00"
 </code></pre></div>
 <hr />
 <h2 id="check-setup-health">Check Setup Health<a class="headerlink" href="#check-setup-health" title="Permanent link">&para;</a></h2>
 <p>Run <code>jsat doctor</code> at any time to see what JSAT has detected:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>jsat<span class="w"> </span>doctor
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>jsat<span class="w"> </span>doctor
 </code></pre></div>
 <p>This shows:</p>
 <ul>
@@ -1120,38 +1137,38 @@
 <li><strong>Index</strong>: node and edge counts, freshness</li>
 </ul>
 <p>Example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>╭─ System ──────────────────────────────╮
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>│ Profile   solo                        │
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>│ RAM       16.0 GB                     │
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>│ Arch      arm64                       │
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>│ GPU       metal                       │
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>│ CI mode   False                       │
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>╰───────────────────────────────────────╯
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>╭─ AI Providers  (active: claude_cli/claude-sonnet-4-6) ─╮
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>│ Claude Code (CLI)  ✓ available  free   switch claude-cli│
-<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>│ Anthropic API      ✓ key set    paid   switch claude-api│
-<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>│ Ollama (local)     ✓ running    free   switch ollama    │
-<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>│ OpenAI API         ✗ no key     paid   switch gpt       │
-<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>╰─────────────────────────────────────────────────────────╯
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>╭─ System ──────────────────────────────╮
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>│ Profile   solo                        │
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>│ RAM       16.0 GB                     │
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>│ Arch      arm64                       │
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>│ GPU       metal                       │
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>│ CI mode   False                       │
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>╰───────────────────────────────────────╯
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>╭─ AI Providers  (active: claude_cli/claude-sonnet-4-6) ─╮
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>│ Claude Code (CLI)  ✓ available  free   switch claude-cli│
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>│ Anthropic API      ✓ key set    paid   switch claude-api│
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>│ Ollama (local)     ✓ running    free   switch ollama    │
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>│ OpenAI API         ✗ no key     paid   switch gpt       │
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>╰─────────────────────────────────────────────────────────╯
 </code></pre></div>
 <hr />
 <h2 id="manual-setup-without-claude-code">Manual Setup (Without Claude Code)<a class="headerlink" href="#manual-setup-without-claude-code" title="Permanent link">&para;</a></h2>
 <p>If you do not have Claude Code installed, JSAT still works fully via its own shell or Python SDK.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Generate a global config (applies to all projects on this machine)</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>jsat<span class="w"> </span>init<span class="w"> </span>--global<span class="w"> </span>--profile<span class="w"> </span>solo
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="c1"># — or — per-project config</span>
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>solo
-<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
-<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="c1"># Set AI provider (globally or per-project)</span>
-<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--global<span class="w">       </span><span class="c1"># global: ~/.jsat/config.yaml</span>
-<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w">                </span><span class="c1"># per-project: .jsat/config.yaml</span>
-<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>
-<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="c1"># Index your project</span>
-<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
-<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>
-<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a><span class="c1"># Open the JSAT shell</span>
-<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a>jsat<span class="w"> </span>shell
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Generate a global config (applies to all projects on this machine)</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>jsat<span class="w"> </span>init<span class="w"> </span>--global<span class="w"> </span>--profile<span class="w"> </span>solo
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="c1"># — or — per-project config</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>jsat<span class="w"> </span>init<span class="w"> </span>--profile<span class="w"> </span>solo
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="c1"># Set AI provider (globally or per-project)</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--global<span class="w">       </span><span class="c1"># global: ~/.jsat/config.yaml</span>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w">                </span><span class="c1"># per-project: .jsat/config.yaml</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="c1"># Index your project</span>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>
+<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="c1"># Open the JSAT shell</span>
+<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a>jsat<span class="w"> </span>shell
 </code></pre></div>
 <p>Inside the shell, type any natural language question or use a built-in command:</p>
 <table>
@@ -1183,6 +1200,10 @@
 <td>Switch to Claude Code CLI</td>
 </tr>
 <tr>
+<td><code>switch codex</code></td>
+<td>Launch Codex CLI from this repo</td>
+</tr>
+<tr>
 <td><code>status</code></td>
 <td>Show graph stats</td>
 </tr>
@@ -1195,38 +1216,38 @@
 <hr />
 <h2 id="what-gets-created">What Gets Created<a class="headerlink" href="#what-gets-created" title="Permanent link">&para;</a></h2>
 <p>Running <code>jsat index</code> and <code>jsat connect claude</code> creates these files:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Default (global data dir, per-project connect)</label><label for="__tabbed_4_2">Global connect (jsat connect claude --global)</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Default (global data dir, per-project connect)</label><label for="__tabbed_5_2">Global connect (jsat connect claude --global)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>~/.jsat/
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>└── &lt;hash12&gt;/            # global data dir for this repo (never inside git)
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    ├── graph/
-<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    │   └── graph.db     # SQLite codebase graph
-<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    ├── vectors/         # embedding vectors (if configured)
-<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>    ├── cache/           # semantic cache (disk backend)
-<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>    └── system-profile.json
-<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>
-<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>your-project/
-<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>├── .jsat/
-<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>│   └── config.yaml      # optional project-specific config (jsat init)
-<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>└── .claude/
-<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>    ├── settings.json    # MCP server entry (jsat connect claude)
-<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>    └── commands/
-<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>        └── jsat-*.md    # 31 slash command files
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>~/.jsat/
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>└── &lt;hash12&gt;/            # global data dir for this repo (never inside git)
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    ├── graph/
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    │   └── graph.db     # SQLite codebase graph
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    ├── vectors/         # embedding vectors (if configured)
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>    ├── cache/           # semantic cache (disk backend)
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>    └── system-profile.json
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>your-project/
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>├── .jsat/
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>│   └── config.yaml      # optional project-specific config (jsat init)
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>└── .claude/
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>    ├── settings.json    # MCP server entry (jsat connect claude)
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a>    └── commands/
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>        └── jsat-*.md    # 41 slash command files
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>~/.jsat/
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>├── config.yaml          # global config (jsat init --global)
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>└── &lt;hash12&gt;/            # global data dir (per-repo, auto-created)
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>    ├── graph/graph.db
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>    ├── vectors/
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>    └── cache/
-<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>
-<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>~/.claude/
-<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>├── settings.json        # global MCP entry — works in every project
-<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>└── commands/
-<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>    └── jsat-*.md        # global slash commands
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>~/.jsat/
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>├── config.yaml          # global config (jsat init --global)
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>└── &lt;hash12&gt;/            # global data dir (per-repo, auto-created)
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>    ├── graph/graph.db
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>    ├── vectors/
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>    └── cache/
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>~/.claude/
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>├── settings.json        # global MCP entry — works in every project
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>└── commands/
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>    └── jsat-*.md        # global slash commands
 </code></pre></div>
 </div>
 </div>
