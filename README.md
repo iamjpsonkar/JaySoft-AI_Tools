@@ -48,6 +48,7 @@ jsat index .
 # Open your AI tool with JSAT pre-loaded (auto-connects on first use)
 jsat claude      # Claude Code
 jsat codex       # OpenAI Codex CLI
+jsat codex resume <session-id>
 jsat cursor      # Cursor IDE
 jsat windsurf    # Windsurf
 jsat gemini      # Google Gemini CLI
@@ -74,7 +75,17 @@ Inside any connected tool you can use JSAT commands:
 
 **Continue.dev custom commands** (same commands, `/jsat-*` prefix)
 
-**All tools** have all JSAT MCP tools the AI can call automatically — no slash commands needed.
+**Codex skill commands:**
+```
+$jsat magic add retry logic to the payment service
+$jsat query what does the payment service do?
+@jsat magic investigate the checkout flow
+```
+
+`$jsat` is the preferred Codex skill invocation. JSAT's Codex dispatcher also
+treats `@jsat` as the same request when Codex routes it to the skill.
+
+**All tools** have all JSAT MCP tools the AI can call automatically.
 
 ---
 
@@ -219,7 +230,7 @@ The dashboard runs on `localhost:7432` (override with `JSAT_DASHBOARD_PORT`), se
 ```bash
 # Recommended: one-time global setup (works in every project)
 jsat connect claude --global               # Claude Code — all sessions
-jsat connect codex                        # OpenAI Codex CLI — one global MCP entry
+jsat connect codex                        # OpenAI Codex CLI — global MCP + $jsat skill
 jsat connect bob --global                 # Bob Shell — all sessions
 
 # Per-project (this repo only)
@@ -246,13 +257,13 @@ block and leaves the rest of your `CLAUDE.md` untouched.
 
 ### Files written per tool
 
-Most connect commands write both an MCP config **and** a guidance file so the AI knows what JSAT tools exist and when to use them — without being asked. Codex is the exception: JSAT writes one global MCP entry and serves capabilities from the JSAT package at runtime, without generating project files.
+Most connect commands write both an MCP config **and** a guidance file so the AI knows what JSAT tools exist and when to use them — without being asked. Codex stays global-only: JSAT writes one global MCP entry plus one global Codex skill dispatcher, without generating project files.
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
 | Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (41 files) + `CLAUDE.md` | Slash commands + always-on guidance |
 | Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` + `~/CLAUDE.md` | Slash commands + always-on guidance |
-| Codex | `~/.codex/config.toml` | — | MCP tools only; no project files |
+| Codex | `~/.codex/config.toml` | `~/.codex/skills/jsat/SKILL.md` | `$jsat` dispatcher + MCP tools; no project files |
 | Bob Shell (project) | `.bob/settings.json` | `BOB.md` + `.bob/commands/jsat-*.md` | Slash commands |
 | Bob Shell (global) | `~/.bob/settings.json` | `BOB.md` + `~/.bob/commands/jsat-*.md` | Slash commands |
 | Cursor | `~/.cursor/mcp.json` | — | — |
@@ -923,7 +934,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat index . --languages python,go` | Index specific languages only |
 | `jsat shell` | Start the interactive JSAT REPL |
 | `jsat claude` | Open Claude Code with JSAT MCP tools loaded |
-| `jsat codex` | Open Codex CLI with JSAT pre-loaded |
+| `jsat codex [CODEX_ARGS...]` | Open Codex CLI with JSAT pre-loaded; forwards args such as `resume <session-id>` |
 | `jsat cursor` | Open Cursor IDE with JSAT pre-loaded |
 | `jsat windsurf` | Open Windsurf with JSAT pre-loaded |
 | `jsat gemini` | Open Gemini CLI with JSAT pre-loaded |
@@ -980,8 +991,8 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 41 slash commands |
 | `jsat connect claude --global` | Wire JSAT into Claude Code globally (all projects) |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
-| `jsat connect codex` | Wire JSAT into OpenAI Codex CLI via `~/.codex/config.toml` |
-| `jsat connect codex --global` | Compatibility alias; writes the same global Codex entry |
+| `jsat connect codex` | Wire JSAT into OpenAI Codex CLI via `~/.codex/config.toml` + `~/.codex/skills/jsat/SKILL.md` |
+| `jsat connect codex --global` | Compatibility alias; writes the same global Codex MCP and skill files |
 | `jsat connect bob` | Wire JSAT into Bob Shell (project scope) |
 | `jsat connect bob --global` | Wire JSAT into Bob Shell globally |
 | `jsat connect cursor` | Wire JSAT into Cursor |

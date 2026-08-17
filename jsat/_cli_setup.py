@@ -144,6 +144,15 @@ def cmd_disconnect(
                 _remove_jsat_block(Path.cwd() / "AGENTS.md")
                 _remove_jsat_block(Path.cwd() / ".codex" / "instructions.md")
 
+            if not keep_skills and s == "global":
+                skill_file = base / ".codex" / "skills" / "jsat" / "SKILL.md"
+                if skill_file.exists():
+                    skill_file.unlink()
+                    console.print(
+                        f"[green]✓[/] Removed JSAT Codex skill ({skill_file})"
+                    )
+                    removed_any = True
+
     # ── cursor ────────────────────────────────────────────────────────────────
     if tool_lower in ("cursor", "all"):
         # Remove from both project and global config on 'all', else just the scope config

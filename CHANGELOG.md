@@ -4,6 +4,19 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.11] — 2026-08-17
+
+### Fixed
+
+- **`jsat codex resume <session-id>` now works.** `jsat codex` forwards trailing
+  Codex CLI arguments after auto-connecting JSAT, so Codex subcommands keep their
+  native behavior while JSAT still controls `--repo`.
+- **Codex now gets a real JSAT command dispatcher.** `jsat connect codex` installs
+  one global `~/.codex/skills/jsat/SKILL.md` file so `$jsat magic TASK` uses the
+  bundled JSAT command instructions and `jsat__*` MCP tools instead of falling back
+  to Claude-oriented guidance or generic reasoning. No project-local files are
+  generated.
+
 ## [0.4.10] — 2026-08-17
 
 ### Added

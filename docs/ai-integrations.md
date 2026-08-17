@@ -14,7 +14,7 @@ MCP tools, and shell `switch` support.
 | Auto-connect on launch | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
 | `jsat connect <tool>` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `--scope project/global` | ✅ | Global only | ✅ | — (global) | — (global) | — (global) | — (global) | ✅ |
-| Skills / custom commands | 41 slash cmds | MCP tools only | .cursorrules | .windsurfrules | 10 custom cmds | .zed/JSAT.md | GEMINI.md | 41 slash cmds + BOB.md |
+| Skills / custom commands | 41 slash cmds | `$jsat` dispatcher | .cursorrules | .windsurfrules | 10 custom cmds | .zed/JSAT.md | GEMINI.md | 41 slash cmds + BOB.md |
 | `switch <tool>` in shell | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
 | `--keep-guidance` on disconnect | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Tool type | CLI | CLI | GUI | GUI | IDE ext | GUI | CLI | CLI |
@@ -75,21 +75,26 @@ switch claude-cli    → launch full Claude Code session
 
 ```bash
 jsat codex                               # open with JSAT pre-loaded
-jsat connect codex                       # one global MCP config entry
+jsat connect codex                       # global MCP config + $jsat skill
 jsat codex --repo /path/to/repo           # launch Codex in a specific repo
+jsat codex resume <session-id>            # resume an existing Codex session
 ```
 
 **What gets installed:**
 - `~/.codex/config.toml` — one `[mcp_servers.jsat]` entry
+- `~/.codex/skills/jsat/SKILL.md` — one Codex skill dispatcher for `$jsat`
 
 JSAT does **not** generate `.codex/`, `AGENTS.md`, or `.agents/skills` inside the
 target repo for Codex. Run Codex from the repo you want to analyze, or use
 `jsat codex --repo /path/to/repo`; JSAT resolves that working directory at runtime.
+Any extra arguments after `jsat codex` are forwarded to the real Codex CLI.
 
-**Use in Codex:** ask naturally, e.g. "use JSAT to trace the blast radius of
-`src/payment/service.py`", or inspect/call MCP tools such as `jsat__query`,
+**Use in Codex:** run `$jsat magic TASK`, `$jsat query QUESTION`, or ask naturally,
+e.g. "use JSAT to trace the blast radius of `src/payment/service.py`". The
+dispatcher also treats `@jsat magic TASK` as the same JSAT request when Codex
+routes it to the skill. Direct MCP tools such as `jsat__query`,
 `jsat__blast_radius`, `jsat__security_review`, `jsat__get_test_gaps`, and
-`jsat__submit_for_review`.
+`jsat__submit_for_review` remain available.
 
 **In the JSAT shell:**
 ```

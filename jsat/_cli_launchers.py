@@ -190,7 +190,8 @@ def _is_connected(tool: str) -> bool:
     config_path, key = entry
     if tool == "codex":
         from jsat._cli_connect import _has_current_codex_jsat_mcp
-        return _has_current_codex_jsat_mcp(config_path)
+        skill_file = config_path.parent / "skills" / "jsat" / "SKILL.md"
+        return _has_current_codex_jsat_mcp(config_path) and skill_file.exists()
     return "jsat" in _read_json(config_path).get(key, {})
 
 
@@ -204,6 +205,7 @@ def _auto_connect(tool: str, repo: str) -> None:
         _connect_mcp_tool,
         _write_instructions_file,
     )
+    from jsat._cli_skills_data import _write_codex_skill
     console.print(f"[dim]Auto-connecting JSAT to {tool}...[/dim]")
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
@@ -214,6 +216,7 @@ def _auto_connect(tool: str, repo: str) -> None:
             binary,
             env={"JSAT_AI_PROVIDER": "codex_cli", "JSAT_MCP_ALLOW_INSECURE": "1"},
         )
+        _write_codex_skill(config_path.parent / "skills" / "jsat")
     elif key == "context_servers":
         settings = _read_json(config_path)
         settings.setdefault("context_servers", {})
@@ -276,8 +279,13 @@ def _launch_tool(
         subprocess.Popen(cmd_with_dir)
 
 
-@app.command("codex", rich_help_panel="🤖  AI Launchers")
+@app.command(
+    "codex",
+    rich_help_panel="🤖  AI Launchers",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
 def cmd_codex(
+    ctx: typer.Context,
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
@@ -286,13 +294,14 @@ def cmd_codex(
     \b
     Auto-connects JSAT if not already done, then launches:
       codex        (reads ~/.codex/config.toml automatically)
+      codex resume <session-id>
 
     \b
     JSAT MCP tools are available to Codex immediately. No project files are generated;
     Codex runs in the repo directory passed with --repo.
     Install Codex: curl -fsSL https://chatgpt.com/codex/install.sh | sh
     """
-    _launch_tool("codex", "codex", repo)
+    _launch_tool("codex", "codex", repo, extra_args=list(ctx.args))
 
 
 @app.command("cursor", rich_help_panel="🤖  AI Launchers")

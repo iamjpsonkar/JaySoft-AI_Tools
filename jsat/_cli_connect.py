@@ -20,6 +20,7 @@ from ._cli_common import (
 from ._cli_skills_data import (
     _JSAT_SKILLS,
     _write_bob_commands,
+    _write_codex_skill,
     _write_jsat_dispatcher,
 )
 
@@ -303,6 +304,10 @@ def _has_current_codex_jsat_mcp(config_path: Path) -> bool:
 
 def _codex_jsat_config_path() -> Path:
     return Path.home() / ".codex" / "config.toml"
+
+
+def _codex_jsat_skill_dir() -> Path:
+    return Path.home() / ".codex" / "skills" / "jsat"
 
 
 def _connect_codex_mcp(
@@ -655,10 +660,10 @@ def cmd_connect_codex(
     ),
     no_instructions: bool = typer.Option(
         False, "--no-instructions",
-        help="Deprecated no-op; Codex guidance is served by JSAT's MCP tools",
+        help="Skip installing the global $jsat Codex skill",
     ),
 ) -> None:
-    """Wire JSAT into OpenAI Codex CLI as a single global MCP server entry.
+    """Wire JSAT into OpenAI Codex CLI as a global MCP server and skill.
 
     \b
     One-time setup:
@@ -668,21 +673,29 @@ def cmd_connect_codex(
     No project files are generated. Codex resolves the repo from the directory
     where Codex runs, so start Codex in the target repo or use `jsat codex --repo`.
 
-    Writes one file:
-      ~/.codex/config.toml     — MCP server registration
+    Writes global Codex files:
+      ~/.codex/config.toml             — MCP server registration
+      ~/.codex/skills/jsat/SKILL.md    — $jsat command dispatcher
     """
     binary = _jsat_binary()
-    _ = (repo, scope, global_, no_instructions)
+    _ = (repo, scope, global_)
     config_path = _codex_jsat_config_path()
     env = {"JSAT_AI_PROVIDER": "codex_cli", "JSAT_MCP_ALLOW_INSECURE": "1"}
     already = _connect_codex_mcp(config_path, binary, env=env)
+    skill_dir: Path | None = None
+    if not no_instructions:
+        skill_dir = _write_codex_skill(_codex_jsat_skill_dir())
     action = "Updated" if already else "Added"
     console.print(f"\n[green]✓[/] {action} JSAT in Codex config: [cyan]{config_path}[/]")
+    if skill_dir is not None:
+        console.print(f"[green]✓[/] Installed Codex skill: [cyan]{skill_dir / 'SKILL.md'}[/]")
     console.print(
-        "[dim]No AGENTS.md, .agents/skills, or project .codex files were generated.[/dim]\n"
+        "[dim]No project AGENTS.md, .agents/skills, or .codex files were generated.[/dim]\n"
+        "[dim]Use `$jsat magic TASK` in Codex; `@jsat magic TASK` is treated as "
+        "the same dispatcher request.[/dim]\n"
         "[dim]Run Codex from the target repo, or launch it with `jsat codex --repo PATH`.[/dim]\n"
     )
-    console.print("[bold yellow]→ Restart Codex[/] to activate MCP config changes.\n")
+    console.print("[bold yellow]→ Restart Codex[/] to activate MCP and skill changes.\n")
 
 
 def _write_instructions_file(file_path: Path) -> None:

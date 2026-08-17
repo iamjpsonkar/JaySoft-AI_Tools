@@ -4,7 +4,7 @@ Everything an AI agent needs to make a correct change to JSAT itself. Read this
 before touching the code. It is written for you, not for end users — the README
 describes what JSAT *does*; this describes how it is *built*.
 
-**Verify before you trust.** Facts here were reviewed at JSAT 0.4.10
+**Verify before you trust.** Facts here were reviewed at JSAT 0.4.11
 (2026-08-17). Counts drift. Re-derive anything load-bearing with `jsat index .`
 and the MCP tools rather than quoting this file back at the user.
 
@@ -19,7 +19,7 @@ then exposes that graph through three surfaces that share one core: a **CLI**
 any AI tool can call. Everything else — blast radius, security review, incident
 investigation, test gaps — is a query over that graph plus, optionally, an LLM.
 
-| | 0.4.10 |
+| | 0.4.11 |
 |---|---|
 | Python modules | 85 |
 | CLI commands (top level) | 33 |
@@ -232,7 +232,7 @@ publishes to PyPI, which is effectively permanent.
 
 ---
 
-## 9. Known debt (reviewed at 0.4.10)
+## 9. Known debt (reviewed at 0.4.11)
 
 - `mcp/tools.py` — a 47-entry `MCP_TOOLS` list nothing imports. Dead.
 - `skills/` — YAML skill registry; only `source.type == "script"` actually executes,

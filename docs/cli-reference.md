@@ -311,7 +311,7 @@ Print the installed JSAT version.
 
 ```bash
 jsat version
-# jsat 0.4.10
+# jsat 0.4.11
 ```
 
 ---
@@ -599,7 +599,7 @@ The MCP server defaults to **open access with a startup warning** when no auth e
 
 ### `jsat connect codex`
 
-Wire JSAT into the OpenAI Codex CLI as an MCP server.
+Wire JSAT into the OpenAI Codex CLI as an MCP server and Codex skill.
 
 ```
 jsat connect codex [OPTIONS]
@@ -610,20 +610,28 @@ jsat connect codex [OPTIONS]
 | `--scope`, `-s` | `global` | Deprecated compatibility option; Codex uses `~/.codex/config.toml` |
 | `--global`, `-g` | false | Deprecated compatibility option; Codex config is always global |
 | `--repo`, `-r` | `.` | Compatibility option; repo is resolved from Codex's working directory at runtime |
-| `--no-instructions` | false | Deprecated no-op; Codex guidance is served by JSAT MCP tools |
+| `--no-instructions` | false | Skip installing `~/.codex/skills/jsat/SKILL.md` |
 
 ```bash
-jsat connect codex                          # one-time global MCP config entry
+jsat connect codex                          # global MCP config + $jsat skill
 jsat codex --repo /path/to/repo              # launch Codex in a specific repo
+jsat codex resume <session-id>               # resume an existing Codex session
+$jsat magic investigate the checkout flow     # inside Codex
 ```
 
-Writes one file:
+Writes global Codex files:
 - `~/.codex/config.toml` — one `[mcp_servers.jsat]` table
+- `~/.codex/skills/jsat/SKILL.md` — one Codex skill dispatcher
 
 No `.codex/`, `AGENTS.md`, or `.agents/skills` files are generated in the target
-repo. In Codex, use JSAT by asking naturally or by calling MCP tools such as
-`jsat__query`, `jsat__blast_radius`, `jsat__security_review`, `jsat__get_test_gaps`,
-and `jsat__submit_for_review`.
+repo. In Codex, use `$jsat magic TASK`, `$jsat query QUESTION`, or ask naturally.
+The dispatcher also treats `@jsat magic TASK` as the same JSAT request when Codex
+routes it to the skill. Direct MCP tools such as `jsat__query`,
+`jsat__blast_radius`, `jsat__security_review`, `jsat__get_test_gaps`, and
+`jsat__submit_for_review` remain available.
+
+`jsat codex` forwards extra arguments to the real Codex CLI after auto-connecting
+JSAT, so Codex commands such as `resume <session-id>` keep working.
 
 ---
 
@@ -814,7 +822,7 @@ jsat disconnect TOOL [OPTIONS]
 | Argument | Default | Description |
 |---------|---------|-------------|
 | `TOOL` | `claude` | `claude` \| `codex` \| `cursor` \| `windsurf` \| `continue` \| `zed` \| `gemini` \| `all` |
-| `--scope`, `-s` | `project` | `project`, `global`, or `all`. Claude uses project/global; Codex removes its global entry by default and only touches project legacy files with `--scope all`. |
+| `--scope`, `-s` | `project` | `project`, `global`, or `all`. Claude uses project/global; Codex removes its global MCP entry and skill by default and only touches project legacy files with `--scope all`. |
 | `--keep-skills` | false | Keep `/jsat-*` skill files when disconnecting from Claude Code |
 
 ```bash
@@ -822,7 +830,7 @@ jsat disconnect claude                       # Claude Code project scope
 jsat disconnect claude --scope global        # Claude Code global
 jsat disconnect claude --scope all           # Claude Code everywhere
 jsat disconnect claude --keep-skills         # remove MCP entry, keep slash commands
-jsat disconnect codex                        # Codex global MCP entry
+jsat disconnect codex                        # Codex global MCP entry + $jsat skill
 jsat disconnect cursor                       # Cursor
 jsat disconnect windsurf                     # Windsurf
 jsat disconnect continue                     # Continue.dev

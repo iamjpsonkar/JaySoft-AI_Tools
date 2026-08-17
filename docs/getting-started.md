@@ -57,7 +57,7 @@ Verify the install:
 
 ```bash
 jsat version
-# jsat 0.4.10
+# jsat 0.4.11
 ```
 
 ---
@@ -93,9 +93,10 @@ Claude commands:
     jsat connect codex
     ```
 
-    Writes one `[mcp_servers.jsat]` entry to `~/.codex/config.toml`. JSAT does not
-    create `.codex/`, `AGENTS.md`, or `.agents/skills` in your project. Launch Codex
-    from the repo you want to inspect, or run `jsat codex --repo /path/to/repo`.
+    Writes one `[mcp_servers.jsat]` entry to `~/.codex/config.toml` and one global
+    Codex skill at `~/.codex/skills/jsat/SKILL.md`. JSAT does not create `.codex/`,
+    `AGENTS.md`, or `.agents/skills` in your project. Launch Codex from the repo
+    you want to inspect, or run `jsat codex --repo /path/to/repo`.
 
 After running, **restart the AI tool** to activate the MCP tools.
 
@@ -154,10 +155,13 @@ jsat index . --languages python,go
 
     ```bash
     jsat codex --repo .
+    jsat codex resume <session-id>
+    $jsat magic investigate the checkout flow
     ```
 
-    Opens Codex in the repo directory with JSAT MCP tools available. No project-local
-    Codex files are generated.
+    Opens Codex in the repo directory with JSAT MCP tools and the `$jsat`
+    dispatcher available. No project-local Codex files are generated. Extra
+    arguments after `jsat codex` are forwarded to the Codex CLI.
 
 === "Interactive Shell"
 

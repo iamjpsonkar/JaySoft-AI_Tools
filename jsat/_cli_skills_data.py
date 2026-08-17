@@ -1553,6 +1553,114 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
     return commands_dir
 
 
+def _write_codex_skill(skill_dir: Path | None = None) -> Path:
+    """Write one global Codex skill that dispatches JSAT's bundled commands.
+
+    Codex does not use Claude's `.claude/commands/` slash-command directory. Keep
+    the Codex integration project-clean by installing a single user-level skill
+    under `~/.codex/skills/jsat/SKILL.md`.
+    """
+    if skill_dir is None:
+        skill_dir = Path.home() / ".codex" / "skills" / "jsat"
+
+    skill_dir.mkdir(parents=True, exist_ok=True)
+
+    pkg_commands_dir = Path(__file__).parent / "commands"
+    skill_files = sorted(pkg_commands_dir.glob("jsat-*.md"))
+
+    def _frontmatter_desc(text: str) -> str:
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith("description:"):
+                return line.removeprefix("description:").strip().strip('"')
+        return ""
+
+    def _strip_frontmatter(text: str) -> str:
+        lines = text.splitlines()
+        if not lines or lines[0].strip() != "---":
+            return text
+        try:
+            end = lines.index("---", 1)
+            return "\n".join(lines[end + 1:]).lstrip("\n")
+        except ValueError:
+            return text
+
+    def _codex_text(text: str) -> str:
+        import re
+        text = text.replace("by you, Claude", "by you, Codex")
+        text = text.replace("Claude Code slash commands", "JSAT Codex commands")
+        text = text.replace("Claude Code slash command", "JSAT Codex command")
+        text = re.sub(r"/jsat-([A-Za-z0-9_-]+)", r"$jsat \1", text)
+        text = text.replace("/jsat ", "$jsat ")
+        return text
+
+    lines: list[str] = [
+        "---",
+        "name: jsat",
+        "description: >-",
+        "  JSAT command dispatcher for Codex. Use when the user writes `$jsat <command>`",
+        "  or `@jsat <command>`, including `$jsat magic <task>`, `$jsat query`,",
+        "  `$jsat blast-radius`, `$jsat security`, and other JSAT workflows.",
+        "---",
+        "",
+        "# JSAT Codex Dispatcher",
+        "",
+        "This is the Codex-native JSAT dispatcher.",
+        "",
+        "When the user writes `$jsat <command> [flags] [args]`, parse the first word",
+        "after `jsat` as COMMAND and everything after it as ARGS. If the user writes",
+        "`@jsat <command> [flags] [args]`, treat it as the same command form.",
+        "",
+        "Do not delegate this request to another AI command or imported wrapper skill.",
+        "Execute the routed command below using JSAT MCP tools and Codex's own normal",
+        "capabilities.",
+        "",
+        "If COMMAND is `help` or no command was provided, print the command list and stop.",
+        "If COMMAND is unknown, suggest the closest command from the list.",
+        "",
+        "CRITICAL: for every JSAT command step, call `jsat__*` MCP tools. Do not replace",
+        "a JSAT graph query with shell search, file reads, web search, or generic reasoning.",
+        "If no `jsat__*` tools are available, tell the user to run `jsat connect codex`",
+        "and restart Codex.",
+        "",
+        "Before routing, extract universal flags from ARGS and pass them to every JSAT",
+        "MCP tool call:",
+        "",
+        "- `timeout=<N>`: pass `_budget=<N>`.",
+        "- `dashboard=true`: pass `_dashboard=True` and `_dashboard_session=<COMMAND>`.",
+        "",
+        "## Command List",
+        "",
+        "| Command | Description |",
+        "|---------|-------------|",
+    ]
+    for fpath in skill_files:
+        short = fpath.stem.removeprefix("jsat-")
+        desc = _codex_text(_frontmatter_desc(fpath.read_text(encoding="utf-8")))
+        lines.append(f"| `$jsat {short}` | {desc} |")
+
+    lines += ["", "---", ""]
+
+    for fpath in skill_files:
+        short = fpath.stem.removeprefix("jsat-")
+        content = fpath.read_text(encoding="utf-8")
+        desc = _codex_text(_frontmatter_desc(content))
+        body = _codex_text(_strip_frontmatter(content))
+        lines += [
+            f"## {short}",
+            "",
+            f"*{desc}*" if desc else "",
+            "",
+            body.rstrip(),
+            "",
+            "---",
+            "",
+        ]
+
+    (skill_dir / "SKILL.md").write_text("\n".join(lines), encoding="utf-8")
+    return skill_dir
+
+
 def _write_bob_commands(scope: str, commands_dir: Path | None = None) -> Path:
     """Write /jsat-* slash commands so Bob Shell can call JSAT tools.
 
