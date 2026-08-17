@@ -116,7 +116,7 @@ connect_app = typer.Typer(
         "Wire JSAT into AI tools as an MCP server.\n\n"
         "[bold]One-time global setup (recommended):[/bold]\n\n"
         "  [cyan]jsat connect claude --global[/cyan]   — all Claude Code sessions\n"
-        "  [cyan]jsat connect codex  --global[/cyan]   — Codex CLI\n"
+        "  [cyan]jsat connect codex[/cyan]             — Codex CLI\n"
         "  [cyan]jsat connect cursor[/cyan]             — Cursor IDE\n\n"
         "Restart the AI tool after connecting."
     ),

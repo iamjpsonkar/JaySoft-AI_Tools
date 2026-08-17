@@ -15,7 +15,7 @@
 
 Every AI session starts with the same problem: you spend the first ten minutes re-explaining your architecture, re-pasting function signatures, and re-describing how services talk to each other. JSAT solves this by building a persistent graph of your codebase once — functions, classes, files, services, API endpoints, database tables, Kafka topics, and every relationship between them — and making that context instantly available to any AI you use.
 
-JSAT works as a CLI, a Python SDK, and an MCP server that plugs directly into Claude Code. If Claude Code CLI is installed, JSAT uses it automatically with no API key required. For everything else — Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches the provider.
+JSAT works as a CLI, a Python SDK, and an MCP server that plugs into Claude Code, Codex, Cursor, Bob Shell, Gemini CLI, and other MCP-capable tools. If a supported local CLI is installed, JSAT can use it as the AI provider with no API key required. For hosted APIs and local servers — Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches the provider.
 
 Long-running tools stream **live progress notifications** to Claude Code — and with `dashboard=true` on any command, a real-time browser dashboard opens automatically showing every event as it happens.
 
@@ -31,7 +31,7 @@ Long-running tools stream **live progress notifications** to Claude Code — and
 | **Smart budgets** | Over-budget → AI gets notified (call keeps running). Force-kill only at 5× the budget |
 | **Session files** | All major skills write resumable session files — `--continue` picks up where it left off |
 | **Zero-dep dashboard** | Stdlib-only SSE server streams every event to a dark-terminal browser view in real time |
-| **Multi-provider** | Claude Code CLI, Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches |
+| **Multi-provider** | Claude Code CLI, Bob Shell CLI, Codex CLI, Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches |
 | **SDK + CLI + MCP** | Use as a shell, Python SDK, or MCP server — same graph, same tools |
 
 ---
@@ -109,13 +109,14 @@ pip install 'jsat[all]'            # everything
 
 JSAT auto-detects available providers at startup and picks the best one in priority order:
 
-1. **Claude Code CLI** — detected via `which claude`; no API key, no extra SDK, full tool calling
+1. **Claude Code CLI** — detected via `which claude`; no API key, no extra SDK
 2. **Bob Shell CLI** — detected via `which bob`; no API key, IBM AI assistant with multiple modes
-3. **Anthropic API** — if `ANTHROPIC_API_KEY` is set and `jsat[anthropic]` is installed
-4. **OpenAI** — if `OPENAI_API_KEY` is set and `jsat[openai]` is installed
-5. **Ollama** — if `ollama serve` is running at `localhost:11434`
-6. **LM Studio** — if an OpenAI-compatible server is running at `localhost:1234`
-7. **No AI** — tools that don't need AI (indexing, blast radius, export) still work
+3. **OpenAI Codex CLI** — detected via `which codex`; no API key after Codex sign-in
+4. **Anthropic API** — if `ANTHROPIC_API_KEY` is set and `jsat[anthropic]` is installed
+5. **OpenAI** — if `OPENAI_API_KEY` is set and `jsat[openai]` is installed
+6. **Ollama** — if `ollama serve` is running at `localhost:11434`
+7. **LM Studio** — if an OpenAI-compatible server is running at `localhost:1234`
+8. **No AI** — tools that don't need AI (indexing, blast radius, export) still work
 
 ### Check what's available
 
@@ -131,6 +132,7 @@ jsat ai use ollama --model qwen2.5-coder:7b
 jsat ai use anthropic                     # needs ANTHROPIC_API_KEY
 jsat ai use openai --model gpt-4o-mini    # needs OPENAI_API_KEY
 jsat ai use claude_cli                    # Claude Code CLI (no key, uses claude binary)
+jsat ai use codex-cli                     # OpenAI Codex CLI (no API key after sign-in)
 jsat ai use lmstudio                      # any OpenAI-compat server at localhost:1234
 jsat ai test                              # verify the configured provider works
 
@@ -143,6 +145,7 @@ jsat ai use claude_cli --global
 ```
 switch claude    → Claude Code CLI (no key) or Claude API
 switch bob       → Bob Shell (no key)
+switch codex     → OpenAI Codex CLI
 switch gpt       → GPT-4o
 switch ollama    → local Ollama
 switch haiku     → Claude Haiku
@@ -216,12 +219,11 @@ The dashboard runs on `localhost:7432` (override with `JSAT_DASHBOARD_PORT`), se
 ```bash
 # Recommended: one-time global setup (works in every project)
 jsat connect claude --global               # Claude Code — all sessions
-jsat connect codex --global               # OpenAI Codex CLI — all sessions
+jsat connect codex                        # OpenAI Codex CLI — one global MCP entry
 jsat connect bob --global                 # Bob Shell — all sessions
 
 # Per-project (this repo only)
 jsat connect claude                        # Claude Code
-jsat connect codex                         # OpenAI Codex CLI
 jsat connect bob                           # Bob Shell (+ /jsat-* slash commands)
 jsat connect cursor                        # Cursor
 jsat connect windsurf                      # Windsurf (Codeium)
@@ -244,14 +246,13 @@ block and leaves the rest of your `CLAUDE.md` untouched.
 
 ### Files written per tool
 
-Each connect command writes both an MCP config **and** a guidance file so the AI knows what JSAT tools exist and when to use them — without being asked.
+Most connect commands write both an MCP config **and** a guidance file so the AI knows what JSAT tools exist and when to use them — without being asked. Codex is the exception: JSAT writes one global MCP entry and serves capabilities from the JSAT package at runtime, without generating project files.
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
 | Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (41 files) + `CLAUDE.md` | Slash commands + always-on guidance |
 | Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` + `~/CLAUDE.md` | Slash commands + always-on guidance |
-| Codex (project) | `.codex/config.json` | `.codex/instructions.md` | Agent instructions |
-| Codex (global) | `~/.codex/config.json` | `~/.codex/instructions.md` | Agent instructions |
+| Codex | `~/.codex/config.toml` | — | MCP tools only; no project files |
 | Bob Shell (project) | `.bob/settings.json` | `BOB.md` + `.bob/commands/jsat-*.md` | Slash commands |
 | Bob Shell (global) | `~/.bob/settings.json` | `BOB.md` + `~/.bob/commands/jsat-*.md` | Slash commands |
 | Cursor | `~/.cursor/mcp.json` | — | — |
@@ -260,9 +261,9 @@ Each connect command writes both an MCP config **and** a guidance file so the AI
 | Zed | `~/.config/zed/settings.json` | `.zed/JSAT.md` | Project context |
 | Gemini CLI | `~/.gemini/settings.json` | `GEMINI.md` | Project instructions |
 
-Pass `--global` (claude/codex/bob) or check the tool's docs for global scope on others.
+Pass `--global` (claude/bob) or check the tool's docs for global scope on others.
 
-Pass `--no-instructions` to skip writing the guidance file (MCP only).
+Pass `--no-instructions` to skip writing guidance files on integrations that support them.
 
 ### `/jsat` dispatcher
 
@@ -972,15 +973,15 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat ai test` | Send a test prompt and verify the provider works |
 | `jsat ai models` | List models available from the configured provider |
 
-### Claude Code integration
+### AI tool integrations
 
 | Command | Description |
 |---|---|
 | `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 41 slash commands |
 | `jsat connect claude --global` | Wire JSAT into Claude Code globally (all projects) |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
-| `jsat connect codex` | Wire JSAT into OpenAI Codex CLI (project scope) |
-| `jsat connect codex --global` | Wire JSAT into Codex globally |
+| `jsat connect codex` | Wire JSAT into OpenAI Codex CLI via `~/.codex/config.toml` |
+| `jsat connect codex --global` | Compatibility alias; writes the same global Codex entry |
 | `jsat connect bob` | Wire JSAT into Bob Shell (project scope) |
 | `jsat connect bob --global` | Wire JSAT into Bob Shell globally |
 | `jsat connect cursor` | Wire JSAT into Cursor |
@@ -1214,7 +1215,7 @@ embeddings:
   model: nomic-embed-code
 
 ai:
-  provider: ollama         # ollama | anthropic | openai | openai_compat | claude_cli | none
+  provider: ollama         # ollama | anthropic | openai | openai_compat | claude_cli | bob_cli | codex_cli | none
   model: llama3.2
   base_url: null           # for openai_compat (LM Studio, Gemini, etc.)
 

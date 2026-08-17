@@ -2,7 +2,7 @@
 
 JSAT works as an MCP server with every major AI coding tool. Each integration gives you the same
 depth of codebase intelligence: a launcher command, auto-connection on first use, a full set of
-skills or custom commands, and shell `switch` support.
+MCP tools, and shell `switch` support.
 
 ---
 
@@ -13,8 +13,8 @@ skills or custom commands, and shell `switch` support.
 | `jsat <tool>` launcher | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
 | Auto-connect on launch | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
 | `jsat connect <tool>` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `--scope project/global` | ✅ | ✅ | ✅ | — (global) | — (global) | — (global) | — (global) | ✅ |
-| Skills / custom commands | 31 slash cmds | instructions.md | .cursorrules | .windsurfrules | 31 slash cmds | .zed/JSAT.md | GEMINI.md | 31 slash cmds + BOB.md |
+| `--scope project/global` | ✅ | Global only | ✅ | — (global) | — (global) | — (global) | — (global) | ✅ |
+| Skills / custom commands | 41 slash cmds | MCP tools only | .cursorrules | .windsurfrules | 10 custom cmds | .zed/JSAT.md | GEMINI.md | 41 slash cmds + BOB.md |
 | `switch <tool>` in shell | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
 | `--keep-guidance` on disconnect | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Tool type | CLI | CLI | GUI | GUI | IDE ext | GUI | CLI | CLI |
@@ -37,7 +37,7 @@ jsat zed         # Zed editor
 jsat bob         # Bob Shell
 ```
 
-Each launcher auto-connects JSAT if not already wired and opens the tool with 55 MCP tools ready.
+Each launcher auto-connects JSAT if not already wired and opens the tool with 69 MCP tools ready.
 
 ---
 
@@ -54,11 +54,11 @@ jsat connect claude --no-skills          # MCP only, skip slash commands
 
 **What gets installed (global):**
 - `~/.claude/settings.json` — MCP server config
-- `~/.claude/commands/jsat-*.md` — 31 slash commands
+- `~/.claude/commands/jsat-*.md` — 41 slash commands
 
 **What gets installed (project):**
 - `.claude/settings.json` — MCP server config
-- `.claude/commands/jsat-*.md` — 31 slash commands
+- `.claude/commands/jsat-*.md` — 41 slash commands
 
 **Slash commands:** `/jsat-query`, `/jsat-blast-radius`, `/jsat-security`, `/jsat-review`,
 `/jsat-test-gaps`, `/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt`,
@@ -75,20 +75,28 @@ switch claude-cli    → launch full Claude Code session
 
 ```bash
 jsat codex                               # open with JSAT pre-loaded
-jsat connect codex --global              # global — all sessions (recommended)
-jsat connect codex                       # project scope only
+jsat connect codex                       # one global MCP config entry
+jsat codex --repo /path/to/repo           # launch Codex in a specific repo
 ```
 
 **What gets installed:**
-- `.codex/config.json` — MCP server config
-- `.codex/instructions.md` — JSAT tool guidance (Codex reads at startup)
+- `~/.codex/config.toml` — one `[mcp_servers.jsat]` entry
+
+JSAT does **not** generate `.codex/`, `AGENTS.md`, or `.agents/skills` inside the
+target repo for Codex. Run Codex from the repo you want to analyze, or use
+`jsat codex --repo /path/to/repo`; JSAT resolves that working directory at runtime.
+
+**Use in Codex:** ask naturally, e.g. "use JSAT to trace the blast radius of
+`src/payment/service.py`", or inspect/call MCP tools such as `jsat__query`,
+`jsat__blast_radius`, `jsat__security_review`, `jsat__get_test_gaps`, and
+`jsat__submit_for_review`.
 
 **In the JSAT shell:**
 ```
 switch codex    → launch Codex CLI session
 ```
 
-**Install Codex** (all platforms): `npm install -g @openai/codex`
+**Install Codex:** `curl -fsSL https://chatgpt.com/codex/install.sh | sh`
 
 ---
 
@@ -139,16 +147,15 @@ Continue is an IDE extension (VS Code, JetBrains). There's no `jsat continue` la
 runs inside your IDE.
 
 ```bash
-jsat connect continue                    # wire JSAT in + install 31 /jsat-* commands
+jsat connect continue                    # wire JSAT in + install 10 /jsat-* commands
 ```
 
 **What gets installed:**
-- `~/.continue/config.json` — MCP server + 31 `customCommands`
+- `~/.continue/config.json` — MCP server + 10 `customCommands`
 
-**Custom commands (same 31 as Claude's slash commands):**
+**Custom commands (curated subset):**
 `/jsat-query`, `/jsat-blast-radius`, `/jsat-security`, `/jsat-review`, `/jsat-test-gaps`,
-`/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt`, `/jsat-tokens`, `/jsat-ithinking`,
-and 21 more.
+`/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt-rewrite`, `/jsat-tokens`, `/jsat-ithinking`.
 
 After connecting, reload Continue: `Cmd/Ctrl+Shift+P → Continue: Reload`.
 
@@ -208,7 +215,7 @@ loaded from `.bob/` and `BOB.md`, so nothing is injected as a throwaway prompt.
 
 **What gets installed:**
 - `.bob/settings.json` (project) or `~/.bob/settings.json` (global) — MCP server config
-- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 31 `/jsat-*` slash commands
+- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 41 `/jsat-*` slash commands
 - `BOB.md` — JSAT tool guidance (Bob Shell reads from project root)
 
 **Slash commands:** type `/` in Bob Shell to browse them — `/jsat-query`,
@@ -241,7 +248,7 @@ From inside `jsat shell`, you can switch to any tool:
 
 ```
 switch claude-cli   → full Claude Code + JSAT MCP (recommended for Claude)
-switch codex        → Codex CLI (reads .codex/config.json)
+switch codex        → Codex CLI (reads ~/.codex/config.toml)
 switch gemini       → Gemini CLI (reads ~/.gemini/settings.json + GEMINI.md)
 switch cursor       → open Cursor IDE in background
 switch windsurf     → open Windsurf IDE in background
@@ -268,7 +275,7 @@ jsat disconnect gemini                   # Gemini
 jsat disconnect bob                      # Bob Shell
 jsat disconnect all                      # every tool at once
 
-# Keep guidance files (instructions.md, .cursorrules, etc.)
+# Keep guidance files for integrations that generate them (.cursorrules, etc.)
 jsat disconnect cursor --keep-guidance
 ```
 
@@ -285,7 +292,7 @@ jsat doctor             # full health check including connected tools
 
 ## MCP Tools Available in Every Tool
 
-All 55 JSAT MCP tools are available to every connected AI tool:
+All 69 JSAT MCP tools are available to every connected AI tool:
 
 | Category | Key tools |
 |---|---|

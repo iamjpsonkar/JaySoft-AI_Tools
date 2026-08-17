@@ -42,7 +42,7 @@ _CONFIDENCE_ORDER: dict[str, int] = {"high": 3, "medium": 2, "low": 1}
 
 # Provider strings that map to known classes
 _KNOWN_PROVIDERS = frozenset(
-    {"claude_cli", "anthropic", "openai", "openai_compat", "ollama"}
+    {"claude_cli", "codex_cli", "anthropic", "openai", "openai_compat", "ollama"}
 )
 
 
@@ -103,6 +103,10 @@ def _make_provider(entry: dict[str, Any], cfg: Any) -> AIProvider | None:
         if provider_key == "claude_cli":
             from jsat._ai.claude_cli import ClaudeCliProvider
             return ClaudeCliProvider(patched_cfg)
+
+        if provider_key == "codex_cli":
+            from jsat._ai.codex_cli import CodexCliProvider
+            return CodexCliProvider(patched_cfg)
 
         if provider_key == "anthropic":
             from jsat._ai.anthropic import AnthropicProvider  # type: ignore[import]

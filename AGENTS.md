@@ -4,9 +4,9 @@ Everything an AI agent needs to make a correct change to JSAT itself. Read this
 before touching the code. It is written for you, not for end users — the README
 describes what JSAT *does*; this describes how it is *built*.
 
-**Verify before you trust.** Facts here were true at JSAT 0.4.8 (2026-08-15,
-`820c4dc`). Counts drift. Re-derive anything load-bearing with `jsat index .` and
-the MCP tools rather than quoting this file back at the user.
+**Verify before you trust.** Facts here were reviewed at JSAT 0.4.10
+(2026-08-17). Counts drift. Re-derive anything load-bearing with `jsat index .`
+and the MCP tools rather than quoting this file back at the user.
 
 ---
 
@@ -19,14 +19,14 @@ then exposes that graph through three surfaces that share one core: a **CLI**
 any AI tool can call. Everything else — blast radius, security review, incident
 investigation, test gaps — is a query over that graph plus, optionally, an LLM.
 
-| | 0.4.8 |
+| | 0.4.10 |
 |---|---|
-| Python modules | 84 |
+| Python modules | 85 |
 | CLI commands (top level) | 33 |
 | MCP tools | 69 (`len(MCPServer._build_registry(...))`) |
 | Slash commands (`jsat/commands/*.md`) | 41 |
-| Tests | 532 across 25 files |
-| Graph of this repo | ~1,626 nodes / ~10,635 edges |
+| CI-safe pytest result | 496 passed / 9 skipped / 32 deselected across 26 files |
+| Graph of this repo | Run `jsat index .` and `jsat status` before relying on counts |
 
 ---
 
@@ -54,8 +54,8 @@ jsat/
   _secrets.py         secret patterns + entropy (shared by security and improve)
   _call_context.py    thread-local checkpoint() for MCP progress events
 
-  _ai/                provider adapters: claude_cli, bob_cli, anthropic, openai,
-                      openai_compat, ollama, none + aliases.py (THE alias table)
+  _ai/                provider adapters: claude_cli, bob_cli, codex_cli, anthropic,
+                      openai, openai_compat, ollama, none + aliases.py (THE alias table)
   _graph/             sqlite.py (default), neo4j.py, lightgraph.py
   _parsers/           tree-sitter per language + manifest.py
   _cache/, _embed/    cache and embedding backends
@@ -145,9 +145,10 @@ instructions). It is auto-globbed into the `/jsat` dispatcher. Then **also**:
 `JSATConfig`. Existing config files stay valid because everything defaults.
 
 ### Add an AI provider
-Implement `AIProvider` (`_ai/__init__.py`), register it in `get_ai_provider()`, and
-add aliases to `_ai/aliases.py` — that table is the single source of truth for the
-SDK, the shell, and `jsat ai use`.
+Implement `AIProvider` (`_ai/__init__.py`), allow it in `_models.AIConfig.provider`,
+register it in `get_ai_provider()`, add it to `detect_ai_providers()`, and add aliases
+to `_ai/aliases.py` — that table is the single source of truth for the SDK, the
+shell, and `jsat ai use`.
 
 ---
 
@@ -231,7 +232,7 @@ publishes to PyPI, which is effectively permanent.
 
 ---
 
-## 9. Known debt (accurate as of 0.4.8)
+## 9. Known debt (reviewed at 0.4.10)
 
 - `mcp/tools.py` — a 47-entry `MCP_TOOLS` list nothing imports. Dead.
 - `skills/` — YAML skill registry; only `source.type == "script"` actually executes,

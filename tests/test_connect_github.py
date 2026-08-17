@@ -19,7 +19,7 @@ def _config(tmp_path, tool="claude"):
     rel = {
         "claude": ".claude/settings.json",
         "cursor": ".cursor/mcp.json",
-        "codex": ".codex/config.json",
+        "codex": ".codex/config.toml",
     }[tool]
     return tmp_path / rel
 
@@ -89,11 +89,27 @@ def test_warns_when_jsat_not_yet_connected(tmp_path):
 
 
 @pytest.mark.ci
-@pytest.mark.parametrize("tool", ["cursor", "codex"])
+@pytest.mark.parametrize("tool", ["cursor"])
 def test_supports_other_tools(tool, tmp_path):
     result = runner.invoke(app, ["connect", "github", tool, "--repo", str(tmp_path)])
     assert result.exit_code == 0
     assert "github" in json.loads(_config(tmp_path, tool).read_text())["mcpServers"]
+
+
+@pytest.mark.ci
+def test_supports_codex_with_global_toml(monkeypatch, tmp_path):
+    import jsat._cli_connect as connectmod
+
+    home = tmp_path / "home"
+    monkeypatch.setattr(connectmod.Path, "home", classmethod(lambda cls: home))
+
+    result = runner.invoke(app, ["connect", "github", "codex", "--repo", str(tmp_path)])
+
+    assert result.exit_code == 0
+    raw = (home / ".codex" / "config.toml").read_text(encoding="utf-8")
+    assert "[mcp_servers.github]" in raw
+    assert "ghcr.io/github/github-mcp-server" in raw
+    assert not (tmp_path / ".codex").exists()
 
 
 @pytest.mark.ci

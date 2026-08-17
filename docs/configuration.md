@@ -90,7 +90,7 @@ embeddings:
 
 # ── AI provider ────────────────────────────────────────────────────────────────
 ai:
-  provider: ollama              # "ollama" | "anthropic" | "openai" | "openai_compat" | "none"
+  provider: ollama              # "ollama" | "anthropic" | "openai" | "openai_compat" | "claude_cli" | "bob_cli" | "codex_cli" | "none"
   model: llama3.2
   api_key_env: null             # env var name, e.g. ANTHROPIC_API_KEY (read automatically)
   base_url: null                # for openai_compat (LM Studio, Gemini, custom)
@@ -482,7 +482,7 @@ Controls structlog output.
 
 Controls multi-model parallel code review (Tool 9 — MultiModelReview).
 
-- `models` — list of provider/model pairs to dispatch the diff to simultaneously. Each entry must specify a `provider` (`claude_cli`, `ollama`, `anthropic`, `openai`, `openai_compat`) and a `model` name.
+- `models` — list of provider/model pairs to dispatch the diff to simultaneously. Each entry must specify a `provider` (`claude_cli`, `bob_cli`, `codex_cli`, `ollama`, `anthropic`, `openai`, `openai_compat`) and a `model` name.
 - `parallel_timeout_seconds` — wall-clock deadline applied to every model dispatch. Models that exceed this are skipped; their timeout is recorded as a warning in the review output.
 - `min_confidence` — controls which findings are surfaced:
   - `low` — any single model's finding

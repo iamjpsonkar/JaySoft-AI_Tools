@@ -311,7 +311,7 @@ Print the installed JSAT version.
 
 ```bash
 jsat version
-# jsat 0.1.0
+# jsat 0.4.10
 ```
 
 ---
@@ -374,7 +374,7 @@ Session file written to `~/.jsat/sessions/prompt-<slug>-<ts>.md`; actions file a
 
 ### `jsat magic`
 
-AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 39,
+AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 41,
 and runs them in the optimal order.
 
 ```bash
@@ -470,7 +470,7 @@ jsat ai use PROVIDER [OPTIONS]
 
 | Argument / Flag | Description |
 |----------------|-------------|
-| `PROVIDER` | `ollama`, `anthropic`, `openai`, `lmstudio`, `claude_cli`, `bob_cli` |
+| `PROVIDER` | `ollama`, `anthropic`, `openai`, `lmstudio`, `claude_cli`, `bob_cli`, `codex-cli` |
 | `--model`, `-m` | Override the default model for this provider |
 | `--config`, `-c` | Config file to write (default: `.jsat/config.yaml`, or `~/.jsat/config.yaml` with `--global`) |
 | `--global`, `-g` | Write to `~/.jsat/config.yaml` — applies to all projects on this machine |
@@ -483,6 +483,7 @@ jsat ai use anthropic
 jsat ai use anthropic --model claude-haiku-4-5-20251001
 jsat ai use openai --model gpt-4o-mini
 jsat ai use claude_cli
+jsat ai use codex-cli
 jsat ai use lmstudio
 
 # Global (writes ~/.jsat/config.yaml)
@@ -529,11 +530,11 @@ jsat ai models
 
 ## 3. Connect Commands (`jsat connect`)
 
-JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — all 55 JSAT tools are immediately available to the AI.
+JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — all 69 JSAT MCP tools are immediately available to the AI.
 
 ### `jsat connect claude`
 
-Wire JSAT into Claude Code as an MCP server and install the `/jsat` dispatcher (39 subcommands) and `/jsat-help`.
+Wire JSAT into Claude Code as an MCP server and install the `/jsat` dispatcher (41 subcommands) and `/jsat-help`.
 
 ```
 jsat connect claude [OPTIONS]
@@ -562,10 +563,10 @@ Restart Claude Code after running.
 `jsat connect claude` installs two commands:
 
 - **`/jsat <subcommand>`** — single dispatcher routing to all 41 skills
-- **`/jsat-help [command]`** — standalone help command; no args lists all 39 commands with one-liners; `/jsat-help <command>` shows full flags and examples
+- **`/jsat-help [command]`** — standalone help command; no args lists all 41 commands with one-liners; `/jsat-help <command>` shows full flags and examples
 
 ```bash
-/jsat-help               # list all 39 subcommands with descriptions
+/jsat-help               # list all 41 subcommands with descriptions
 /jsat-help magic         # full flags and examples for /jsat magic
 /jsat query <question>   # answer codebase questions (6-phase Discuss→Verify)
 /jsat crack <task>       # multi-agent war room (artifact carry-forward)
@@ -598,7 +599,7 @@ The MCP server defaults to **open access with a startup warning** when no auth e
 
 ### `jsat connect codex`
 
-Wire JSAT into the OpenAI Codex CLI as an MCP server and write agent instructions.
+Wire JSAT into the OpenAI Codex CLI as an MCP server.
 
 ```
 jsat connect codex [OPTIONS]
@@ -606,20 +607,23 @@ jsat connect codex [OPTIONS]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--scope`, `-s` | `project` | `project` → `.codex/` \| `global` → `~/.codex/` |
-| `--global`, `-g` | false | Shorthand for `--scope global` — all Codex sessions |
-| `--repo`, `-r` | `.` | Repo path passed to the MCP server |
-| `--no-instructions` | false | MCP config only — skip instructions.md |
+| `--scope`, `-s` | `global` | Deprecated compatibility option; Codex uses `~/.codex/config.toml` |
+| `--global`, `-g` | false | Deprecated compatibility option; Codex config is always global |
+| `--repo`, `-r` | `.` | Compatibility option; repo is resolved from Codex's working directory at runtime |
+| `--no-instructions` | false | Deprecated no-op; Codex guidance is served by JSAT MCP tools |
 
 ```bash
-jsat connect codex                          # project scope
-jsat connect codex --global                 # global — all Codex sessions (recommended)
-jsat connect codex --scope global           # same as --global
+jsat connect codex                          # one-time global MCP config entry
+jsat codex --repo /path/to/repo              # launch Codex in a specific repo
 ```
 
-Writes two files:
-- `.codex/config.json` (or `~/.codex/config.json` with `--global`) — MCP server registration
-- `.codex/instructions.md` (or `~/.codex/instructions.md`) — JSAT tool guidance
+Writes one file:
+- `~/.codex/config.toml` — one `[mcp_servers.jsat]` table
+
+No `.codex/`, `AGENTS.md`, or `.agents/skills` files are generated in the target
+repo. In Codex, use JSAT by asking naturally or by calling MCP tools such as
+`jsat__query`, `jsat__blast_radius`, `jsat__security_review`, `jsat__get_test_gaps`,
+and `jsat__submit_for_review`.
 
 ---
 
@@ -641,7 +645,7 @@ jsat connect cursor
 
 Writes to `~/.cursor/mcp.json`. Restart Cursor after running.
 
-> **Note:** Cursor reads `.cursorrules` from the project root as agent instructions. You can copy the content from `.codex/instructions.md` or `.windsurfrules` if you want JSAT guidance in Cursor too.
+> **Note:** Cursor reads `.cursorrules` from the project root as agent instructions.
 
 ---
 
@@ -771,7 +775,7 @@ jsat connect bob --global                   # global — all Bob sessions (recom
 
 Writes:
 - `.bob/settings.json` (or `~/.bob/settings.json`) — MCP server registration
-- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 31 slash commands
+- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 41 slash commands
 - `BOB.md` — JSAT tool guidance (Bob Shell reads from project root automatically)
 
 ---
@@ -784,14 +788,13 @@ Show all AI tools that have JSAT wired as an MCP server.
 jsat connect list
 ```
 
-Checks all 9 known config locations:
+Checks known config locations:
 
 | Tool | Config file |
 |---|---|
 | Claude Code (project) | `.claude/settings.json` |
 | Claude Code (global) | `~/.claude/settings.json` |
-| Codex (project) | `.codex/config.json` |
-| Codex (global) | `~/.codex/config.json` |
+| Codex | `~/.codex/config.toml` |
 | Cursor | `~/.cursor/mcp.json` |
 | Windsurf | `~/.codeium/windsurf/mcp_config.json` |
 | Continue | `~/.continue/config.json` |
@@ -811,7 +814,7 @@ jsat disconnect TOOL [OPTIONS]
 | Argument | Default | Description |
 |---------|---------|-------------|
 | `TOOL` | `claude` | `claude` \| `codex` \| `cursor` \| `windsurf` \| `continue` \| `zed` \| `gemini` \| `all` |
-| `--scope`, `-s` | `project` | `project`, `global`, or `all` (claude and codex only) |
+| `--scope`, `-s` | `project` | `project`, `global`, or `all`. Claude uses project/global; Codex removes its global entry by default and only touches project legacy files with `--scope all`. |
 | `--keep-skills` | false | Keep `/jsat-*` skill files when disconnecting from Claude Code |
 
 ```bash
@@ -819,8 +822,7 @@ jsat disconnect claude                       # Claude Code project scope
 jsat disconnect claude --scope global        # Claude Code global
 jsat disconnect claude --scope all           # Claude Code everywhere
 jsat disconnect claude --keep-skills         # remove MCP entry, keep slash commands
-jsat disconnect codex                        # Codex project scope
-jsat disconnect codex --scope global         # Codex global
+jsat disconnect codex                        # Codex global MCP entry
 jsat disconnect cursor                       # Cursor
 jsat disconnect windsurf                     # Windsurf
 jsat disconnect continue                     # Continue.dev
@@ -1278,6 +1280,7 @@ Two flags work on every `/jsat` command — strip them before routing and pass t
 | `ANTHROPIC_API_KEY` | Anthropic API provider |
 | `OPENAI_API_KEY` | OpenAI provider |
 | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Gemini provider |
+| `JSAT_AI_PROVIDER` | Override AI provider for this process (`codex_cli`, `claude_cli`, etc.) |
 | `NEO4J_PASSWORD` | Neo4j graph backend |
 | `QDRANT_API_KEY` | Qdrant vector store |
 | `JSAT_MCP_TOKEN` | MCP server auth token (if `mcp.auth: true`) |

@@ -1,6 +1,6 @@
 # AI Providers
 
-JSAT supports six AI backends. The right one is selected automatically based on what is available, but you can override it at any time.
+JSAT supports local CLI providers, hosted APIs, and local OpenAI-compatible servers. The right one is selected automatically based on what is available, but you can override it at any time.
 
 ## Provider Overview
 
@@ -10,6 +10,7 @@ JSAT supports six AI backends. The right one is selected automatically based on 
 |----------|---------------|------|-------|
 | Claude Code CLI | `jsat ai use claude_cli` | Free tier | `claude` binary |
 | Bob Shell CLI | `jsat ai use bob_cli` | Free tier | `bob` binary |
+| OpenAI Codex CLI | `jsat ai use codex-cli` | Paid/free by account | `codex` binary + Codex sign-in |
 | Anthropic API | `jsat ai use anthropic` | Paid | `ANTHROPIC_API_KEY` |
 | OpenAI | `jsat ai use openai` | Paid | `OPENAI_API_KEY` |
 | Google Gemini | `jsat ai use gemini` | Paid | `GEMINI_API_KEY` |
@@ -34,6 +35,8 @@ Example output:
 │ Provider             │ Status       │ Free │ Notes / Models         │
 ├──────────────────────┼──────────────┼──────┼────────────────────────┤
 │ claude (active)      │ ✓ available  │ yes  │ claude binary found     │
+│ bob                  │ ✓ available  │ no   │ bob binary found        │
+│ codex-cli            │ ✓ available  │ no   │ codex binary found      │
 │ anthropic            │ ✓ key set    │ no   │ claude-sonnet-4-6      │
 │ ollama               │ ✓ running    │ yes  │ llama3.2, phi3:mini    │
 │ openai               │ ✗ no key     │ no   │ set OPENAI_API_KEY     │
@@ -86,11 +89,6 @@ jsat ai test
 ```
 > switch claude-cli
 ```
-
----
-
-## Anthropic API
-
 
 ---
 
@@ -154,7 +152,56 @@ jsat bob --mode advanced
 jsat bob --resume <session-id>
 ```
 
+---
 
+## OpenAI Codex CLI
+
+The Codex CLI provider lets JSAT MCP tools that need an LLM reuse the local
+`codex` binary. JSAT calls `codex exec` in read-only, ephemeral mode and runs it
+from the active repo directory, so it can answer from project context without
+writing Codex instruction or skill files into that repo.
+
+### Install
+
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+# Verify:
+which codex
+codex --version
+```
+
+Run `codex` once from any project directory and sign in before using it as a JSAT
+provider.
+
+### Activate
+
+```bash
+jsat ai use codex-cli
+```
+
+This sets:
+
+```yaml
+ai:
+  provider: codex_cli
+  model: gpt-5.6-sol
+```
+
+### Verify
+
+```bash
+jsat ai test
+```
+
+### Inside the shell
+
+```
+> switch codex
+```
+
+---
+
+## Anthropic API
 
 Use the Anthropic API directly (requires a paid API key).
 
@@ -416,11 +463,12 @@ When no provider is explicitly configured, JSAT probes all backends on startup a
 
 1. Claude Code CLI (`claude` binary found on PATH)
 2. Bob Shell CLI (`bob` binary found on PATH)
-3. Anthropic API (`ANTHROPIC_API_KEY` set)
-4. OpenAI API (`OPENAI_API_KEY` set)
-5. Google Gemini (`GEMINI_API_KEY` or `GOOGLE_API_KEY` set)
-6. Ollama (reachable at `localhost:11434`)
-7. LM Studio (reachable at `localhost:1234`)
+3. OpenAI Codex CLI (`codex` binary found on PATH)
+4. Anthropic API (`ANTHROPIC_API_KEY` set)
+5. OpenAI API (`OPENAI_API_KEY` set)
+6. Google Gemini (`GEMINI_API_KEY` or `GOOGLE_API_KEY` set)
+7. Ollama (reachable at `localhost:11434`)
+8. LM Studio (reachable at `localhost:1234`)
 
 If none are reachable, JSAT runs without AI (graph queries only, no natural language).
 
@@ -445,6 +493,8 @@ jsat ai test
 > switch claude-cli
 > switch bob
 > switch bob-cli
+> switch codex
+> switch codex-cli
 > switch gpt
 > switch gpt4mini
 > switch ollama
@@ -477,7 +527,7 @@ All AI settings live under the `ai:` key in `.jsat/config.yaml`:
 
 ```yaml
 ai:
-  provider: ollama          # ollama | anthropic | openai | openai_compat | none
+  provider: ollama          # ollama | anthropic | openai | openai_compat | claude_cli | bob_cli | codex_cli | none
   model: llama3.2
   base_url: null            # set for lmstudio / gemini / custom endpoints
   max_tokens: 8192

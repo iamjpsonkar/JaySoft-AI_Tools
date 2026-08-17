@@ -26,7 +26,7 @@ JSAT(
 |-----------|------|---------|-------------|
 | `repo` | `str \| Path` | `"."` | Repository root directory |
 | `config` | `str \| Path \| None` | `None` | Explicit config file path. If `None`, config is searched in the standard locations (see [Configuration](configuration.md)) |
-| `ai_provider` | `str \| None` | `None` | Override the AI provider from config. Aliases: `"ollama"`, `"anthropic"`, `"openai"`, `"gemini"`, `"claude"`, `"lmstudio"` |
+| `ai_provider` | `str \| None` | `None` | Override the AI provider from config. Aliases: `"ollama"`, `"anthropic"`, `"openai"`, `"gemini"`, `"claude"`, `"bob"`, `"codex-cli"`, `"lmstudio"` |
 | `model` | `str \| None` | `None` | Override the model from config |
 | `log_level` | `str` | `"WARNING"` | Logging level: `"DEBUG"`, `"INFO"`, `"WARNING"`, `"ERROR"` |
 
@@ -426,6 +426,8 @@ Supported aliases:
 | `claude` | `claude_cli` (if installed) or `anthropic` | `claude-sonnet-4-6` |
 | `claude-api` | `anthropic` | `claude-sonnet-4-6` |
 | `claude-cli` | `claude_cli` | `claude-sonnet-4-6` |
+| `bob` / `bob-cli` | `bob_cli` | `premium` |
+| `codex-cli` | `codex_cli` | `gpt-5.6-sol` |
 | `anthropic` | `anthropic` | `claude-sonnet-4-6` |
 | `haiku` | `anthropic` | `claude-haiku-4-5-20251001` |
 | `opus` | `anthropic` | `claude-opus-4-8` |

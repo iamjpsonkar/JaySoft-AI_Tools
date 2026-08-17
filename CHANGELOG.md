@@ -4,6 +4,24 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.10] — 2026-08-17
+
+### Added
+
+- **OpenAI Codex CLI provider support** via `codex exec`, used as a read-only,
+  ephemeral AI provider for JSAT MCP tools when Codex is installed.
+
+### Fixed
+
+- **`jsat connect codex` no longer scaffolds project-local Codex files.** Codex
+  integration now writes a single `[mcp_servers.jsat]` entry to
+  `~/.codex/config.toml`; JSAT capabilities are served by the MCP server and package
+  modules at runtime. `jsat codex --repo <path>` launches Codex in the target repo
+  without creating `.codex/`, `AGENTS.md`, or `.agents/skills` there.
+- **Documentation now matches current Codex and provider behavior.** README and docs
+  now describe `codex_cli`, the 69-tool MCP surface, the 41 Claude/Bob command count,
+  Codex's config-only setup, and current version examples.
+
 ## [0.4.9] — 2026-08-15
 
 ### Added

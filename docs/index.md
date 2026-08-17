@@ -8,11 +8,11 @@
 
 ## What is JSAT?
 
-JSAT gives any AI (Claude, GPT, Gemini, or local Ollama) deep, structured understanding of your codebase — so you spend less time explaining context and more time shipping.
+JSAT gives any AI (Claude, Codex, GPT, Gemini, Bob Shell, or local Ollama) deep, structured understanding of your codebase — so you spend less time explaining context and more time shipping.
 
 - **Interactive shell** — IPython-style REPL for codebase intelligence
 - **Python SDK** — `from jsat import JSAT` for programmatic access
-- **Claude Code integration** — works as an MCP server with `/jsat-*` slash commands
+- **AI tool integrations** — works as an MCP server with Claude Code, Codex, Cursor, Bob Shell, Gemini CLI, and more
 - **Works offline** — local Ollama or LM Studio, no API keys required
 - **Lightweight by default** — `pip install jsat` is ~80 MB and starts in under 800 ms
 - **Graph-native** — SQLite (solo) or Neo4j (team) codebase graph, indexed by tree-sitter
@@ -30,7 +30,7 @@ jsat shell                        # open the interactive shell
 Inside the shell:
 
 ```
-JSAT Shell v0.1.0
+JSAT Shell v0.4.10
 > what does this project do?
 > which services write to the orders table?
 > blast-radius src/payment/refund.py
@@ -94,7 +94,8 @@ JSAT detects your environment on first run and selects the right backends automa
 ## Next Steps
 
 - [Getting Started](getting-started.md) — step-by-step setup
-- [Claude Integration](claude-integration.md) — MCP server + `/jsat-*` commands
+- [AI Integrations](ai-integrations.md) — MCP setup for Claude Code, Codex, Cursor, Bob Shell, and more
+- [Claude Integration](claude-integration.md) — Claude-specific MCP server + `/jsat-*` commands
 - [AI Providers](ai-providers.md) — configure any AI backend
 - [CLI Reference](cli-reference.md) — every command and flag
 - [Tools](tools.md) — the 15 JSAT tools explained

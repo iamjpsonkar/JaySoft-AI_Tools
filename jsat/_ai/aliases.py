@@ -41,6 +41,7 @@ def provider_aliases(base_url: str | None = None) -> dict[str, tuple[str, str, s
         "opus":       ("anthropic",     "claude-opus-4-8",           None),
         "bob":        ("bob_cli",       "premium",                   None),
         "bob-cli":    ("bob_cli",       "premium",                   None),
+        "codex-cli":  ("codex_cli",     "gpt-5.6-sol",               None),
         "gpt":        ("openai",        "gpt-4o",                    None),
         "openai":     ("openai",        "gpt-4o",                    None),
         "chatgpt":    ("openai",        "gpt-4o",                    None),

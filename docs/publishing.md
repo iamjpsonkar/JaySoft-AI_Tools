@@ -57,8 +57,8 @@ pip install --index-url https://test.pypi.org/simple/ jsat
 
 The version is set in two places:
 
-1. `pyproject.toml` — `version = "0.1.0"`
-2. `jsat/__init__.py` — `__version__ = "0.1.0"`
+1. `pyproject.toml` — `version = "<new-version>"`
+2. `jsat/__init__.py` — `__version__ = "<new-version>"`
 
 Update both before building. There is no automated sync; keep them in sync manually or add a pre-build check.
 

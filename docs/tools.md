@@ -1,10 +1,10 @@
 # Tools
 
-JSAT provides 17 tools (15 core + Token Optimizer + Crack + Short). Each tool is a focused capability that can be called from the CLI, the Python SDK, or automatically by Claude Code via MCP.
+JSAT provides focused codebase-intelligence tools through the CLI, Python SDK, and 69 MCP tools. Connected AI tools such as Claude Code, Codex, Cursor, Bob Shell, and Gemini CLI can call the same MCP surface.
 
 ## Live Progress Notifications
 
-Long-running MCP tools emit `notifications/progress` messages during execution so Claude Code shows real-time status instead of a blank screen:
+Long-running MCP tools emit `notifications/progress` messages during execution so MCP clients can show real-time status instead of a blank screen:
 
 | Tool | Progress messages |
 |---|---|
@@ -14,7 +14,7 @@ Long-running MCP tools emit `notifications/progress` messages during execution s
 | `jsat__prompt_rewrite` | Pipeline stages → LLM rewrite → Done |
 | `jsat__prompt_multi_agent` | Pipeline stages → N agents running → Done |
 
-This uses the standard MCP progress notification format (`method: notifications/progress`). No configuration needed — Claude Code picks it up automatically.
+This uses the standard MCP progress notification format (`method: notifications/progress`). No configuration is needed for clients that display MCP progress.
 
 The 15 tools correspond to the Python modules in `jsat/tools/`:
 
@@ -194,13 +194,13 @@ Identifies test gaps in the codebase, generates unit tests, integration tests, a
 
 **CLI usage:**
 
-Via MCP in Claude Code:
+Via MCP in any connected AI tool:
 
 ```
 /jsat-query find untested code paths in src/payment/
 ```
 
-Or direct MCP tool call (Claude calls this automatically):
+Or direct MCP tool call:
 
 ```
 jsat__get_test_gaps service=payment_service type=unit
@@ -255,7 +255,7 @@ Traces the downstream impact of a change to a file, symbol, git diff, or Kafka t
 /jsat-blast-radius src/payment/refund.py
 /jsat-blast-radius PaymentService.process_refund
 
-# Direct MCP tools (Claude calls these automatically):
+# Direct MCP tools (connected AI tools call these automatically):
 # jsat__blast_radius_file, jsat__blast_radius_symbol, jsat__blast_radius_diff
 ```
 
@@ -303,7 +303,7 @@ Validates API contracts between services. Diffs OpenAPI or AsyncAPI specs, class
 **CLI usage:**
 
 ```
-# MCP tools in Claude Code (called automatically or via /jsat-query):
+# MCP tools in connected AI tools (called automatically or via /jsat-query in Claude):
 jsat__get_api_diff base=main head=feature/new-endpoints
 jsat__check_breaking_changes base=main head=feature/new-endpoints
 jsat__get_compat_score base=main head=feature/new-endpoints
@@ -425,7 +425,7 @@ Validates database migration files for safety: table-locking operations, reversi
 **CLI usage:**
 
 ```
-# MCP tools (called by Claude automatically during code review):
+# MCP tools (called by connected AI tools during code review):
 jsat__validate_migration file=migrations/20260725_add_index_orders.sql
 jsat__estimate_lock_duration operation=CREATE INDEX table=orders row_count=5000000
 jsat__suggest_zero_downtime operation=ADD COLUMN
@@ -463,7 +463,7 @@ review:
 **CLI usage:**
 
 ```
-# MCP tools in Claude Code:
+# MCP tools in connected AI tools:
 jsat__submit_for_review diff="$(git diff main)" base=main head=HEAD
 jsat__get_review_findings min_confidence=high
 jsat__get_high_confidence_bugs
@@ -485,7 +485,7 @@ A persistent notes store for the project. Add architectural decisions, gotchas, 
 **CLI usage:**
 
 ```
-# MCP tools in Claude Code:
+# MCP tools in connected AI tools:
 jsat__knowledge_add text="The checkout service uses optimistic locking on order rows." category=architecture
 jsat__knowledge_query question="how does checkout handle concurrent orders?"
 jsat__knowledge_search query="locking strategy" limit=5
@@ -564,7 +564,7 @@ ExportManifest(
     nodes=1842,
     edges=4391,
     commit='a3f91cc',
-    jsat_version='0.1.0',
+    jsat_version='0.4.10',
     created_at='2026-07-25T12:00:00Z'
 )
 ```
@@ -601,7 +601,7 @@ A structured thinking and planning framework. Before executing a complex task, I
 **CLI usage:**
 
 ```
-# MCP tools in Claude Code (called by Claude on complex requests):
+# MCP tools in connected AI tools:
 jsat__ithinking_plan task="Refactor the authentication module to support OAuth2"
 jsat__ithinking_execute task="Refactor the authentication module to support OAuth2"
 jsat__ithinking_reflect task="..." result="..."
@@ -1107,7 +1107,7 @@ Classifies a task into one of 7 types and runs the optimal JSAT tool sequence fo
 **Slash command:** `/jsat magic <task>`
 
 The only JSAT skill with no fixed template. Analyzes any task, composes a minimal
-sufficient skill sequence from all 39 tools using a 6-layer dependency model, executes
+sufficient skill sequence from all 41 JSAT commands using a 6-layer dependency model, executes
 each skill adaptively, and converges when the task is answerable.
 
 | Layer | Skills used |

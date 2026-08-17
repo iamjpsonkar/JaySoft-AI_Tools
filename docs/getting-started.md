@@ -6,7 +6,7 @@ This guide walks from zero to a working JSAT session in five steps.
 
 - Python 3.10 or later
 - A project directory with source code to index
-- (Optional) Claude Code CLI for the best experience — [install at claude.ai/code](https://claude.ai/code)
+- (Optional) Claude Code CLI, OpenAI Codex CLI, or another MCP-capable AI tool
 - (Optional) Ollama for local, offline AI — see [AI Providers](ai-providers.md)
 
 ---
@@ -57,16 +57,16 @@ Verify the install:
 
 ```bash
 jsat version
-# jsat 0.1.0
+# jsat 0.4.10
 ```
 
 ---
 
-## Step 2: Connect Claude Code (Recommended)
+## Step 2: Connect an AI Tool
 
-If you have Claude Code CLI installed, connect JSAT as an MCP server. This gives you all JSAT tools directly inside Claude Code without leaving your AI session.
+Connect JSAT as an MCP server so your AI tool can call JSAT without leaving the session.
 
-=== "Global — one-time setup (recommended)"
+=== "Claude Code — global"
 
     ```bash
     jsat connect claude --global
@@ -74,7 +74,7 @@ If you have Claude Code CLI installed, connect JSAT as an MCP server. This gives
 
     Installs JSAT into `~/.claude/settings.json` and `~/.claude/commands/`. Works in every Claude Code project on this machine — no per-repo setup needed.
 
-=== "Per-project"
+=== "Claude Code — per-project"
 
     ```bash
     jsat connect claude
@@ -82,14 +82,24 @@ If you have Claude Code CLI installed, connect JSAT as an MCP server. This gives
 
     Installs JSAT into `.claude/settings.json` in the current directory. Only active in this project.
 
-Both commands:
+Claude commands:
 
 1. Write a JSAT MCP server entry into the Claude settings file
-2. Install 31 `/jsat-*` slash command skill files in the Claude commands directory
+2. Install 41 `/jsat-*` slash command skill files in the Claude commands directory
 
-After running, **restart Claude Code** to activate the MCP tools.
+=== "OpenAI Codex CLI"
 
-See [Claude Integration](claude-integration.md) for details.
+    ```bash
+    jsat connect codex
+    ```
+
+    Writes one `[mcp_servers.jsat]` entry to `~/.codex/config.toml`. JSAT does not
+    create `.codex/`, `AGENTS.md`, or `.agents/skills` in your project. Launch Codex
+    from the repo you want to inspect, or run `jsat codex --repo /path/to/repo`.
+
+After running, **restart the AI tool** to activate the MCP tools.
+
+See [AI Integrations](ai-integrations.md) for details.
 
 ---
 
@@ -130,7 +140,7 @@ jsat index . --languages python,go
 
 ---
 
-## Step 4: Open Claude Code (or the Shell)
+## Step 4: Open an AI Tool (or the Shell)
 
 === "Claude Code (recommended)"
 
@@ -139,6 +149,15 @@ jsat index . --languages python,go
     ```
 
     Opens Claude Code with JSAT MCP tools automatically available. Claude can call tools like `jsat__query`, `jsat__blast_radius`, and `jsat__security_review` without any extra setup.
+
+=== "Codex CLI"
+
+    ```bash
+    jsat codex --repo .
+    ```
+
+    Opens Codex in the repo directory with JSAT MCP tools available. No project-local
+    Codex files are generated.
 
 === "Interactive Shell"
 
@@ -253,6 +272,7 @@ Inside the shell, type any natural language question or use a built-in command:
 | `incident "error description"` | Root-cause hypotheses |
 | `switch ollama` | Switch AI provider |
 | `switch claude` | Switch to Claude Code CLI |
+| `switch codex` | Launch Codex CLI from this repo |
 | `status` | Show graph stats |
 | `help` | Show all commands |
 
@@ -279,7 +299,7 @@ Running `jsat index` and `jsat connect claude` creates these files:
     └── .claude/
         ├── settings.json    # MCP server entry (jsat connect claude)
         └── commands/
-            └── jsat-*.md    # 31 slash command files
+            └── jsat-*.md    # 41 slash command files
     ```
 
 === "Global connect (jsat connect claude --global)"

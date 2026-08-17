@@ -139,9 +139,9 @@ def _tool_install_hint(tool: str) -> str:
     system = platform.system()  # "Darwin" | "Linux" | "Windows"
     hints: dict[str, dict[str, str]] = {
         "codex": {
-            "Darwin":  "npm install -g @openai/codex",
-            "Linux":   "npm install -g @openai/codex",
-            "Windows": "npm install -g @openai/codex",
+            "Darwin":  "curl -fsSL https://chatgpt.com/codex/install.sh | sh",
+            "Linux":   "curl -fsSL https://chatgpt.com/codex/install.sh | sh",
+            "Windows": "install Codex from ChatGPT desktop or see OpenAI Codex CLI docs",
         },
         "cursor": {
             "Darwin":  "brew install --cask cursor  OR  download from cursor.com",
@@ -173,7 +173,7 @@ def _tool_install_hint(tool: str) -> str:
     return tool_hints.get(system, tool_hints.get("Darwin", f"install {tool}"))
 
 _TOOL_CONFIG_PATHS: dict[str, tuple[Path, str]] = {
-    "codex":    (Path.cwd() / ".codex" / "config.json",          "mcpServers"),
+    "codex":    (Path.home() / ".codex" / "config.toml",         "mcpServers"),
     "cursor":   (Path.home() / ".cursor" / "mcp.json",           "mcpServers"),
     "windsurf": (Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
     "gemini":   (Path.home() / ".gemini" / "settings.json",      "mcpServers"),
@@ -188,6 +188,9 @@ def _is_connected(tool: str) -> bool:
     if not entry:
         return False
     config_path, key = entry
+    if tool == "codex":
+        from jsat._cli_connect import _has_current_codex_jsat_mcp
+        return _has_current_codex_jsat_mcp(config_path)
     return "jsat" in _read_json(config_path).get(key, {})
 
 
@@ -196,12 +199,22 @@ def _auto_connect(tool: str, repo: str) -> None:
     if _is_connected(tool):
         return
     # Deferred imports to avoid circular imports with _cli_connect
-    from jsat._cli_connect import _connect_mcp_tool, _write_instructions_file
+    from jsat._cli_connect import (
+        _connect_codex_mcp,
+        _connect_mcp_tool,
+        _write_instructions_file,
+    )
     console.print(f"[dim]Auto-connecting JSAT to {tool}...[/dim]")
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
     config_path, key = _TOOL_CONFIG_PATHS[tool]
-    if key == "context_servers":
+    if tool == "codex":
+        _connect_codex_mcp(
+            config_path,
+            binary,
+            env={"JSAT_AI_PROVIDER": "codex_cli", "JSAT_MCP_ALLOW_INSECURE": "1"},
+        )
+    elif key == "context_servers":
         settings = _read_json(config_path)
         settings.setdefault("context_servers", {})
         settings["context_servers"]["jsat"] = {
@@ -211,9 +224,7 @@ def _auto_connect(tool: str, repo: str) -> None:
     else:
         _connect_mcp_tool(tool.title(), config_path, binary, repo_path, f"Restart {tool.title()}")
     # Also write guidance file
-    if tool == "codex":
-        _write_instructions_file(config_path.parent / "instructions.md")
-    elif tool == "cursor":
+    if tool == "cursor":
         _write_instructions_file(Path(repo).resolve() / ".cursorrules")
     elif tool == "windsurf":
         _write_instructions_file(Path(repo).resolve() / ".windsurfrules")
@@ -274,11 +285,12 @@ def cmd_codex(
 
     \b
     Auto-connects JSAT if not already done, then launches:
-      codex        (reads .codex/config.json automatically)
+      codex        (reads ~/.codex/config.toml automatically)
 
     \b
-    JSAT MCP tools are available to Codex immediately.
-    Install Codex: npm install -g @openai/codex
+    JSAT MCP tools are available to Codex immediately. No project files are generated;
+    Codex runs in the repo directory passed with --repo.
+    Install Codex: curl -fsSL https://chatgpt.com/codex/install.sh | sh
     """
     _launch_tool("codex", "codex", repo)
 

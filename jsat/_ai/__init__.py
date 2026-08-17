@@ -48,6 +48,10 @@ def get_ai_provider(cfg: Any) -> AIProvider:
         from jsat._ai.claude_cli import ClaudeCliProvider
         return ClaudeCliProvider(cfg)
 
+    if provider_name == "codex_cli":
+        from jsat._ai.codex_cli import CodexCliProvider
+        return CodexCliProvider(cfg)
+
     if provider_name == "bob_cli":
         from jsat._ai.bob_cli import BobCliProvider
         return BobCliProvider(cfg)
@@ -82,7 +86,8 @@ def get_ai_provider(cfg: Any) -> AIProvider:
 
     raise ValueError(
         f"Unknown ai.provider '{provider_name}'. "
-        "Valid: none, claude_cli, bob_cli, ollama, anthropic, openai, openai_compat. "
+        "Valid: none, claude_cli, codex_cli, bob_cli, ollama, anthropic, "
+        "openai, openai_compat. "
         "Run: jsat init --profile solo"
     )
 

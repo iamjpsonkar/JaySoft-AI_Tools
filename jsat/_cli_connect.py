@@ -17,7 +17,11 @@ from ._cli_common import (
     console,
     err,
 )
-from ._cli_skills_data import _JSAT_SKILLS, _write_bob_commands, _write_jsat_dispatcher
+from ._cli_skills_data import (
+    _JSAT_SKILLS,
+    _write_bob_commands,
+    _write_jsat_dispatcher,
+)
 
 _log = structlog.get_logger(__name__)
 
@@ -181,6 +185,142 @@ def _connect_mcp_tool(
     console.print(f"[bold yellow]→ {restart_msg}[/] to activate JSAT tools.\n")
 
 
+def _toml_dq(value: str) -> str:
+    """Double-quote a TOML string value."""
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _toml_array(values: list[str]) -> str:
+    return "[" + ", ".join(_toml_dq(v) for v in values) + "]"
+
+
+def _toml_inline_map(values: dict[str, str]) -> str:
+    inner = ", ".join(f"{k} = {_toml_dq(v)}" for k, v in sorted(values.items()))
+    return "{ " + inner + " }"
+
+
+def _remove_toml_table_block(text: str, table: str) -> tuple[str, bool]:
+    """Remove a top-level TOML table and any nested subtables with the same prefix."""
+    lines = text.splitlines()
+    out: list[str] = []
+    removed = False
+    skipping = False
+    table_header = f"[{table}]"
+    nested_prefix = f"[{table}."
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            if stripped == table_header or stripped.startswith(nested_prefix):
+                skipping = True
+                removed = True
+                continue
+            skipping = False
+        if not skipping:
+            out.append(line)
+
+    cleaned = "\n".join(out).rstrip()
+    return cleaned, removed
+
+
+def _toml_table_block(text: str, table: str) -> str | None:
+    lines = text.splitlines()
+    out: list[str] = []
+    collecting = False
+    table_header = f"[{table}]"
+    nested_prefix = f"[{table}."
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            if stripped == table_header or stripped.startswith(nested_prefix):
+                collecting = True
+            elif collecting:
+                break
+        if collecting:
+            out.append(line)
+
+    return "\n".join(out) if out else None
+
+
+def _write_toml_mcp_server(
+    config_path: Path,
+    server_name: str,
+    *,
+    command: str | None = None,
+    args: list[str] | None = None,
+    env: dict[str, str] | None = None,
+    env_vars: list[str] | None = None,
+    url: str | None = None,
+) -> bool:
+    """Upsert a Codex `[mcp_servers.<name>]` table. Returns True if it existed."""
+    table = f"mcp_servers.{server_name}"
+    existing = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    cleaned, already = _remove_toml_table_block(existing, table)
+
+    lines = [f"[{table}]"]
+    if command is not None:
+        lines.append(f"command = {_toml_dq(command)}")
+    if args:
+        lines.append(f"args = {_toml_array(args)}")
+    if url is not None:
+        lines.append(f"url = {_toml_dq(url)}")
+    if env:
+        lines.append(f"env = {_toml_inline_map(env)}")
+    if env_vars:
+        lines.append(f"env_vars = {_toml_array(env_vars)}")
+
+    updated = (cleaned + "\n\n" if cleaned else "") + "\n".join(lines) + "\n"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(updated, encoding="utf-8")
+    return already
+
+
+def _remove_toml_mcp_server(config_path: Path, server_name: str) -> bool:
+    """Remove a Codex MCP server table from config.toml."""
+    if not config_path.exists():
+        return False
+    table = f"mcp_servers.{server_name}"
+    updated, removed = _remove_toml_table_block(config_path.read_text(encoding="utf-8"), table)
+    if removed:
+        config_path.write_text((updated.rstrip() + "\n") if updated else "", encoding="utf-8")
+    return removed
+
+
+def _has_toml_mcp_server(config_path: Path, server_name: str) -> bool:
+    if not config_path.exists():
+        return False
+    text = config_path.read_text(encoding="utf-8")
+    return f"[mcp_servers.{server_name}]" in text
+
+
+def _has_current_codex_jsat_mcp(config_path: Path) -> bool:
+    if not config_path.exists():
+        return False
+    block = _toml_table_block(config_path.read_text(encoding="utf-8"), "mcp_servers.jsat")
+    return bool(block and 'args = ["mcp-server"]' in block and "--repo" not in block)
+
+
+def _codex_jsat_config_path() -> Path:
+    return Path.home() / ".codex" / "config.toml"
+
+
+def _connect_codex_mcp(
+    config_path: Path,
+    binary: str,
+    *,
+    server_name: str = "jsat",
+    env: dict[str, str] | None = None,
+) -> bool:
+    return _write_toml_mcp_server(
+        config_path,
+        server_name,
+        command=binary,
+        args=["mcp-server"],
+        env=env,
+    )
+
+
 @connect_app.command("cursor")
 def cmd_connect_cursor(
     repo: str = typer.Option(".", "--repo", "-r"),
@@ -226,7 +366,7 @@ _MCP_CONFIG_PATHS: dict[str, tuple[str, str]] = {
     # tool -> (project-scope path, global-scope path) relative to cwd / home
     "claude":   (".claude/settings.json",  ".claude/settings.json"),
     "cursor":   (".cursor/mcp.json",       ".cursor/mcp.json"),
-    "codex":    (".codex/config.json",     ".codex/config.json"),
+    "codex":    (".codex/config.toml",     ".codex/config.toml"),
     "bob":      (".bob/settings.json",     ".bob/settings.json"),
     "windsurf": (".codeium/windsurf/mcp_config.json", ".codeium/windsurf/mcp_config.json"),
     "gemini":   (".gemini/settings.json",  ".gemini/settings.json"),
@@ -286,10 +426,14 @@ def cmd_connect_github(
 
     effective_scope = "global" if global_ else scope
     project_rel, global_rel = _MCP_CONFIG_PATHS[tool_key]
-    config_path = (
-        Path.home() / global_rel if effective_scope == "global"
-        else Path(repo).resolve() / project_rel
-    )
+    if tool_key == "codex":
+        effective_scope = "global"
+        config_path = _codex_jsat_config_path()
+    else:
+        config_path = (
+            Path.home() / global_rel if effective_scope == "global"
+            else Path(repo).resolve() / project_rel
+        )
 
     if remote:
         entry: dict = {"type": "http", "url": _GITHUB_MCP_REMOTE}
@@ -314,11 +458,39 @@ def cmd_connect_github(
         }
         transport = f"local container ({_GITHUB_MCP_IMAGE})"
 
-    settings = _read_json(config_path)
-    settings.setdefault("mcpServers", {})
-    already = "github" in settings["mcpServers"]
-    settings["mcpServers"]["github"] = entry
-    _write_json(config_path, settings)
+    if tool_key == "codex":
+        if remote:
+            already = _write_toml_mcp_server(config_path, "github", url=_GITHUB_MCP_REMOTE)
+        else:
+            if token_env == "GITHUB_PERSONAL_ACCESS_TOKEN":
+                command = "docker"
+                args = [
+                    "run", "-i", "--rm",
+                    "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+                    _GITHUB_MCP_IMAGE,
+                ]
+                env_vars = [token_env]
+            else:
+                command = "sh"
+                args = [
+                    "-c",
+                    "exec docker run -i --rm "
+                    f"-e GITHUB_PERSONAL_ACCESS_TOKEN=\"${{{token_env}}}\" "
+                    f"{_GITHUB_MCP_IMAGE}",
+                ]
+                env_vars = [token_env]
+            already = _write_toml_mcp_server(
+                config_path, "github", command=command, args=args, env_vars=env_vars
+            )
+        settings = {}
+        has_jsat = _has_toml_mcp_server(config_path, "jsat")
+    else:
+        settings = _read_json(config_path)
+        settings.setdefault("mcpServers", {})
+        already = "github" in settings["mcpServers"]
+        settings["mcpServers"]["github"] = entry
+        _write_json(config_path, settings)
+        has_jsat = "jsat" in settings.get("mcpServers", {})
 
     action = "Updated" if already else "Added"
     console.print(
@@ -335,7 +507,6 @@ def cmd_connect_github(
             f"  export {token_env}=ghp_...   [dim](needs `repo` scope)[/]\n"
         )
 
-    has_jsat = "jsat" in settings.get("mcpServers", {})
     if not has_jsat:
         console.print(
             "[dim]Tip: JSAT is not wired into this config yet — "
@@ -471,61 +642,47 @@ Rules that are not optional:
 """
 
 
-def _write_codex_instructions(scope: str) -> Path:
-    """Write/update .codex/instructions.md with JSAT tool guidance."""
-    if scope == "global":
-        instructions_path = Path.home() / ".codex" / "instructions.md"
-    else:
-        instructions_path = Path.cwd() / ".codex" / "instructions.md"
-    _write_instructions_file(instructions_path)
-    return instructions_path
-
-
 @connect_app.command("codex")
 def cmd_connect_codex(
     repo: str = typer.Option(".", "--repo", "-r"),
     scope: str = typer.Option(
-        "project", "--scope", "-s",
-        help="'project' → .codex/  |  'global' → ~/.codex/",
+        "global", "--scope", "-s",
+        help="Deprecated compatibility option; Codex uses ~/.codex/config.toml",
     ),
     global_: bool = typer.Option(
         False, "--global", "-g",
-        help="Shorthand for --scope global — installs into ~/.codex/ for all Codex sessions",
+        help="Deprecated compatibility option; Codex config is always global",
     ),
     no_instructions: bool = typer.Option(
         False, "--no-instructions",
-        help="Skip writing instructions.md (MCP config only)",
+        help="Deprecated no-op; Codex guidance is served by JSAT's MCP tools",
     ),
 ) -> None:
-    """Wire JSAT into OpenAI Codex CLI as an MCP server + instructions.
+    """Wire JSAT into OpenAI Codex CLI as a single global MCP server entry.
 
     \b
-    Project level (just this repo):
+    One-time setup:
         jsat connect codex
 
     \b
-    Global (all Codex sessions, one-time setup):
-        jsat connect codex --global
+    No project files are generated. Codex resolves the repo from the directory
+    where Codex runs, so start Codex in the target repo or use `jsat codex --repo`.
 
-    Writes two files:
-      .codex/config.json       — MCP server registration
-      .codex/instructions.md   — JSAT tool guidance for the agent
+    Writes one file:
+      ~/.codex/config.toml     — MCP server registration
     """
     binary = _jsat_binary()
-    repo_path = str(Path(repo).resolve())
-    effective_scope = "global" if global_ else scope
-    if effective_scope == "global":
-        config_path = Path.home() / ".codex" / "config.json"
-    else:
-        config_path = Path.cwd() / ".codex" / "config.json"
-    _connect_mcp_tool("Codex", config_path, binary, repo_path, "Restart Codex")
-
-    if not no_instructions:
-        inst_path = _write_codex_instructions(effective_scope)
-        console.print(f"[green]✓[/] JSAT tool guidance written to [cyan]{inst_path}[/]")
-        console.print(
-            "[dim]  Codex reads this file at startup — no restart needed for instructions.[/dim]\n"
-        )
+    _ = (repo, scope, global_, no_instructions)
+    config_path = _codex_jsat_config_path()
+    env = {"JSAT_AI_PROVIDER": "codex_cli", "JSAT_MCP_ALLOW_INSECURE": "1"}
+    already = _connect_codex_mcp(config_path, binary, env=env)
+    action = "Updated" if already else "Added"
+    console.print(f"\n[green]✓[/] {action} JSAT in Codex config: [cyan]{config_path}[/]")
+    console.print(
+        "[dim]No AGENTS.md, .agents/skills, or project .codex files were generated.[/dim]\n"
+        "[dim]Run Codex from the target repo, or launch it with `jsat codex --repo PATH`.[/dim]\n"
+    )
+    console.print("[bold yellow]→ Restart Codex[/] to activate MCP config changes.\n")
 
 
 def _write_instructions_file(file_path: Path) -> None:
@@ -807,8 +964,7 @@ _CONNECT_LOCATIONS: list[tuple[str, Path, str]] = [
     ("Claude Code (project)", Path.cwd() / ".claude" / "settings.json", "mcpServers"),
     ("Claude Code (global)",  Path.home() / ".claude" / "settings.json", "mcpServers"),
     ("Cursor",                Path.home() / ".cursor" / "mcp.json",      "mcpServers"),
-    ("Codex (project)",       Path.cwd() / ".codex" / "config.json",     "mcpServers"),
-    ("Codex (global)",        Path.home() / ".codex" / "config.json",    "mcpServers"),
+    ("Codex",                 Path.home() / ".codex" / "config.toml",    "mcpServers"),
     ("Windsurf",              Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),  # noqa: E501
     ("Gemini CLI",            Path.home() / ".gemini" / "settings.json", "mcpServers"),
     ("Bob Shell (project)",   Path.cwd() / ".bob" / "settings.json",     "mcpServers"),
@@ -823,6 +979,12 @@ def cmd_connect_list() -> None:
     found_any = False
 
     for label, path, key in _CONNECT_LOCATIONS:
+        if label.startswith("Codex"):
+            if _has_toml_mcp_server(path, "jsat"):
+                found_any = True
+                console.print(f"[green]✓[/] [bold]{label}[/]  ({path})")
+                console.print("   command: see [mcp_servers.jsat] in config.toml\n")
+            continue
         data = _read_json(path)
         jsat_cfg = data.get(key, {}).get("jsat")
         if jsat_cfg:

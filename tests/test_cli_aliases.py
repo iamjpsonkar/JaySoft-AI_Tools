@@ -46,6 +46,7 @@ def test_underscore_and_hyphen_resolve_identically() -> None:
         ("haiku", "anthropic"),
         ("opus", "anthropic"),
         ("bob", "bob_cli"),
+        ("codex-cli", "codex_cli"),
         ("gpt", "openai"),
         ("openai", "openai"),
         ("codex", "openai"),

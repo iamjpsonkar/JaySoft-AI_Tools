@@ -1,6 +1,6 @@
 # Claude Integration
 
-JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the `/jsat` slash command with 39 subcommands.
+JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the `/jsat` slash command with 41 subcommands.
 
 ## How It Works
 
@@ -11,7 +11,7 @@ Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←�
 When you run `jsat connect claude`, JSAT:
 
 1. Writes an MCP server entry into `.claude/settings.json` (or `~/.claude/settings.json` for global scope)
-2. Installs the `/jsat` dispatcher skill file (`~/.claude/commands/jsat.md`) containing all 39 subcommands
+2. Installs the `/jsat` dispatcher skill file (`~/.claude/commands/jsat.md`) containing all 41 subcommands
 3. Installs `/jsat-help` as a standalone skill file (`~/.claude/commands/jsat-help.md`)
 
 Claude Code reads these on startup, starts the `jsat mcp-server` process, and makes all JSAT tools available during your session.
