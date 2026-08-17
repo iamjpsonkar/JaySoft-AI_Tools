@@ -2832,7 +2832,7 @@ against a throwaway copy and stays data until a human merges it.</p>
 <h3 id="jsat-version"><code>jsat version</code><a class="headerlink" href="#jsat-version" title="Permanent link">&para;</a></h3>
 <p>Print the installed JSAT version.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>jsat<span class="w"> </span>version
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="c1"># jsat 0.4.10</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="c1"># jsat 0.4.11</span>
 </code></pre></div>
 <hr />
 <h3 id="jsat-crack"><code>jsat crack</code><a class="headerlink" href="#jsat-crack" title="Permanent link">&para;</a></h3>
@@ -3199,7 +3199,7 @@ skill files are picked up automatically on next <code>jsat connect claude</code>
 <p><code>jsat connect claude</code> automatically sets <code>JSAT_MCP_ALLOW_INSECURE=1</code> in the MCP server environment so local dev works without additional config. To enforce auth, add <code>JSAT_MCP_TOKEN</code> or <code>JSAT_MCP_TOKEN_ROLES</code> to your shell environment before starting Claude Code.</p>
 <hr />
 <h3 id="jsat-connect-codex"><code>jsat connect codex</code><a class="headerlink" href="#jsat-connect-codex" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into the OpenAI Codex CLI as an MCP server.</p>
+<p>Wire JSAT into the OpenAI Codex CLI as an MCP server and Codex skill.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>jsat connect codex [OPTIONS]
 </code></pre></div>
 <table>
@@ -3229,19 +3229,26 @@ skill files are picked up automatically on next <code>jsat connect claude</code>
 <tr>
 <td><code>--no-instructions</code></td>
 <td>false</td>
-<td>Deprecated no-op; Codex guidance is served by JSAT MCP tools</td>
+<td>Skip installing <code>~/.codex/skills/jsat/SKILL.md</code></td>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                          </span><span class="c1"># one-time global MCP config entry</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                          </span><span class="c1"># global MCP config + $jsat skill</span>
 <a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>jsat<span class="w"> </span>codex<span class="w"> </span>--repo<span class="w"> </span>/path/to/repo<span class="w">              </span><span class="c1"># launch Codex in a specific repo</span>
+<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>jsat<span class="w"> </span>codex<span class="w"> </span>resume<span class="w"> </span>&lt;session-id&gt;<span class="w">               </span><span class="c1"># resume an existing Codex session</span>
+<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="nv">$jsat</span><span class="w"> </span>magic<span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span>flow<span class="w">     </span><span class="c1"># inside Codex</span>
 </code></pre></div>
-<p>Writes one file:
-- <code>~/.codex/config.toml</code> — one <code>[mcp_servers.jsat]</code> table</p>
+<p>Writes global Codex files:
+- <code>~/.codex/config.toml</code> — one <code>[mcp_servers.jsat]</code> table
+- <code>~/.codex/skills/jsat/SKILL.md</code> — one Codex skill dispatcher</p>
 <p>No <code>.codex/</code>, <code>AGENTS.md</code>, or <code>.agents/skills</code> files are generated in the target
-repo. In Codex, use JSAT by asking naturally or by calling MCP tools such as
-<code>jsat__query</code>, <code>jsat__blast_radius</code>, <code>jsat__security_review</code>, <code>jsat__get_test_gaps</code>,
-and <code>jsat__submit_for_review</code>.</p>
+repo. In Codex, use <code>$jsat magic TASK</code>, <code>$jsat query QUESTION</code>, or ask naturally.
+The dispatcher also treats <code>@jsat magic TASK</code> as the same JSAT request when Codex
+routes it to the skill. Direct MCP tools such as <code>jsat__query</code>,
+<code>jsat__blast_radius</code>, <code>jsat__security_review</code>, <code>jsat__get_test_gaps</code>, and
+<code>jsat__submit_for_review</code> remain available.</p>
+<p><code>jsat codex</code> forwards extra arguments to the real Codex CLI after auto-connecting
+JSAT, so Codex commands such as <code>resume &lt;session-id&gt;</code> keep working.</p>
 <hr />
 <h3 id="jsat-connect-cursor"><code>jsat connect cursor</code><a class="headerlink" href="#jsat-connect-cursor" title="Permanent link">&para;</a></h3>
 <p>Wire JSAT into Cursor as an MCP server.</p>
@@ -3518,7 +3525,7 @@ and <code>jsat__submit_for_review</code>.</p>
 <tr>
 <td><code>--scope</code>, <code>-s</code></td>
 <td><code>project</code></td>
-<td><code>project</code>, <code>global</code>, or <code>all</code>. Claude uses project/global; Codex removes its global entry by default and only touches project legacy files with <code>--scope all</code>.</td>
+<td><code>project</code>, <code>global</code>, or <code>all</code>. Claude uses project/global; Codex removes its global MCP entry and skill by default and only touches project legacy files with <code>--scope all</code>.</td>
 </tr>
 <tr>
 <td><code>--keep-skills</code></td>
@@ -3531,7 +3538,7 @@ and <code>jsat__submit_for_review</code>.</p>
 <a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">        </span><span class="c1"># Claude Code global</span>
 <a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all<span class="w">           </span><span class="c1"># Claude Code everywhere</span>
 <a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--keep-skills<span class="w">         </span><span class="c1"># remove MCP entry, keep slash commands</span>
-<a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>codex<span class="w">                        </span><span class="c1"># Codex global MCP entry</span>
+<a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>codex<span class="w">                        </span><span class="c1"># Codex global MCP entry + $jsat skill</span>
 <a id="__codelineno-55-6" name="__codelineno-55-6" href="#__codelineno-55-6"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w">                       </span><span class="c1"># Cursor</span>
 <a id="__codelineno-55-7" name="__codelineno-55-7" href="#__codelineno-55-7"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>windsurf<span class="w">                     </span><span class="c1"># Windsurf</span>
 <a id="__codelineno-55-8" name="__codelineno-55-8" href="#__codelineno-55-8"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span><span class="k">continue</span><span class="w">                     </span><span class="c1"># Continue.dev</span>

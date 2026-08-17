@@ -963,7 +963,7 @@ MCP tools, and shell <code>switch</code> support.</p>
 <tr>
 <td>Skills / custom commands</td>
 <td>41 slash cmds</td>
-<td>MCP tools only</td>
+<td><code>$jsat</code> dispatcher</td>
 <td>.cursorrules</td>
 <td>.windsurfrules</td>
 <td>10 custom cmds</td>
@@ -1044,18 +1044,23 @@ MCP tools, and shell <code>switch</code> support.</p>
 <hr />
 <h3 id="openai-codex-cli">OpenAI Codex CLI<a class="headerlink" href="#openai-codex-cli" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>codex<span class="w">                               </span><span class="c1"># open with JSAT pre-loaded</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                       </span><span class="c1"># one global MCP config entry</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex<span class="w">                       </span><span class="c1"># global MCP config + $jsat skill</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>codex<span class="w"> </span>--repo<span class="w"> </span>/path/to/repo<span class="w">           </span><span class="c1"># launch Codex in a specific repo</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>jsat<span class="w"> </span>codex<span class="w"> </span>resume<span class="w"> </span>&lt;session-id&gt;<span class="w">            </span><span class="c1"># resume an existing Codex session</span>
 </code></pre></div>
 <p><strong>What gets installed:</strong>
-- <code>~/.codex/config.toml</code> — one <code>[mcp_servers.jsat]</code> entry</p>
+- <code>~/.codex/config.toml</code> — one <code>[mcp_servers.jsat]</code> entry
+- <code>~/.codex/skills/jsat/SKILL.md</code> — one Codex skill dispatcher for <code>$jsat</code></p>
 <p>JSAT does <strong>not</strong> generate <code>.codex/</code>, <code>AGENTS.md</code>, or <code>.agents/skills</code> inside the
 target repo for Codex. Run Codex from the repo you want to analyze, or use
-<code>jsat codex --repo /path/to/repo</code>; JSAT resolves that working directory at runtime.</p>
-<p><strong>Use in Codex:</strong> ask naturally, e.g. "use JSAT to trace the blast radius of
-<code>src/payment/service.py</code>", or inspect/call MCP tools such as <code>jsat__query</code>,
+<code>jsat codex --repo /path/to/repo</code>; JSAT resolves that working directory at runtime.
+Any extra arguments after <code>jsat codex</code> are forwarded to the real Codex CLI.</p>
+<p><strong>Use in Codex:</strong> run <code>$jsat magic TASK</code>, <code>$jsat query QUESTION</code>, or ask naturally,
+e.g. "use JSAT to trace the blast radius of <code>src/payment/service.py</code>". The
+dispatcher also treats <code>@jsat magic TASK</code> as the same JSAT request when Codex
+routes it to the skill. Direct MCP tools such as <code>jsat__query</code>,
 <code>jsat__blast_radius</code>, <code>jsat__security_review</code>, <code>jsat__get_test_gaps</code>, and
-<code>jsat__submit_for_review</code>.</p>
+<code>jsat__submit_for_review</code> remain available.</p>
 <p><strong>In the JSAT shell:</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>switch codex    → launch Codex CLI session
 </code></pre></div></p>

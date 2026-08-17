@@ -1017,7 +1017,7 @@
 </div>
 <p>Verify the install:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>jsat<span class="w"> </span>version
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># jsat 0.4.10</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># jsat 0.4.11</span>
 </code></pre></div>
 <hr />
 <h2 id="step-2-connect-an-ai-tool">Step 2: Connect an AI Tool<a class="headerlink" href="#step-2-connect-an-ai-tool" title="Permanent link">&para;</a></h2>
@@ -1046,9 +1046,10 @@
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex
 </code></pre></div>
-<p>Writes one <code>[mcp_servers.jsat]</code> entry to <code>~/.codex/config.toml</code>. JSAT does not
-create <code>.codex/</code>, <code>AGENTS.md</code>, or <code>.agents/skills</code> in your project. Launch Codex
-from the repo you want to inspect, or run <code>jsat codex --repo /path/to/repo</code>.</p>
+<p>Writes one <code>[mcp_servers.jsat]</code> entry to <code>~/.codex/config.toml</code> and one global
+Codex skill at <code>~/.codex/skills/jsat/SKILL.md</code>. JSAT does not create <code>.codex/</code>,
+<code>AGENTS.md</code>, or <code>.agents/skills</code> in your project. Launch Codex from the repo
+you want to inspect, or run <code>jsat codex --repo /path/to/repo</code>.</p>
 </div>
 </div>
 </div>
@@ -1088,9 +1089,12 @@ from the repo you want to inspect, or run <code>jsat codex --repo /path/to/repo<
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>jsat<span class="w"> </span>codex<span class="w"> </span>--repo<span class="w"> </span>.
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>jsat<span class="w"> </span>codex<span class="w"> </span>resume<span class="w"> </span>&lt;session-id&gt;
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="nv">$jsat</span><span class="w"> </span>magic<span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span>flow
 </code></pre></div>
-<p>Opens Codex in the repo directory with JSAT MCP tools available. No project-local
-Codex files are generated.</p>
+<p>Opens Codex in the repo directory with JSAT MCP tools and the <code>$jsat</code>
+dispatcher available. No project-local Codex files are generated. Extra
+arguments after <code>jsat codex</code> are forwarded to the Codex CLI.</p>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jsat<span class="w"> </span>shell
