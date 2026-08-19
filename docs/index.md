@@ -30,7 +30,7 @@ jsat shell                        # open the interactive shell
 Inside the shell:
 
 ```
-JSAT Shell v0.4.11
+JSAT Shell v0.4.12
 > what does this project do?
 > which services write to the orders table?
 > blast-radius src/payment/refund.py

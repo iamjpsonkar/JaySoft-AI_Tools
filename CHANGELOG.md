@@ -4,6 +4,16 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.12] — 2026-08-19
+
+### Fixed
+
+- **Codex-backed AI synthesis works across CLI flag versions.** The `codex_cli`
+  provider now sets `approval_policy="never"` through Codex's stable config
+  override instead of passing the version-specific `--ask-for-approval` flag.
+  Prompts are sent over stdin as well, avoiding process-list exposure and
+  command-line length limits for large graph contexts.
+
 ## [0.4.11] — 2026-08-17
 
 ### Fixed

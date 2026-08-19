@@ -57,7 +57,7 @@ Verify the install:
 
 ```bash
 jsat version
-# jsat 0.4.11
+# jsat 0.4.12
 ```
 
 ---

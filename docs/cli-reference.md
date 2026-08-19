@@ -311,7 +311,7 @@ Print the installed JSAT version.
 
 ```bash
 jsat version
-# jsat 0.4.11
+# jsat 0.4.12
 ```
 
 ---

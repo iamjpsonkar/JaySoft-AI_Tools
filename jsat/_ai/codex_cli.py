@@ -61,12 +61,20 @@ class CodexCliProvider(AIProvider):
     def is_available(self) -> bool:
         return bool(shutil.which("codex"))
 
-    def _build_args(self, prompt: str) -> list[str]:
+    def _build_args(self) -> list[str]:
+        """Build a non-interactive, read-only Codex command.
+
+        Use a config override for the approval policy instead of the
+        ``--ask-for-approval`` flag.  The config key is stable across Codex CLI
+        releases, while the flag is absent from some versions.  The prompt is
+        read from stdin (the trailing ``-``) so large graph contexts do not hit
+        command-line length limits or appear in process listings.
+        """
         args = [
             self._binary,
             "exec",
-            "--ask-for-approval",
-            "never",
+            "--config",
+            'approval_policy="never"',
             "--sandbox",
             "read-only",
             "--ephemeral",
@@ -75,7 +83,7 @@ class CodexCliProvider(AIProvider):
             args += ["--cd", self._repo_dir]
         if self._model:
             args += ["--model", self._model]
-        args.append(prompt)
+        args.append("-")
         return args
 
     def complete(self, prompt: str, max_tokens: int = 8192, temperature: float = 0.1) -> str:
@@ -85,7 +93,7 @@ class CodexCliProvider(AIProvider):
         if not shutil.which("codex"):
             raise RuntimeError("`codex` CLI not found. Install Codex CLI first.")
 
-        args = self._build_args(prompt)
+        args = self._build_args()
         log.debug("codex_cli_complete", prompt_len=len(prompt))
         t0 = time.monotonic()
         try:
@@ -93,6 +101,7 @@ class CodexCliProvider(AIProvider):
                 args,
                 capture_output=True,
                 text=True,
+                input=prompt,
                 timeout=self._timeout,
                 cwd=self._repo_dir,
             )

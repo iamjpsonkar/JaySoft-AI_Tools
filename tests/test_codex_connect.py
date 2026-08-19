@@ -222,6 +222,7 @@ def test_codex_cli_provider_exec_is_read_only_and_ephemeral(monkeypatch, tmp_pat
     def fake_run(cmd, **kwargs):
         captured["cmd"] = cmd
         captured["cwd"] = kwargs.get("cwd")
+        captured["input"] = kwargs.get("input")
         return subprocess.CompletedProcess(cmd, 0, stdout="answer\n", stderr="")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -238,12 +239,15 @@ def test_codex_cli_provider_exec_is_read_only_and_ephemeral(monkeypatch, tmp_pat
     assert cmd[:7] == [
         "/fake/bin/codex",
         "exec",
-        "--ask-for-approval",
-        "never",
+        "--config",
+        'approval_policy="never"',
         "--sandbox",
         "read-only",
         "--ephemeral",
     ]
     assert ["--cd", str(tmp_path)] == cmd[7:9]
-    assert cmd[-1] == "explain this"
+    assert cmd[-1] == "-"
+    assert "--ask-for-approval" not in cmd
+    assert "explain this" not in cmd
+    assert captured["input"] == "explain this"
     assert captured["cwd"] == str(tmp_path)

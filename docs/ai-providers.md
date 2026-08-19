@@ -159,7 +159,10 @@ jsat bob --resume <session-id>
 The Codex CLI provider lets JSAT MCP tools that need an LLM reuse the local
 `codex` binary. JSAT calls `codex exec` in read-only, ephemeral mode and runs it
 from the active repo directory, so it can answer from project context without
-writing Codex instruction or skill files into that repo.
+writing Codex instruction or skill files into that repo. JSAT applies the
+non-interactive approval policy through Codex's stable `approval_policy` config
+override and sends prompts through stdin, keeping the provider compatible with
+Codex releases that do not expose the `--ask-for-approval` CLI flag.
 
 ### Install
 

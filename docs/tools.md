@@ -564,7 +564,7 @@ ExportManifest(
     nodes=1842,
     edges=4391,
     commit='a3f91cc',
-    jsat_version='0.4.11',
+    jsat_version='0.4.12',
     created_at='2026-07-25T12:00:00Z'
 )
 ```
