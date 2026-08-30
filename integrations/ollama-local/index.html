@@ -12,29 +12,31 @@
         <meta name="author" content="Jay Prakash Sonkar">
       
       
-        <link rel="canonical" href="https://iamjpsonkar.github.io/JaySoft-AI_Tools/">
+        <link rel="canonical" href="https://iamjpsonkar.github.io/JaySoft-AI_Tools/integrations/ollama-local/">
       
       
+        <link rel="prev" href="../opencode/">
       
-        <link rel="next" href="getting-started/">
+      
+        <link rel="next" href="../ollama-claude/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>JSAT Docs</title>
+        <title>Direct Ollama - JSAT Docs</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +55,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#jsat-jaysoft-ai-tools" class="md-skip">
+        <a href="#direct-ollama-local-jsat-shell" class="md-skip">
           Skip to content
         </a>
       
@@ -94,7 +96,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="JSAT Docs" class="md-header__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+    <a href="../.." title="JSAT Docs" class="md-header__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -114,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Direct Ollama
             
           </span>
         </div>
@@ -219,11 +221,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -242,7 +242,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="getting-started/" class="md-tabs__link">
+      <a href="../../getting-started/" class="md-tabs__link">
         
   
   
@@ -259,11 +259,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="integrations/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -281,7 +283,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="ai-providers/" class="md-tabs__link">
+      <a href="../../ai-providers/" class="md-tabs__link">
         
   
   
@@ -300,7 +302,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="cli-reference/" class="md-tabs__link">
+      <a href="../../cli-reference/" class="md-tabs__link">
         
   
   
@@ -319,7 +321,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="tools/" class="md-tabs__link">
+      <a href="../../tools/" class="md-tabs__link">
         
   
   
@@ -338,7 +340,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="sdk/" class="md-tabs__link">
+      <a href="../../sdk/" class="md-tabs__link">
         
   
   
@@ -357,7 +359,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="configuration/" class="md-tabs__link">
+      <a href="../../configuration/" class="md-tabs__link">
         
   
   
@@ -376,7 +378,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="publishing/" class="md-tabs__link">
+      <a href="../../publishing/" class="md-tabs__link">
         
   
   
@@ -417,7 +419,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="JSAT Docs" class="md-nav__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+    <a href="../.." title="JSAT Docs" class="md-nav__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -444,37 +446,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Home
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -490,103 +465,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-jsat" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is JSAT?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick Start
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#choose-your-ai-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Choose your AI integration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-profiles" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation Profiles
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#auto-detection-matrix" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Auto-Detection Matrix
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#supported-ai-providers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supported AI Providers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -598,7 +476,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -622,28 +500,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -661,7 +542,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -679,7 +560,7 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -707,7 +588,7 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/codex/" class="md-nav__link">
+      <a href="../codex/" class="md-nav__link">
         
   
   
@@ -735,7 +616,7 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/claude/" class="md-nav__link">
+      <a href="../claude/" class="md-nav__link">
         
   
   
@@ -763,7 +644,7 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/opencode/" class="md-nav__link">
+      <a href="../opencode/" class="md-nav__link">
         
   
   
@@ -788,10 +669,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="integrations/ollama-local/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Direct Ollama
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -807,6 +715,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites-and-model-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites and model setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configure-start-and-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure, start, and verify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-versus-cloud" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local versus cloud
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-and-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle and isolation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -819,7 +802,7 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/ollama-claude/" class="md-nav__link">
+      <a href="../ollama-claude/" class="md-nav__link">
         
   
   
@@ -847,7 +830,7 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/ollama-opencode/" class="md-nav__link">
+      <a href="../ollama-opencode/" class="md-nav__link">
         
   
   
@@ -875,7 +858,7 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/ollama-codex/" class="md-nav__link">
+      <a href="../ollama-codex/" class="md-nav__link">
         
   
   
@@ -903,7 +886,7 @@
   
   
     <li class="md-nav__item">
-      <a href="ai-integrations/" class="md-nav__link">
+      <a href="../../ai-integrations/" class="md-nav__link">
         
   
   
@@ -931,7 +914,7 @@
   
   
     <li class="md-nav__item">
-      <a href="claude-integration/" class="md-nav__link">
+      <a href="../../claude-integration/" class="md-nav__link">
         
   
   
@@ -966,7 +949,7 @@
   
   
     <li class="md-nav__item">
-      <a href="ai-providers/" class="md-nav__link">
+      <a href="../../ai-providers/" class="md-nav__link">
         
   
   
@@ -993,7 +976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="cli-reference/" class="md-nav__link">
+      <a href="../../cli-reference/" class="md-nav__link">
         
   
   
@@ -1020,7 +1003,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tools/" class="md-nav__link">
+      <a href="../../tools/" class="md-nav__link">
         
   
   
@@ -1047,7 +1030,7 @@
   
   
     <li class="md-nav__item">
-      <a href="sdk/" class="md-nav__link">
+      <a href="../../sdk/" class="md-nav__link">
         
   
   
@@ -1074,7 +1057,7 @@
   
   
     <li class="md-nav__item">
-      <a href="configuration/" class="md-nav__link">
+      <a href="../../configuration/" class="md-nav__link">
         
   
   
@@ -1101,7 +1084,7 @@
   
   
     <li class="md-nav__item">
-      <a href="publishing/" class="md-nav__link">
+      <a href="../../publishing/" class="md-nav__link">
         
   
   
@@ -1148,10 +1131,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-jsat" class="md-nav__link">
+  <a href="#prerequisites-and-model-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is JSAT?
+        Prerequisites and model setup
       
     </span>
   </a>
@@ -1159,10 +1142,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
+  <a href="#configure-start-and-verify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick Start
+        Configure, start, and verify
       
     </span>
   </a>
@@ -1170,10 +1153,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#choose-your-ai-integration" class="md-nav__link">
+  <a href="#local-versus-cloud" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Choose your AI integration
+        Local versus cloud
       
     </span>
   </a>
@@ -1181,10 +1164,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-profiles" class="md-nav__link">
+  <a href="#lifecycle-and-isolation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation Profiles
+        Lifecycle and isolation
       
     </span>
   </a>
@@ -1192,32 +1175,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#auto-detection-matrix" class="md-nav__link">
+  <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Auto-Detection Matrix
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#supported-ai-providers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supported AI Providers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
+        Troubleshooting
       
     </span>
   </a>
@@ -1244,198 +1205,57 @@
   
 
 
-<h1 id="jsat-jaysoft-ai-tools">JSAT — JaySoft AI Tools<a class="headerlink" href="#jsat-jaysoft-ai-tools" title="Permanent link">&para;</a></h1>
-<blockquote>
-<p>Codebase intelligence shell and SDK. Lightweight by default.</p>
-</blockquote>
-<p><a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a>
-<a href="https://www.python.org/downloads/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10+-blue.svg" /></a>
-<a href="https://pypi.org/project/jsat/"><img alt="PyPI" src="https://img.shields.io/pypi/v/jsat.svg" /></a></p>
-<h2 id="what-is-jsat">What is JSAT?<a class="headerlink" href="#what-is-jsat" title="Permanent link">&para;</a></h2>
-<p>JSAT gives any AI (Claude, Codex, GPT, Gemini, Bob Shell, or local Ollama) deep, structured understanding of your codebase — so you spend less time explaining context and more time shipping.</p>
+<h1 id="direct-ollama-local-jsat-shell">Direct Ollama: local JSAT shell<a class="headerlink" href="#direct-ollama-local-jsat-shell" title="Permanent link">&para;</a></h1>
+<p>Use this route when JSAT itself should send LLM-backed tool requests to an Ollama model. There
+is no Claude, Codex, or OpenCode harness in this path.</p>
+<h2 id="prerequisites-and-model-setup">Prerequisites and model setup<a class="headerlink" href="#prerequisites-and-model-setup" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'jsat[local]'</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>ollama<span class="w"> </span>serve<span class="w">                  </span><span class="c1"># keep running in another terminal</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen3.5<span class="w">           </span><span class="c1"># local models only, once per model/tag</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>ollama<span class="w"> </span>list
+</code></pre></div>
+<p>Model names are exact. <code>qwen3.5</code> matches <code>qwen3.5:latest</code>, but it does not match another tag.</p>
+<h2 id="configure-start-and-verify">Configure, start, and verify<a class="headerlink" href="#configure-start-and-verify" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>/path/to/project
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>jsat<span class="w"> </span>ai<span class="w"> </span>status
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+</code></pre></div>
+<p>Sample shell queries:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>what does this project do?
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>blast-radius src/payments/service.py
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>security-review src/auth/
+</code></pre></div>
+<p><code>jsat ai use ollama</code> persists the direct provider choice. <code>jsat ollama --model ...</code> opens a
+JSAT shell for that provider. Neither command launches a coding client.</p>
+<h2 id="local-versus-cloud">Local versus cloud<a class="headerlink" href="#local-versus-cloud" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Interactive shell</strong> — IPython-style REPL for codebase intelligence</li>
-<li><strong>Python SDK</strong> — <code>from jsat import JSAT</code> for programmatic access</li>
-<li><strong>AI tool integrations</strong> — works as an MCP server with Claude Code, Codex, Cursor, Bob Shell, Gemini CLI, and more</li>
-<li><strong>Works offline</strong> — local Ollama or LM Studio, no API keys required</li>
-<li><strong>Lightweight by default</strong> — <code>pip install jsat</code> is ~80 MB and starts in under 800 ms</li>
-<li><strong>Graph-native</strong> — SQLite (solo) or Neo4j (team) codebase graph, indexed by tree-sitter</li>
+<li>Local model such as <code>qwen3.5</code>: run <code>ollama pull</code> and keep <code>ollama serve</code> reachable.</li>
+<li>Cloud model such as <code>gemma4:31b-cloud</code>: run <code>ollama signin</code>; do not pull it.</li>
 </ul>
-<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<p>Three commands to get running:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>jsat<span class="w">                  </span><span class="c1"># install</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>your-project<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>jsat<span class="w"> </span>index<span class="w"> </span>.<span class="w">   </span><span class="c1"># build the codebase graph</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>jsat<span class="w"> </span>shell<span class="w">                        </span><span class="c1"># open the interactive shell</span>
+<p>For a cloud model used directly by JSAT:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ollama<span class="w"> </span>signin
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>gemma4:31b-cloud
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
 </code></pre></div>
-<p>Inside the shell:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>JSAT Shell v0.4.12
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>&gt; what does this project do?
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>&gt; which services write to the orders table?
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&gt; blast-radius src/payment/refund.py
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>&gt; switch claude
+<h2 id="lifecycle-and-isolation">Lifecycle and isolation<a class="headerlink" href="#lifecycle-and-isolation" title="Permanent link">&para;</a></h2>
+<p>The top-level <code>jsat start|stop|restart|resume</code> commands manage Claude, Codex, and OpenCode
+processes; they do not manage <code>ollama serve</code> or a direct JSAT shell. Stop the shell normally and
+manage the Ollama service using the mechanism provided by your operating system.</p>
+<p>To switch away without affecting any connected coding client:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>claude_cli<span class="w">       </span><span class="c1"># or codex-cli, opencode, openai, anthropic</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
 </code></pre></div>
-<h2 id="choose-your-ai-integration">Choose your AI integration<a class="headerlink" href="#choose-your-ai-integration" title="Permanent link">&para;</a></h2>
-<p>Native clients, direct Ollama, and clients launched through Ollama are independent routes.
-Open the <a href="integrations/">tabbed integration chooser</a> for complete setup, model
-selection, lifecycle, verification, and troubleshooting instructions for each route.</p>
-<p>For example, connect native Claude Code with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>claude<span class="w">    </span><span class="c1"># wires JSAT as an MCP server + installs /jsat-* commands</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>jsat<span class="w"> </span>claude<span class="w">            </span><span class="c1"># open Claude Code with all JSAT tools active</span>
-</code></pre></div>
-<p>Then inside Claude Code, use slash commands:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>/jsat-query what calls the refund endpoint?
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>/jsat-blast-radius src/payment/refund.py
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>/jsat-security
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>/jsat-incident 500 errors on checkout since 14:00
-</code></pre></div>
-<p>See <a href="integrations/claude/">Native Claude</a> for the full setup or
-<a href="claude-integration/">Claude command reference</a> for every JSAT command surface.</p>
-<h2 id="installation-profiles">Installation Profiles<a class="headerlink" href="#installation-profiles" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Profile</th>
-<th>Command</th>
-<th>Size</th>
-<th>Best for</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Core</td>
-<td><code>pip install jsat</code></td>
-<td>~80 MB</td>
-<td>Quick evaluation</td>
-</tr>
-<tr>
-<td>Local AI</td>
-<td><code>pip install jsat[local]</code></td>
-<td>~85 MB</td>
-<td>Solo dev with Ollama</td>
-</tr>
-<tr>
-<td>Standard</td>
-<td><code>pip install jsat[standard]</code></td>
-<td>~120 MB</td>
-<td>Individual engineers</td>
-</tr>
-<tr>
-<td>Team</td>
-<td><code>pip install jsat[team]</code></td>
-<td>~200 MB</td>
-<td>Engineering teams (Neo4j + Qdrant + Redis)</td>
-</tr>
-<tr>
-<td>CI</td>
-<td><code>pip install jsat[ci]</code></td>
-<td>~90 MB</td>
-<td>CI pipelines (no AI cost)</td>
-</tr>
-<tr>
-<td>Full</td>
-<td><code>pip install jsat[all]</code></td>
-<td>~350 MB</td>
-<td>Power users</td>
-</tr>
-</tbody>
-</table>
-<h2 id="auto-detection-matrix">Auto-Detection Matrix<a class="headerlink" href="#auto-detection-matrix" title="Permanent link">&para;</a></h2>
-<p>JSAT detects your environment on first run and selects the right backends automatically. Run <code>jsat doctor</code> to see what was detected.</p>
-<table>
-<thead>
-<tr>
-<th>Environment</th>
-<th>Graph</th>
-<th>Embeddings</th>
-<th>Cache</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Laptop, Ollama running</td>
-<td>SQLite</td>
-<td>nomic-embed-code (local)</td>
-<td>disk</td>
-</tr>
-<tr>
-<td>Team server (Neo4j + Qdrant + Redis)</td>
-<td>Neo4j</td>
-<td>text-embedding-3-small</td>
-<td>Redis</td>
-</tr>
-<tr>
-<td>Apple M-series / ARM</td>
-<td>SQLite</td>
-<td>nomic-embed-code via Metal</td>
-<td>disk</td>
-</tr>
-<tr>
-<td>CI environment</td>
-<td>SQLite</td>
-<td>none (skipped)</td>
-<td>memory</td>
-</tr>
-<tr>
-<td>Raspberry Pi (&lt; 4 GB RAM)</td>
-<td>SQLite</td>
-<td>nomic-embed-code (phi3:mini)</td>
-<td>disk</td>
-</tr>
-</tbody>
-</table>
-<h2 id="supported-ai-providers">Supported AI Providers<a class="headerlink" href="#supported-ai-providers" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Provider</th>
-<th>Needs</th>
-<th>Cost</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Claude Code CLI</td>
-<td><code>claude</code> binary installed</td>
-<td>Free tier available</td>
-</tr>
-<tr>
-<td>Anthropic API</td>
-<td><code>ANTHROPIC_API_KEY</code></td>
-<td>Paid</td>
-</tr>
-<tr>
-<td>OpenAI</td>
-<td><code>OPENAI_API_KEY</code></td>
-<td>Paid</td>
-</tr>
-<tr>
-<td>Google Gemini</td>
-<td><code>GEMINI_API_KEY</code></td>
-<td>Paid</td>
-</tr>
-<tr>
-<td>Ollama (local)</td>
-<td><code>ollama serve</code> + model</td>
-<td>Free</td>
-</tr>
-<tr>
-<td>LM Studio (local)</td>
-<td>LM Studio running</td>
-<td>Free</td>
-</tr>
-</tbody>
-</table>
-<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="getting-started/">Getting Started</a> — step-by-step setup</li>
-<li><a href="integrations/">AI Integrations</a> — choose native Codex/Claude/OpenCode, direct Ollama, or an Ollama-launched client</li>
-<li><a href="ai-integrations/">Other AI clients</a> — Cursor, Bob Shell, Gemini CLI, and more</li>
-<li><a href="claude-integration/">Claude Integration</a> — Claude-specific MCP server + <code>/jsat-*</code> commands</li>
-<li><a href="ai-providers/">AI Providers</a> — configure any AI backend</li>
-<li><a href="cli-reference/">CLI Reference</a> — every command and flag</li>
-<li><a href="tools/">Tools</a> — the 15 JSAT tools explained</li>
-<li><a href="sdk/">Python SDK</a> — programmatic access</li>
-<li><a href="configuration/">Configuration</a> — <code>.jsat/config.yaml</code> reference</li>
+<li><code>model not found at http://localhost:11434</code>: the configured local model is not installed in
+  the Ollama instance at that URL. Pull the exact tag or select a model shown by <code>ollama list</code>.</li>
+<li>A cloud-suffixed model should prompt for/sign in to Ollama Cloud, not be downloaded locally.</li>
+<li>If <code>ollama launch opencode</code> already uses a model successfully, that proves the launched
+  OpenCode route works; it does not prove JSAT's direct Ollama provider has the same model
+  configured. Run <code>jsat ai status</code> and <code>jsat ai test</code> for this route.</li>
 </ul>
 
 
@@ -1508,10 +1328,10 @@ selection, lifecycle, verification, and troubleshooting instructions for each ro
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["content.code.copy", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

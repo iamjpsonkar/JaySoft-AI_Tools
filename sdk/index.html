@@ -260,17 +260,18 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="../claude-integration/" class="md-tabs__link">
-        
-  
-  
     
+    
+      <li class="md-tabs__item">
+        <a href="../integrations/" class="md-tabs__link">
+          
   
-  Claude Integration
+  
+  AI Integrations
 
-      </a>
-    </li>
+        </a>
+      </li>
+    
   
 
       
@@ -501,15 +502,69 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../claude-integration/" class="md-nav__link">
+      <a href="../integrations/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Claude Integration
+    Choose a setup
   
 
     
@@ -518,6 +573,266 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/codex/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native Codex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/opencode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native OpenCode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Direct Ollama
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ollama + Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-opencode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ollama + OpenCode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-codex/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ollama + Codex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-integrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Other clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../claude-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude command reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1715,91 +2030,91 @@
 <tr>
 <th>Alias</th>
 <th>Provider</th>
-<th>Default model</th>
+<th>Model behavior</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>claude</code></td>
 <td><code>claude_cli</code> (if installed) or <code>anthropic</code></td>
-<td><code>claude-sonnet-4-6</code></td>
+<td>CLI default, or explicit for API</td>
 </tr>
 <tr>
 <td><code>claude-api</code></td>
 <td><code>anthropic</code></td>
-<td><code>claude-sonnet-4-6</code></td>
+<td>Explicit model required</td>
 </tr>
 <tr>
 <td><code>claude-cli</code></td>
 <td><code>claude_cli</code></td>
-<td><code>claude-sonnet-4-6</code></td>
+<td>Claude's configured/default model</td>
 </tr>
 <tr>
 <td><code>bob</code> / <code>bob-cli</code></td>
 <td><code>bob_cli</code></td>
-<td><code>premium</code></td>
+<td>Bob's configured/default model</td>
 </tr>
 <tr>
-<td><code>codex-cli</code></td>
+<td><code>codex</code> / <code>codex-cli</code></td>
 <td><code>codex_cli</code></td>
-<td><code>gpt-5.6-sol</code></td>
+<td>Codex's configured/default model</td>
 </tr>
 <tr>
 <td><code>anthropic</code></td>
 <td><code>anthropic</code></td>
-<td><code>claude-sonnet-4-6</code></td>
+<td>Explicit model required</td>
 </tr>
 <tr>
 <td><code>haiku</code></td>
 <td><code>anthropic</code></td>
-<td><code>claude-haiku-4-5-20251001</code></td>
+<td>Explicit model required; no version is pinned</td>
 </tr>
 <tr>
 <td><code>opus</code></td>
 <td><code>anthropic</code></td>
-<td><code>claude-opus-4-8</code></td>
+<td>Explicit model required; no version is pinned</td>
 </tr>
 <tr>
 <td><code>gpt</code> / <code>openai</code></td>
 <td><code>openai</code></td>
-<td><code>gpt-4o</code></td>
+<td>Explicit model required</td>
 </tr>
 <tr>
 <td><code>gpt4mini</code></td>
 <td><code>openai</code></td>
-<td><code>gpt-4o-mini</code></td>
+<td>Explicit model required; no version is pinned</td>
 </tr>
 <tr>
-<td><code>ollama</code> / <code>llama</code></td>
 <td><code>ollama</code></td>
-<td><code>llama3.2</code></td>
+<td><code>ollama</code></td>
+<td>Explicit, or the sole registered model</td>
 </tr>
 <tr>
-<td><code>phi</code></td>
+<td><code>llama</code> / <code>phi</code></td>
 <td><code>ollama</code></td>
-<td><code>phi3:mini</code></td>
+<td>Explicit model required for the named family</td>
 </tr>
 <tr>
 <td><code>gemini</code></td>
 <td><code>openai_compat</code></td>
-<td><code>gemini-1.5-flash</code></td>
+<td>Explicit model required</td>
 </tr>
 <tr>
 <td><code>gemini-pro</code></td>
 <td><code>openai_compat</code></td>
-<td><code>gemini-1.5-pro</code></td>
+<td>Explicit model required; no version is pinned</td>
 </tr>
 <tr>
 <td><code>lmstudio</code></td>
 <td><code>openai_compat</code></td>
-<td><code>local-model</code></td>
+<td>Explicit model required</td>
 </tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"ollama"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"phi3:mini"</span><span class="p">)</span>
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"anthropic"</span><span class="p">)</span>
-<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"gemini"</span><span class="p">)</span>
-<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"custom"</span><span class="p">,</span> <span class="n">base_url</span><span class="o">=</span><span class="s2">"http://my-server:8080/v1"</span><span class="p">)</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"anthropic"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"&lt;model&gt;"</span><span class="p">)</span>
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"gemini"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"&lt;model&gt;"</span><span class="p">)</span>
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"custom"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"&lt;model&gt;"</span><span class="p">,</span> <span class="n">base_url</span><span class="o">=</span><span class="s2">"http://my-server:8080/v1"</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h3 id="index_status-property"><code>index_status</code> (property)<a class="headerlink" href="#index_status-property" title="Permanent link">&para;</a></h3>
