@@ -37,9 +37,13 @@ JSAT Shell v0.4.12
 > switch claude
 ```
 
-## Claude Code Integration
+## Choose your AI integration
 
-Connect JSAT to Claude Code for the best experience:
+Native clients, direct Ollama, and clients launched through Ollama are independent routes.
+Open the [tabbed integration chooser](integrations/index.md) for complete setup, model
+selection, lifecycle, verification, and troubleshooting instructions for each route.
+
+For example, connect native Claude Code with:
 
 ```bash
 jsat connect claude    # wires JSAT as an MCP server + installs /jsat-* commands
@@ -55,7 +59,8 @@ Then inside Claude Code, use slash commands:
 /jsat-incident 500 errors on checkout since 14:00
 ```
 
-See [Claude Integration](claude-integration.md) for the full guide.
+See [Native Claude](integrations/claude.md) for the full setup or
+[Claude command reference](claude-integration.md) for every JSAT command surface.
 
 ## Installation Profiles
 
@@ -94,7 +99,8 @@ JSAT detects your environment on first run and selects the right backends automa
 ## Next Steps
 
 - [Getting Started](getting-started.md) — step-by-step setup
-- [AI Integrations](ai-integrations.md) — MCP setup for Claude Code, Codex, Cursor, Bob Shell, and more
+- [AI Integrations](integrations/index.md) — choose native Codex/Claude/OpenCode, direct Ollama, or an Ollama-launched client
+- [Other AI clients](ai-integrations.md) — Cursor, Bob Shell, Gemini CLI, and more
 - [Claude Integration](claude-integration.md) — Claude-specific MCP server + `/jsat-*` commands
 - [AI Providers](ai-providers.md) — configure any AI backend
 - [CLI Reference](cli-reference.md) — every command and flag

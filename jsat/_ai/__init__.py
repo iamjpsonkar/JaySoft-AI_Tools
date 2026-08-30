@@ -6,6 +6,46 @@ from collections.abc import Iterator
 from typing import Any
 
 
+def require_explicit_model(provider: str, model: str | None) -> str:
+    """Return a configured model or raise with provider-neutral discovery help."""
+    if model and model.strip():
+        return model.strip()
+    from jsat._exceptions import AIProviderError
+
+    raise AIProviderError(
+        f"No model selected for '{provider}'.\n"
+        f"Discover: jsat ai models {provider}\n"
+        f"Select:   jsat ai use {provider} --model <model>",
+        provider=provider,
+        status_code=0,
+    )
+
+
+def model_help(provider: str) -> str:
+    """Explain model discovery without embedding a model catalogue in JSAT."""
+    hints = {
+        "codex_cli": (
+            "Open Codex and use its model selector, or run `codex --help`. "
+            "Omit JSAT's model setting to use the Codex default."
+        ),
+        "claude_cli": (
+            "Open Claude Code and use `/model`. Omit JSAT's model setting to use "
+            "the Claude default."
+        ),
+        "opencode_cli": "Open OpenCode and use its provider/model selector.",
+        "bob_cli": "Open Bob Shell and use its configured model/mode selector.",
+        "ollama": (
+            "Run `ollama list` or `jsat ai models ollama`, then select with "
+            "`jsat ai use ollama --model <model>`."
+        ),
+    }
+    return hints.get(
+        provider,
+        f"Run `jsat ai models {provider}`, then select with "
+        f"`jsat ai use {provider} --model <model>`.",
+    )
+
+
 class AIProvider(ABC):
     """Contract all AI/LLM backends must implement."""
 
@@ -52,6 +92,10 @@ def get_ai_provider(cfg: Any) -> AIProvider:
         from jsat._ai.codex_cli import CodexCliProvider
         return CodexCliProvider(cfg)
 
+    if provider_name == "opencode_cli":
+        from jsat._ai.opencode_cli import OpenCodeCliProvider
+        return OpenCodeCliProvider(cfg)
+
     if provider_name == "bob_cli":
         from jsat._ai.bob_cli import BobCliProvider
         return BobCliProvider(cfg)
@@ -86,7 +130,7 @@ def get_ai_provider(cfg: Any) -> AIProvider:
 
     raise ValueError(
         f"Unknown ai.provider '{provider_name}'. "
-        "Valid: none, claude_cli, codex_cli, bob_cli, ollama, anthropic, "
+        "Valid: none, claude_cli, codex_cli, opencode_cli, bob_cli, ollama, anthropic, "
         "openai, openai_compat. "
         "Run: jsat init --profile solo"
     )
@@ -107,4 +151,4 @@ def _profile_error(provider: str, extra: str, cause: ImportError) -> None:
         raise ImportError(f"Install: pip install 'jsat[{extra}]'") from cause
 
 
-__all__ = ["AIProvider", "get_ai_provider"]
+__all__ = ["AIProvider", "get_ai_provider", "model_help", "require_explicit_model"]

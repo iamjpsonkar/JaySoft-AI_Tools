@@ -51,6 +51,29 @@ def _initialize(server: MCPServer) -> dict:
     return server._handle(msg) or {}  # type: ignore[return-value]
 
 
+@pytest.mark.ci
+def test_blast_radius_file_uses_documented_path_argument():
+    server = _make_server()
+    server._jsat.blast_radius.return_value = {"summary": {}}
+
+    raw = server._registry["blast_radius_file"]["handler"]({"path": "jsat/_core.py"})
+
+    assert json.loads(raw) == {"summary": {}}
+    server._jsat.blast_radius.assert_called_once_with(
+        target="jsat/_core.py", max_depth=5
+    )
+
+
+@pytest.mark.ci
+def test_blast_radius_file_keeps_legacy_file_argument():
+    server = _make_server()
+    server._jsat.blast_radius.return_value = {"summary": {}}
+
+    server._registry["blast_radius_file"]["handler"]({"file": "legacy.py"})
+
+    server._jsat.blast_radius.assert_called_once_with(target="legacy.py", max_depth=5)
+
+
 # ── _allowed() — pure function tests ─────────────────────────────────────────
 
 @pytest.mark.ci

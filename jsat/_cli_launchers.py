@@ -3,7 +3,6 @@ jsat._cli_launchers — AI launcher commands (claude, codex, cursor, etc.)
 """
 from __future__ import annotations
 
-import contextlib
 from pathlib import Path
 
 import structlog
@@ -117,18 +116,126 @@ def cmd_gpt(
     _launch_ai("gpt", repo, verbose)
 
 
-@app.command("ollama", rich_help_panel="🤖  AI Launchers")
+@app.command(
+    "ollama",
+    rich_help_panel="🤖  AI Launchers",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
 def cmd_ollama(
+    ctx: typer.Context,
     repo: str = typer.Option(".", "--repo", "-r"),
-    model: str = typer.Option("llama3.2", "--model", "-m", help="Ollama model name"),
+    model: str | None = typer.Option(None, "--model", "-m", help="Ollama model name"),
+    tool: str | None = typer.Option(
+        None, "--tool", "-t", help="Launch a coding tool through Ollama (claude, opencode, codex)"
+    ),
+    configure_only: bool = typer.Option(
+        False, "--config", help="Configure the selected coding tool without launching it"
+    ),
+    yes: bool = typer.Option(
+        False, "--yes", "-y", help="Skip Ollama selectors; requires --model"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
-    """Open an Ollama session with JSAT tools (local, free, no API key)."""
+    """Use Ollama directly, or launch a coding tool with a local/cloud model.
+
+    \b
+    Direct JSAT shell behavior:
+      jsat ai models ollama
+      jsat ollama --model <model>
+
+    \b
+    Coding tools through Ollama's official launcher:
+      jsat ollama --tool claude                 # interactive model selector
+      jsat ollama --tool opencode -m qwen3.5    # local model
+      jsat ollama --tool codex -m gemma4:31b-cloud  # Ollama Cloud model
+      jsat ollama --tool claude -m gemma4:31b-cloud --yes -- -p "explain this repo"
+    """
+    if tool:
+        _launch_with_ollama(
+            tool,
+            repo,
+            model=model,
+            configure_only=configure_only,
+            yes=yes,
+            passthrough=list(ctx.args),
+        )
+        return
+
+    if configure_only or yes or ctx.args:
+        err.print("[red]--config, --yes, and trailing arguments require --tool.[/]")
+        raise typer.Exit(1)
+
     from jsat.tools.shell import launch
     js = _jsat(repo=repo, verbose=verbose)
-    with contextlib.suppress(Exception):
-        js.switch_ai("ollama", model=model)
+    if model is None:
+        from jsat._ollama import (
+            discover_ollama_models,
+            model_selection_help,
+            select_ollama_model,
+        )
+
+        try:
+            model = select_ollama_model(None, discover_ollama_models())
+            console.print(f"[cyan]Using the only registered Ollama model:[/] {model}")
+        except Exception as exc:
+            err.print(
+                f"[yellow]Choose an Ollama model for the direct JSAT shell.[/]\n"
+                f"{exc}\n{model_selection_help()}"
+            )
+            raise typer.Exit(1) from exc
+    js.switch_ai("ollama", model=model)
     launch(js)
+
+
+def _launch_with_ollama(
+    tool: str,
+    repo: str,
+    *,
+    model: str | None,
+    configure_only: bool,
+    yes: bool,
+    passthrough: list[str],
+) -> None:
+    """Delegate coding-tool configuration and launch to the Ollama CLI."""
+    import shutil
+    import subprocess
+
+    from jsat._ollama import build_ollama_launch_args, ollama_model_kind
+
+    ollama_bin = shutil.which("ollama")
+    if not ollama_bin:
+        err.print(
+            "[red]ollama not found in PATH.[/]\n"
+            "  Install it from [bold]https://ollama.com/download[/]"
+        )
+        raise typer.Exit(1)
+
+    try:
+        args = build_ollama_launch_args(
+            tool,
+            model=model,
+            configure_only=configure_only,
+            yes=yes,
+            passthrough=passthrough,
+        )
+    except ValueError as exc:
+        err.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from exc
+
+    if model:
+        kind = ollama_model_kind(model)
+        detail = "runs on this machine" if kind == "local" else "runs through Ollama Cloud"
+        console.print(f"[cyan]{kind.title()} model:[/] [bold]{model}[/] ({detail})")
+        if kind == "cloud":
+            console.print("[dim]If needed, authenticate first with `ollama signin`.[/dim]")
+    else:
+        console.print("[cyan]Model:[/] choose local or cloud in Ollama's selector")
+
+    repo_abs = str(Path(repo).resolve())
+    if tool.strip().lower() == "opencode":
+        _auto_connect("opencode", repo_abs)
+    console.print(f"[green]✓[/] Running [bold]ollama {' '.join(args[:2])}[/] in {repo_abs}\n")
+    subprocess.run([ollama_bin, *args], cwd=repo_abs)
 
 
 # ── AI tool launchers (parity with `jsat claude`) ────────────────────────────
@@ -174,6 +281,7 @@ def _tool_install_hint(tool: str) -> str:
 
 _TOOL_CONFIG_PATHS: dict[str, tuple[Path, str]] = {
     "codex":    (Path.home() / ".codex" / "config.toml",         "mcpServers"),
+    "opencode": (Path.home() / ".config" / "opencode" / "opencode.json", "mcp"),
     "cursor":   (Path.home() / ".cursor" / "mcp.json",           "mcpServers"),
     "windsurf": (Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
     "gemini":   (Path.home() / ".gemini" / "settings.json",      "mcpServers"),
@@ -188,6 +296,12 @@ def _is_connected(tool: str) -> bool:
     if not entry:
         return False
     config_path, key = entry
+    if tool == "opencode":
+        from jsat._cli_connect import _opencode_commands_dir, _opencode_config_path
+
+        config_path = _opencode_config_path()
+        commands_ready = (_opencode_commands_dir() / "jsat.md").exists()
+        return "jsat" in _read_json(config_path).get(key, {}) and commands_ready
     if tool == "codex":
         from jsat._cli_connect import _has_current_codex_jsat_mcp
         skill_file = config_path.parent / "skills" / "jsat" / "SKILL.md"
@@ -197,12 +311,17 @@ def _is_connected(tool: str) -> bool:
 
 def _auto_connect(tool: str, repo: str) -> None:
     """Silently connect JSAT to a tool if not already wired."""
-    if _is_connected(tool):
+    # OpenCode entries created by older JSAT versions need their provider marker
+    # repaired, and slash-command files may have been removed independently.
+    if _is_connected(tool) and tool != "opencode":
         return
     # Deferred imports to avoid circular imports with _cli_connect
     from jsat._cli_connect import (
         _connect_codex_mcp,
         _connect_mcp_tool,
+        _connect_opencode_mcp,
+        _install_opencode_commands,
+        _opencode_config_path,
         _write_instructions_file,
     )
     from jsat._cli_skills_data import _write_codex_skill
@@ -210,6 +329,8 @@ def _auto_connect(tool: str, repo: str) -> None:
     binary = _jsat_binary()
     repo_path = str(Path(repo).resolve())
     config_path, key = _TOOL_CONFIG_PATHS[tool]
+    if tool == "opencode":
+        config_path = _opencode_config_path()
     if tool == "codex":
         _connect_codex_mcp(
             config_path,
@@ -217,6 +338,13 @@ def _auto_connect(tool: str, repo: str) -> None:
             env={"JSAT_AI_PROVIDER": "codex_cli", "JSAT_MCP_ALLOW_INSECURE": "1"},
         )
         _write_codex_skill(config_path.parent / "skills" / "jsat")
+    elif tool == "opencode":
+        try:
+            _connect_opencode_mcp(config_path, binary)
+        except ValueError as exc:
+            err.print(f"[red]{exc}[/]")
+            raise typer.Exit(1) from exc
+        _install_opencode_commands()
     elif key == "context_servers":
         settings = _read_json(config_path)
         settings.setdefault("context_servers", {})

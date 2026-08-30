@@ -421,29 +421,29 @@ provider_used, model_used, is_ok = js.switch_ai(provider, model=None, base_url=N
 
 Supported aliases:
 
-| Alias | Provider | Default model |
+| Alias | Provider | Model behavior |
 |-------|---------|--------------|
-| `claude` | `claude_cli` (if installed) or `anthropic` | `claude-sonnet-4-6` |
-| `claude-api` | `anthropic` | `claude-sonnet-4-6` |
-| `claude-cli` | `claude_cli` | `claude-sonnet-4-6` |
-| `bob` / `bob-cli` | `bob_cli` | `premium` |
-| `codex-cli` | `codex_cli` | `gpt-5.6-sol` |
-| `anthropic` | `anthropic` | `claude-sonnet-4-6` |
-| `haiku` | `anthropic` | `claude-haiku-4-5-20251001` |
-| `opus` | `anthropic` | `claude-opus-4-8` |
-| `gpt` / `openai` | `openai` | `gpt-4o` |
-| `gpt4mini` | `openai` | `gpt-4o-mini` |
-| `ollama` / `llama` | `ollama` | `llama3.2` |
-| `phi` | `ollama` | `phi3:mini` |
-| `gemini` | `openai_compat` | `gemini-1.5-flash` |
-| `gemini-pro` | `openai_compat` | `gemini-1.5-pro` |
-| `lmstudio` | `openai_compat` | `local-model` |
+| `claude` | `claude_cli` (if installed) or `anthropic` | CLI default, or explicit for API |
+| `claude-api` | `anthropic` | Explicit model required |
+| `claude-cli` | `claude_cli` | Claude's configured/default model |
+| `bob` / `bob-cli` | `bob_cli` | Bob's configured/default model |
+| `codex` / `codex-cli` | `codex_cli` | Codex's configured/default model |
+| `anthropic` | `anthropic` | Explicit model required |
+| `haiku` | `anthropic` | Explicit model required; no version is pinned |
+| `opus` | `anthropic` | Explicit model required; no version is pinned |
+| `gpt` / `openai` | `openai` | Explicit model required |
+| `gpt4mini` | `openai` | Explicit model required; no version is pinned |
+| `ollama` | `ollama` | Explicit, or the sole registered model |
+| `llama` / `phi` | `ollama` | Explicit model required for the named family |
+| `gemini` | `openai_compat` | Explicit model required |
+| `gemini-pro` | `openai_compat` | Explicit model required; no version is pinned |
+| `lmstudio` | `openai_compat` | Explicit model required |
 
 ```python
 js.switch_ai("ollama", model="phi3:mini")
-js.switch_ai("anthropic")
-js.switch_ai("gemini")
-js.switch_ai("custom", base_url="http://my-server:8080/v1")
+js.switch_ai("anthropic", model="<model>")
+js.switch_ai("gemini", model="<model>")
+js.switch_ai("custom", model="<model>", base_url="http://my-server:8080/v1")
 ```
 
 ---

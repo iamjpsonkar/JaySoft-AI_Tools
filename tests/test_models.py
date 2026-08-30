@@ -2,12 +2,27 @@
 import pytest
 
 from jsat._models import (
+    AIConfig,
     BlastRadiusReport,
     ImpactItem,
     IndexResult,
     JSATConfig,
     SystemProfile,
 )
+
+
+def _solo_profile(*, ollama_up: bool = True) -> SystemProfile:
+    return SystemProfile(
+        ram_gb=16.0,
+        cpu_arch="x86_64",
+        gpu="none",
+        is_ci=False,
+        ollama_up=ollama_up,
+        neo4j_up=False,
+        qdrant_up=False,
+        redis_up=False,
+        detected_profile="solo",
+    )
 
 
 @pytest.mark.ci
@@ -72,3 +87,24 @@ def test_config_model_copy():
     new_cfg = cfg.model_copy(update={"ai": cfg.ai.model_copy(update={"provider": "openai"})})
     assert new_cfg.ai.provider == "openai"
     assert cfg.ai.provider == "ollama"  # original unchanged
+
+
+@pytest.mark.ci
+def test_auto_configure_preserves_explicit_ai_provider_and_model():
+    from jsat._config import auto_configure
+
+    cfg = JSATConfig(ai=AIConfig(provider="codex_cli", model="chosen-by-user"))
+    configured = auto_configure(cfg, _solo_profile())
+
+    assert configured.ai.provider == "codex_cli"
+    assert configured.ai.model == "chosen-by-user"
+
+
+@pytest.mark.ci
+def test_auto_configure_uses_profile_ai_when_user_did_not_select_one():
+    from jsat._config import auto_configure
+
+    configured = auto_configure(JSATConfig(), _solo_profile())
+
+    assert configured.ai.provider == "ollama"
+    assert configured.ai.model is None

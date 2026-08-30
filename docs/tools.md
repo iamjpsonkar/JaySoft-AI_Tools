@@ -60,9 +60,9 @@ jsat ollama     # shell preconfigured for Ollama
 > security-review                      # OWASP scan
 > incident "500 errors since 14:00"    # investigate
 > status                               # graph stats
-> switch ollama                        # change AI provider
+> switch ollama <model>                # change AI provider and select a model
 > switch claude                        # switch to Claude Code CLI
-> switch gpt                           # switch to GPT
+> switch gpt <model>                   # switch to an explicit OpenAI model
 > help                                 # show all commands
 ```
 

@@ -55,7 +55,17 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
-  - Claude Integration: claude-integration.md
+  - AI Integrations:
+      - Choose a setup: integrations/index.md
+      - Native Codex: integrations/codex.md
+      - Native Claude: integrations/claude.md
+      - Native OpenCode: integrations/opencode.md
+      - Direct Ollama: integrations/ollama-local.md
+      - Ollama + Claude: integrations/ollama-claude.md
+      - Ollama + OpenCode: integrations/ollama-opencode.md
+      - Ollama + Codex: integrations/ollama-codex.md
+      - Other clients: ai-integrations.md
+      - Claude command reference: claude-integration.md
   - AI Providers: ai-providers.md
   - CLI Reference: cli-reference.md
   - Tools: tools.md

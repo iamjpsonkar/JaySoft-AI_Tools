@@ -90,8 +90,8 @@ embeddings:
 
 # ── AI provider ────────────────────────────────────────────────────────────────
 ai:
-  provider: ollama              # "ollama" | "anthropic" | "openai" | "openai_compat" | "claude_cli" | "bob_cli" | "codex_cli" | "none"
-  model: llama3.2
+  provider: ollama              # also: anthropic, openai, openai_compat, claude_cli, opencode_cli, bob_cli, codex_cli, none
+  model: null                   # explicit model; native CLIs choose their own when null
   api_key_env: null             # env var name, e.g. ANTHROPIC_API_KEY (read automatically)
   base_url: null                # for openai_compat (LM Studio, Gemini, custom)
   max_tokens: 8192
@@ -424,7 +424,7 @@ For LM Studio or a custom OpenAI-compatible server:
 ```yaml
 ai:
   provider: openai_compat
-  model: local-model
+  model: <loaded-model-id>
   base_url: http://localhost:1234/v1
 ```
 
@@ -482,7 +482,7 @@ Controls structlog output.
 
 Controls multi-model parallel code review (Tool 9 — MultiModelReview).
 
-- `models` — list of provider/model pairs to dispatch the diff to simultaneously. Each entry must specify a `provider` (`claude_cli`, `bob_cli`, `codex_cli`, `ollama`, `anthropic`, `openai`, `openai_compat`) and a `model` name.
+- `models` — list of provider/model pairs to dispatch the diff to simultaneously. Each entry must specify a `provider` (`claude_cli`, `opencode_cli`, `bob_cli`, `codex_cli`, `ollama`, `anthropic`, `openai`, `openai_compat`) and a `model` name.
 - `parallel_timeout_seconds` — wall-clock deadline applied to every model dispatch. Models that exceed this are skipped; their timeout is recorded as a warning in the review output.
 - `min_confidence` — controls which findings are surfaced:
   - `low` — any single model's finding
@@ -576,6 +576,7 @@ All secrets should be passed via environment variables, never stored in config:
 |---------|---------|
 | `JSAT_CONFIG` | Override config file path |
 | `JSAT_DATA_DIR` | Override data directory (graph, cache, vectors). Useful in CI or Docker |
+| `JSAT_RUNTIME_DIR` | Override managed AI-client lifecycle records (default `~/.jsat/runtime/`) |
 | `JSAT_NO_IMPROVE` | If set, disables self-improvement signal capture and the nudge entirely |
 | `JSAT_IMPROVE_DIR` | Override the self-improvement store (default `~/.jsat/improve/`) |
 | `JSAT_SESSIONS_DIR` | Override where skill sessions are written (default `~/.jsat/sessions/`) |

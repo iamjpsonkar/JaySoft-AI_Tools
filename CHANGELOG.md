@@ -4,6 +4,57 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.13] — 2026-08-30
+
+### Added
+
+- **Provider-specific integration documentation.** The MkDocs site now has a tabbed
+  chooser and complete standalone guides for native Claude, Codex, and OpenCode;
+  direct Ollama; and Claude, Codex, or OpenCode launched through Ollama. Every guide
+  covers connection, model ownership, launch, lifecycle, verification, troubleshooting,
+  and the local-pull versus cloud-sign-in distinction. README includes the same route
+  matrix and links.
+- **Managed AI-client lifecycle.** New top-level `jsat start`, `stop`, `restart`,
+  `resume`, and `ps` commands manage Claude, Codex, and OpenCode across native and
+  Ollama routes. The default target is `all`; multi-client interactive actions open
+  one terminal per client. Stop validates JSAT's recorded process-start identity
+  before signaling a PID and never searches for or kills unrelated tool processes.
+- **Ollama coding-tool launchers support local and cloud models.** `jsat ollama
+  --tool claude|opencode|codex` delegates to Ollama's official launcher, keeps the
+  interactive model selector when `--model` is omitted, and identifies cloud-suffixed
+  models without changing the existing plain `jsat ollama` shell behavior.
+- **OpenCode MCP connection and first-launch auto-connect.** `jsat connect opencode`
+  writes a merge-safe global OpenCode MCP entry and installs `/jsat` plus `/jsat-help`,
+  while `jsat ollama --tool opencode` creates or repairs both automatically before
+  launch. This works when OpenCode is managed only through `ollama launch opencode`;
+  no standalone `opencode` binary is required.
+- **Ollama connection dispatcher.** `jsat connect ollama` configures JSAT for all
+  supported Ollama-launched clients (Claude, Codex, and OpenCode); `--tool opencode`
+  and `tool=opencode` select one client. Direct and Ollama-launched clients share
+  their normal MCP configuration, so no duplicate connection state is introduced.
+
+### Fixed
+
+- **Provider selection is deterministic and model-neutral.** Explicit AI settings now
+  survive profile auto-configuration; MCP never falls through to a different installed
+  CLI; provider switches clear stale model, URL, and key-environment fields; and aliases
+  no longer embed model IDs. Missing models stop with discovery, pull/sign-in, and
+  explicit-selection help.
+- **Crack and MCP helper regressions.** Moderator-only crack runs no longer create a
+  zero-worker executor, and `blast_radius_file` accepts the documented `path` argument
+  while retaining compatibility with the legacy `file` spelling.
+- **Provider changes no longer leak a model from the previous provider.** Native
+  Claude, Codex, OpenCode, and Bob connectors omit `--model` unless the user set
+  one explicitly. Direct Ollama selects the sole registered model or stops with
+  `ollama list`, `jsat ai models`, pull/sign-in, and selection help; it never
+  guesses a built-in fallback model.
+- **MCP AI provider isolation.** Native Claude, Codex, and OpenCode now use their
+  matching CLI provider without inheriting an Ollama model or falling across to a
+  different CLI. Ollama-launched OpenCode and Claude instead inherit the exact local
+  or cloud model selected by `ollama launch`; JSAT no longer asks for a second pull.
+- Ollama calls fall back to the server's native HTTP API when the optional Python
+  `ollama` SDK is absent, and both `:cloud` and `-cloud` model names are recognized.
+
 ## [0.4.12] — 2026-08-19
 
 ### Fixed

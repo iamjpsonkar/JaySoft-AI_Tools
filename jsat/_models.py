@@ -59,9 +59,9 @@ class EmbeddingsConfig(BaseModel):
 class AIConfig(BaseModel):
     provider: Literal[
         "ollama", "anthropic", "openai", "openai_compat",
-        "claude_cli", "codex_cli", "bob_cli", "none"
+        "claude_cli", "codex_cli", "opencode_cli", "bob_cli", "none"
     ] = "ollama"
-    model: str = "llama3.2"
+    model: str | None = None
     api_key_env: str | None = None
     base_url: str | None = None
     max_tokens: int = 8192

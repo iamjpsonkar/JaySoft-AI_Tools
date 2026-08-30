@@ -7,7 +7,10 @@ documented in one surface always works in the others.
 from __future__ import annotations
 
 # Tools that `jsat connect` wires in as MCP clients — NOT AI providers.
-MCP_TOOLS = ("claude", "codex", "cursor", "windsurf", "continue", "zed", "gemini", "bob")
+MCP_TOOLS = (
+    "claude", "codex", "opencode", "ollama", "cursor", "windsurf", "continue", "zed",
+    "gemini", "bob",
+)
 
 
 def normalize_alias(name: str) -> str:
@@ -18,7 +21,9 @@ def normalize_alias(name: str) -> str:
     return name.strip().lower().replace("_", "-").replace(" ", "-")
 
 
-def provider_aliases(base_url: str | None = None) -> dict[str, tuple[str, str, str | None]]:
+def provider_aliases(
+    base_url: str | None = None,
+) -> dict[str, tuple[str, str | None, str | None]]:
     """alias → (internal_provider, default_model, base_url).
 
     ``claude`` prefers the CLI when the ``claude`` binary is installed (no API key
@@ -32,31 +37,32 @@ def provider_aliases(base_url: str | None = None) -> dict[str, tuple[str, str, s
     lmstudio_url = "http://localhost:1234/v1"
 
     return {
-        "claude":     ("claude_cli" if claude_cli_available else "anthropic",
-                       "claude-sonnet-4-6", None),
-        "claude-api": ("anthropic",     "claude-sonnet-4-6",         None),
-        "claude-cli": ("claude_cli",    "claude-sonnet-4-6",         None),
-        "anthropic":  ("anthropic",     "claude-sonnet-4-6",         None),
-        "haiku":      ("anthropic",     "claude-haiku-4-5-20251001", None),
-        "opus":       ("anthropic",     "claude-opus-4-8",           None),
-        "bob":        ("bob_cli",       "premium",                   None),
-        "bob-cli":    ("bob_cli",       "premium",                   None),
-        "codex-cli":  ("codex_cli",     "gpt-5.6-sol",               None),
-        "gpt":        ("openai",        "gpt-4o",                    None),
-        "openai":     ("openai",        "gpt-4o",                    None),
-        "chatgpt":    ("openai",        "gpt-4o",                    None),
-        "gpt4":       ("openai",        "gpt-4o",                    None),
-        "gpt4mini":   ("openai",        "gpt-4o-mini",               None),
-        "codex":      ("openai",        "gpt-4o",                    None),
-        "ollama":     ("ollama",        "llama3.2",                  None),
-        "llama":      ("ollama",        "llama3.2",                  None),
-        "phi":        ("ollama",        "phi3:mini",                 None),
-        "gemini":     ("openai_compat", "gemini-1.5-flash",          gemini_url),
-        "gemini-pro": ("openai_compat", "gemini-1.5-pro",            gemini_url),
-        "lmstudio":   ("openai_compat", "local-model",               lmstudio_url),
-        "lm-studio":  ("openai_compat", "local-model",               lmstudio_url),
-        "custom":     ("openai_compat", "local-model",  base_url or lmstudio_url),
-        "compat":     ("openai_compat", "local-model",  base_url or lmstudio_url),
+        "claude":     ("claude_cli" if claude_cli_available else "anthropic", None, None),
+        "claude-api": ("anthropic",     None,                          None),
+        "claude-cli": ("claude_cli",    None,                          None),
+        "anthropic":  ("anthropic",     None,                          None),
+        "haiku":      ("anthropic",     None,                          None),
+        "opus":       ("anthropic",     None,                          None),
+        "bob":        ("bob_cli",       None,                          None),
+        "bob-cli":    ("bob_cli",       None,                          None),
+        "codex-cli":  ("codex_cli",     None,                          None),
+        "opencode":   ("opencode_cli",  None,                          None),
+        "opencode-cli": ("opencode_cli", None,                         None),
+        "gpt":        ("openai",        None,                          None),
+        "openai":     ("openai",        None,                          None),
+        "chatgpt":    ("openai",        None,                          None),
+        "gpt4":       ("openai",        None,                          None),
+        "gpt4mini":   ("openai",        None,                          None),
+        "codex":      ("codex_cli",     None,                          None),
+        "ollama":     ("ollama",        None,                          None),
+        "llama":      ("ollama",        None,                          None),
+        "phi":        ("ollama",        None,                          None),
+        "gemini":     ("openai_compat", None,                          gemini_url),
+        "gemini-pro": ("openai_compat", None,                          gemini_url),
+        "lmstudio":   ("openai_compat", None,                          lmstudio_url),
+        "lm-studio":  ("openai_compat", None,                          lmstudio_url),
+        "custom":     ("openai_compat", None,             base_url or lmstudio_url),
+        "compat":     ("openai_compat", None,             base_url or lmstudio_url),
     }
 
 
@@ -72,7 +78,7 @@ def is_provider_alias(name: str) -> bool:
 
 def resolve_alias(
     name: str, base_url: str | None = None
-) -> tuple[str, str, str | None] | None:
+) -> tuple[str, str | None, str | None] | None:
     """Resolve a provider alias to (internal_provider, default_model, base_url).
 
     Returns ``None`` when the alias is unknown — callers decide how to report it.

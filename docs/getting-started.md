@@ -100,7 +100,7 @@ Claude commands:
 
 After running, **restart the AI tool** to activate the MCP tools.
 
-See [AI Integrations](ai-integrations.md) for details.
+See the [AI integration chooser](integrations/index.md) for separate native and Ollama routes.
 
 ---
 

@@ -47,9 +47,11 @@ def test_underscore_and_hyphen_resolve_identically() -> None:
         ("opus", "anthropic"),
         ("bob", "bob_cli"),
         ("codex-cli", "codex_cli"),
+        ("opencode", "opencode_cli"),
+        ("opencode-cli", "opencode_cli"),
         ("gpt", "openai"),
         ("openai", "openai"),
-        ("codex", "openai"),
+        ("codex", "codex_cli"),
         ("ollama", "ollama"),
         ("phi", "ollama"),
         ("gemini", "openai_compat"),
@@ -72,17 +74,24 @@ def test_custom_alias_honours_base_url() -> None:
     assert resolved[2] == "http://example.test/v1"
 
 
-def test_every_alias_has_provider_and_model() -> None:
+def test_every_alias_has_provider_and_optional_model() -> None:
     for alias, (provider, model, _url) in provider_aliases().items():
         assert provider, f"{alias} has no provider"
-        assert model, f"{alias} has no default model"
+        assert model is None or model.strip(), f"{alias} has an invalid model"
+
+
+@pytest.mark.ci
+def test_provider_aliases_never_hard_code_a_model() -> None:
+    assert all(model is None for _provider, model, _url in provider_aliases().values())
 
 
 def test_provider_and_tool_namespaces_are_distinguishable() -> None:
     assert is_provider_alias("ollama")
     assert not is_provider_alias("cursor")
-    # claude/bob/gemini/codex are legitimately both a provider and a connect target
+    # Some names legitimately select both a provider and a connection target.
     assert is_provider_alias("claude") and "claude" in MCP_TOOLS
+    assert is_provider_alias("opencode") and "opencode" in MCP_TOOLS
+    assert "ollama" in MCP_TOOLS
 
 
 def test_suggest_finds_near_miss() -> None:
@@ -137,10 +146,10 @@ def test_usage_error_catch_includes_every_available_usage_error() -> None:
     assert vendored in caught
 
 
-def test_connect_with_provider_name_redirects_to_ai_use() -> None:
-    result = runner.invoke(app, ["connect", "ollama"])
+def test_connect_with_non_tool_provider_name_redirects_to_ai_use() -> None:
+    result = runner.invoke(app, ["connect", "phi"])
     assert result.exit_code == 1
-    assert "jsat ai use ollama" in result.output
+    assert "jsat ai use phi" in result.output
     assert "list" not in result.output.split("Connectable tools:")[-1]
 
 
@@ -162,7 +171,47 @@ def test_ai_use_typo_suggests_closest_provider() -> None:
     assert "ollama" in result.output
 
 
-def test_disconnect_with_provider_name_is_explained() -> None:
-    result = runner.invoke(app, ["disconnect", "ollama"])
+@pytest.mark.ci
+@pytest.mark.parametrize("alias", ["phi", "llama"])
+def test_ollama_model_family_alias_requires_explicit_model(alias: str) -> None:
+    result = runner.invoke(app, ["ai", "use", alias])
+
+    assert result.exit_code == 1
+    assert "model family" in result.output
+    assert f"jsat ai use {alias} --model <model>" in result.output
+
+
+@pytest.mark.ci
+def test_ai_use_clears_settings_owned_by_previous_provider(monkeypatch, tmp_path) -> None:
+    import yaml
+
+    from jsat._core import JSAT
+
+    class AvailableAI:
+        def is_available(self): return True
+
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        "ai:\n"
+        "  provider: openai_compat\n"
+        "  model: stale-model\n"
+        "  base_url: http://stale.example/v1\n"
+        "  api_key_env: STALE_KEY\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(JSAT, "_get_ai", lambda self: AvailableAI())
+
+    result = runner.invoke(
+        app,
+        ["ai", "use", "codex-cli", "--config", str(config)],
+    )
+
+    assert result.exit_code == 0
+    ai = yaml.safe_load(config.read_text(encoding="utf-8"))["ai"]
+    assert ai == {"provider": "codex_cli"}
+
+
+def test_disconnect_with_non_tool_provider_name_is_explained() -> None:
+    result = runner.invoke(app, ["disconnect", "phi"])
     assert result.exit_code == 1
     assert "AI provider" in result.output

@@ -1,48 +1,86 @@
-"""jsat._ai.ollama — Ollama AI provider (jsat[local] extra)."""
+"""jsat._ai.ollama — Ollama AI provider (local daemon or cloud routing)."""
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 from jsat._ai import AIProvider
+from jsat._ollama import DEFAULT_BASE_URL, ollama_model_kind, select_ollama_model
 
 if TYPE_CHECKING:
     from jsat._models import JSATConfig
 
-DEFAULT_MODEL = "llama3.2"
-DEFAULT_BASE_URL = "http://localhost:11434"
+
+class _HttpOllamaClient:
+    """Small native-API fallback when the optional ``ollama`` SDK is absent."""
+
+    def __init__(self, host: str, timeout: int) -> None:
+        self._host = host.rstrip("/")
+        self._timeout = timeout
+
+    def list(self) -> dict:
+        import httpx
+
+        response = httpx.get(f"{self._host}/api/tags", timeout=self._timeout)
+        response.raise_for_status()
+        return response.json()
+
+    def generate(self, *, stream: bool = False, **payload):
+        import httpx
+
+        if not stream:
+            response = httpx.post(
+                f"{self._host}/api/generate",
+                json={**payload, "stream": False},
+                timeout=self._timeout,
+            )
+            response.raise_for_status()
+            return response.json()
+
+        def chunks():
+            with httpx.stream(
+                "POST",
+                f"{self._host}/api/generate",
+                json={**payload, "stream": True},
+                timeout=self._timeout,
+            ) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if line:
+                        yield json.loads(line)
+
+        return chunks()
 
 
 class OllamaProvider(AIProvider):
-    """AI provider backed by a local Ollama instance."""
+    """AI provider backed by an Ollama host.
+
+    A local host can run local models itself or route cloud-suffixed models through
+    Ollama Cloud after the user signs in with the Ollama CLI.
+    """
 
     def __init__(self, cfg: JSATConfig) -> None:
         import structlog
         self._log = structlog.get_logger(__name__)
 
-        try:
-            import ollama as _ollama  # type: ignore[import]
-            self._ollama = _ollama
-        except ImportError as e:
-            from jsat._exceptions import ProfileError
-            raise ProfileError(
-                "Ollama package not installed.\nInstall: pip install 'jsat[local]'",
-                required_extra="local",
-            ) from e
-
         ai = cfg.ai
-        self._model: str = getattr(ai, "model", None) or DEFAULT_MODEL
+        self._model: str | None = getattr(ai, "model", None)
         self._base_url: str = getattr(ai, "base_url", None) or DEFAULT_BASE_URL
         self._max_tokens: int = getattr(ai, "max_tokens", 8192)
         self._timeout: int = getattr(ai, "timeout_seconds", 120)
 
-        # Bind a client to the configured host — the module-level ollama.* helpers
-        # always talk to localhost:11434 and would silently ignore cfg.ai.base_url.
-        self._client = _ollama.Client(host=self._base_url)
+        # Prefer the SDK when installed, but a running Ollama server is sufficient.
+        try:
+            import ollama as _ollama  # type: ignore[import]
 
-        self._log.info("ollama_init", model=self._model, base_url=self._base_url)
+            self._client = _ollama.Client(host=self._base_url)
+        except ImportError:
+            self._client = _HttpOllamaClient(self._base_url, self._timeout)
+
+        self._log.info("ollama_init", model=self._model or "not-selected", base_url=self._base_url)
 
     def _installed_models(self) -> list[str]:
         """Names of models pulled on the configured host ([] if unreachable)."""
@@ -56,7 +94,8 @@ class OllamaProvider(AIProvider):
 
     def _wrap_error(self, e: Exception) -> Exception:
         """Turn Ollama's opaque 404 into an actionable error listing what is installed."""
-        status = getattr(e, "status_code", 0) or 0
+        response = getattr(e, "response", None)
+        status = getattr(e, "status_code", 0) or getattr(response, "status_code", 0) or 0
         if status != 404:
             return e
 
@@ -67,7 +106,11 @@ class OllamaProvider(AIProvider):
                 f"Use one: jsat ai use ollama --model {available[0]}"
             )
         else:
-            hint = f"No models installed. Pull one: ollama pull {self._model}"
+            model = self._require_model()
+            if ollama_model_kind(model) == "cloud":
+                hint = "No models available. Sign in with: ollama signin"
+            else:
+                hint = f"No models available. Pull it with: ollama pull {model}"
 
         return AIProviderError(
             f"Ollama model '{self._model}' not found at {self._base_url}.\n{hint}",
@@ -80,6 +123,16 @@ class OllamaProvider(AIProvider):
 
     @property
     def model_name(self) -> str:
+        return self._model or "not selected"
+
+    def _require_model(self) -> str:
+        """Resolve the sole installed model or return actionable selection help."""
+        try:
+            self._model = select_ollama_model(self._model, self._installed_models())
+        except ValueError as exc:
+            from jsat._exceptions import AIProviderError
+
+            raise AIProviderError(str(exc), provider="ollama", status_code=0) from exc
         return self._model
 
     def complete(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str:
@@ -87,7 +140,7 @@ class OllamaProvider(AIProvider):
         t0 = time.monotonic()
         try:
             resp = self._client.generate(
-                model=self._model, prompt=prompt,
+                model=self._require_model(), prompt=prompt,
                 options={"num_predict": max_tokens, "temperature": temperature},
             )
         except Exception as e:
@@ -116,7 +169,7 @@ class OllamaProvider(AIProvider):
         total = 0
         try:
             for chunk in self._client.generate(
-                model=self._model, prompt=prompt,
+                model=self._require_model(), prompt=prompt,
                 options={"num_predict": max_tokens}, stream=True,
             ):
                 piece: str = chunk.get("response", "")
@@ -135,9 +188,24 @@ class OllamaProvider(AIProvider):
         try:
             import httpx
             resp = httpx.get(f"{self._base_url}/api/tags", timeout=0.5)
-            up = resp.status_code < 500
-            self._log.debug("ollama_available", up=up, status=resp.status_code)
-            return up
+            if resp.status_code >= 400 or not self._model:
+                self._log.debug(
+                    "ollama_unavailable",
+                    status=resp.status_code,
+                    reason="server error or model not selected",
+                )
+                return False
+            from jsat._ollama import ollama_models_match
+
+            models = [item.get("name", "") for item in resp.json().get("models", [])]
+            available = any(ollama_models_match(name, self._model) for name in models)
+            self._log.debug(
+                "ollama_available",
+                up=available,
+                status=resp.status_code,
+                model=self._model,
+            )
+            return available
         except Exception as e:
             self._log.debug("ollama_unavailable", error=str(e))
             return False

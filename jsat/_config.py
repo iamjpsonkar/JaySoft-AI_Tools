@@ -66,7 +66,7 @@ _PRESETS: dict[str, dict[str, Any]] = {
         "graph": {"backend": "sqlite"},
         "embeddings": {"provider": "local", "model": "nomic-embed-code",
                        "vector_store": {"backend": "sqlite-vss"}},
-        "ai": {"provider": "ollama", "model": "llama3.2"},
+        "ai": {"provider": "ollama", "model": None},
         "cache": {"backend": "memory"},
         "ithinking": {"mode": "interactive", "gate_level": "medium"},
     },
@@ -74,7 +74,7 @@ _PRESETS: dict[str, dict[str, Any]] = {
         "graph": {"backend": "neo4j"},
         "embeddings": {"provider": "openai", "model": "text-embedding-3-small",
                        "vector_store": {"backend": "qdrant"}},
-        "ai": {"provider": "anthropic", "model": "claude-sonnet-4-6"},
+        "ai": {"provider": "anthropic", "model": None},
         "cache": {"backend": "redis"},
         "ithinking": {"mode": "interactive", "gate_level": "high"},
     },
@@ -91,7 +91,7 @@ _PRESETS: dict[str, dict[str, Any]] = {
         "embeddings": {"provider": "local", "model": "nomic-embed-code",
                        "dimensions": 384, "batch_size": 8,
                        "vector_store": {"backend": "sqlite-vss"}},
-        "ai": {"provider": "ollama", "model": "phi3:mini"},
+        "ai": {"provider": "ollama", "model": None},
         "cache": {"backend": "disk"},
         "indexer": {"embedding_batch_size": 8, "max_file_size_kb": 100},
         "ithinking": {"mode": "silent", "gate_level": "low"},
@@ -270,7 +270,7 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "alias":        "claude-cli",
         "provider_key": "claude_cli",
         "available":    bool(claude_bin),
-        "model":        "claude-sonnet-4-6",
+        "model":        None,
         "reason":       "claude binary found" if claude_bin else "claude CLI not installed",
         "free":         False,
         "requires":     "Install Claude Code: claude.ai/code",
@@ -283,7 +283,7 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "alias":        "bob",
         "provider_key": "bob_cli",
         "available":    bool(bob_bin),
-        "model":        "premium",
+        "model":        None,
         "reason":       "bob binary found" if bob_bin else "bob CLI not installed",
         "free":         False,
         "requires":     "Install Bob Shell: npm install -g @ibm/bob-shell",
@@ -296,52 +296,66 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "alias":        "codex-cli",
         "provider_key": "codex_cli",
         "available":    bool(codex_bin),
-        "model":        "gpt-5.6-sol",
+        "model":        None,
         "reason":       "codex binary found" if codex_bin else "codex CLI not installed",
         "free":         False,
         "requires":     "Install Codex CLI: curl -fsSL https://chatgpt.com/codex/install.sh | sh",
     })
 
-    # 4. Anthropic API
+    # 4. OpenCode CLI — also found in the fallback location used by its installer
+    from jsat._ai.opencode_cli import _find_opencode
+    opencode_bin = _find_opencode()
+    results.append({
+        "name":         "OpenCode (CLI)",
+        "alias":        "opencode",
+        "provider_key": "opencode_cli",
+        "available":    bool(opencode_bin),
+        "model":        None,
+        "reason":       "opencode binary found" if opencode_bin else "OpenCode not installed",
+        "free":         False,
+        "requires":     "Install OpenCode or run: ollama launch opencode",
+    })
+
+    # 5. Anthropic API
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
     results.append({
         "name":         "Anthropic API",
         "alias":        "claude-api",
         "provider_key": "anthropic",
         "available":    bool(anthropic_key),
-        "model":        "claude-sonnet-4-6",
+        "model":        None,
         "reason":       "ANTHROPIC_API_KEY set" if anthropic_key else "ANTHROPIC_API_KEY not set",
         "free":         False,
         "requires":     "export ANTHROPIC_API_KEY=sk-ant-...",
     })
 
-    # 5. OpenAI API
+    # 6. OpenAI API
     openai_key = os.environ.get("OPENAI_API_KEY", "")
     results.append({
         "name":         "OpenAI API",
         "alias":        "gpt",
         "provider_key": "openai",
         "available":    bool(openai_key),
-        "model":        "gpt-4o",
+        "model":        None,
         "reason":       "OPENAI_API_KEY set" if openai_key else "OPENAI_API_KEY not set",
         "free":         False,
         "requires":     "export OPENAI_API_KEY=sk-...",
     })
 
-    # 6. Gemini API
+    # 7. Gemini API
     gemini_key = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("GOOGLE_API_KEY", "")
     results.append({
         "name":         "Google Gemini",
         "alias":        "gemini",
         "provider_key": "openai_compat",
         "available":    bool(gemini_key),
-        "model":        "gemini-1.5-flash",
+        "model":        None,
         "reason":       "GEMINI_API_KEY set" if gemini_key else "GEMINI_API_KEY not set",
         "free":         False,
         "requires":     "export GEMINI_API_KEY=...",
     })
 
-    # 7. Ollama (local)
+    # 8. Ollama (local execution and optional cloud routing)
     ollama_up = sys_profile.ollama_up if sys_profile else False
     if not sys_profile:
         try:
@@ -357,19 +371,25 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
             ollama_models = [m["name"] for m in r.json().get("models", [])]
         except Exception:
             pass
+    from jsat._ollama import ollama_model_kind
+    ollama_local = sum(ollama_model_kind(m) == "local" for m in ollama_models)
+    ollama_cloud = len(ollama_models) - ollama_local
     results.append({
-        "name":         "Ollama (local)",
+        "name":         "Ollama",
         "alias":        "ollama",
         "provider_key": "ollama",
         "available":    ollama_up,
-        "model":        ollama_models[0] if ollama_models else "llama3.2",
+        "model":        None,
         "models":       ollama_models,
-        "reason":       f"running — {len(ollama_models)} model(s)" if ollama_up else "not running",
-        "free":         True,
-        "requires":     "brew install ollama && ollama serve && ollama pull llama3.2",
+        "reason":       (
+            f"running — {ollama_local} local, {ollama_cloud} cloud model(s)"
+            if ollama_up else "not running"
+        ),
+        "free":         bool(ollama_local) or not ollama_models,
+        "requires":     "install Ollama; pull a local model or sign in for cloud models",
     })
 
-    # 8. LM Studio / any OpenAI-compat local server
+    # 9. LM Studio / any OpenAI-compat local server
     lm_up = False
     lm_models: list[str] = []
     try:
@@ -385,7 +405,7 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "alias":        "lmstudio",
         "provider_key": "openai_compat",
         "available":    lm_up,
-        "model":        lm_models[0] if lm_models else "local-model",
+        "model":        None,
         "models":       lm_models,
         "reason":       (f"running at localhost:1234 — {len(lm_models)} model(s)"
                          if lm_up else "not running"),
@@ -397,8 +417,8 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
     # (Claude CLI → Bob CLI → Codex CLI → Anthropic → OpenAI → Gemini → Ollama → LM Studio),
     # falling back to name for anything not explicitly ranked.
     _priority = {
-        "claude_cli": 0, "bob_cli": 1, "codex_cli": 2, "anthropic": 3,
-        "openai": 4, "openai_compat": 5, "ollama": 6,
+        "claude_cli": 0, "bob_cli": 1, "codex_cli": 2, "opencode_cli": 3,
+        "anthropic": 4, "openai": 5, "openai_compat": 6, "ollama": 7,
     }
     results.sort(
         key=lambda x: (not x["available"], _priority.get(x["provider_key"], 99), x["name"]))
@@ -415,6 +435,9 @@ def _provider_reachable(provider_key: str, sys_profile: SystemProfile | None) ->
         return bool(shutil.which("bob"))
     if provider_key == "codex_cli":
         return bool(shutil.which("codex"))
+    if provider_key == "opencode_cli":
+        from jsat._ai.opencode_cli import _find_opencode
+        return _find_opencode() is not None
     if provider_key == "anthropic":
         return bool(os.environ.get("ANTHROPIC_API_KEY"))
     if provider_key == "openai":
@@ -446,6 +469,12 @@ def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
         log.warning("auto_configure_no_preset", profile=p)
         return cfg
 
+    # Profile presets are defaults, not overrides. Pydantic retains which nested
+    # fields came from the user's config, so preserve an explicit provider/model.
+    # Without this, the solo preset silently changed `codex_cli` back to Ollama.
+    explicit_ai_provider = "provider" in cfg.ai.model_fields_set
+    explicit_ai_model = "model" in cfg.ai.model_fields_set
+
     raw = cfg.model_dump()
     for key, val in preset.items():
         if isinstance(val, dict) and key in raw and isinstance(raw[key], dict):
@@ -453,13 +482,18 @@ def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
         else:
             raw[key] = val
 
+    if explicit_ai_provider:
+        raw["ai"]["provider"] = cfg.ai.provider
+    if explicit_ai_model:
+        raw["ai"]["model"] = cfg.ai.model
+
     new_cfg = JSATConfig.model_validate(raw)
 
     # Auto-select best available AI provider when the configured one is unreachable.
-    # Priority: claude_cli > anthropic API > openai API > gemini > ollama > lmstudio
+    # Priority: CLI providers > hosted APIs > Ollama > LM Studio
     configured = new_cfg.ai.provider
     provider_is_up = _provider_reachable(configured, sys_profile)
-    if not provider_is_up:
+    if not explicit_ai_provider and not provider_is_up:
         providers = detect_ai_providers(sys_profile)
         best_entry = next((p for p in providers if p["available"]), None)
         if best_entry and best_entry["provider_key"] != configured:

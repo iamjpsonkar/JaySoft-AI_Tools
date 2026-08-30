@@ -67,9 +67,12 @@ class JSAT:
         # Caller overrides win over auto-configure
         if ai_provider:
             self._cfg = self._cfg.model_copy(
-                update={"ai": self._cfg.ai.model_copy(update={"provider": ai_provider})}
+                update={"ai": self._cfg.ai.model_copy(update={
+                    "provider": ai_provider,
+                    "model": model,
+                })}
             )
-        if model:
+        elif model:
             self._cfg = self._cfg.model_copy(
                 update={"ai": self._cfg.ai.model_copy(update={"model": model})}
             )
@@ -91,7 +94,7 @@ class JSAT:
         self._graph: GraphClient | None = None
         self._ai: AIProvider | None = None
         self._active_provider: str = self._cfg.ai.provider
-        self._active_model: str = self._cfg.ai.model
+        self._active_model: str | None = self._cfg.ai.model
 
         log = structlog.get_logger(__name__)
         from jsat._config import jsat_data_dir as _jsat_data_dir
@@ -102,8 +105,8 @@ class JSAT:
                  graph_backend=self._cfg.graph.backend)
 
     def switch_ai(self, provider: str, model: str | None = None,
-                  base_url: str | None = None) -> tuple[str, str]:
-        """Switch the AI provider mid-session. Returns (provider, model) that's now active.
+                  base_url: str | None = None) -> tuple[str, str | None, bool]:
+        """Switch provider. Return ``(provider alias, model, reachable)``.
 
         Supported aliases:
           claude, anthropic     → Anthropic API
@@ -127,13 +130,23 @@ class JSAT:
             )
 
         internal, default_model, resolved_url = resolved
-        chosen_model = model or default_model
+        chosen_model = model if model is not None else default_model
         chosen_url = base_url or resolved_url
+        model_optional = {"claude_cli", "codex_cli", "opencode_cli", "bob_cli"}
+        if internal not in model_optional and chosen_model is None:
+            from jsat._ai import model_help
+
+            raise ValueError(
+                f"No model selected for '{provider}'.\n{model_help(internal)}"
+            )
 
         # Update config
-        ai_update: dict = {"provider": internal, "model": chosen_model}
-        if chosen_url:
-            ai_update["base_url"] = chosen_url
+        ai_update: dict = {
+            "provider": internal,
+            "model": chosen_model,
+            "base_url": chosen_url,
+            "api_key_env": None,
+        }
         self._cfg = self._cfg.model_copy(
             update={"ai": self._cfg.ai.model_copy(update=ai_update)}
         )
@@ -150,12 +163,14 @@ class JSAT:
         except Exception:
             ok = False
 
-        return alias, chosen_model, ok  # type: ignore[return-value]
+        return alias, chosen_model, ok
 
     def active_ai_label(self) -> str:
         """Short human-readable label: 'Claude Code (CLI)' or 'GPT (gpt-4o-mini)'"""
         _labels = {
             "claude_cli":   "Claude Code (CLI)",
+            "opencode_cli": "OpenCode (CLI)",
+            "codex_cli":    "Codex (CLI)",
             "bob_cli":      "Bob Shell (CLI)",
             "anthropic":    "Claude API",
             "openai":       "GPT",
@@ -167,9 +182,9 @@ class JSAT:
         name = _labels.get(provider, provider)
         model = self._cfg.ai.model
         # For CLI providers the model is internal; show just the provider name
-        if provider in ("claude_cli", "bob_cli"):
+        if provider in ("claude_cli", "opencode_cli", "codex_cli", "bob_cli"):
             return name
-        return f"{name} ({model})"
+        return f"{name} ({model})" if model else f"{name} (model not selected)"
 
     def _pin_paths_to_repo(self, cfg: JSATConfig) -> JSATConfig:
         """Resolve all relative .jsat/* paths to the JSAT data directory.

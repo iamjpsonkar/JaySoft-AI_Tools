@@ -26,6 +26,8 @@ from ._cli_skills_data import (
 
 _log = structlog.get_logger(__name__)
 
+_OLLAMA_CONNECT_TOOLS = ("claude", "codex", "opencode")
+
 @connect_app.command("claude")
 def cmd_connect_claude(
     scope: str = typer.Option(
@@ -184,6 +186,189 @@ def _connect_mcp_tool(
     action = "Updated" if already else "Added"
     console.print(f"\n[green]✓[/] {action} JSAT in {tool_label} config: [cyan]{config_path}[/]")
     console.print(f"[bold yellow]→ {restart_msg}[/] to activate JSAT tools.\n")
+
+
+def _opencode_config_path() -> Path:
+    """Return OpenCode's global JSON config path, respecting XDG_CONFIG_HOME."""
+    import os
+
+    xdg_config = os.environ.get("XDG_CONFIG_HOME")
+    base = Path(xdg_config).expanduser() if xdg_config else Path.home() / ".config"
+    return base / "opencode" / "opencode.json"
+
+
+def _opencode_commands_dir() -> Path:
+    """Return OpenCode's global custom-command directory."""
+    return _opencode_config_path().parent / "commands"
+
+
+def _install_opencode_commands() -> Path:
+    """Install JSAT's /jsat dispatcher in OpenCode's global command registry."""
+    return _write_jsat_dispatcher("global", commands_dir=_opencode_commands_dir())
+
+
+def _connect_opencode_mcp(config_path: Path, binary: str) -> bool:
+    """Upsert JSAT using OpenCode's native local-MCP configuration shape."""
+    import json
+
+    if config_path.exists():
+        try:
+            settings = json.loads(config_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            raise ValueError(
+                f"OpenCode config is not valid JSON; JSAT left it unchanged: {config_path}"
+            ) from exc
+    else:
+        settings = {}
+    settings.setdefault("$schema", "https://opencode.ai/config.json")
+    settings.setdefault("mcp", {})
+    already = "jsat" in settings["mcp"]
+    settings["mcp"]["jsat"] = {
+        "type": "local",
+        # No --repo pin: OpenCode starts local MCP servers in the active workspace.
+        "command": [binary, "mcp-server"],
+        "enabled": True,
+        "environment": {
+            "JSAT_AI_PROVIDER": "opencode_cli",
+            "JSAT_MCP_ALLOW_INSECURE": "1",
+        },
+    }
+    _write_json(config_path, settings)
+    return already
+
+
+@connect_app.command("opencode")
+def cmd_connect_opencode(
+    show: bool = typer.Option(False, "--show", help="Print the config that was written"),
+    install_commands: bool = typer.Option(
+        True,
+        "--install-commands/--no-commands",
+        help="Also install /jsat and /jsat-help in OpenCode",
+    ),
+) -> None:
+    """Wire JSAT MCP and slash commands into OpenCode.
+
+    \b
+    OpenCode does not need to be installed separately:
+      jsat connect opencode
+      jsat ollama --tool opencode
+
+    The global config is deep-merged with Ollama's temporary model configuration.
+    """
+    import json
+
+    config_path = _opencode_config_path()
+    binary = _jsat_binary()
+    try:
+        already = _connect_opencode_mcp(config_path, binary)
+    except ValueError as exc:
+        err.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from exc
+    action = "Updated" if already else "Added"
+    console.print(
+        f"\n[green]✓[/] {action} JSAT MCP server in [bold]OpenCode[/]\n"
+        f"  Binary : [cyan]{binary}[/]\n"
+        f"  Config : [cyan]{config_path}[/]\n"
+    )
+    if show:
+        entry = _read_json(config_path)["mcp"]["jsat"]
+        console.print_json(json.dumps({"mcp": {"jsat": entry}}, indent=2))
+    if install_commands:
+        commands_dir = _install_opencode_commands()
+        console.print(
+            f"[green]✓[/] Installed [cyan]/jsat[/] and [cyan]/jsat-help[/] "
+            f"in [bold]{commands_dir}[/]\n"
+        )
+    console.print(
+        "[bold yellow]→ Start OpenCode[/] directly or with "
+        "[bold]jsat ollama --tool opencode[/].\n"
+    )
+
+
+def _resolve_ollama_connect_target(target: str, tool: str | None) -> str:
+    """Resolve the Ollama connector's option and ``tool=name`` compatibility syntax."""
+    positional = target.strip().lower()
+    if positional.startswith("tool="):
+        positional = positional.partition("=")[2].strip()
+    selected = tool.strip().lower() if tool else positional
+    if tool and positional != "all":
+        raise ValueError("choose either TOOL/tool=TOOL or --tool, not both")
+    if selected not in (*_OLLAMA_CONNECT_TOOLS, "all"):
+        choices = " | ".join((*_OLLAMA_CONNECT_TOOLS, "all"))
+        raise ValueError(f"unsupported Ollama connection target {selected!r}; choose: {choices}")
+    return selected
+
+
+def _connect_ollama_target(target: str, show: bool) -> None:
+    """Configure one client that JSAT knows Ollama can launch."""
+    if target == "claude":
+        cmd_connect_claude(
+            scope="global",
+            global_=True,
+            repo=".",
+            install_skills=True,
+            show=show,
+            write_claude_md=True,
+        )
+    elif target == "codex":
+        cmd_connect_codex(
+            repo=".", scope="global", global_=True, no_instructions=False
+        )
+    else:
+        cmd_connect_opencode(show=show, install_commands=True)
+
+
+@connect_app.command("ollama")
+def cmd_connect_ollama(
+    target: str = typer.Argument(
+        "all",
+        metavar="[TOOL|tool=TOOL]",
+        help="Supported Ollama-launched client; default: all",
+    ),
+    tool: str | None = typer.Option(
+        None, "--tool", "-t", help="Equivalent to the positional TOOL selector"
+    ),
+    show: bool = typer.Option(False, "--show", help="Print configs where supported"),
+) -> None:
+    """Connect JSAT to clients launched through Ollama.
+
+    Ollama selects and supplies the model; the launched client still owns its MCP
+    configuration. Direct and Ollama-launched copies therefore use the same config.
+
+    \b
+      jsat connect ollama
+      jsat connect ollama --tool opencode
+      jsat connect ollama tool=opencode
+    """
+    try:
+        selected = _resolve_ollama_connect_target(target, tool)
+    except ValueError as exc:
+        err.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from exc
+
+    targets = _OLLAMA_CONNECT_TOOLS if selected == "all" else (selected,)
+    failures: list[str] = []
+    for name in targets:
+        console.print(f"\n[bold]Connecting Ollama-launched {name}…[/]")
+        try:
+            _connect_ollama_target(name, show)
+        except (Exception, typer.Exit) as exc:
+            failures.append(name)
+            err.print(f"[red]Could not connect {name}:[/] {exc}")
+            if selected != "all":
+                raise typer.Exit(1) from exc
+
+    if failures:
+        err.print(
+            "[yellow]Connected the remaining tools; failed: "
+            + ", ".join(failures)
+            + "[/]"
+        )
+        raise typer.Exit(1)
+    console.print(
+        "\n[green]✓[/] Ollama connection setup complete. "
+        "Choose the tool and model with [bold]ollama[/] or [bold]jsat ollama --tool TOOL[/]."
+    )
 
 
 def _toml_dq(value: str) -> str:
@@ -978,6 +1163,7 @@ _CONNECT_LOCATIONS: list[tuple[str, Path, str]] = [
     ("Claude Code (global)",  Path.home() / ".claude" / "settings.json", "mcpServers"),
     ("Cursor",                Path.home() / ".cursor" / "mcp.json",      "mcpServers"),
     ("Codex",                 Path.home() / ".codex" / "config.toml",    "mcpServers"),
+    ("OpenCode",              _opencode_config_path(),                     "mcp"),
     ("Windsurf",              Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),  # noqa: E501
     ("Gemini CLI",            Path.home() / ".gemini" / "settings.json", "mcpServers"),
     ("Bob Shell (project)",   Path.cwd() / ".bob" / "settings.json",     "mcpServers"),
@@ -1034,6 +1220,7 @@ def cmd_connect_list() -> None:
             "  [bold]jsat connect claude[/]     ← Claude Code (project)\n"
             "  [bold]jsat connect claude --scope global[/]  ← Claude Code (global)\n"
             "  [bold]jsat connect codex[/]      ← OpenAI Codex CLI\n"
+            "  [bold]jsat connect opencode[/]   ← OpenCode / Ollama launch\n"
             "  [bold]jsat connect cursor[/]     ← Cursor\n"
             "  [bold]jsat connect windsurf[/]   ← Windsurf\n"
             "  [bold]jsat connect continue[/]   ← Continue.dev\n"

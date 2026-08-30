@@ -5,6 +5,12 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def isolate_jsat_data(monkeypatch, tmp_path: Path) -> None:
+    """Keep every indexer test out of the user's global ~/.jsat directory."""
+    monkeypatch.setenv("JSAT_DATA_DIR", str(tmp_path / "jsat-data"))
+
+
 @pytest.fixture
 def graph():
     from jsat._graph.lightgraph import LightGraph

@@ -318,28 +318,29 @@ class CrackTool(BaseTool):
 
             if ai_ok:
                 # Parallel: all non-moderator agents
-                with ThreadPoolExecutor(max_workers=min(len(non_moderator), 5)) as pool:
-                    futs = {
-                        pool.submit(_agent_turn, role, task, context, history,
-                                    round_num, rounds, self._ai): role
-                        for role in non_moderator
-                    }
-                    for fut in as_completed(futs):
-                        stmt = fut.result()
-                        all_statements.append(stmt)
-                        emoji = _ROLE_EMOJI.get(stmt.role, "•")
-                        preview = stmt.text[:120].replace("\n", " ")
-                        checkpoint(
-                            f"crack: {emoji} {stmt.role.upper()} done "
-                            f"({round(stmt.elapsed_ms)}ms) — {preview}"
-                        )
-                        dashboard_only(
-                            f"{'─' * 60}\n{emoji} {stmt.role.upper()} — full response:"
-                            f"\n\n{stmt.text}\n{'─' * 60}",
-                            "agent_response",
-                        )
-                        log.debug("crack_statement_received", role=stmt.role,
-                                  round=round_num, chars=len(stmt.text))
+                if non_moderator:
+                    with ThreadPoolExecutor(max_workers=min(len(non_moderator), 5)) as pool:
+                        futs = {
+                            pool.submit(_agent_turn, role, task, context, history,
+                                        round_num, rounds, self._ai): role
+                            for role in non_moderator
+                        }
+                        for fut in as_completed(futs):
+                            stmt = fut.result()
+                            all_statements.append(stmt)
+                            emoji = _ROLE_EMOJI.get(stmt.role, "•")
+                            preview = stmt.text[:120].replace("\n", " ")
+                            checkpoint(
+                                f"crack: {emoji} {stmt.role.upper()} done "
+                                f"({round(stmt.elapsed_ms)}ms) — {preview}"
+                            )
+                            dashboard_only(
+                                f"{'─' * 60}\n{emoji} {stmt.role.upper()} — full response:"
+                                f"\n\n{stmt.text}\n{'─' * 60}",
+                                "agent_response",
+                            )
+                            log.debug("crack_statement_received", role=stmt.role,
+                                      round=round_num, chars=len(stmt.text))
 
                 # Moderator always runs last (sees all non-moderator statements this round)
                 _notify(f"Round {round_num}/{rounds}: Moderator synthesising…",

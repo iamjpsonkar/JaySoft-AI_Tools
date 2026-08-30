@@ -252,3 +252,16 @@ def test_crack_single_round(crack):
     result = crack.run("minimal test", rounds=1)
     assert result.rounds_run == 1
     assert len(result.statements) == len(_DEFAULT_ROLES)  # 6 statements
+
+
+@pytest.mark.ci
+def test_crack_moderator_only_does_not_create_zero_worker_pool(graph, cfg):
+    class AvailableAI:
+        def is_available(self): return True
+        def complete(self, *args, **kwargs): return "Moderator synthesis"
+
+    tool = CrackTool(graph=graph, cfg=cfg, ai=AvailableAI())
+    result = tool.run("summarise prior findings", roles=["moderator"], rounds=1)
+
+    assert [statement.role for statement in result.statements] == ["moderator"]
+    assert result.synthesis == "Moderator synthesis"

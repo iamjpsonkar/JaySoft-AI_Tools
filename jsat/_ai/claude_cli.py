@@ -35,7 +35,9 @@ class ClaudeCliProvider(AIProvider):
         self._log = structlog.get_logger(__name__)
 
         self._binary = shutil.which("claude") or "claude"
-        self._model = getattr(getattr(cfg, "ai", None), "model", None) or "claude-sonnet-4-6"
+        # Let Claude Code choose its configured/default model unless the user
+        # explicitly selected one for this provider.
+        self._model = getattr(getattr(cfg, "ai", None), "model", None)
         self._timeout = getattr(getattr(cfg, "ai", None), "timeout_seconds", None) or 180
 
         # Session state
@@ -87,7 +89,7 @@ class ClaudeCliProvider(AIProvider):
 
     @property
     def model_name(self) -> str:
-        return self._model
+        return self._model or "claude default"
 
     def is_available(self) -> bool:
         return bool(shutil.which("claude"))
@@ -112,14 +114,9 @@ class ClaudeCliProvider(AIProvider):
         else:
             args += ["--output-format", "text"]
 
-        # Model selection — only pass --model for known Claude model names.
-        # Never pass Ollama/GPT model names (e.g. "llama3.2") to the claude CLI.
-        _CLAUDE_MODELS = {
-            "claude-sonnet-4-6", "claude-haiku-4-5-20251001", "claude-opus-4-8",
-            "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022",
-            "claude-3-opus-20240229",
-        }
-        if self._model and self._model in _CLAUDE_MODELS and self._model != "claude-sonnet-4-6":
+        # The model is provider-owned. Never substitute or validate against a
+        # hard-coded catalogue; Claude reports invalid explicit selections.
+        if self._model:
             args += ["--model", self._model]
 
         if self._stateful:
@@ -179,8 +176,11 @@ class ClaudeCliProvider(AIProvider):
             stderr = result.stderr.strip()
             log.error("claude_cli_error", returncode=result.returncode,
                       stderr=stderr[:300], elapsed_ms=elapsed)
+            from jsat._ai import model_help
+
             raise RuntimeError(
-                f"claude exited {result.returncode}: {stderr[:200]}"
+                f"claude exited {result.returncode}: {stderr[:200]}\n"
+                f"{model_help('claude_cli')}"
             )
 
         self._call_count += 1

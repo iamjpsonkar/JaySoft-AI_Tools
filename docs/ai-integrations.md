@@ -4,20 +4,24 @@ JSAT works as an MCP server with every major AI coding tool. Each integration gi
 depth of codebase intelligence: a launcher command, auto-connection on first use, a full set of
 MCP tools, and shell `switch` support.
 
+For native Codex, native Claude, native OpenCode, direct Ollama, or a coding client launched
+through Ollama, start with the [tabbed integration chooser](integrations/index.md). Those guides
+keep model ownership, local pulls, cloud sign-in, and managed lifecycle commands separate.
+
 ---
 
 ## Feature Matrix
 
-| Feature | Claude Code | Codex | Cursor | Windsurf | Continue | Zed | Gemini CLI | Bob Shell |
-|---|---|---|---|---|---|---|---|---|
-| `jsat <tool>` launcher | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
-| Auto-connect on launch | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
-| `jsat connect <tool>` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `--scope project/global` | ✅ | Global only | ✅ | — (global) | — (global) | — (global) | — (global) | ✅ |
-| Skills / custom commands | 41 slash cmds | `$jsat` dispatcher | .cursorrules | .windsurfrules | 10 custom cmds | .zed/JSAT.md | GEMINI.md | 41 slash cmds + BOB.md |
-| `switch <tool>` in shell | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
-| `--keep-guidance` on disconnect | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Tool type | CLI | CLI | GUI | GUI | IDE ext | GUI | CLI | CLI |
+| Feature | Claude Code | Codex | OpenCode | Cursor | Windsurf | Continue | Zed | Gemini CLI | Bob Shell |
+|---|---|---|---|---|---|---|---|---|---|
+| `jsat <tool>` launcher | ✅ | ✅ | via `jsat ollama --tool opencode` | ✅ | ✅ | — | ✅ | ✅ | ✅ |
+| Auto-connect on launch | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
+| `jsat connect <tool>` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `--scope project/global` | ✅ | Global only | Global only | ✅ | — (global) | — (global) | — (global) | — (global) | ✅ |
+| Skills / custom commands | 41 slash cmds | `$jsat` dispatcher | `/jsat` + `/jsat-help` | .cursorrules | .windsurfrules | 10 custom cmds | .zed/JSAT.md | GEMINI.md | 41 slash cmds + BOB.md |
+| `switch <tool>` in shell | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | ✅ | ✅ |
+| `--keep-guidance` on disconnect | ✅ | ✅ | n/a | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Tool type | CLI | CLI | CLI | GUI | GUI | IDE ext | GUI | CLI | CLI |
 
 ---
 
@@ -30,6 +34,7 @@ jsat index .
 # 2. Open your AI tool with JSAT pre-loaded
 jsat claude      # Claude Code
 jsat codex       # OpenAI Codex CLI
+jsat ollama --tool opencode  # OpenCode through Ollama; auto-connects JSAT
 jsat cursor      # Cursor IDE
 jsat windsurf    # Windsurf
 jsat gemini      # Gemini CLI
@@ -39,9 +44,70 @@ jsat bob         # Bob Shell
 
 Each launcher auto-connects JSAT if not already wired and opens the tool with 69 MCP tools ready.
 
+### Managed lifecycle
+
+```bash
+jsat start                           # Claude + Codex + OpenCode, one terminal each
+jsat start opencode --via ollama     # one client, Ollama selector
+jsat start --model gemma4:31b-cloud # all three through one Ollama model
+jsat ps
+jsat restart                         # Claude + Codex + OpenCode
+jsat stop                            # every running managed client
+jsat resume                          # Claude + Codex + OpenCode
+jsat resume codex --session ID       # one named Codex session
+```
+
+`all` is the default target. Since interactive TUIs cannot share one terminal,
+multi-client start, restart, and resume open a separate terminal window for each
+client. Supported terminal launchers are `x-terminal-emulator`, GNOME Terminal,
+Konsole, and Xfce Terminal. An explicit target runs in the current terminal.
+
+JSAT stores a minimal process record under `~/.jsat/runtime/`. `stop` validates the
+recorded process-start identity before sending a signal, then stops that process and
+its current descendants. It never kills processes merely because their executable is
+named `claude`, `codex`, or `opencode`. Use `--force` only when graceful shutdown
+times out.
+
+`jsat resume` resumes AI-client conversation history. `jsat session resume` remains
+the separate command for interrupted JSAT skills such as `magic` and `crack`.
+
 ---
 
 ## Per-Tool Details
+
+### OpenCode through Ollama
+
+```bash
+jsat index .
+jsat connect ollama tool=opencode           # configure only OpenCode
+jsat ollama --tool opencode                  # choose local or cloud interactively
+jsat ollama --tool opencode -m qwen3.5       # local
+ollama signin
+jsat ollama --tool opencode -m gemma4:31b-cloud  # cloud
+```
+
+The launcher writes JSAT's MCP entry to `~/.config/opencode/opencode.json` before
+running `ollama launch opencode`. It also installs `/jsat` and `/jsat-help` under
+`~/.config/opencode/commands/`. Ollama's inline model configuration is deep-merged
+with that file. A standalone OpenCode installation is not required. For configuration
+without launch, run `jsat connect opencode`, then run bare `ollama` and choose
+OpenCode → sign in if prompted → choose a model.
+
+`jsat connect ollama` configures every Ollama-launched client JSAT currently
+supports: Claude, Codex, and OpenCode. Use `--tool opencode`, `opencode`, or
+`tool=opencode` to configure only one. JSAT does not configure unknown menu entries
+because each client has a different MCP configuration format.
+
+Provider routing remains separate for every mode:
+
+- Native Claude, Codex, and OpenCode use `claude_cli`, `codex_cli`, and
+  `opencode_cli`, respectively.
+- Ollama-launched OpenCode reads `OPENCODE_CONFIG_CONTENT`; Ollama-launched Claude
+  reads the `ANTHROPIC_DEFAULT_*_MODEL` launch variables.
+- The selected Ollama model can be local or cloud. It overrides `.jsat/config.yaml`
+  only for that launched process and does not require another pull.
+
+---
 
 ### Claude Code
 
@@ -259,9 +325,9 @@ switch cursor       → open Cursor IDE in background
 switch windsurf     → open Windsurf IDE in background
 switch zed          → open Zed in background
 switch bob          → Bob Shell session
-switch gpt          → GPT-4o in JSAT shell (needs OPENAI_API_KEY)
-switch ollama       → local Ollama in JSAT shell
-switch anthropic    → Claude API in JSAT shell (needs ANTHROPIC_API_KEY)
+switch gpt <model>  → OpenAI API in JSAT shell (needs OPENAI_API_KEY)
+switch ollama <model>    → Ollama in JSAT shell
+switch anthropic <model> → Claude API in JSAT shell (needs ANTHROPIC_API_KEY)
 ```
 
 ---
@@ -272,6 +338,7 @@ switch anthropic    → Claude API in JSAT shell (needs ANTHROPIC_API_KEY)
 jsat disconnect claude                   # Claude project scope
 jsat disconnect claude --scope all       # Claude everywhere
 jsat disconnect codex                    # Codex
+jsat disconnect opencode                 # OpenCode global MCP entry
 jsat disconnect cursor                   # Cursor (global + project)
 jsat disconnect windsurf                 # Windsurf
 jsat disconnect continue                 # Continue (removes commands too)

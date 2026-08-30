@@ -35,7 +35,7 @@ class BobCliProvider(AIProvider):
         self._log = structlog.get_logger(__name__)
 
         self._binary = shutil.which("bob") or "bob"
-        self._model = getattr(getattr(cfg, "ai", None), "model", None) or "premium"
+        self._model = getattr(getattr(cfg, "ai", None), "model", None)
         self._mode = getattr(getattr(cfg, "ai", None), "chat_mode", None) or "advanced"
         self._timeout = getattr(getattr(cfg, "ai", None), "timeout_seconds", None) or 180
 
@@ -91,7 +91,7 @@ class BobCliProvider(AIProvider):
 
     @property
     def model_name(self) -> str:
-        return self._model
+        return self._model or "bob default"
 
     def is_available(self) -> bool:
         return bool(shutil.which("bob"))

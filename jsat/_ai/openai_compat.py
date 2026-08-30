@@ -23,7 +23,7 @@ class OpenAICompatProvider(AIProvider):
         self._base_url: str = cfg.ai.base_url or "http://localhost:1234/v1"
         api_key_env = cfg.ai.api_key_env or "OPENAI_API_KEY"
         self._api_key: str = os.environ.get(api_key_env) or "not-needed"
-        self._model: str = cfg.ai.model or "local-model"
+        self._model: str | None = cfg.ai.model
 
         try:
             import openai as _openai
@@ -42,13 +42,16 @@ class OpenAICompatProvider(AIProvider):
 
     @property
     def model_name(self) -> str:
-        return self._model
+        return self._model or "not selected"
 
     def complete(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str:
+        from jsat._ai import require_explicit_model
+
+        model = require_explicit_model("openai_compat", self._model)
         t0 = time.monotonic()
         if self._client is not None:
             resp = self._client.chat.completions.create(
-                model=self._model, max_tokens=max_tokens, temperature=temperature,
+                model=model, max_tokens=max_tokens, temperature=temperature,
                 messages=[{"role": "user", "content": prompt}],
             )
             text = resp.choices[0].message.content or ""
@@ -57,7 +60,7 @@ class OpenAICompatProvider(AIProvider):
             import httpx
             resp_h = httpx.post(
                 f"{self._base_url}/chat/completions",
-                json={"model": self._model, "max_tokens": max_tokens,
+                json={"model": model, "max_tokens": max_tokens,
                       "temperature": temperature,
                       "messages": [{"role": "user", "content": prompt}]},
                 headers={"Authorization": f"Bearer {self._api_key}"},
@@ -76,9 +79,12 @@ class OpenAICompatProvider(AIProvider):
         return await asyncio.to_thread(self.complete, prompt, max_tokens, temperature)
 
     def stream(self, prompt: str, max_tokens: int = 2048) -> Iterator[str]:
+        from jsat._ai import require_explicit_model
+
+        model = require_explicit_model("openai_compat", self._model)
         if self._client:
             for chunk in self._client.chat.completions.create(
-                model=self._model, max_tokens=max_tokens,
+                model=model, max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}], stream=True,
             ):
                 piece = chunk.choices[0].delta.content
@@ -89,7 +95,7 @@ class OpenAICompatProvider(AIProvider):
 
             import httpx
             with httpx.stream("POST", f"{self._base_url}/chat/completions",
-                              json={"model": self._model, "max_tokens": max_tokens, "stream": True,
+                              json={"model": model, "max_tokens": max_tokens, "stream": True,
                                     "messages": [{"role": "user", "content": prompt}]},
                               headers={"Authorization": f"Bearer {self._api_key}"},
                               timeout=120.0) as r:

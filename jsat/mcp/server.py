@@ -1220,12 +1220,16 @@ class MCPServer:
             # Blast radius variants
             "blast_radius_file": {
                 "description": "Alias for blast_radius — trace impact of a specific file.",
-                "schema": {"type": "object", "required": ["file"],
-                           "properties": {"file": {"type": "string"},
-                                          "max_depth": {"type": "integer", "default": 5}}},
+                "schema": {"type": "object",
+                           "anyOf": [{"required": ["path"]}, {"required": ["file"]}],
+                           "properties": {
+                               "path": {"type": "string"},
+                               "file": {"type": "string", "deprecated": True},
+                               "max_depth": {"type": "integer", "default": 5}}},
                 "handler": lambda a: _ser(
                     js.blast_radius(  # type: ignore[attr-defined]
-                        target=a["file"], max_depth=a.get("max_depth", 5))),
+                        target=a.get("path") or a["file"],
+                        max_depth=a.get("max_depth", 5))),
             },
             "blast_radius_topic": {
                 "description": "Trace blast radius for a Kafka topic schema change.",

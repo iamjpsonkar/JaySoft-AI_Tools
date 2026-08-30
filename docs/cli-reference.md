@@ -116,7 +116,7 @@ jsat gpt
 
 ### `jsat ollama`
 
-Open an Ollama-powered session (local, free, no API key).
+Open JSAT's Ollama shell, or launch a coding tool with an Ollama local/cloud model.
 
 ```
 jsat ollama [OPTIONS]
@@ -125,14 +125,51 @@ jsat ollama [OPTIONS]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--repo`, `-r` | `.` | Repository root |
-| `--model`, `-m` | `llama3.2` | Ollama model name |
+| `--model`, `-m` | selector | Ollama model name; cloud-suffixed names select cloud inference |
+| `--tool`, `-t` | — | Coding tool to launch, such as `claude`, `opencode`, or `codex` |
+| `--config` | false | Configure the coding tool without launching it |
+| `--yes`, `-y` | false | Skip Ollama selectors; requires `--model` |
 | `--verbose`, `-v` | false | Enable DEBUG logging |
 
 ```bash
 jsat ollama
 jsat ollama --model phi3:mini
-jsat ollama --model qwen2.5-coder:7b
+jsat ollama --tool opencode                 # auto-connect JSAT, then choose a model
+jsat ollama --tool opencode --model qwen3.5 # explicit local model
+jsat ollama --tool opencode --model gemma4:31b-cloud  # Ollama Cloud
 ```
+
+OpenCode does not need to be installed separately; `ollama launch opencode` handles it.
+Run `jsat connect opencode` explicitly only when you want to configure MCP without launching.
+`jsat connect ollama tool=opencode` is an equivalent Ollama-oriented spelling.
+
+---
+
+### Managed AI-client lifecycle
+
+```bash
+jsat start [TOOL] [--via auto|native|ollama] [--model MODEL] [--repo PATH]
+jsat stop [TOOL] [--force]
+jsat restart [TOOL] [--via auto|native|ollama] [--model MODEL] [--repo PATH]
+jsat resume [TOOL] [--session ID] [--via auto|native|ollama]
+jsat ps
+```
+
+`TOOL` accepts `claude`, `codex`, `opencode`, or `all`; the default is `all`.
+`--via auto` reuses the previous route when available, otherwise prefers a
+PATH-visible native binary and falls back to Ollama. An OpenCode binary found only in
+Ollama's fallback installation directory therefore uses Ollama automatically.
+Supplying `--model` with the auto route also selects Ollama. Restart preserves each
+client's previous route, model, and repository unless overridden.
+
+Multi-client start/restart/resume opens one terminal window per interactive client.
+Single-client operations stay in the current terminal. `stop` affects only processes
+whose PID and process-start identity were recorded by JSAT. `jsat ps` shows these
+records. State defaults to `~/.jsat/runtime/` and can be isolated with
+`JSAT_RUNTIME_DIR`.
+
+`jsat resume` is for Claude/Codex/OpenCode conversation sessions. Use
+`jsat session resume` for an interrupted JSAT skill workflow.
 
 ---
 
@@ -470,21 +507,22 @@ jsat ai use PROVIDER [OPTIONS]
 
 | Argument / Flag | Description |
 |----------------|-------------|
-| `PROVIDER` | `ollama`, `anthropic`, `openai`, `lmstudio`, `claude_cli`, `bob_cli`, `codex-cli` |
-| `--model`, `-m` | Override the default model for this provider |
+| `PROVIDER` | `ollama`, `anthropic`, `openai`, `lmstudio`, `claude_cli`, `opencode`, `bob_cli`, `codex-cli` |
+| `--model`, `-m` | Explicit model; native CLI providers use their own selection when omitted |
 | `--config`, `-c` | Config file to write (default: `.jsat/config.yaml`, or `~/.jsat/config.yaml` with `--global`) |
 | `--global`, `-g` | Write to `~/.jsat/config.yaml` — applies to all projects on this machine |
 
 ```bash
 # Per-repo (writes .jsat/config.yaml)
-jsat ai use ollama
+jsat ai models ollama
 jsat ai use ollama --model phi3:mini
-jsat ai use anthropic
+jsat ai use anthropic --model <model>
 jsat ai use anthropic --model claude-haiku-4-5-20251001
 jsat ai use openai --model gpt-4o-mini
 jsat ai use claude_cli
 jsat ai use codex-cli
-jsat ai use lmstudio
+jsat ai use opencode
+jsat ai use lmstudio --model <model>
 
 # Global (writes ~/.jsat/config.yaml)
 jsat ai use claude_cli --global
@@ -632,6 +670,38 @@ routes it to the skill. Direct MCP tools such as `jsat__query`,
 
 `jsat codex` forwards extra arguments to the real Codex CLI after auto-connecting
 JSAT, so Codex commands such as `resume <session-id>` keep working.
+
+---
+
+### `jsat connect opencode`
+
+Wire JSAT into OpenCode's global MCP config and install the `/jsat` and `/jsat-help`
+commands in `~/.config/opencode/commands/`. A directly installed OpenCode and
+`ollama launch opencode` use the same files.
+
+```bash
+jsat connect opencode [--show] [--no-commands]
+```
+
+### `jsat connect ollama`
+
+Configure JSAT in clients that Ollama can launch. With no selector, this configures
+all clients JSAT currently supports: Claude, Codex, and OpenCode.
+
+```bash
+jsat connect ollama
+jsat connect ollama opencode
+jsat connect ollama tool=opencode
+jsat connect ollama --tool opencode
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--tool`, `-t` | `all` | Configure one supported client |
+| `--show` | false | Print generated config where supported |
+
+Ollama is the launcher and model selector, not the MCP client. These commands write
+each client's normal config rather than a separate Ollama MCP file.
 
 ---
 
@@ -1285,6 +1355,7 @@ Two flags work on every `/jsat` command — strip them before routing and pass t
 |---------|---------|
 | `JSAT_CONFIG` | Override config file path |
 | `JSAT_DASHBOARD_PORT` | Override live dashboard port (default `7432`) |
+| `JSAT_RUNTIME_DIR` | Override managed AI-client lifecycle records |
 | `ANTHROPIC_API_KEY` | Anthropic API provider |
 | `OPENAI_API_KEY` | OpenAI provider |
 | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Gemini provider |

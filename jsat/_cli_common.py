@@ -69,8 +69,8 @@ def _usage_errors() -> tuple[type[BaseException], ...]:
 class ConnectGroup(TyperGroup):
     """Turns `jsat connect <unknown>` into an actionable error.
 
-    The common mistake is naming an AI provider (`jsat connect ollama`) where an
-    MCP-capable tool is expected — those are configured with `jsat ai use` instead.
+    AI-provider names that are not also connection targets are redirected to
+    ``jsat ai use``. Some names intentionally exist in both namespaces.
     """
 
     def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
@@ -117,6 +117,8 @@ connect_app = typer.Typer(
         "[bold]One-time global setup (recommended):[/bold]\n\n"
         "  [cyan]jsat connect claude --global[/cyan]   — all Claude Code sessions\n"
         "  [cyan]jsat connect codex[/cyan]             — Codex CLI\n"
+        "  [cyan]jsat connect opencode[/cyan]          — OpenCode (including Ollama launch)\n"
+        "  [cyan]jsat connect ollama[/cyan]            — all supported Ollama-launched tools\n"
         "  [cyan]jsat connect cursor[/cyan]             — Cursor IDE\n\n"
         "Restart the AI tool after connecting."
     ),

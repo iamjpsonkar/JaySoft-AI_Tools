@@ -32,6 +32,9 @@ def _ai_error() -> type[Exception]:
 class NoOpProvider(AIProvider):
     """No-op provider — raises AIError on every call. Used in CI mode."""
 
+    def __init__(self, message: str | None = None) -> None:
+        self._message = message or _MSG
+
     @property
     def provider_name(self) -> str:
         return "none"
@@ -45,13 +48,13 @@ class NoOpProvider(AIProvider):
 
     def complete(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str:
         _warn_once()
-        raise _ai_error()(_MSG)
+        raise _ai_error()(self._message)
 
     async def complete_async(
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1
     ) -> str:
         _warn_once()
-        raise _ai_error()(_MSG)
+        raise _ai_error()(self._message)
 
     def stream(self, prompt: str, max_tokens: int = 2048) -> Iterator[str]:
         _warn_once()

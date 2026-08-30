@@ -29,7 +29,7 @@ class AnthropicProvider(AIProvider):
                 required_extra="anthropic",
             ) from e
 
-        self._model: str = cfg.ai.model or "claude-sonnet-4-6"
+        self._model: str | None = cfg.ai.model
         api_key_env = cfg.ai.api_key_env or "ANTHROPIC_API_KEY"
         self._client = self._anthropic.Anthropic(api_key=os.environ.get(api_key_env))
         self._log.info("anthropic_init", model=self._model,
@@ -41,14 +41,17 @@ class AnthropicProvider(AIProvider):
 
     @property
     def model_name(self) -> str:
-        return self._model
+        return self._model or "not selected"
 
     def complete(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str:
         self._log.debug("anthropic_complete", prompt_len=len(prompt), max_tokens=max_tokens)
         t0 = time.monotonic()
         try:
+            from jsat._ai import require_explicit_model
+
             resp = self._client.messages.create(
-                model=self._model, max_tokens=max_tokens, temperature=temperature,
+                model=require_explicit_model("anthropic", self._model),
+                max_tokens=max_tokens, temperature=temperature,
                 messages=[{"role": "user", "content": prompt}],
             )
         except self._anthropic.RateLimitError as e:
@@ -69,8 +72,10 @@ class AnthropicProvider(AIProvider):
         return await asyncio.to_thread(self.complete, prompt, max_tokens, temperature)
 
     def stream(self, prompt: str, max_tokens: int = 2048) -> Iterator[str]:
+        from jsat._ai import require_explicit_model
+
         with self._client.messages.stream(
-            model=self._model, max_tokens=max_tokens,
+            model=require_explicit_model("anthropic", self._model), max_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}],
         ) as s:
             yield from s.text_stream

@@ -26,11 +26,17 @@ def _detect_available_providers() -> list[dict]:
         import httpx
         r = httpx.get("http://localhost:11434/api/tags", timeout=1.0)
         if r.status_code < 400:
+            from jsat._ollama import ollama_model_kind
             models = [m["name"] for m in r.json().get("models", [])]
+            local_count = sum(ollama_model_kind(m) == "local" for m in models)
+            cloud_count = len(models) - local_count
             providers.append({
                 "name": "ollama", "status": "running",
-                "models": models, "free": True,
-                "hint": f"ollama serve  (models: {', '.join(models[:3]) or 'none pulled yet'})",
+                "models": models, "free": bool(local_count) or not models,
+                "hint": (
+                    f"ollama serve  ({local_count} local, {cloud_count} cloud; "
+                    f"models: {', '.join(models[:3]) or 'none registered yet'})"
+                ),
             })
     except Exception:
         if ollama_bin:
@@ -44,7 +50,7 @@ def _detect_available_providers() -> list[dict]:
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     providers.append({
         "name": "anthropic", "status": "key_set" if key else "no_key",
-        "free": False, "models": ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
+        "free": False, "models": [],
         "hint": "set ANTHROPIC_API_KEY" if not key else "ready",
     })
 
@@ -52,7 +58,7 @@ def _detect_available_providers() -> list[dict]:
     key = os.environ.get("OPENAI_API_KEY", "")
     providers.append({
         "name": "openai", "status": "key_set" if key else "no_key",
-        "free": False, "models": ["gpt-4o", "gpt-4o-mini"],
+        "free": False, "models": [],
         "hint": "set OPENAI_API_KEY" if not key else "ready",
     })
 
@@ -84,7 +90,7 @@ def cmd_ai_status() -> None:
         current = cfg.ai.provider
         current_model = cfg.ai.model
     except Exception:
-        current, current_model = "ollama", "llama3.2"
+        current, current_model = "none", None
 
     table = Table(title="JSAT AI Providers", box=box.ROUNDED, header_style="bold magenta")
     table.add_column("Provider")
@@ -110,16 +116,26 @@ def cmd_ai_status() -> None:
 
     console.print(table)
     console.print(
-        f"\nCurrently configured: [bold]{current}[/] / [bold]{current_model}[/]\n"
+        f"\nCurrently configured: [bold]{current}[/] / "
+        f"[bold]{current_model or 'automatic/not selected'}[/]\n"
         "Run [bold]jsat ai use <provider>[/] to switch.\n"
     )
 
 
-def _preflight_ollama(model: str) -> None:
-    """Warn when Ollama is unreachable, or the chosen model has not been pulled."""
+def _preflight_ollama(model: str) -> bool:
+    """Validate that Ollama is reachable and has registered the chosen model."""
+    from jsat._ollama import ollama_model_kind, ollama_models_match
+
+    kind = ollama_model_kind(model)
+    if kind == "cloud":
+        console.print(
+            "[cyan]Cloud model selected.[/] Ollama will run inference remotely.\n"
+            "  Sign in if needed: [bold]ollama signin[/]\n"
+        )
     try:
         import httpx
         resp = httpx.get("http://localhost:11434/api/tags", timeout=1.0)
+        resp.raise_for_status()
         installed = [m.get("name", "") for m in resp.json().get("models", [])]
     except Exception:
         console.print(
@@ -127,26 +143,36 @@ def _preflight_ollama(model: str) -> None:
             "  Start it:   [bold]ollama serve[/]\n"
             f"  Pull model: [bold]ollama pull {model}[/]\n"
         )
-        return
+        return False
 
-    def _same(a: str, b: str) -> bool:
-        return a == b or a.split(":")[0] == b.split(":")[0]
-
-    if installed and not any(_same(m, model) for m in installed):
-        console.print(
-            f"[yellow]⚠[/] Model [bold]{model}[/] is not pulled — requests will fail with 404.\n"
-            f"  Installed:  {', '.join(installed[:5])}\n"
-            f"  Pull it:    [bold]ollama pull {model}[/]\n"
-            f"  Or use:     [bold]jsat ai use ollama --model {installed[0]}[/]\n"
+    if not any(ollama_models_match(m, model) for m in installed):
+        action = "Sign in:     ollama signin" if kind == "cloud" else (
+            f"Pull it:     ollama pull {model}"
         )
+        installed_note = ", ".join(installed[:5]) or "none"
+        console.print(
+            f"[yellow]⚠[/] Model [bold]{model}[/] is not registered with this Ollama host.\n"
+            f"  Installed:  {installed_note}\n"
+            f"  {action}\n"
+            "  Discover:    [bold]jsat ai models ollama[/]\n"
+        )
+        if installed:
+            console.print(
+                f"  Or use:     [bold]jsat ai use ollama --model {installed[0]}[/]\n"
+            )
+        return False
+    return True
 
 
 @ai_app.command("use")
 def cmd_ai_use(
     provider: str = typer.Argument(...,
-        help="Provider: ollama | anthropic | openai | lmstudio | claude_cli | bob_cli"),
+        help=(
+            "Provider: ollama | anthropic | openai | lmstudio | claude_cli | "
+            "codex_cli | opencode_cli | bob_cli"
+        )),
     model: str | None = typer.Option(None, "--model", "-m",
-        help="Model name (auto-selected if omitted)"),
+        help="Explicit model; native CLIs use their own default when omitted"),
     config_path: str = typer.Option("", "--config", "-c",
         help="Config file to write (default: .jsat/config.yaml, or ~/.jsat/config.yaml "
              "with --global)"),
@@ -161,12 +187,13 @@ def cmd_ai_use(
 
     \b
     Examples:
-      jsat ai use ollama                       # local Ollama (free)
-      jsat ai use ollama --model llama3.2
-      jsat ai use anthropic                    # Claude (needs ANTHROPIC_API_KEY)
-      jsat ai use openai --model gpt-4o-mini   # OpenAI (needs OPENAI_API_KEY)
-      jsat ai use lmstudio                     # LM Studio at localhost:1234
+      jsat ai models ollama                    # discover installed/registered models
+      jsat ai use ollama --model <model>
+      jsat ai use anthropic --model <model>    # needs ANTHROPIC_API_KEY
+      jsat ai use openai --model <model>       # needs OPENAI_API_KEY
+      jsat ai use lmstudio --model <model>     # LM Studio at localhost:1234
       jsat ai use claude_cli --global          # Claude Code CLI, global config
+      jsat ai use opencode --global            # OpenCode's configured model
     """
     import os
 
@@ -180,7 +207,7 @@ def cmd_ai_use(
         if normalize_alias(provider) in MCP_TOOLS:
             lines.append(
                 f"[bold]{provider}[/] is an editor/CLI, not an AI provider — "
-                f"wire it up with [bold]jsat connect {provider}[/] instead."
+                f"use [bold]jsat connect {provider}[/] instead."
             )
         else:
             close = suggest(provider, alias_names())
@@ -191,7 +218,45 @@ def cmd_ai_use(
         raise typer.Exit(1)
 
     chosen_provider, default_model, base_url = resolved
-    chosen_model = model or default_model
+    chosen_model = model if model is not None else default_model
+
+    cli_providers = {"claude_cli", "codex_cli", "opencode_cli", "bob_cli"}
+    if (
+        chosen_provider == "ollama"
+        and normalize_alias(provider) in {"phi", "llama"}
+        and chosen_model is None
+    ):
+        err.print(
+            f"[yellow]Alias '{provider}' identifies a model family, not a model.[/]\n"
+            "  Discover: [bold]jsat ai models ollama[/]\n"
+            f"  Select:   [bold]jsat ai use {provider} --model <model>[/]"
+        )
+        raise typer.Exit(1)
+    if chosen_provider == "ollama" and chosen_model is None:
+        from jsat._ollama import select_ollama_model
+
+        available: list[str] = []
+        try:
+            import httpx
+
+            response = httpx.get("http://localhost:11434/api/tags", timeout=1.0)
+            response.raise_for_status()
+            available = [m["name"] for m in response.json().get("models", [])]
+        except Exception:
+            pass
+        try:
+            chosen_model = select_ollama_model(None, available)
+        except ValueError as exc:
+            err.print(f"[yellow]{exc}[/]")
+            raise typer.Exit(1) from exc
+
+    if chosen_provider not in cli_providers | {"ollama"} and chosen_model is None:
+        err.print(
+            f"[yellow]Provider '{chosen_provider}' needs an explicit model.[/]\n"
+            f"  Discover: [bold]jsat ai models {provider}[/]\n"
+            f"  Select:   [bold]jsat ai use {provider} --model <model>[/]"
+        )
+        raise typer.Exit(1)
 
     # Pre-flight checks — keyed on the resolved backend, not the alias the user typed
     if chosen_provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
@@ -202,7 +267,11 @@ def cmd_ai_use(
         console.print("[yellow]⚠[/] OPENAI_API_KEY is not set.")
         console.print("  Add to your shell: [bold]export OPENAI_API_KEY=sk-...[/]\n")
 
-    for binary, install_hint in (("claude_cli", "claude"), ("bob_cli", "bob")):
+    for binary, install_hint in (
+        ("claude_cli", "claude"),
+        ("opencode_cli", "opencode"),
+        ("bob_cli", "bob"),
+    ):
         if chosen_provider == binary:
             import shutil
             if not shutil.which(install_hint):
@@ -211,8 +280,12 @@ def cmd_ai_use(
                     f"  Install it, or pick another provider with [bold]jsat ai status[/].\n"
                 )
 
-    if chosen_provider == "ollama":
-        _preflight_ollama(chosen_model)
+    if (
+        chosen_provider == "ollama"
+        and chosen_model is not None
+        and not _preflight_ollama(chosen_model)
+    ):
+        raise typer.Exit(1)
 
     # Resolve config path
     if global_:
@@ -232,8 +305,15 @@ def cmd_ai_use(
 
     # Update ai section
     existing.setdefault("ai", {})
+    previous_provider = existing["ai"].get("provider")
     existing["ai"]["provider"] = chosen_provider
-    existing["ai"]["model"] = chosen_model
+    if chosen_model is None:
+        existing["ai"].pop("model", None)
+    else:
+        existing["ai"]["model"] = chosen_model
+    if previous_provider != chosen_provider:
+        existing["ai"].pop("base_url", None)
+        existing["ai"].pop("api_key_env", None)
     if base_url:
         existing["ai"]["base_url"] = base_url
 
@@ -243,8 +323,9 @@ def cmd_ai_use(
         yaml.dump(existing, f, default_flow_style=False, sort_keys=False)
 
     scope_label = "global" if global_ else "project"
+    model_label = chosen_model or "provider default"
     console.print(
-        f"\n[green]✓[/] AI provider set: [bold]{chosen_provider}[/] / [bold]{chosen_model}[/]"
+        f"\n[green]✓[/] AI provider set: [bold]{chosen_provider}[/] / [bold]{model_label}[/]"
         f"  [{scope_label}]"
     )
     console.print(f"   Written to: [cyan]{cfg_path.resolve()}[/]\n")
@@ -253,7 +334,7 @@ def cmd_ai_use(
     console.print("[dim]Testing connection...[/]", end=" ")
     try:
         from jsat._core import JSAT
-        js = JSAT(repo=".", log_level="ERROR")
+        js = JSAT(repo=".", config=cfg_path, log_level="ERROR")
         ai = js._get_ai()
         if ai.is_available():
             console.print("[green]✓ AI is reachable[/]")
@@ -290,30 +371,44 @@ def cmd_ai_test(
 
 
 @ai_app.command("models")
-def cmd_ai_models() -> None:
-    """List available models for the configured AI provider."""
+def cmd_ai_models(
+    requested_provider: str | None = typer.Argument(
+        None, metavar="[PROVIDER]", help="Provider to inspect; default: configured provider"
+    ),
+) -> None:
+    """Discover models or show how the selected client chooses one."""
     try:
 
         import httpx
         js = _jsat()
         provider = js._cfg.ai.provider
+        if requested_provider:
+            from jsat._ai.aliases import resolve_alias
+
+            resolved = resolve_alias(requested_provider)
+            if resolved is None:
+                raise ValueError(f"unknown provider: {requested_provider}")
+            provider = resolved[0]
 
         if provider == "ollama":
+            from jsat._ollama import ollama_model_kind
             r = httpx.get("http://localhost:11434/api/tags", timeout=2.0)
             r.raise_for_status()
             models = [m["name"] for m in r.json().get("models", [])]
             if not models:
                 console.print(
-                    "[yellow]No models pulled yet.[/]\n"
-                    "Pull one: [bold]ollama pull llama3.2[/]   (4 GB, good quality)\n"
-                    "          [bold]ollama pull phi3:mini[/]   (2 GB, fast, low RAM)\n"
-                    "          [bold]ollama pull qwen2.5-coder:7b[/]  (code-focused)\n"
+                    "[yellow]No Ollama models are registered.[/]\n"
+                    "  Browse: [bold]ollama[/] (interactive model selector)\n"
+                    "  Local:  [bold]ollama pull <model>[/]\n"
+                    "  Cloud:  [bold]ollama signin[/]\n"
                 )
                 return
             console.print(f"\n[bold]Ollama models ({len(models)}):[/]")
             for m in models:
                 active = " [cyan]← active[/]" if m == js._cfg.ai.model else ""
-                console.print(f"  {m}{active}")
+                kind = ollama_model_kind(m)
+                style = "magenta" if kind == "cloud" else "green"
+                console.print(f"  {m} [{style}]{kind}[/]{active}")
 
         elif provider == "openai_compat":
             base = js._cfg.ai.base_url or "http://localhost:1234/v1"
@@ -324,10 +419,30 @@ def cmd_ai_models() -> None:
             for m in models:
                 console.print(f"  {m}")
 
+        elif provider in {"claude_cli", "codex_cli", "opencode_cli", "bob_cli"}:
+            commands = {
+                "claude_cli": "Open Claude Code and use /model; omit --model to use its default.",
+                "codex_cli": "Open Codex and use its model selector; `codex --help` shows flags.",
+                "opencode_cli": "Open OpenCode and use its model/provider selector.",
+                "bob_cli": "Open Bob Shell and use its configured model/mode selector.",
+            }
+            console.print(
+                f"[bold]{provider} owns model selection.[/]\n{commands[provider]}\n"
+                f"To pin one explicitly: [bold]jsat ai use {requested_provider or provider} "
+                "--model <model>[/]"
+            )
+        elif provider in {"openai", "anthropic"}:
+            console.print(
+                f"[bold]{provider} model discovery uses your account credentials.[/]\n"
+                f"Set the provider API key, then consult its model list or run its SDK's "
+                "models-list operation.\n"
+                f"Select one with: [bold]jsat ai use {requested_provider or provider} "
+                "--model <model>[/]"
+            )
         else:
             console.print(
                 f"[dim]Provider '{provider}' does not expose a local model list.[/]\n"
-                f"Current model: [bold]{js._cfg.ai.model}[/]"
+                f"Current model: [bold]{js._cfg.ai.model or 'not selected'}[/]"
             )
     except Exception as e:
         err.print(f"[red]Could not list models:[/] {e}")

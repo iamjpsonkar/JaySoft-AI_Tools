@@ -20,8 +20,8 @@ _log = structlog.get_logger(__name__)
 def cmd_disconnect(
     tool: str = typer.Argument(
         "claude",
-        help="Tool to disconnect: claude | codex | cursor | windsurf | continue "
-             "| zed | gemini | bob | all",
+        help="Tool to disconnect: claude | codex | opencode | ollama | cursor | windsurf "
+             "| continue | zed | gemini | bob | all",
     ),
     scope: str = typer.Option(
         "project",
@@ -41,6 +41,8 @@ def cmd_disconnect(
     jsat disconnect claude --scope global   ← Claude Code global
     jsat disconnect claude --scope all      ← Claude Code everywhere
     jsat disconnect codex                   ← OpenAI Codex CLI
+    jsat disconnect opencode                ← OpenCode (including Ollama launch)
+    jsat disconnect ollama                  ← Claude, Codex, and OpenCode integrations
     jsat disconnect cursor                  ← Cursor
     jsat disconnect windsurf                ← Windsurf
     jsat disconnect continue                ← Continue.dev
@@ -53,8 +55,8 @@ def cmd_disconnect(
     tool_lower = tool.lower()
 
     # Validate tool name upfront (L7 fix: was previously checked at the end)
-    _valid_tools = ("claude", "codex", "cursor", "windsurf", "continue", "zed",
-                    "gemini", "bob", "all")
+    _valid_tools = ("claude", "codex", "opencode", "ollama", "cursor", "windsurf",
+                    "continue", "zed", "gemini", "bob", "all")
     if tool_lower not in _valid_tools:
         from jsat._ai.aliases import is_provider_alias, suggest
         err.print(f"[red]Unknown tool:[/] {tool}")
@@ -84,10 +86,12 @@ def cmd_disconnect(
         return False
 
     # ── claude ────────────────────────────────────────────────────────────────
-    if tool_lower in ("claude", "all"):
+    if tool_lower in ("claude", "ollama", "all"):
         scopes = ["project", "global"] if scope == "all" else [scope]
         if tool_lower == "all":
             scopes = ["project", "global"]
+        elif tool_lower == "ollama":
+            scopes = ["global"]
         for s in scopes:
             if s == "global":
                 sp = Path.home() / ".claude" / "settings.json"
@@ -117,7 +121,7 @@ def cmd_disconnect(
                 _remove_jsat_block(md)
 
     # ── codex ─────────────────────────────────────────────────────────────────
-    if tool_lower in ("codex", "all"):
+    if tool_lower in ("codex", "ollama", "all"):
         if tool_lower == "all" or scope == "all":
             scopes = ["project", "global"]
         elif scope == "project":
@@ -150,6 +154,24 @@ def cmd_disconnect(
                     skill_file.unlink()
                     console.print(
                         f"[green]✓[/] Removed JSAT Codex skill ({skill_file})"
+                    )
+                    removed_any = True
+
+    # ── opencode ─────────────────────────────────────────────────────────────
+    if tool_lower in ("opencode", "ollama", "all"):
+        from jsat._cli_connect import _opencode_commands_dir, _opencode_config_path
+
+        removed_any |= _remove_from_standard(
+            "OpenCode", _opencode_config_path(), key="mcp"
+        )
+        if not keep_skills:
+            for command_name in ("jsat.md", "jsat-help.md"):
+                command_file = _opencode_commands_dir() / command_name
+                if command_file.exists():
+                    command_file.unlink()
+                    console.print(
+                        f"[green]✓[/] Removed OpenCode command [bold]/{command_file.stem}[/] "
+                        f"({command_file})"
                     )
                     removed_any = True
 
@@ -559,37 +581,37 @@ def cmd_mcp_server(
         def _get_ai(self):
             if self._ai is None:
                 import os
-                import shutil
 
+                from jsat._ai import model_help
                 from jsat._ai.none import NoOpProvider
+                from jsat._ai.routing import resolve_process_ai_context
 
-                # JSAT_AI_PROVIDER env var: explicitly requested provider
-                # (set by `jsat connect claude` via the MCP config env block)
-                _env_provider = os.environ.get("JSAT_AI_PROVIDER", "").strip()
-
-                # Auto-detect the best available AI — same priority as auto_configure:
-                # JSAT_AI_PROVIDER env > claude_cli > anthropic API > openai API > ollama > none
-                def _try_claude_cli():
-                    if shutil.which("claude") or _env_provider == "claude_cli":
-                        from jsat._ai.claude_cli import ClaudeCliProvider
-                        # Use a clean config with claude model, not whatever
-                        # the original config says (e.g. "llama3.2" from Ollama profile)
-                        clean_cfg = self._cfg.model_copy(update={
-                            "ai": self._cfg.ai.model_copy(update={
-                                "provider": "claude_cli",
-                                "model": "claude-sonnet-4-6",
-                            })
-                        })
-                        p = ClaudeCliProvider(clean_cfg)
-                        if p.is_available():
-                            return p
-                    return None
-
-                def _try_provider(name: str):
+                def _try_provider(
+                    name: str,
+                    model: str | None = None,
+                    base_url: str | None = None,
+                    *,
+                    replace_model: bool = False,
+                ):
                     try:
                         from jsat._ai import get_ai_provider
+                        updates = {"provider": name}
+                        # Provider switches must explicitly clear the previous
+                        # provider's model. The configured provider path keeps
+                        # its own explicitly saved model.
+                        if replace_model:
+                            from jsat._ai.routing import LaunchAIContext, apply_launch_ai_context
+
+                            ai_config = apply_launch_ai_context(
+                                self._cfg.ai,
+                                LaunchAIContext(name, model, base_url),
+                            )
+                        else:
+                            if base_url:
+                                updates["base_url"] = base_url
+                            ai_config = self._cfg.ai.model_copy(update=updates)
                         cfg_copy = self._cfg.model_copy(update={
-                            "ai": self._cfg.ai.model_copy(update={"provider": name})
+                            "ai": ai_config
                         })
                         p = get_ai_provider(cfg_copy)
                         if p.is_available():
@@ -602,31 +624,35 @@ def cmd_mcp_server(
                     return None
 
                 configured = self._cfg.ai.provider
-
-                # 0. Honour explicit JSAT_AI_PROVIDER env var first
-                if _env_provider == "claude_cli":
-                    provider = _try_claude_cli()
-                elif _env_provider and _env_provider not in ("none", ""):
-                    provider = _try_provider(_env_provider) or _try_claude_cli()
-                else:
-                    provider = None
-
-                # 1. Use configured provider if it actually works
-                if provider is None:
-                    provider = _try_provider(configured)
-
-                # 2. Fallback chain if configured provider is unreachable
-                if provider is None:
-                    provider = (
-                        _try_claude_cli() or
-                        _try_provider("codex_cli") or
-                        _try_provider("bob_cli") or
-                        _try_provider("anthropic") or
-                        _try_provider("openai") or
-                        _try_provider("ollama")
+                # Ollama's launch context wins over the native tool connector. It
+                # contains the exact model selected in that OpenCode/Claude session.
+                strict_context = resolve_process_ai_context(os.environ)
+                if strict_context is not None:
+                    provider = _try_provider(
+                        strict_context.provider,
+                        strict_context.model,
+                        strict_context.base_url,
+                        replace_model=True,
                     )
+                    message = (
+                        f"Selected AI provider '{strict_context.provider}' is unavailable.\n"
+                        f"Source: {strict_context.source or 'MCP connector'}\n"
+                        f"{model_help(strict_context.provider)}\n"
+                        "After changing a connection or model, fully restart the AI client."
+                    )
+                    self._ai = provider or NoOpProvider(message)
+                    return self._ai
 
-                self._ai = provider or NoOpProvider()
+                # Use only the configured provider. Falling through to another
+                # installed CLI makes independent Codex/Claude/OpenCode/Ollama
+                # routes non-deterministic and can send a model to the wrong tool.
+                provider = _try_provider(configured)
+                message = (
+                    f"Configured AI provider '{configured}' is unavailable.\n"
+                    f"{model_help(configured)}\n"
+                    "Choose it with `jsat ai use`, or reconnect and fully restart the AI client."
+                )
+                self._ai = provider or NoOpProvider(message)
 
             return self._ai
 

@@ -25,7 +25,9 @@ class CodexCliProvider(AIProvider):
 
         self._log = structlog.get_logger(__name__)
         self._binary = shutil.which("codex") or "codex"
-        self._model = getattr(getattr(cfg, "ai", None), "model", None) or "gpt-5.6-sol"
+        # No fallback model: Codex owns its configured/default model. Only an
+        # explicit user selection is forwarded to ``codex exec``.
+        self._model = getattr(getattr(cfg, "ai", None), "model", None)
         self._timeout = getattr(getattr(cfg, "ai", None), "timeout_seconds", None) or 180
         self._repo_dir: str | None = None
 
@@ -56,7 +58,7 @@ class CodexCliProvider(AIProvider):
 
     @property
     def model_name(self) -> str:
-        return self._model
+        return self._model or "codex default"
 
     def is_available(self) -> bool:
         return bool(shutil.which("codex"))
@@ -123,7 +125,11 @@ class CodexCliProvider(AIProvider):
                 stderr=stderr[:300],
                 elapsed_ms=elapsed,
             )
-            raise RuntimeError(f"codex exited {result.returncode}: {stderr[:200]}")
+            from jsat._ai import model_help
+
+            raise RuntimeError(
+                f"codex exited {result.returncode}: {stderr[:200]}\n{model_help('codex_cli')}"
+            )
 
         text = result.stdout.strip()
         log.info("codex_cli_done", response_len=len(text), elapsed_ms=elapsed)

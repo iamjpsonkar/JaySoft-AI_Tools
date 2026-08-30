@@ -30,7 +30,7 @@ class OpenAIProvider(AIProvider):
             ) from e
 
         api_key_env = cfg.ai.api_key_env or "OPENAI_API_KEY"
-        self._model: str = cfg.ai.model or "gpt-4o"
+        self._model: str | None = cfg.ai.model
         self._client = self._openai.OpenAI(api_key=os.environ.get(api_key_env))
         self._log.info("openai_init", model=self._model,
                        api_key_set=bool(os.environ.get(api_key_env)))
@@ -41,14 +41,17 @@ class OpenAIProvider(AIProvider):
 
     @property
     def model_name(self) -> str:
-        return self._model
+        return self._model or "not selected"
 
     def complete(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.1) -> str:
         self._log.debug("openai_complete", prompt_len=len(prompt), max_tokens=max_tokens)
         t0 = time.monotonic()
         try:
+            from jsat._ai import require_explicit_model
+
             resp = self._client.chat.completions.create(
-                model=self._model, max_tokens=max_tokens, temperature=temperature,
+                model=require_explicit_model("openai", self._model),
+                max_tokens=max_tokens, temperature=temperature,
                 messages=[{"role": "user", "content": prompt}],
             )
         except self._openai.RateLimitError as e:
@@ -68,8 +71,10 @@ class OpenAIProvider(AIProvider):
         return await asyncio.to_thread(self.complete, prompt, max_tokens, temperature)
 
     def stream(self, prompt: str, max_tokens: int = 2048) -> Iterator[str]:
+        from jsat._ai import require_explicit_model
+
         for chunk in self._client.chat.completions.create(
-            model=self._model, max_tokens=max_tokens,
+            model=require_explicit_model("openai", self._model), max_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}], stream=True,
         ):
             piece = chunk.choices[0].delta.content

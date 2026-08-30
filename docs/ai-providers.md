@@ -1,5 +1,9 @@
 # AI Providers
 
+This page configures the provider used by JSAT's own LLM-backed tools. To connect and launch a
+coding client, use the [AI integration chooser](integrations/index.md). In particular,
+`jsat ai use ollama` and `jsat ollama --tool TOOL` are intentionally different routes.
+
 JSAT supports local CLI providers, hosted APIs, and local OpenAI-compatible servers. The right one is selected automatically based on what is available, but you can override it at any time.
 
 ## Provider Overview
@@ -11,10 +15,11 @@ JSAT supports local CLI providers, hosted APIs, and local OpenAI-compatible serv
 | Claude Code CLI | `jsat ai use claude_cli` | Free tier | `claude` binary |
 | Bob Shell CLI | `jsat ai use bob_cli` | Free tier | `bob` binary |
 | OpenAI Codex CLI | `jsat ai use codex-cli` | Paid/free by account | `codex` binary + Codex sign-in |
+| OpenCode CLI | `jsat ai use opencode` | Depends on selected model | `opencode` binary/config |
 | Anthropic API | `jsat ai use anthropic` | Paid | `ANTHROPIC_API_KEY` |
 | OpenAI | `jsat ai use openai` | Paid | `OPENAI_API_KEY` |
 | Google Gemini | `jsat ai use gemini` | Paid | `GEMINI_API_KEY` |
-| Ollama (local) | `jsat ai use ollama` | Free | `ollama serve` + model |
+| Ollama (local/cloud) | `jsat ai use ollama` | Depends on model | `ollama serve` + model/sign-in |
 | LM Studio (local) | `jsat ai use lmstudio` | Free | LM Studio running |
 
 Add `--global` to any `jsat ai use` command to write the setting to `~/.jsat/config.yaml` (applies to all projects on this machine) instead of the per-repo `.jsat/config.yaml`.
@@ -204,6 +209,23 @@ jsat ai test
 
 ---
 
+## OpenCode CLI
+
+Native OpenCode can provide JSAT's LLM calls through its configured provider and
+model. The adapter uses `opencode run` and disables JSAT MCP only in that nested
+call, preventing recursive self-invocation.
+
+```bash
+jsat connect opencode
+jsat ai use opencode              # optional for non-MCP JSAT commands
+```
+
+When OpenCode itself was started by Ollama, JSAT does not start a nested OpenCode
+provider. It reads Ollama's inherited inline configuration and sends requests to the
+exact selected model instead.
+
+---
+
 ## Anthropic API
 
 Use the Anthropic API directly (requires a paid API key).
@@ -247,8 +269,8 @@ jsat ai test "say hello"
 
 ```
 > switch claude-api
-> switch haiku    # shorthand for claude-haiku
-> switch opus
+> switch haiku <model>    # no model version is pinned by the alias
+> switch opus <model>
 ```
 
 ---
@@ -273,12 +295,13 @@ export OPENAI_API_KEY=sk-...
 ### Activate
 
 ```bash
-jsat ai use openai
+jsat ai models openai
 jsat ai use openai --model gpt-4o-mini   # cheaper
-jsat ai use openai --global              # all projects on this machine
+jsat ai use openai --model <model> --global  # all projects on this machine
 ```
 
-Default model: `gpt-4o-mini`.
+JSAT does not choose an OpenAI model. Select one explicitly from the models available to your
+account.
 
 ### Verify
 
@@ -289,8 +312,8 @@ jsat ai test
 ### Inside the shell
 
 ```
-> switch gpt
-> switch gpt4mini
+> switch gpt <model>
+> switch gpt4mini <model>
 ```
 
 ### Open a GPT session directly
@@ -342,14 +365,16 @@ jsat ai test "what is 2 + 2?"
 
 ```
 > switch gemini
-> switch gemini-pro
+> switch gemini-pro <model>
 ```
 
 ---
 
-## Ollama (Local, Free)
+## Ollama (Local or Cloud)
 
-Ollama runs open-weight models locally. No API key, no data sent externally.
+Ollama runs open-weight models locally and can route cloud-suffixed models through
+Ollama Cloud (for example, `gemma4:31b-cloud`).
+Local models keep inference on the machine; cloud models require `ollama signin` and internet.
 
 ### Install
 
@@ -388,10 +413,15 @@ JSAT checks `http://localhost:11434` on startup. If Ollama is running, it is aut
 ### Activate
 
 ```bash
-jsat ai use ollama
+jsat ai models ollama
 jsat ai use ollama --model phi3:mini
-jsat ai use ollama --global             # all projects on this machine
+jsat ai use ollama --model phi3:mini --global  # all projects on this machine
 ```
+
+JSAT never guesses an Ollama model. It auto-selects only when the server reports exactly one;
+with zero or multiple models it prints `ollama list`, local pull/cloud sign-in, and explicit
+selection commands. Native Claude, Codex, and OpenCode similarly use their own configured model
+unless you explicitly pass `--model`.
 
 ### List pulled models
 
@@ -412,12 +442,38 @@ jsat ollama
 jsat ollama --model phi3:mini
 ```
 
+### Launch a coding tool through Ollama
+
+```bash
+jsat ollama --tool claude                  # interactive local/cloud selector
+jsat ollama --tool opencode -m qwen3.5     # local model
+ollama signin
+jsat ollama --tool opencode -m gemma4:31b-cloud
+```
+
+The OpenCode route auto-connects JSAT as a global MCP server and installs `/jsat`
+plus `/jsat-help` before Ollama launches it.
+OpenCode does not need to be installed independently. To configure only:
+
+```bash
+jsat connect ollama tool=opencode
+ollama  # choose OpenCode → sign in if prompted → choose a model
+```
+
+The direct-install equivalent is `jsat connect opencode`; both commands write the
+same OpenCode MCP config. Bare `jsat connect ollama` configures Claude, Codex, and
+OpenCode. The equivalent connect-and-launch route is `jsat ollama --tool opencode`.
+Ollama still owns the OpenCode installation, sign-in prompt, and model selector.
+JSAT inherits that exact selection for its own MCP tools, so a project-level
+`ai.model` such as `llama3.2` is ignored for this launched session and no second
+`ollama pull` is required.
+
 ### Inside the shell
 
 ```
-> switch ollama
-> switch phi    # shorthand for phi3:mini
-> switch llama  # shorthand for llama3.2
+> switch ollama <model>
+> switch phi <model>    # explicit installed Phi-family model
+> switch llama <model>  # explicit installed Llama-family model
 ```
 
 ---
@@ -435,10 +491,12 @@ Load a model in LM Studio, then start the local server (usually at `http://local
 ### Activate
 
 ```bash
-jsat ai use lmstudio
+jsat ai models lmstudio
+jsat ai use lmstudio --model <loaded-model-id>
 ```
 
-This sets the provider to `openai_compat` with `base_url: http://localhost:1234/v1`. JSAT will use whatever model LM Studio has loaded.
+This sets the provider to `openai_compat` with `base_url: http://localhost:1234/v1` and the
+model you selected from LM Studio's `/models` response.
 
 ### List loaded models
 
@@ -455,7 +513,7 @@ jsat ai test
 ### Inside the shell
 
 ```
-> switch lmstudio
+> switch lmstudio <loaded-model-id>
 ```
 
 ---
@@ -484,7 +542,8 @@ If none are reachable, JSAT runs without AI (graph queries only, no natural lang
 Update `.jsat/config.yaml` and test:
 
 ```bash
-jsat ai use ollama
+jsat ai models ollama
+jsat ai use ollama --model <model>
 jsat ai test
 ```
 
@@ -498,16 +557,16 @@ jsat ai test
 > switch bob-cli
 > switch codex
 > switch codex-cli
-> switch gpt
-> switch gpt4mini
-> switch ollama
-> switch phi
-> switch llama
+> switch gpt <model>
+> switch gpt4mini <model>
+> switch ollama <model>
+> switch phi <model>
+> switch llama <model>
 > switch gemini
-> switch gemini-pro
-> switch haiku
-> switch opus
-> switch lmstudio
+> switch gemini-pro <model>
+> switch haiku <model>
+> switch opus <model>
+> switch lmstudio <loaded-model-id>
 ```
 
 ### With the Python SDK
@@ -530,7 +589,7 @@ All AI settings live under the `ai:` key in `.jsat/config.yaml`:
 
 ```yaml
 ai:
-  provider: ollama          # ollama | anthropic | openai | openai_compat | claude_cli | bob_cli | codex_cli | none
+  provider: ollama          # also: anthropic, openai, openai_compat, claude_cli, opencode_cli, bob_cli, codex_cli, none
   model: llama3.2
   base_url: null            # set for lmstudio / gemini / custom endpoints
   max_tokens: 8192
@@ -553,7 +612,7 @@ For LM Studio:
 ```yaml
 ai:
   provider: openai_compat
-  model: local-model
+  model: <loaded-model-id>
   base_url: http://localhost:1234/v1
 ```
 
