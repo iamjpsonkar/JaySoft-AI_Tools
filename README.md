@@ -31,7 +31,7 @@ Long-running tools stream **live progress notifications** to Claude Code — and
 | **Smart budgets** | Over-budget → AI gets notified (call keeps running). Force-kill only at 5× the budget |
 | **Session files** | All major skills write resumable session files — `--continue` picks up where it left off |
 | **Zero-dep dashboard** | Stdlib-only SSE server streams every event to a dark-terminal browser view in real time |
-| **Multi-provider** | Claude Code CLI, OpenCode CLI, Bob Shell CLI, Codex CLI, Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches |
+| **Multi-provider** | Claude Code CLI, OpenCode CLI, Bob Shell CLI, Codex CLI, Anthropic API, OpenAI, Gemini, DeepSeek, Ollama, LM Studio — one command switches |
 | **SDK + CLI + MCP** | Use as a shell, Python SDK, or MCP server — same graph, same tools |
 
 ---
@@ -145,6 +145,7 @@ jsat ai use openai --model gpt-4o-mini    # needs OPENAI_API_KEY
 jsat ai use claude_cli                    # Claude chooses its configured/default model
 jsat ai use opencode                      # OpenCode CLI (uses its selected provider/model)
 jsat ai use codex-cli                     # Codex chooses its configured/default model
+jsat ai use deepseek --model deepseek-chat  # needs DEEPSEEK_API_KEY
 jsat ai use lmstudio --model <model>      # OpenAI-compat server at localhost:1234
 jsat ai test                              # verify the configured provider works
 
@@ -163,6 +164,7 @@ switch ollama <model>    → Ollama with a registered local/cloud model
 switch haiku <model>     → Anthropic API; alias never pins a model version
 switch phi <model>       → Ollama; choose an installed Phi-family model
 switch lmstudio <model>  → LM Studio with its loaded model ID
+switch deepseek <model>  → DeepSeek API (needs DEEPSEEK_API_KEY)
 ```
 
 ---
@@ -257,6 +259,7 @@ jsat connect codex                        # OpenAI Codex CLI — global MCP + $j
 jsat connect opencode                     # OpenCode — MCP + /jsat commands
 jsat connect ollama                       # Claude + Codex + OpenCode Ollama integrations
 jsat connect ollama tool=opencode         # only OpenCode (also accepts --tool opencode)
+jsat connect ollama opencode --model gemma4:31b-cloud  # + remember this model for `jsat ollama opencode`
 jsat connect bob --global                 # Bob Shell — all sessions
 
 # If Ollama manages OpenCode, connect once and use Ollama's normal menu:
@@ -977,8 +980,8 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat gemini` | Open Gemini CLI with JSAT pre-loaded |
 | `jsat zed` | Open Zed editor with JSAT pre-loaded |
 | `jsat gpt` | Open a GPT session with JSAT tools |
-| `jsat ollama --model MODEL` | Open the JSAT shell; without `--model`, auto-select only when Ollama reports exactly one model |
-| `jsat ollama --tool opencode [--model MODEL]` | Auto-connect JSAT, then launch OpenCode through Ollama with a local/cloud model |
+| `jsat ollama --model MODEL` (or `jsat ollama MODEL`) | Open the JSAT shell with `MODEL`; without one, reuses a model set via `jsat ai use ollama --model`, else auto-selects only when Ollama reports exactly one model |
+| `jsat ollama --tool opencode [--model MODEL]` (or `jsat ollama opencode`) | Auto-connect JSAT, then launch OpenCode through Ollama with a local/cloud model; without `--model`, reuses the model saved by `jsat connect ollama opencode --model MODEL`, else shows Ollama's selector |
 | `jsat start [TOOL] [--via auto\|native\|ollama]` | Start managed AI clients; TOOL defaults to `all` |
 | `jsat stop [TOOL] [--force]` | Stop only validated JSAT-managed processes; defaults to `all` |
 | `jsat restart [TOOL]` | Restart previous route/model/repo; defaults to all three clients |
@@ -1038,6 +1041,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat connect codex --global` | Compatibility alias; writes the same global Codex MCP and skill files |
 | `jsat connect opencode` | Wire JSAT into OpenCode globally and install `/jsat` + `/jsat-help`; also works with `ollama launch` |
 | `jsat connect ollama [TOOL]` | Wire JSAT into every supported Ollama-launched client, or one of `claude`, `codex`, `opencode` |
+| `jsat connect ollama TOOL --model MODEL` | Also remember `MODEL` as `TOOL`'s default for `jsat ollama --tool TOOL` (single TOOL only) |
 | `jsat connect bob` | Wire JSAT into Bob Shell (project scope) |
 | `jsat connect bob --global` | Wire JSAT into Bob Shell globally |
 | `jsat connect cursor` | Wire JSAT into Cursor |

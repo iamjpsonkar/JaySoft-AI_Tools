@@ -507,7 +507,7 @@ jsat ai use PROVIDER [OPTIONS]
 
 | Argument / Flag | Description |
 |----------------|-------------|
-| `PROVIDER` | `ollama`, `anthropic`, `openai`, `lmstudio`, `claude_cli`, `opencode`, `bob_cli`, `codex-cli` |
+| `PROVIDER` | `ollama`, `anthropic`, `openai`, `gemini`, `deepseek`, `lmstudio`, `claude_cli`, `opencode`, `bob_cli`, `codex-cli` |
 | `--model`, `-m` | Explicit model; native CLI providers use their own selection when omitted |
 | `--config`, `-c` | Config file to write (default: `.jsat/config.yaml`, or `~/.jsat/config.yaml` with `--global`) |
 | `--global`, `-g` | Write to `~/.jsat/config.yaml` — applies to all projects on this machine |

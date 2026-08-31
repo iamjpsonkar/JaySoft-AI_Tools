@@ -273,6 +273,8 @@ switch gemini    → launch Gemini CLI session
 
 ### Bob Shell
 
+See [Bob Shell](integrations/bob.md) for the full standalone guide.
+
 ```bash
 jsat bob                                 # open Bob Shell with JSAT pre-loaded
 jsat bob --mode advanced                 # open in specific mode (plan, code, advanced, ask)

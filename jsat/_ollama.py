@@ -72,17 +72,28 @@ def build_ollama_launch_args(
     *,
     model: str | None = None,
     configure_only: bool = False,
+    restore: bool = False,
     yes: bool = False,
     passthrough: list[str] | None = None,
 ) -> list[str]:
-    """Build arguments following Ollama's ``launch`` CLI contract."""
+    """Build arguments following Ollama's ``launch`` CLI contract.
+
+    Per docs.ollama.com/integrations, ``--restore`` (removes a saved profile, e.g.
+    Codex's ``~/.codex/ollama-launch.config.toml``) is documented as a bare flag —
+    never combined with ``--config``, ``--model``, or ``--yes`` in any example.
+    """
     tool = tool.strip()
     if not tool:
         raise ValueError("an Ollama integration name is required")
     if yes and not model:
         raise ValueError("--yes requires --model so Ollama can skip the selector")
+    if restore and (configure_only or model or yes or passthrough):
+        raise ValueError("--restore cannot be combined with --config, --model, or --yes")
 
     args = ["launch", tool]
+    if restore:
+        args.append("--restore")
+        return args
     if model:
         args += ["--model", model]
     if configure_only:

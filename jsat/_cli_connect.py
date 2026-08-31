@@ -299,6 +299,29 @@ def _resolve_ollama_connect_target(target: str, tool: str | None) -> str:
     return selected
 
 
+def _persist_ollama_tool_model(tool: str, model: str) -> Path:
+    """Remember the model `jsat ollama --tool <tool>` should default to.
+
+    Written to the global config (mirroring `cmd_ai_use`'s read/update/write
+    pattern in `_cli_ai.py`) since `connect ollama` itself only writes global
+    client configs.
+    """
+    import yaml
+
+    cfg_path = Path.home() / ".jsat" / "config.yaml"
+    existing: dict = {}
+    if cfg_path.exists():
+        try:
+            existing = yaml.safe_load(cfg_path.read_text()) or {}
+        except Exception:
+            existing = {}
+    existing.setdefault("ai", {}).setdefault("ollama_tool_models", {})[tool] = model
+    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    with cfg_path.open("w") as f:
+        yaml.dump(existing, f, default_flow_style=False, sort_keys=False)
+    return cfg_path
+
+
 def _connect_ollama_target(target: str, show: bool) -> None:
     """Configure one client that JSAT knows Ollama can launch."""
     if target == "claude":
@@ -328,6 +351,10 @@ def cmd_connect_ollama(
     tool: str | None = typer.Option(
         None, "--tool", "-t", help="Equivalent to the positional TOOL selector"
     ),
+    model: str | None = typer.Option(
+        None, "--model", "-m",
+        help="Remember this model as the default for `jsat ollama --tool TOOL` (single TOOL only)",
+    ),
     show: bool = typer.Option(False, "--show", help="Print configs where supported"),
 ) -> None:
     """Connect JSAT to clients launched through Ollama.
@@ -339,12 +366,17 @@ def cmd_connect_ollama(
       jsat connect ollama
       jsat connect ollama --tool opencode
       jsat connect ollama tool=opencode
+      jsat connect ollama tool=opencode --model gemma4:31b-cloud
     """
     try:
         selected = _resolve_ollama_connect_target(target, tool)
     except ValueError as exc:
         err.print(f"[red]{exc}[/]")
         raise typer.Exit(1) from exc
+
+    if model and selected == "all":
+        err.print("[red]--model requires a single TOOL target, not all.[/]")
+        raise typer.Exit(1)
 
     targets = _OLLAMA_CONNECT_TOOLS if selected == "all" else (selected,)
     failures: list[str] = []
@@ -365,6 +397,15 @@ def cmd_connect_ollama(
             + "[/]"
         )
         raise typer.Exit(1)
+
+    if model:
+        cfg_path = _persist_ollama_tool_model(selected, model)
+        console.print(
+            f"[green]✓[/] Ollama-launched [bold]{selected}[/] will default to model "
+            f"[bold]{model}[/] (saved to [cyan]{cfg_path}[/]).\n"
+            f"  Bare [bold]jsat ollama --tool {selected}[/] now reuses it."
+        )
+
     console.print(
         "\n[green]✓[/] Ollama connection setup complete. "
         "Choose the tool and model with [bold]ollama[/] or [bold]jsat ollama --tool TOOL[/]."

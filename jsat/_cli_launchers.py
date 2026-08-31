@@ -123,6 +123,11 @@ def cmd_gpt(
 )
 def cmd_ollama(
     ctx: typer.Context,
+    positional: str | None = typer.Argument(
+        None, metavar="[TOOL|MODEL]",
+        help="Shorthand: a known tool name (claude/codex/opencode) implies --tool; "
+             "anything else implies --model",
+    ),
     repo: str = typer.Option(".", "--repo", "-r"),
     model: str | None = typer.Option(None, "--model", "-m", help="Ollama model name"),
     tool: str | None = typer.Option(
@@ -130,6 +135,9 @@ def cmd_ollama(
     ),
     configure_only: bool = typer.Option(
         False, "--config", help="Configure the selected coding tool without launching it"
+    ),
+    restore: bool = typer.Option(
+        False, "--restore", help="Remove the tool's saved Ollama-launch profile (Codex only)"
     ),
     yes: bool = typer.Option(
         False, "--yes", "-y", help="Skip Ollama selectors; requires --model"
@@ -142,31 +150,59 @@ def cmd_ollama(
     Direct JSAT shell behavior:
       jsat ai models ollama
       jsat ollama --model <model>
+      jsat ollama <model>                       # shorthand for --model
 
     \b
     Coding tools through Ollama's official launcher:
       jsat ollama --tool claude                 # interactive model selector
+      jsat ollama opencode                      # shorthand for --tool opencode
       jsat ollama --tool opencode -m qwen3.5    # local model
       jsat ollama --tool codex -m gemma4:31b-cloud  # Ollama Cloud model
       jsat ollama --tool claude -m gemma4:31b-cloud --yes -- -p "explain this repo"
+      jsat ollama --tool codex --restore        # remove Codex's saved Ollama profile
     """
+    if positional:
+        from jsat._cli_connect import _OLLAMA_CONNECT_TOOLS
+
+        if positional.strip().lower() in _OLLAMA_CONNECT_TOOLS:
+            if tool:
+                err.print("[red]choose either TOOL positional or --tool, not both.[/]")
+                raise typer.Exit(1)
+            tool = positional
+        else:
+            if model:
+                err.print("[red]choose either MODEL positional or --model, not both.[/]")
+                raise typer.Exit(1)
+            model = positional
+
     if tool:
-        _launch_with_ollama(
+        code = _launch_with_ollama(
             tool,
             repo,
             model=model,
             configure_only=configure_only,
+            restore=restore,
             yes=yes,
             passthrough=list(ctx.args),
         )
+        if code:
+            raise typer.Exit(code)
         return
 
-    if configure_only or yes or ctx.args:
-        err.print("[red]--config, --yes, and trailing arguments require --tool.[/]")
+    if configure_only or restore or yes or ctx.args:
+        err.print("[red]--config, --restore, --yes, and trailing arguments require --tool.[/]")
         raise typer.Exit(1)
 
     from jsat.tools.shell import launch
     js = _jsat(repo=repo, verbose=verbose)
+    if model is None:
+        # Reuse a model already persisted via `jsat ai use ollama --model <model>`
+        # before falling back to auto-selection/interactive discovery.
+        cfg_ai = getattr(getattr(js, "_cfg", None), "ai", None)
+        if getattr(cfg_ai, "provider", None) == "ollama":
+            model = getattr(cfg_ai, "model", None)
+            if model:
+                console.print(f"[cyan]Using the configured Ollama model:[/] {model}")
     if model is None:
         from jsat._ollama import (
             discover_ollama_models,
@@ -187,20 +223,46 @@ def cmd_ollama(
     launch(js)
 
 
+def _load_ollama_tool_model(tool: str) -> str | None:
+    """Return the model persisted by `jsat connect ollama <tool> --model <model>`.
+
+    Reads the global config directly rather than building a full `JSAT` instance —
+    this launcher has no project-repo dependency today, and `connect ollama`
+    deliberately writes global scope only.
+    """
+    import yaml
+
+    cfg_path = Path.home() / ".jsat" / "config.yaml"
+    if not cfg_path.exists():
+        return None
+    try:
+        data = yaml.safe_load(cfg_path.read_text()) or {}
+    except Exception:
+        return None
+    return data.get("ai", {}).get("ollama_tool_models", {}).get(tool.strip().lower())
+
+
 def _launch_with_ollama(
     tool: str,
     repo: str,
     *,
     model: str | None,
     configure_only: bool,
+    restore: bool = False,
     yes: bool,
     passthrough: list[str],
-) -> None:
+) -> int:
     """Delegate coding-tool configuration and launch to the Ollama CLI."""
     import shutil
     import subprocess
 
     from jsat._ollama import build_ollama_launch_args, ollama_model_kind
+
+    if model is None and not restore:
+        remembered = _load_ollama_tool_model(tool)
+        if remembered:
+            model = remembered
+            console.print(f"[cyan]Using the model connected for this tool:[/] {model}")
 
     ollama_bin = shutil.which("ollama")
     if not ollama_bin:
@@ -215,6 +277,7 @@ def _launch_with_ollama(
             tool,
             model=model,
             configure_only=configure_only,
+            restore=restore,
             yes=yes,
             passthrough=passthrough,
         )
@@ -222,7 +285,9 @@ def _launch_with_ollama(
         err.print(f"[red]{exc}[/]")
         raise typer.Exit(1) from exc
 
-    if model:
+    if restore:
+        console.print(f"[cyan]Removing[/] the saved {tool} Ollama-launch profile.")
+    elif model:
         kind = ollama_model_kind(model)
         detail = "runs on this machine" if kind == "local" else "runs through Ollama Cloud"
         console.print(f"[cyan]{kind.title()} model:[/] [bold]{model}[/] ({detail})")
@@ -232,10 +297,11 @@ def _launch_with_ollama(
         console.print("[cyan]Model:[/] choose local or cloud in Ollama's selector")
 
     repo_abs = str(Path(repo).resolve())
-    if tool.strip().lower() == "opencode":
+    if tool.strip().lower() == "opencode" and not restore:
         _auto_connect("opencode", repo_abs)
     console.print(f"[green]✓[/] Running [bold]ollama {' '.join(args[:2])}[/] in {repo_abs}\n")
-    subprocess.run([ollama_bin, *args], cwd=repo_abs)
+    result = subprocess.run([ollama_bin, *args], cwd=repo_abs)
+    return result.returncode
 
 
 # ── AI tool launchers (parity with `jsat claude`) ────────────────────────────

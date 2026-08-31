@@ -68,6 +68,10 @@ class AIConfig(BaseModel):
     temperature: float = 0.1
     timeout_seconds: int = 120
     retry_attempts: int = 3
+    # Remembers the model `jsat connect ollama <tool> --model <model>` selected for
+    # each Ollama-launched coding tool, so a later bare `jsat ollama --tool <tool>`
+    # reuses it instead of showing Ollama's interactive selector every time.
+    ollama_tool_models: dict[str, str] = Field(default_factory=dict)
 
 
 class CacheConfig(BaseModel):

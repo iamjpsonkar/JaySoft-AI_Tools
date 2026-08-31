@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -61,6 +62,55 @@ def test_build_ollama_launch_args_preserves_ollama_cli_order() -> None:
 def test_build_ollama_launch_args_requires_model_for_yes() -> None:
     with pytest.raises(ValueError, match="--yes requires --model"):
         build_ollama_launch_args("opencode", yes=True)
+
+
+@pytest.mark.ci
+def test_build_ollama_launch_args_restore_is_bare() -> None:
+    # docs.ollama.com/integrations/codex shows `ollama launch codex --restore` as a
+    # standalone flag, never combined with --config/--model/--yes.
+    assert build_ollama_launch_args("codex", restore=True) == ["launch", "codex", "--restore"]
+
+
+@pytest.mark.ci
+def test_build_ollama_launch_args_restore_rejects_combination() -> None:
+    with pytest.raises(ValueError, match="--restore cannot be combined"):
+        build_ollama_launch_args("codex", restore=True, model="qwen3.5")
+
+
+@pytest.mark.ci
+def test_jsat_ollama_tool_propagates_nonzero_exit_code(monkeypatch, tmp_path) -> None:
+    import shutil
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "home" / ".config"))
+    monkeypatch.setattr(shutil, "which", lambda name: "/fake/bin/ollama")
+    monkeypatch.setattr(
+        subprocess, "run", lambda cmd, **kwargs: subprocess.CompletedProcess(cmd, 3)
+    )
+
+    result = runner.invoke(app, ["ollama", "--repo", str(tmp_path), "--tool", "claude"])
+
+    assert result.exit_code == 3
+
+
+@pytest.mark.ci
+def test_jsat_ollama_tool_restore_forwards_flag(monkeypatch, tmp_path) -> None:
+    import shutil
+
+    monkeypatch.setattr(shutil, "which", lambda name: "/fake/bin/ollama")
+    captured: dict[str, object] = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = runner.invoke(
+        app, ["ollama", "--repo", str(tmp_path), "--tool", "codex", "--restore"]
+    )
+
+    assert result.exit_code == 0
+    assert captured["cmd"] == ["/fake/bin/ollama", "launch", "codex", "--restore"]
 
 
 @pytest.mark.ci
@@ -170,6 +220,61 @@ def test_jsat_ollama_tool_without_model_keeps_interactive_selector(monkeypatch, 
 
 
 @pytest.mark.ci
+def test_ollama_positional_tool_name_routes_to_tool_launch(monkeypatch, tmp_path) -> None:
+    import shutil
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "home" / ".config"))
+    monkeypatch.setattr(shutil, "which", lambda name: "/fake/bin/ollama")
+    captured: dict[str, object] = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = runner.invoke(app, ["ollama", "--repo", str(tmp_path), "opencode", "--model", "qwen3.5"])
+
+    assert result.exit_code == 0
+    assert captured["cmd"] == ["/fake/bin/ollama", "launch", "opencode", "--model", "qwen3.5"]
+
+
+@pytest.mark.ci
+def test_ollama_positional_non_tool_routes_to_model(monkeypatch) -> None:
+    import jsat._cli_launchers as launchmod
+    import jsat.tools.shell as shellmod
+
+    calls: dict[str, object] = {}
+
+    class FakeJSAT:
+        def switch_ai(self, provider: str, model: str) -> None:
+            calls["switch"] = (provider, model)
+
+    monkeypatch.setattr(launchmod, "_jsat", lambda **kwargs: FakeJSAT())
+    monkeypatch.setattr(shellmod, "launch", lambda js: calls.setdefault("launched", js))
+
+    result = runner.invoke(app, ["ollama", "qwen3.5"])
+
+    assert result.exit_code == 0
+    assert calls["switch"] == ("ollama", "qwen3.5")
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["ollama", "opencode", "--tool", "claude"],
+        ["ollama", "qwen3.5", "--model", "other-model"],
+    ],
+)
+def test_ollama_positional_and_flag_conflict_errors(args) -> None:
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == 1
+    assert "choose either" in result.output
+
+
+@pytest.mark.ci
 def test_plain_jsat_ollama_preserves_internal_shell(monkeypatch) -> None:
     import jsat._cli_launchers as launchmod
     import jsat.tools.shell as shellmod
@@ -191,6 +296,37 @@ def test_plain_jsat_ollama_preserves_internal_shell(monkeypatch) -> None:
     assert result.exit_code == 0
     assert calls["switch"] == ("ollama", "detected-model")
     assert isinstance(calls["launched"], FakeJSAT)
+
+
+@pytest.mark.ci
+def test_direct_ollama_reuses_persisted_ai_use_model(monkeypatch) -> None:
+    import types
+
+    import jsat._cli_launchers as launchmod
+    import jsat._ollama as ollama_helpers
+    import jsat.tools.shell as shellmod
+
+    calls: dict[str, object] = {}
+
+    class FakeJSAT:
+        _cfg = types.SimpleNamespace(ai=types.SimpleNamespace(provider="ollama", model="qwen3.5"))
+
+        def switch_ai(self, provider: str, model: str) -> None:
+            calls["switch"] = (provider, model)
+
+    monkeypatch.setattr(launchmod, "_jsat", lambda **kwargs: FakeJSAT())
+    monkeypatch.setattr(shellmod, "launch", lambda js: calls.setdefault("launched", js))
+
+    def _unexpected_discovery() -> list[str]:
+        raise AssertionError("discovery should be skipped when a model is persisted")
+
+    monkeypatch.setattr(ollama_helpers, "discover_ollama_models", _unexpected_discovery)
+
+    result = runner.invoke(app, ["ollama"])
+
+    assert result.exit_code == 0
+    assert calls["switch"] == ("ollama", "qwen3.5")
+    assert "Using the configured Ollama model" in result.output
 
 
 @pytest.mark.ci
@@ -406,6 +542,68 @@ def test_connect_ollama_all_continues_after_one_client_fails(monkeypatch) -> Non
     assert result.exit_code == 1
     assert connected == ["claude", "codex", "opencode"]
     assert "failed: codex" in result.output
+
+
+@pytest.mark.ci
+def test_connect_ollama_persists_model_for_tool(monkeypatch, tmp_path) -> None:
+    import yaml
+
+    import jsat._cli_connect as connect_module
+
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
+    monkeypatch.setattr(connect_module, "_connect_ollama_target", lambda target, show: None)
+
+    result = runner.invoke(
+        app, ["connect", "ollama", "opencode", "--model", "gemma4:31b-cloud"]
+    )
+
+    assert result.exit_code == 0
+    cfg_path = tmp_path / "home" / ".jsat" / "config.yaml"
+    data = yaml.safe_load(cfg_path.read_text())
+    assert data["ai"]["ollama_tool_models"]["opencode"] == "gemma4:31b-cloud"
+    assert "will default to model" in result.output
+
+
+@pytest.mark.ci
+def test_connect_ollama_rejects_model_with_all_target(monkeypatch) -> None:
+    import jsat._cli_connect as connect_module
+
+    monkeypatch.setattr(connect_module, "_connect_ollama_target", lambda target, show: None)
+
+    result = runner.invoke(app, ["connect", "ollama", "--model", "gemma4:31b-cloud"])
+
+    assert result.exit_code == 1
+    assert "requires a single TOOL target" in result.output
+
+
+@pytest.mark.ci
+def test_launch_with_ollama_reuses_persisted_tool_model(monkeypatch, tmp_path) -> None:
+    import shutil
+
+    import yaml
+
+    home = tmp_path / "home"
+    cfg_path = home / ".jsat" / "config.yaml"
+    cfg_path.parent.mkdir(parents=True)
+    cfg_path.write_text(yaml.dump({"ai": {"ollama_tool_models": {"opencode": "gemma4:31b-cloud"}}}))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "home" / ".config"))
+    monkeypatch.setattr(shutil, "which", lambda name: "/fake/bin/ollama")
+    captured: dict[str, object] = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = runner.invoke(app, ["ollama", "--repo", str(tmp_path), "--tool", "opencode"])
+
+    assert result.exit_code == 0
+    assert captured["cmd"] == [
+        "/fake/bin/ollama", "launch", "opencode", "--model", "gemma4:31b-cloud",
+    ]
+    assert "Using the model connected for this tool" in result.output
 
 
 @pytest.mark.ci

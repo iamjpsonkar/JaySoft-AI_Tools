@@ -61,3 +61,33 @@ def test_readme_explains_provider_isolation_and_links_the_chooser() -> None:
     assert "does not silently become the provider" in readme
     for filename in GUIDES:
         assert f"docs/integrations/{filename}" in readme
+
+
+# Bob and DeepSeek are intentionally NOT in GUIDES: that dict (and the two tests above)
+# specifically cover the native-vs-Ollama-launched execution-path story for tools Ollama
+# can launch (claude/codex/opencode). Bob isn't Ollama-launchable and DeepSeek isn't a
+# coding-agent CLI at all (it's a hosted-API provider) — neither fits that chooser.
+
+@pytest.mark.ci
+def test_bob_guide_is_complete() -> None:
+    text = (INTEGRATIONS / "bob.md").read_text(encoding="utf-8")
+
+    assert "jsat connect bob --global" in text
+    assert "jsat bob" in text
+    assert "verify" in text.lower()
+    assert "troubleshooting" in text.lower()
+    assert "model" in text.lower()
+
+
+@pytest.mark.ci
+def test_deepseek_guide_is_complete_and_distinguishes_from_the_harness() -> None:
+    text = (INTEGRATIONS / "deepseek.md").read_text(encoding="utf-8")
+
+    assert "DEEPSEEK_API_KEY" in text
+    assert "jsat ai use deepseek" in text
+    assert "verify" in text.lower()
+    assert "troubleshooting" in text.lower()
+    assert "model" in text.lower()
+    # Must explicitly disclaim being a launchable coding-agent CLI, not just omit it.
+    assert "no `jsat connect deepseek`" in text
+    assert "harness" in text.lower()

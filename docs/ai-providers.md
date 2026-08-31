@@ -19,6 +19,7 @@ JSAT supports local CLI providers, hosted APIs, and local OpenAI-compatible serv
 | Anthropic API | `jsat ai use anthropic` | Paid | `ANTHROPIC_API_KEY` |
 | OpenAI | `jsat ai use openai` | Paid | `OPENAI_API_KEY` |
 | Google Gemini | `jsat ai use gemini` | Paid | `GEMINI_API_KEY` |
+| DeepSeek API | `jsat ai use deepseek` | Paid | `DEEPSEEK_API_KEY` |
 | Ollama (local/cloud) | `jsat ai use ollama` | Depends on model | `ollama serve` + model/sign-in |
 | LM Studio (local) | `jsat ai use lmstudio` | Free | LM Studio running |
 
@@ -367,6 +368,50 @@ jsat ai test "what is 2 + 2?"
 > switch gemini
 > switch gemini-pro <model>
 ```
+
+---
+
+## DeepSeek API
+
+A hosted provider, not a coding-agent CLI — there is nothing to launch or `jsat connect`. It
+configures the backend JSAT's own LLM-backed tools use, reached through the same
+`openai_compat` client as Gemini/LM Studio.
+
+### Set API key
+
+Get a key from [platform.deepseek.com](https://platform.deepseek.com):
+
+```bash
+export DEEPSEEK_API_KEY=...
+```
+
+### Activate
+
+DeepSeek needs an explicit model — JSAT never guesses one:
+
+```bash
+jsat ai use deepseek --model deepseek-chat
+jsat ai use deepseek --model deepseek-reasoner
+```
+
+This sets the provider to `openai_compat` with `base_url` pointed at
+`https://api.deepseek.com/v1` and `api_key_env: DEEPSEEK_API_KEY`.
+
+### Verify
+
+```bash
+jsat ai test "what is 2 + 2?"
+```
+
+### Inside the shell
+
+```
+> switch deepseek <model>
+```
+
+See [DeepSeek](integrations/deepseek.md) for the full standalone guide, including the
+distinction from "DeepSeek Harness" (`dsh`), a separate Ollama-launchable coding-agent CLI that
+JSAT does not currently integrate with.
 
 ---
 

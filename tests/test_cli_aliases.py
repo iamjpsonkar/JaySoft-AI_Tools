@@ -75,14 +75,41 @@ def test_custom_alias_honours_base_url() -> None:
 
 
 def test_every_alias_has_provider_and_optional_model() -> None:
-    for alias, (provider, model, _url) in provider_aliases().items():
+    for alias, (provider, model, _url, _key_env) in provider_aliases().items():
         assert provider, f"{alias} has no provider"
         assert model is None or model.strip(), f"{alias} has an invalid model"
 
 
 @pytest.mark.ci
 def test_provider_aliases_never_hard_code_a_model() -> None:
-    assert all(model is None for _provider, model, _url in provider_aliases().values())
+    assert all(
+        model is None for _provider, model, _url, _key_env in provider_aliases().values()
+    )
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    ("alias", "expected_key_env"),
+    [
+        ("gemini", "GEMINI_API_KEY"),
+        ("gemini-pro", "GEMINI_API_KEY"),
+        ("deepseek", "DEEPSEEK_API_KEY"),
+        ("lmstudio", None),
+        ("anthropic", None),
+    ],
+)
+def test_alias_api_key_env_overrides_only_where_needed(alias, expected_key_env) -> None:
+    resolved = resolve_alias(alias)
+    assert resolved is not None
+    assert resolved[3] == expected_key_env
+
+
+@pytest.mark.ci
+def test_deepseek_resolves_to_openai_compat_with_its_own_base_url() -> None:
+    resolved = resolve_alias("deepseek")
+    assert resolved is not None
+    assert resolved[0] == "openai_compat"
+    assert resolved[2] == "https://api.deepseek.com/v1"
 
 
 def test_provider_and_tool_namespaces_are_distinguishable() -> None:
@@ -209,6 +236,40 @@ def test_ai_use_clears_settings_owned_by_previous_provider(monkeypatch, tmp_path
     assert result.exit_code == 0
     ai = yaml.safe_load(config.read_text(encoding="utf-8"))["ai"]
     assert ai == {"provider": "codex_cli"}
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    ("alias", "model", "expected_key_env"),
+    [
+        ("gemini", "gemini-1.5-flash", "GEMINI_API_KEY"),
+        ("deepseek", "deepseek-chat", "DEEPSEEK_API_KEY"),
+    ],
+)
+def test_ai_use_persists_the_resolved_api_key_env(
+    monkeypatch, tmp_path, alias, model, expected_key_env
+) -> None:
+    """Regression: api_key_env used to be unconditionally cleared on every switch,
+    so GEMINI_API_KEY (and now DEEPSEEK_API_KEY) never actually reached the runtime
+    openai_compat provider."""
+    import yaml
+
+    from jsat._core import JSAT
+
+    class AvailableAI:
+        def is_available(self): return True
+
+    config = tmp_path / "config.yaml"
+    monkeypatch.setattr(JSAT, "_get_ai", lambda self: AvailableAI())
+
+    result = runner.invoke(
+        app,
+        ["ai", "use", alias, "--model", model, "--config", str(config)],
+    )
+
+    assert result.exit_code == 0
+    ai = yaml.safe_load(config.read_text(encoding="utf-8"))["ai"]
+    assert ai["api_key_env"] == expected_key_env
 
 
 def test_disconnect_with_non_tool_provider_name_is_explained() -> None:

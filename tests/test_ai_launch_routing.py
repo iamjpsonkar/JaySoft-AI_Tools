@@ -45,6 +45,20 @@ def test_claude_ollama_launch_uses_exact_selected_model(model: str) -> None:
 
 
 @pytest.mark.ci
+def test_claude_ollama_launch_detected_without_documented_model_env_var() -> None:
+    # `ollama launch claude` only documents ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN,
+    # and ANTHROPIC_API_KEY (docs.ollama.com/integrations/claude-code) — no env var
+    # carries the selected model. Detection must not require one.
+    context = detect_launch_ai_context({
+        "ANTHROPIC_BASE_URL": "http://localhost:11434",
+        "ANTHROPIC_AUTH_TOKEN": "ollama",
+    })
+    assert context is not None
+    assert (context.provider, context.model) == ("ollama", None)
+    assert context.source == "ollama-claude"
+
+
+@pytest.mark.ci
 def test_native_connectors_replace_stale_ollama_model() -> None:
     assert explicit_provider_context({"JSAT_AI_PROVIDER": "claude_cli"}).model is None
     assert explicit_provider_context({"JSAT_AI_PROVIDER": "codex_cli"}).model is None

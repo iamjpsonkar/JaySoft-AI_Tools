@@ -36,8 +36,12 @@ def detect_launch_ai_context(environ: Mapping[str, str]) -> LaunchAIContext | No
 
     base_url = environ.get("ANTHROPIC_BASE_URL", "").strip()
     auth_token = environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
-    model = environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "").strip()
-    if base_url and auth_token == "ollama" and model:
+    if base_url and auth_token == "ollama":
+        # `ollama launch claude` documents only ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN,
+        # and ANTHROPIC_API_KEY — no model-carrying env var. ANTHROPIC_DEFAULT_SONNET_MODEL
+        # is read as a best-effort extra signal (harmless if unset), but detection must not
+        # depend on it, or an Ollama-launched Claude session is never recognized at all.
+        model = environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "").strip() or None
         return LaunchAIContext("ollama", model, base_url, "ollama-claude")
 
     return None

@@ -4,6 +4,62 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.14] — 2026-08-31
+
+### Added
+
+- **DeepSeek API provider.** `jsat ai use deepseek --model deepseek-chat` (or
+  `deepseek-reasoner`) — reached through the existing `openai_compat` backend
+  (`https://api.deepseek.com/v1`), same pattern as Gemini/LM Studio. Not a coding-agent
+  CLI — no `jsat connect deepseek`/`jsat deepseek` launcher, since there's nothing to
+  launch. Documented separately from "DeepSeek Harness" (`dsh`), an unrelated
+  Ollama-launchable coding-agent CLI JSAT does not integrate with.
+- **Dedicated docs for Bob Shell** (`docs/integrations/bob.md`) and **docs nav
+  regrouped into per-tool tabs** (Claude, Codex, OpenCode, Bob, Ollama, DeepSeek, plus
+  a catch-all Documentation tab) in `mkdocs.yml`.
+- **`jsat connect ollama <tool> --model <model>` persists a default model.** A later
+  bare `jsat ollama --tool <tool>` (or the new `jsat ollama <tool>` shorthand) reuses
+  it instead of showing Ollama's interactive selector every time. Rejected when
+  targeting `all` — pick one tool per remembered model.
+- **Bare `jsat ollama` reuses a model already set via `jsat ai use ollama --model`.**
+  Previously it ignored the persisted config and re-ran "auto-select only if exactly
+  one model is registered," which failed whenever more than one model was installed.
+- **`jsat ollama` accepts a positional shorthand.** `jsat ollama opencode` is
+  equivalent to `--tool opencode`; `jsat ollama <model>` is equivalent to `--model
+  <model>`. Passing both the positional and the matching flag is an error.
+
+### Fixed
+
+- **`jsat restart`/`jsat resume` now reject `--model` on a non-Ollama route**, matching
+  `jsat start`'s existing guard. Previously they silently dropped an explicitly passed
+  `--model` when the resolved route was native, while the status line still printed it
+  as if it had taken effect.
+- **A native/no-op launch route no longer persists a stale model.** `_launch()` now
+  clears `model` whenever `via != "ollama"` before printing the status line and before
+  writing the `LifecycleRecord`, so a leftover Ollama model can't leak into a later
+  `restart`/`resume`'s inherited state.
+- **Ollama-launched-Claude MCP routing now actually detects.** `detect_launch_ai_context`
+  required `ANTHROPIC_DEFAULT_SONNET_MODEL` to be set before recognizing an
+  Ollama-launched Claude session — but per docs.ollama.com, `ollama launch claude` only
+  sets `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, and `ANTHROPIC_API_KEY`; no
+  documented env var carries the model. Detection now fires on base URL + auth token
+  alone (model is read best-effort, `None` if absent), so this path was silently dead
+  before.
+- **`jsat ollama --tool <tool>` now propagates Ollama's real exit code.** Previously the
+  subprocess result was discarded and the command always exited `0`, even when
+  `ollama launch <tool>` itself failed.
+- **`jsat ollama --tool codex --restore`** forwards Ollama's documented
+  `ollama launch codex --restore` flag (removes the saved `~/.codex/ollama-launch.config.toml`
+  profile) — rejected in combination with `--config`/`--model`/`--yes`, matching every
+  documented example.
+- **`jsat ai use <alias>` / `switch_ai()` now actually persist the right API key
+  variable.** `resolve_alias()` never returned an `api_key_env`, so both call sites
+  unconditionally cleared or hard-coded it to `None` on every provider switch — meaning
+  `jsat ai use gemini` could never wire `GEMINI_API_KEY` to the runtime `openai_compat`
+  provider (it silently fell back to looking for `OPENAI_API_KEY` instead). Aliases now
+  carry their own key-env override; `gemini`/`gemini-pro` correctly resolve to
+  `GEMINI_API_KEY`, and the new `deepseek` alias resolves to `DEEPSEEK_API_KEY`.
+
 ## [0.4.13] — 2026-08-30
 
 ### Added

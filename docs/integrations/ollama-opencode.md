@@ -36,6 +36,13 @@ The selected model is injected into only the launched OpenCode process. It does 
 JSAT's direct AI provider and does not require another pull. A cloud model is authenticated with
 `ollama signin`, not downloaded.
 
+### Remember a model for this tool
+
+`jsat connect ollama tool=opencode --model gemma4:31b-cloud` saves that model as OpenCode's
+default for this launch route. A later bare `jsat ollama --tool opencode` (or the shorthand
+`jsat ollama opencode`) reuses it automatically instead of showing Ollama's interactive
+selector — pass `-m`/`--model` explicitly to override it for a single launch.
+
 ## Use and verify JSAT
 
 Inside OpenCode:

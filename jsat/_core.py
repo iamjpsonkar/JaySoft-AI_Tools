@@ -129,7 +129,7 @@ class JSAT:
                 f"Available: {', '.join(alias_names())}"
             )
 
-        internal, default_model, resolved_url = resolved
+        internal, default_model, resolved_url, resolved_api_key_env = resolved
         chosen_model = model if model is not None else default_model
         chosen_url = base_url or resolved_url
         model_optional = {"claude_cli", "codex_cli", "opencode_cli", "bob_cli"}
@@ -145,7 +145,7 @@ class JSAT:
             "provider": internal,
             "model": chosen_model,
             "base_url": chosen_url,
-            "api_key_env": None,
+            "api_key_env": resolved_api_key_env,
         }
         self._cfg = self._cfg.model_copy(
             update={"ai": self._cfg.ai.model_copy(update=ai_update)}

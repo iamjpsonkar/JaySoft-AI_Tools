@@ -265,6 +265,70 @@ def test_stop_defaults_to_all_running_records(monkeypatch) -> None:
 
 
 @pytest.mark.ci
+def test_restart_rejects_explicit_model_when_route_is_native() -> None:
+    result = runner.invoke(app, ["restart", "opencode", "--via", "native", "--model", "x"])
+    assert result.exit_code == 1
+    assert "is used only with --via ollama" in result.output
+
+
+@pytest.mark.ci
+def test_resume_rejects_explicit_model_when_route_is_native() -> None:
+    result = runner.invoke(app, ["resume", "opencode", "--via", "native", "--model", "x"])
+    assert result.exit_code == 1
+    assert "is used only with --via ollama" in result.output
+
+
+@pytest.mark.ci
+def test_restart_inherits_stale_model_without_error(monkeypatch) -> None:
+    import jsat._cli_lifecycle as lifecycle_cli
+    import jsat._lifecycle as lifecycle
+
+    save_record(LifecycleRecord(
+        tool="opencode", via="ollama", repo="/repo", model="old-model",
+    ))
+    monkeypatch.setattr(lifecycle_cli, "_ensure_connected", lambda tool, repo: None)
+    monkeypatch.setattr(lifecycle_cli, "_native_binary", lambda tool: "/bin/opencode")
+    monkeypatch.setattr(lifecycle, "process_token", lambda pid: "token-1")
+    monkeypatch.setattr(subprocess, "Popen", lambda command, cwd: _StubProcess())
+
+    result = runner.invoke(app, ["restart", "opencode", "--via", "native"])
+
+    assert result.exit_code == 0
+    assert "old-model" not in result.output
+
+
+@pytest.mark.ci
+def test_launch_status_line_and_record_omit_model_for_native_via(monkeypatch, tmp_path) -> None:
+    import jsat._cli_lifecycle as lifecycle_cli
+    import jsat._lifecycle as lifecycle
+    from jsat._lifecycle import load_record
+
+    monkeypatch.setattr(lifecycle_cli, "_ensure_connected", lambda tool, repo: None)
+    monkeypatch.setattr(lifecycle_cli, "_native_binary", lambda tool: "/bin/opencode")
+    monkeypatch.setattr(lifecycle, "process_token", lambda pid: "token-1")
+    monkeypatch.setattr(subprocess, "Popen", lambda command, cwd: _StubProcess())
+
+    code = lifecycle_cli._launch(
+        "opencode", via="native", repo=str(tmp_path), model="stale-model",
+    )
+
+    assert code == 0
+    record = load_record("opencode")
+    assert record is not None
+    assert record.model is None
+
+
+class _StubProcess:
+    pid = 5555
+
+    def wait(self) -> int:
+        return 0
+
+    def poll(self) -> int:
+        return 0
+
+
+@pytest.mark.ci
 def test_ps_lists_all_managed_clients() -> None:
     save_record(LifecycleRecord(tool="opencode", via="ollama", repo="/repo"))
     save_record(LifecycleRecord(tool="claude", via="native", repo="/repo"))

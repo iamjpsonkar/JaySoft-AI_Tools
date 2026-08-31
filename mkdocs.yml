@@ -53,25 +53,33 @@ markdown_extensions:
       permalink: true
 
 nav:
-  - Home: index.md
-  - Getting Started: getting-started.md
-  - AI Integrations:
-      - Choose a setup: integrations/index.md
-      - Native Codex: integrations/codex.md
+  - Claude:
       - Native Claude: integrations/claude.md
-      - Native OpenCode: integrations/opencode.md
-      - Direct Ollama: integrations/ollama-local.md
-      - Ollama + Claude: integrations/ollama-claude.md
-      - Ollama + OpenCode: integrations/ollama-opencode.md
-      - Ollama + Codex: integrations/ollama-codex.md
-      - Other clients: ai-integrations.md
+      - Claude + Ollama: integrations/ollama-claude.md
       - Claude command reference: claude-integration.md
-  - AI Providers: ai-providers.md
-  - CLI Reference: cli-reference.md
-  - Tools: tools.md
-  - Python SDK: sdk.md
-  - Configuration: configuration.md
-  - Publishing: publishing.md
+  - Codex:
+      - Native Codex: integrations/codex.md
+      - Codex + Ollama: integrations/ollama-codex.md
+  - OpenCode:
+      - Native OpenCode: integrations/opencode.md
+      - OpenCode + Ollama: integrations/ollama-opencode.md
+  - Bob:
+      - Bob Shell: integrations/bob.md
+  - Ollama:
+      - Choose a setup: integrations/index.md
+      - Direct Ollama: integrations/ollama-local.md
+  - DeepSeek:
+      - DeepSeek API: integrations/deepseek.md
+  - Documentation:
+      - Home: index.md
+      - Getting Started: getting-started.md
+      - Other AI clients: ai-integrations.md
+      - AI Providers: ai-providers.md
+      - CLI Reference: cli-reference.md
+      - Tools: tools.md
+      - Python SDK: sdk.md
+      - Configuration: configuration.md
+      - Publishing: publishing.md
 
 extra:
   social:

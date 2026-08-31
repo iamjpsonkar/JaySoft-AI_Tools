@@ -217,7 +217,7 @@ def cmd_ai_use(
         err.print("\n".join(lines))
         raise typer.Exit(1)
 
-    chosen_provider, default_model, base_url = resolved
+    chosen_provider, default_model, base_url, resolved_api_key_env = resolved
     chosen_model = model if model is not None else default_model
 
     cli_providers = {"claude_cli", "codex_cli", "opencode_cli", "bob_cli"}
@@ -266,6 +266,10 @@ def cmd_ai_use(
     if chosen_provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
         console.print("[yellow]⚠[/] OPENAI_API_KEY is not set.")
         console.print("  Add to your shell: [bold]export OPENAI_API_KEY=sk-...[/]\n")
+
+    if resolved_api_key_env and not os.environ.get(resolved_api_key_env):
+        console.print(f"[yellow]⚠[/] {resolved_api_key_env} is not set.")
+        console.print(f"  Add to your shell: [bold]export {resolved_api_key_env}=...[/]\n")
 
     for binary, install_hint in (
         ("claude_cli", "claude"),
@@ -316,6 +320,8 @@ def cmd_ai_use(
         existing["ai"].pop("api_key_env", None)
     if base_url:
         existing["ai"]["base_url"] = base_url
+    if resolved_api_key_env:
+        existing["ai"]["api_key_env"] = resolved_api_key_env
 
     # Write back
     cfg_path.parent.mkdir(parents=True, exist_ok=True)

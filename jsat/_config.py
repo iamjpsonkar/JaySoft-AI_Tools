@@ -355,6 +355,19 @@ def detect_ai_providers(sys_profile: SystemProfile | None = None) -> list[dict]:
         "requires":     "export GEMINI_API_KEY=...",
     })
 
+    # 7b. DeepSeek API
+    deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
+    results.append({
+        "name":         "DeepSeek API",
+        "alias":        "deepseek",
+        "provider_key": "openai_compat",
+        "available":    bool(deepseek_key),
+        "model":        None,
+        "reason":       "DEEPSEEK_API_KEY set" if deepseek_key else "DEEPSEEK_API_KEY not set",
+        "free":         False,
+        "requires":     "export DEEPSEEK_API_KEY=...",
+    })
+
     # 8. Ollama (local execution and optional cloud routing)
     ollama_up = sys_profile.ollama_up if sys_profile else False
     if not sys_profile:

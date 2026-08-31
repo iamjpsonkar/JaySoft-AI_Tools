@@ -162,6 +162,11 @@ def _launch(
     from jsat._lifecycle import LifecycleRecord, run_foreground
 
     repo_abs = str(Path(repo).resolve())
+    if via != "ollama":
+        # A native/no-op route never applies a model; never display or persist
+        # one it didn't actually use (avoids leaking a stale Ollama model into
+        # a later restart/resume's inherited `previous.model`).
+        model = None
     _ensure_connected(tool, repo_abs)
     command = _build_launch_command(
         tool,
@@ -312,6 +317,8 @@ def cmd_restart(
         ):
             raise ValueError(f"could not stop {selected}; retry with --force")
         route = _resolve_via(selected, _via_with_model(via, model), previous)
+        if model and route != "ollama":
+            raise ValueError("--model is used only with --via ollama")
         chosen_model = model if model is not None else (previous.model if previous else None)
         chosen_repo = repo or (previous.repo if previous else ".")
         code = _launch(
@@ -356,6 +363,8 @@ def cmd_resume(
         selected = _resolve_tool(tool)
         previous = load_record(selected)
         route = _resolve_via(selected, _via_with_model(via, model), previous)
+        if model and route != "ollama":
+            raise ValueError("--model is used only with --via ollama")
         chosen_model = model if model is not None else (previous.model if previous else None)
         chosen_repo = repo or (previous.repo if previous else ".")
         code = _launch(
