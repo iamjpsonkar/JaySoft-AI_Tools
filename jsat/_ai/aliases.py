@@ -67,7 +67,7 @@ def provider_aliases(
         "phi":        ("ollama",        None,                          None, None),
         "gemini":     ("openai_compat", None,                          gemini_url, gemini_key_env),
         "gemini-pro": ("openai_compat", None,                          gemini_url, gemini_key_env),
-        "deepseek":   ("openai_compat", None,                          deepseek_url, deepseek_key_env),
+        "deepseek":   ("openai_compat", None, deepseek_url, deepseek_key_env),
         "lmstudio":   ("openai_compat", None,                          lmstudio_url, None),
         "lm-studio":  ("openai_compat", None,                          lmstudio_url, None),
         "custom":     ("openai_compat", None,             base_url or lmstudio_url, None),
