@@ -1525,10 +1525,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-magic" class="md-nav__link">
+  <a href="#jsat-magic-ai-skill-not-a-jsat-cli-subcommand-run-inside-a-connected-ai-tool-such-as-claude-code-or-codex" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat magic
+        /jsat magic (AI skill, not a jsat CLI subcommand — run inside a connected AI tool such as Claude Code or Codex)
       
     </span>
   </a>
@@ -1536,10 +1536,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-plan" class="md-nav__link">
+  <a href="#jsat-plan-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat plan
+        /jsat plan (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -1547,10 +1547,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-decide" class="md-nav__link">
+  <a href="#jsat-decide-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat decide
+        /jsat decide (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -1558,10 +1558,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-sprint" class="md-nav__link">
+  <a href="#jsat-sprint-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat sprint
+        /jsat sprint (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -1569,10 +1569,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-cohesion" class="md-nav__link">
+  <a href="#jsat-cohesion-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat cohesion
+        /jsat cohesion (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -2515,10 +2515,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-magic" class="md-nav__link">
+  <a href="#jsat-magic-ai-skill-not-a-jsat-cli-subcommand-run-inside-a-connected-ai-tool-such-as-claude-code-or-codex" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat magic
+        /jsat magic (AI skill, not a jsat CLI subcommand — run inside a connected AI tool such as Claude Code or Codex)
       
     </span>
   </a>
@@ -2526,10 +2526,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-plan" class="md-nav__link">
+  <a href="#jsat-plan-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat plan
+        /jsat plan (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -2537,10 +2537,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-decide" class="md-nav__link">
+  <a href="#jsat-decide-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat decide
+        /jsat decide (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -2548,10 +2548,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-sprint" class="md-nav__link">
+  <a href="#jsat-sprint-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat sprint
+        /jsat sprint (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -2559,10 +2559,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#jsat-cohesion" class="md-nav__link">
+  <a href="#jsat-cohesion-ai-skill-not-a-jsat-cli-subcommand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        jsat cohesion
+        /jsat cohesion (AI skill, not a jsat CLI subcommand)
       
     </span>
   </a>
@@ -3774,8 +3774,15 @@ Discuss → Plan → Execute → Verify → Synthesize.</p>
 </tbody>
 </table>
 <p>Session file written to <code>~/.jsat/sessions/prompt-&lt;slug&gt;-&lt;ts&gt;.md</code>; actions file auto-executed after Phase 6.</p>
-<h3 id="jsat-magic"><code>jsat magic</code><a class="headerlink" href="#jsat-magic" title="Permanent link">&para;</a></h3>
-<p>AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 41,
+<blockquote>
+<p><strong>Note:</strong> The five sections below (<code>magic</code>, <code>plan</code>, <code>decide</code>, <code>sprint</code>, <code>cohesion</code>) are <strong>AI skills</strong>,
+not real <code>jsat</code> CLI subcommands — they do not appear in <code>jsat --help</code> and cannot be run from a plain
+shell. They are invoked as <code>/jsat &lt;name&gt; ...</code> from inside a connected AI tool (Claude Code, Codex, etc.)
+once <code>jsat connect claude</code> (or the equivalent <code>connect</code> command) has installed the <code>/jsat</code> dispatcher.
+See <a href="#jsat-dispatcher"><code>/jsat</code> dispatcher</a> below for how the dispatcher routes these.</p>
+</blockquote>
+<h3 id="jsat-magic-ai-skill-not-a-jsat-cli-subcommand-run-inside-a-connected-ai-tool-such-as-claude-code-or-codex"><code>/jsat magic</code> <em>(AI skill, not a <code>jsat</code> CLI subcommand — run inside a connected AI tool such as Claude Code or Codex)</em><a class="headerlink" href="#jsat-magic-ai-skill-not-a-jsat-cli-subcommand-run-inside-a-connected-ai-tool-such-as-claude-code-or-codex" title="Permanent link">&para;</a></h3>
+<p>AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 47,
 and runs them in the optimal order.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>add<span class="w"> </span>retry<span class="w"> </span>logic<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>service
 <a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>/jsat<span class="w"> </span>magic<span class="w"> </span>--depth<span class="w"> </span>deep<span class="w"> </span>redesign<span class="w"> </span>the<span class="w"> </span>authentication<span class="w"> </span>flow
@@ -3813,20 +3820,20 @@ and runs them in the optimal order.</p>
 </tbody>
 </table>
 <p>Session file written to <code>~/.jsat/sessions/magic-&lt;slug&gt;-&lt;ts&gt;.md</code>; actions file auto-executed after synthesis.</p>
-<h3 id="jsat-plan"><code>jsat plan</code><a class="headerlink" href="#jsat-plan" title="Permanent link">&para;</a></h3>
+<h3 id="jsat-plan-ai-skill-not-a-jsat-cli-subcommand"><code>/jsat plan</code> <em>(AI skill, not a <code>jsat</code> CLI subcommand)</em><a class="headerlink" href="#jsat-plan-ai-skill-not-a-jsat-cli-subcommand" title="Permanent link">&para;</a></h3>
 <p>Pre-implementation planning gate. Six forcing questions + scope, architecture, and security review.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>add<span class="w"> </span>idempotency<span class="w"> </span>keys<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>payment<span class="w"> </span>mutation
 <a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--scope<span class="w"> </span>refactor<span class="w"> </span>the<span class="w"> </span>retry<span class="w"> </span>logic
 <a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>/jsat<span class="w"> </span>plan<span class="w"> </span>--security<span class="w"> </span>add<span class="w"> </span>a<span class="w"> </span>new<span class="w"> </span>admin<span class="w"> </span>endpoint
 </code></pre></div>
-<h3 id="jsat-decide"><code>jsat decide</code><a class="headerlink" href="#jsat-decide" title="Permanent link">&para;</a></h3>
+<h3 id="jsat-decide-ai-skill-not-a-jsat-cli-subcommand"><code>/jsat decide</code> <em>(AI skill, not a <code>jsat</code> CLI subcommand)</em><a class="headerlink" href="#jsat-decide-ai-skill-not-a-jsat-cli-subcommand" title="Permanent link">&para;</a></h3>
 <p>Architectural decision journal. Log decisions; retrieve by file, topic, or blast-radius context.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>log<span class="w"> </span>--impact<span class="w"> </span>h<span class="w"> </span>Chose<span class="w"> </span>PostgreSQL<span class="w"> </span><span class="k">for</span><span class="w"> </span>ACID<span class="w"> </span>compliance
 <a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>context<span class="w"> </span>src/payments/service.py
 <a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>search<span class="w"> </span>caching<span class="w"> </span>strategy
 <a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>/jsat<span class="w"> </span>decide<span class="w"> </span>list<span class="w"> </span>adr
 </code></pre></div>
-<h3 id="jsat-sprint"><code>jsat sprint</code><a class="headerlink" href="#jsat-sprint" title="Permanent link">&para;</a></h3>
+<h3 id="jsat-sprint-ai-skill-not-a-jsat-cli-subcommand"><code>/jsat sprint</code> <em>(AI skill, not a <code>jsat</code> CLI subcommand)</em><a class="headerlink" href="#jsat-sprint-ai-skill-not-a-jsat-cli-subcommand" title="Permanent link">&para;</a></h3>
 <p>Seven-stage delivery workflow: Think → Plan → Build → Review → Test → Ship → Reflect.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>add<span class="w"> </span>rate<span class="w"> </span>limiting<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>checkout<span class="w"> </span>API
 <a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>/jsat<span class="w"> </span>sprint<span class="w"> </span>--stage<span class="w"> </span><span class="m">4</span><span class="w"> </span>add<span class="w"> </span>rate<span class="w"> </span>limiting<span class="w">    </span><span class="c1"># resume from Review</span>
@@ -3856,7 +3863,7 @@ and runs them in the optimal order.</p>
 </tbody>
 </table>
 <p>Session file written to <code>~/.jsat/sessions/sprint-&lt;slug&gt;-&lt;ts&gt;.md</code>; actions file auto-executed after Stage 7.</p>
-<h3 id="jsat-cohesion"><code>jsat cohesion</code><a class="headerlink" href="#jsat-cohesion" title="Permanent link">&para;</a></h3>
+<h3 id="jsat-cohesion-ai-skill-not-a-jsat-cli-subcommand"><code>/jsat cohesion</code> <em>(AI skill, not a <code>jsat</code> CLI subcommand)</em><a class="headerlink" href="#jsat-cohesion-ai-skill-not-a-jsat-cli-subcommand" title="Permanent link">&para;</a></h3>
 <p>Code health analysis — flags oversized files, high-complexity functions, and mixed responsibilities.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>src/
 <a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>/jsat<span class="w"> </span>cohesion<span class="w"> </span>--threshold<span class="w"> </span><span class="m">600</span><span class="w"> </span>--service<span class="w"> </span>PaymentService
@@ -3954,7 +3961,7 @@ and runs them in the optimal order.</p>
 <h2 id="3-connect-commands-jsat-connect">3. Connect Commands (<code>jsat connect</code>)<a class="headerlink" href="#3-connect-commands-jsat-connect" title="Permanent link">&para;</a></h2>
 <p>JSAT works as an MCP server with any AI tool that supports the Model Context Protocol. One command wires it in — all 69 JSAT MCP tools are immediately available to the AI.</p>
 <h3 id="jsat-connect-claude"><code>jsat connect claude</code><a class="headerlink" href="#jsat-connect-claude" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into Claude Code as an MCP server and install the <code>/jsat</code> dispatcher (41 subcommands) and <code>/jsat-help</code>.</p>
+<p>Wire JSAT into Claude Code as an MCP server and install the <code>/jsat</code> dispatcher (47 subcommands) and <code>/jsat-help</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>jsat connect claude [OPTIONS]
 </code></pre></div>
 <table>
@@ -4003,10 +4010,10 @@ and runs them in the optimal order.</p>
 <h3 id="jsat-dispatcher"><code>/jsat</code> dispatcher<a class="headerlink" href="#jsat-dispatcher" title="Permanent link">&para;</a></h3>
 <p><code>jsat connect claude</code> installs two commands:</p>
 <ul>
-<li><strong><code>/jsat &lt;subcommand&gt;</code></strong> — single dispatcher routing to all 41 skills</li>
-<li><strong><code>/jsat-help [command]</code></strong> — standalone help command; no args lists all 41 commands with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples</li>
+<li><strong><code>/jsat &lt;subcommand&gt;</code></strong> — single dispatcher routing to all 47 skills</li>
+<li><strong><code>/jsat-help [command]</code></strong> — standalone help command; no args lists all 47 commands with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>/jsat-help<span class="w">               </span><span class="c1"># list all 41 subcommands with descriptions</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>/jsat-help<span class="w">               </span><span class="c1"># list all 47 subcommands with descriptions</span>
 <a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>/jsat-help<span class="w"> </span>magic<span class="w">         </span><span class="c1"># full flags and examples for /jsat magic</span>
 <a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>/jsat<span class="w"> </span>query<span class="w"> </span>&lt;question&gt;<span class="w">   </span><span class="c1"># answer codebase questions (6-phase Discuss→Verify)</span>
 <a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>/jsat<span class="w"> </span>crack<span class="w"> </span>&lt;task&gt;<span class="w">       </span><span class="c1"># multi-agent war room (artifact carry-forward)</span>
@@ -4343,7 +4350,7 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </code></pre></div>
 <p>Writes:
 - <code>.bob/settings.json</code> (or <code>~/.bob/settings.json</code>) — MCP server registration
-- <code>.bob/commands/jsat-*.md</code> (or <code>~/.bob/commands/</code>) — 41 slash commands
+- <code>.bob/commands/jsat-*.md</code> (or <code>~/.bob/commands/</code>) — 47 slash commands
 - <code>BOB.md</code> — JSAT tool guidance (Bob Shell reads from project root automatically)</p>
 <hr />
 <h3 id="jsat-connect-list"><code>jsat connect list</code><a class="headerlink" href="#jsat-connect-list" title="Permanent link">&para;</a></h3>

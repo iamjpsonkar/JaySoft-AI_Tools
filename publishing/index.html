@@ -1470,54 +1470,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#manualfallback-publish-only-if-you-need-to-bypass-the-automated-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#build-the-distribution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build the distribution
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#upload-to-pypi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Upload to PyPI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-pypirc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Using ~/.pypirc
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#test-on-testpypi-first" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Test on TestPyPI first
+        Manual/fallback publish (only if you need to bypass the automated workflow)
       
     </span>
   </a>
@@ -1689,54 +1645,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#manualfallback-publish-only-if-you-need-to-bypass-the-automated-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#build-the-distribution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build the distribution
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#upload-to-pypi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Upload to PyPI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-pypirc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Using ~/.pypirc
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#test-on-testpypi-first" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Test on TestPyPI first
+        Manual/fallback publish (only if you need to bypass the automated workflow)
       
     </span>
   </a>
@@ -1877,20 +1789,32 @@
 <p>This page covers publishing the JSAT package to PyPI and deploying the documentation site to GitHub Pages.</p>
 <hr />
 <h2 id="publishing-to-pypi">Publishing to PyPI<a class="headerlink" href="#publishing-to-pypi" title="Permanent link">&para;</a></h2>
-<h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
+<p><strong>The primary release path is automated and does not require a manual upload.</strong> JSAT
+publishes to PyPI using <a href="https://docs.pypi.org/trusted-publishers/">trusted publishing</a>
+(OIDC) via <code>.github/workflows/publish.yml</code>: pushing a version tag builds the package in CI
+and PyPI authenticates the workflow directly — no token is uploaded or stored for the normal
+release path. <code>secrets.PYPI_API_TOKEN</code> exists only as an optional fallback input to that
+workflow, not as something you use by hand.</p>
+<p>Follow <strong><a href="https://github.com/iamjpsonkar/JaySoft-AI-Tools/blob/main/RELEASING.md">RELEASING.md</a></strong>
+in the repo root for the exact, current release steps: bump the version in <code>pyproject.toml</code>
+and <code>jsat/__init__.py</code>, commit, push to <code>main</code>, then <code>git tag vX.Y.Z &amp;&amp; git push origin
+vX.Y.Z</code>. That tag push triggers <code>publish.yml</code>, which builds the distribution and publishes it
+to PyPI via trusted publishing. See <a href="#bumping-the-version">Bumping the Version</a> below for
+detail on the two files that must stay in sync.</p>
+<h3 id="manualfallback-publish-only-if-you-need-to-bypass-the-automated-workflow">Manual/fallback publish (only if you need to bypass the automated workflow)<a class="headerlink" href="#manualfallback-publish-only-if-you-need-to-bypass-the-automated-workflow" title="Permanent link">&para;</a></h3>
+<p>Use this path only when you specifically need to publish without going through
+<code>publish.yml</code> — for example, testing a build locally or recovering from a workflow outage.
+It is not the normal release process.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>build<span class="w"> </span>twine
 </code></pre></div>
 <p>You need a PyPI account and an API token. Generate one at <a href="https://pypi.org/manage/account/token/">pypi.org/manage/account/token/</a>.</p>
-<h3 id="build-the-distribution">Build the distribution<a class="headerlink" href="#build-the-distribution" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>/path/to/JaySoft-AI_Tools
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python<span class="w"> </span>-m<span class="w"> </span>build
 </code></pre></div>
 <p>This creates <code>dist/jsat-&lt;version&gt;.tar.gz</code> and <code>dist/jsat-&lt;version&gt;-py3-none-any.whl</code>.</p>
-<h3 id="upload-to-pypi">Upload to PyPI<a class="headerlink" href="#upload-to-pypi" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>twine<span class="w"> </span>upload<span class="w"> </span>dist/*
 </code></pre></div>
-<p>Enter your PyPI username and the API token as the password (or configure <code>~/.pypirc</code>).</p>
-<h3 id="using-pypirc">Using <code>~/.pypirc</code><a class="headerlink" href="#using-pypirc" title="Permanent link">&para;</a></h3>
+<p>Enter your PyPI username and the API token as the password (or configure <code>~/.pypirc</code>):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[distutils]</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="na">index-servers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">pypi</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
@@ -1898,8 +1822,8 @@
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="na">username</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">__token__</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">pypi-...your-token...</span>
 </code></pre></div>
-<p>Then just run <code>twine upload dist/*</code> without interactive prompts.</p>
-<h3 id="test-on-testpypi-first">Test on TestPyPI first<a class="headerlink" href="#test-on-testpypi-first" title="Permanent link">&para;</a></h3>
+<p>With <code>~/.pypirc</code> configured, <code>twine upload dist/*</code> runs without interactive prompts.</p>
+<p>Test on TestPyPI first if you're unsure about a manual upload:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>twine<span class="w"> </span>upload<span class="w"> </span>--repository<span class="w"> </span>testpypi<span class="w"> </span>dist/*
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://test.pypi.org/simple/<span class="w"> </span>jsat
 </code></pre></div>
@@ -1965,42 +1889,60 @@
 <p>With this workflow, documentation is published automatically on every push to <code>main</code> that touches <code>docs/</code> or <code>mkdocs.yml</code>.</p>
 <hr />
 <h2 id="automated-pypi-publish-with-github-actions">Automated PyPI Publish with GitHub Actions<a class="headerlink" href="#automated-pypi-publish-with-github-actions" title="Permanent link">&para;</a></h2>
-<p>Create <code>.github/workflows/publish.yml</code>:</p>
+<p>This is the real, current release path — see <code>.github/workflows/publish.yml</code> in the repo:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish to PyPI</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nt">on</span><span class="p">:</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">release</span><span class="p">:</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">types</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">published</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nt">jobs</span><span class="p">:</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="nt">build-and-publish</span><span class="p">:</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypi</span>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="nt">permissions</span><span class="p">:</span>
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">      </span><span class="nt">id-token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write</span><span class="w">  </span><span class="c1"># required for trusted publishing</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
-<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
-<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>
-<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-python@v5</span>
-<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
-<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">          </span><span class="nt">python-version</span><span class="p">:</span><span class="w"> </span><span class="s">'3.11'</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">push</span><span class="p">:</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"v*"</span><span class="w">          </span><span class="c1"># triggers on: git tag v0.1.0 &amp;&amp; git push --tags</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nt">jobs</span><span class="p">:</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="nt">publish</span><span class="p">:</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypi</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://pypi.org/project/jsat/</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span><span class="nt">permissions</span><span class="p">:</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">      </span><span class="nt">id-token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write</span><span class="w">   </span><span class="c1"># required for trusted publishing (no token needed!)</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
 <a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>
-<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install build tools</span>
-<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip install build</span>
-<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>
-<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Build</span>
-<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python -m build</span>
-<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>
-<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish to PyPI</span>
-<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypa/gh-action-pypi-publish@release/v1</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-python@v5</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="w">          </span><span class="nt">python-version</span><span class="p">:</span><span class="w"> </span><span class="s">"3.11"</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install build tools</span>
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip install build tomli</span>
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate version tag matches pyproject.toml</span>
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="w">          </span><span class="no"># Fails the workflow if the pushed tag (vX.Y.Z) doesn't match</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="w">          </span><span class="no"># the version in pyproject.toml — see RELEASING.md.</span>
+<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>
+<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Build</span>
+<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python -m build</span>
+<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a>
+<a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish to PyPI</span>
+<a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypa/gh-action-pypi-publish@release/v1</span>
+<a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+<a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a><span class="w">          </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.PYPI_API_TOKEN }}</span>
+<a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a><span class="w">          </span><span class="nt">skip-existing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
-<p>This uses PyPI Trusted Publishing (OIDC) — no API token stored in GitHub secrets. Configure Trusted Publishing in your PyPI project settings under "Publishing".</p>
-<p>To publish a new version:</p>
+<p>The workflow triggers on <strong>pushing a version tag</strong> (<code>vX.Y.Z</code>), not on creating a GitHub
+Release. It authenticates to PyPI via <strong>trusted publishing (OIDC)</strong> using the <code>id-token:
+write</code> permission — <code>secrets.PYPI_API_TOKEN</code> is passed through as an optional fallback input
+to <code>pypa/gh-action-pypi-publish</code> and is not required for trusted publishing to work. Trusted
+publishing must be configured once in the PyPI project's settings under "Publishing," linking
+it to this repo and workflow file. Before building, the workflow validates that the pushed
+tag matches the <code>version</code> in <code>pyproject.toml</code> and fails fast with a clear error on a mismatch.</p>
+<p>To publish a new version, follow <strong><a href="https://github.com/iamjpsonkar/JaySoft-AI-Tools/blob/main/RELEASING.md">RELEASING.md</a></strong>:</p>
 <ol>
-<li>Bump <code>version</code> in <code>pyproject.toml</code> and <code>jsat/__init__.py</code></li>
-<li>Commit and push</li>
-<li>Create a GitHub Release — the workflow publishes to PyPI automatically</li>
+<li>Bump <code>version</code> in <code>pyproject.toml</code> and <code>__version__</code> in <code>jsat/__init__.py</code></li>
+<li>Commit and push to <code>main</code></li>
+<li><code>git tag vX.Y.Z &amp;&amp; git push origin vX.Y.Z</code> — this triggers the workflow above</li>
 </ol>
 <hr />
 <h2 id="release-checklist">Release Checklist<a class="headerlink" href="#release-checklist" title="Permanent link">&para;</a></h2>
@@ -2009,13 +1951,13 @@
 <li>[ ] Update <code>__version__</code> in <code>jsat/__init__.py</code></li>
 <li>[ ] Update <code>CHANGELOG.md</code></li>
 <li>[ ] Run tests: <code>pytest tests/</code></li>
-<li>[ ] Build: <code>python -m build</code></li>
-<li>[ ] Test install from wheel: <code>pip install dist/jsat-&lt;version&gt;-py3-none-any.whl</code></li>
-<li>[ ] Upload to TestPyPI and verify</li>
-<li>[ ] Upload to PyPI: <code>twine upload dist/*</code></li>
-<li>[ ] Create GitHub Release (triggers automated publish if using the workflow)</li>
-<li>[ ] Deploy docs: <code>mkdocs gh-deploy</code></li>
+<li>[ ] Commit and push to <code>main</code></li>
+<li>[ ] Tag the release: <code>git tag vX.Y.Z &amp;&amp; git push origin vX.Y.Z</code> (see <a href="https://github.com/iamjpsonkar/JaySoft-AI-Tools/blob/main/RELEASING.md">RELEASING.md</a>) — triggers the automated PyPI publish via trusted publishing</li>
+<li>[ ] Confirm the <code>publish.yml</code> run succeeded and the new version is live on PyPI</li>
+<li>[ ] Deploy docs: <code>mkdocs gh-deploy</code> (if not already covered by the docs workflow)</li>
 </ul>
+<p>Only fall back to the manual <code>python -m build</code> + <code>twine upload</code> path above if you must
+publish without going through the automated workflow.</p>
 
 
 

@@ -2274,14 +2274,14 @@
 
 
 <h1 id="claude-integration">Claude Integration<a class="headerlink" href="#claude-integration" title="Permanent link">&para;</a></h1>
-<p>JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the <code>/jsat</code> slash command with 41 subcommands.</p>
+<p>JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the <code>/jsat</code> slash command with 47 subcommands.</p>
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←→  Graph DB
 </code></pre></div>
 <p>When you run <code>jsat connect claude</code>, JSAT:</p>
 <ol>
 <li>Writes an MCP server entry into <code>.claude/settings.json</code> (or <code>~/.claude/settings.json</code> for global scope)</li>
-<li>Installs the <code>/jsat</code> dispatcher skill file (<code>~/.claude/commands/jsat.md</code>) containing all 41 subcommands</li>
+<li>Installs the <code>/jsat</code> dispatcher skill file (<code>~/.claude/commands/jsat.md</code>) containing all 47 subcommands</li>
 <li>Installs <code>/jsat-help</code> as a standalone skill file (<code>~/.claude/commands/jsat-help.md</code>)</li>
 </ol>
 <p>Claude Code reads these on startup, starts the <code>jsat mcp-server</code> process, and makes all JSAT tools available during your session.</p>
@@ -2325,7 +2325,7 @@ marked block, leaving the rest of your <code>CLAUDE.md</code> intact.</p>
 <p><strong>After any connect command, restart Claude Code to activate the tools.</strong></p>
 <hr />
 <h2 id="slash-commands">Slash Commands<a class="headerlink" href="#slash-commands" title="Permanent link">&para;</a></h2>
-<p>A single <code>/jsat</code> dispatcher is installed into Claude Code when you run <code>jsat connect claude</code>. It routes to 41 subcommands, organized into layers:</p>
+<p>A single <code>/jsat</code> dispatcher is installed into Claude Code when you run <code>jsat connect claude</code>. It routes to 47 subcommands, organized into layers:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>/jsat &lt;subcommand&gt; [args]
 </code></pre></div>
 <h3 id="universal-flags">Universal flags<a class="headerlink" href="#universal-flags" title="Permanent link">&para;</a></h3>
@@ -2415,7 +2415,7 @@ marked block, leaving the rest of your <code>CLAUDE.md</code> intact.</p>
 </tbody>
 </table>
 <blockquote>
-<p><strong><code>/jsat-help</code></strong> is a separate command (not a subcommand of <code>/jsat</code>): <code>/jsat-help</code> lists all 41 with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples for that command. <code>/jsat-help universal-flags</code> explains <code>timeout=&lt;N&gt;</code> and <code>dashboard=true</code>.</p>
+<p><strong><code>/jsat-help</code></strong> is a separate command (not a subcommand of <code>/jsat</code>): <code>/jsat-help</code> lists all 47 with one-liners; <code>/jsat-help &lt;command&gt;</code> shows full flags and examples for that command. <code>/jsat-help universal-flags</code> explains <code>timeout=&lt;N&gt;</code> and <code>dashboard=true</code>.</p>
 </blockquote>
 <h3 id="common-examples">Common examples<a class="headerlink" href="#common-examples" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Understand</span>

@@ -1303,6 +1303,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#universal-behaviors-every-connected-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Universal Behaviors (every connected tool)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-start-any-tool" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1712,6 +1723,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#universal-behaviors-every-connected-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Universal Behaviors (every connected tool)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-start-any-tool" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1994,7 +2016,7 @@ keep model ownership, local pulls, cloud sign-in, and managed lifecycle commands
 </tr>
 <tr>
 <td>Skills / custom commands</td>
-<td>41 slash cmds</td>
+<td>47 slash cmds</td>
 <td><code>$jsat</code> dispatcher</td>
 <td><code>/jsat</code> + <code>/jsat-help</code></td>
 <td>.cursorrules</td>
@@ -2002,7 +2024,7 @@ keep model ownership, local pulls, cloud sign-in, and managed lifecycle commands
 <td>10 custom cmds</td>
 <td>.zed/JSAT.md</td>
 <td>GEMINI.md</td>
-<td>41 slash cmds + BOB.md</td>
+<td>47 slash cmds + BOB.md</td>
 </tr>
 <tr>
 <td><code>switch &lt;tool&gt;</code> in shell</td>
@@ -2042,6 +2064,25 @@ keep model ownership, local pulls, cloud sign-in, and managed lifecycle commands
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="universal-behaviors-every-connected-tool">Universal Behaviors (every connected tool)<a class="headerlink" href="#universal-behaviors-every-connected-tool" title="Permanent link">&para;</a></h2>
+<p>Two behaviors ship with every <code>/jsat &lt;command&gt;</code> (or <code>$jsat</code>) dispatcher, regardless of which
+AI tool is connected — Claude Code, Codex, OpenCode, Cursor, Windsurf, Continue, Zed, Gemini
+CLI, and Bob Shell all get the same behavior because it's built into the generated dispatcher
+text, not into any one integration.</p>
+<p><strong>Input correction (on by default).</strong> Before routing, free-form ARGS are rewritten via
+<code>jsat__prompt_rewrite</code> to fix spelling, grammar, and phrasing without changing intent.
+Literal payloads — file paths, diffs, code blocks, git refs, URLs — are left untouched so a
+misspelled path like <code>fix src/paymnet/service.py</code> still resolves correctly. If the rewrite
+materially changes ARGS, the dispatcher tells you what changed before routing. Pass
+<code>raw=true</code> on any call to skip this step and use ARGS exactly as typed.</p>
+<p><strong>Learning module (after every command).</strong> Once a command's reply is given, the dispatcher
+asks whether anything durable was learned — most calls yield nothing new and are skipped
+silently. A concrete, project-specific fact (a gotcha, a verified false positive, a
+non-obvious dependency) is saved to the project's knowledge base via <code>jsat__knowledge_add</code>.
+A concrete gap in JSAT's own tools or skills is saved instead to the <code>jsat improve</code> backlog,
+feeding future <code>jsat improve</code> runs. Either way you'll see a one-line <code>Learned: ...</code> note
+naming where it was saved.</p>
 <hr />
 <h2 id="quick-start-any-tool">Quick Start (any tool)<a class="headerlink" href="#quick-start-any-tool" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 1. Index your codebase</span>
@@ -2117,10 +2158,10 @@ because each client has a different MCP configuration format.</p>
 </code></pre></div>
 <p><strong>What gets installed (global):</strong>
 - <code>~/.claude/settings.json</code> — MCP server config
-- <code>~/.claude/commands/jsat-*.md</code> — 41 slash commands</p>
+- <code>~/.claude/commands/jsat-*.md</code> — 47 slash commands</p>
 <p><strong>What gets installed (project):</strong>
 - <code>.claude/settings.json</code> — MCP server config
-- <code>.claude/commands/jsat-*.md</code> — 41 slash commands</p>
+- <code>.claude/commands/jsat-*.md</code> — 47 slash commands</p>
 <p><strong>Slash commands:</strong> <code>/jsat-query</code>, <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>,
 <code>/jsat-test-gaps</code>, <code>/jsat-knowledge</code>, <code>/jsat-incident</code>, <code>/jsat-prompt</code>,
 <code>/jsat-tokens</code>, <code>/jsat-ithinking</code>, and 21 more.</p>
@@ -2224,7 +2265,7 @@ runs inside your IDE.</p>
 loaded from <code>.bob/</code> and <code>BOB.md</code>, so nothing is injected as a throwaway prompt.</p>
 <p><strong>What gets installed:</strong>
 - <code>.bob/settings.json</code> (project) or <code>~/.bob/settings.json</code> (global) — MCP server config
-- <code>.bob/commands/jsat-*.md</code> (or <code>~/.bob/commands/</code>) — 41 <code>/jsat-*</code> slash commands
+- <code>.bob/commands/jsat-*.md</code> (or <code>~/.bob/commands/</code>) — 47 <code>/jsat-*</code> slash commands
 - <code>BOB.md</code> — JSAT tool guidance (Bob Shell reads from project root)</p>
 <p><strong>Slash commands:</strong> type <code>/</code> in Bob Shell to browse them — <code>/jsat-query</code>,
 <code>/jsat-blast-radius</code>, <code>/jsat-security</code>, <code>/jsat-review</code>, <code>/jsat-test-gaps</code>,
