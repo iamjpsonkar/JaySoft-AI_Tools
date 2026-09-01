@@ -111,17 +111,44 @@ def is_running(record: LifecycleRecord) -> bool:
     return bool(record.process_token and current_token == record.process_token)
 
 
+def _children_via_proc(parent: int) -> list[int] | None:
+    """Linux-only: read direct children from /proc. Returns None if unavailable."""
+    try:
+        children = Path(f"/proc/{parent}/task/{parent}/children").read_text().split()
+    except OSError:
+        return None
+    return [int(child) for child in children if child.isdigit()]
+
+
+def _children_via_psutil(parent: int) -> list[int]:
+    """Cross-platform fallback (macOS/Windows/BSD) using the `psutil` dependency.
+
+    Used when /proc is unavailable (e.g. Darwin, the primary dev platform for
+    this repo). Returns [] on any error — a missing descendant-finder must not
+    block `jsat stop` from at least terminating the tracked PID itself.
+    """
+    try:
+        import psutil
+
+        return [child.pid for child in psutil.Process(parent).children(recursive=False)]
+    except Exception:
+        return []
+
+
 def _descendants(pid: int) -> list[int]:
-    """Return Linux descendants of a managed process; other OSes safely return none."""
+    """Return all descendants of a managed process, cross-platform.
+
+    Prefers /proc (Linux) for speed and reliability; falls back to `psutil` on
+    platforms without /proc (macOS, Windows, other BSDs) so `jsat stop` also
+    reaps child processes there instead of silently orphaning them.
+    """
     found: list[int] = []
     pending = [pid]
     while pending:
         parent = pending.pop()
-        try:
-            children = Path(f"/proc/{parent}/task/{parent}/children").read_text().split()
-        except OSError:
-            continue
-        child_pids = [int(child) for child in children if child.isdigit()]
+        child_pids = _children_via_proc(parent)
+        if child_pids is None:
+            child_pids = _children_via_psutil(parent)
         found.extend(child_pids)
         pending.extend(child_pids)
     return found

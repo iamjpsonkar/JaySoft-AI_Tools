@@ -89,6 +89,8 @@ class QueryTool(BaseTool):
             checkpoint(f"query: {len(endpoints)} endpoints found")
             for row in endpoints[:20]:
                 props = row.get("properties") or {}
+                if service and not self._matches_service(props, service):
+                    continue
                 lines.append(f"Endpoint: {props.get('method','GET')} {props.get('route','?')}")
 
             checkpoint("query: fetching Table nodes")
@@ -98,6 +100,8 @@ class QueryTool(BaseTool):
             checkpoint(f"query: {len(tables)} tables found")
             for row in tables[:10]:
                 props = row.get("properties") or {}
+                if service and not self._matches_service(props, service):
+                    continue
                 lines.append(f"Table: {props.get('name', '?')}")
 
             checkpoint("query: fetching Function nodes")
@@ -111,6 +115,8 @@ class QueryTool(BaseTool):
             checkpoint(f"query: {len(relevant_fns)} relevant functions")
             for row in relevant_fns[:20]:
                 props = row.get("properties") or {}
+                if service and not self._matches_service(props, service):
+                    continue
                 name = props.get("name", "?")
                 file_ = props.get("file", "?")
                 ret = props.get("return_type", "")
@@ -140,6 +146,8 @@ class QueryTool(BaseTool):
             checkpoint(f"query: {len(relevant_cls)} relevant classes")
             for row in relevant_cls[:10]:
                 props = row.get("properties") or {}
+                if service and not self._matches_service(props, service):
+                    continue
                 lines.append(f"Class: {props.get('name','?')} in {props.get('file','?')}")
 
         except Exception:
@@ -151,6 +159,15 @@ class QueryTool(BaseTool):
             checkpoint(f"query: context truncated to {max_chars} chars (was {len(ctx)})")
             return ctx[:max_chars]
         return ctx
+
+    def _matches_service(self, props: dict, service: str) -> bool:
+        """Case-insensitive match against a node's `service` property.
+
+        Mirrors the scoping pattern used elsewhere for service-filtered listings
+        (e.g. `_list_endpoints_impl` in jsat.mcp.server): equality on the
+        `service` property, not just the Service-summary section.
+        """
+        return str(props.get("service", "")).lower() == service.lower()
 
     def _extract_keywords(self, question: str) -> set[str]:
         stop = {"what", "where", "which", "who", "how", "does", "do", "is", "are",

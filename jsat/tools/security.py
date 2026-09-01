@@ -53,6 +53,24 @@ class SecurityTool(BaseTool):
             cve_list = []
             checkpoint("security: CVE check skipped (include_deps=False)")
 
+        # severity_threshold must apply uniformly across ALL finding sources —
+        # semgrep already filters inline in _run_semgrep(); secrets and CVEs do
+        # not filter themselves, so filter them here before merging.
+        threshold_rank = _SEVERITY_ORDER.get(severity_threshold, 0)
+        pre_filter_secrets = len(secret_findings)
+        pre_filter_cves = len(cve_list)
+        secret_findings = [
+            f for f in secret_findings if _SEVERITY_ORDER.get(f.severity, 0) >= threshold_rank
+        ]
+        secrets_count = len(secret_findings)
+        cve_list = [c for c in cve_list if _SEVERITY_ORDER.get(c.severity, 0) >= threshold_rank]
+        log.info(
+            "security_severity_filter_applied",
+            threshold=severity_threshold,
+            secrets_before=pre_filter_secrets, secrets_after=secrets_count,
+            cves_before=pre_filter_cves, cves_after=len(cve_list),
+        )
+
         checkpoint(
             f"security: all checks complete — "
             f"semgrep={len(findings)} secrets={secrets_count} cves={len(cve_list)}"

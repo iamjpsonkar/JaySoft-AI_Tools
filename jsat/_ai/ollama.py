@@ -155,7 +155,18 @@ class OllamaProvider(AIProvider):
             ) from e
 
         elapsed = round((time.monotonic() - t0) * 1000)
-        text: str = resp["response"]
+        try:
+            text: str = resp["response"]
+        except (KeyError, TypeError) as e:
+            self._log.error(
+                "ollama_complete_bad_response", error=str(e), elapsed_ms=elapsed,
+            )
+            from jsat._exceptions import AIProviderError
+
+            raise AIProviderError(
+                f"Ollama returned an unexpected response shape (missing 'response' key): {e}",
+                provider="ollama", status_code=0,
+            ) from e
         self._log.info("ollama_complete_done", response_len=len(text), duration_ms=elapsed)
         return text
 
@@ -181,7 +192,11 @@ class OllamaProvider(AIProvider):
             wrapped = self._wrap_error(e)
             if wrapped is not e:
                 raise wrapped from e
-            raise
+            from jsat._exceptions import AIProviderError
+
+            raise AIProviderError(
+                f"Ollama stream error: {e}", provider="ollama", status_code=0
+            ) from e
         self._log.info("ollama_stream_done", total_chars=total)
 
     def is_available(self) -> bool:

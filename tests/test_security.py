@@ -85,3 +85,64 @@ def test_run_no_semgrep_no_crash(tool, tmp_path):
 def test_run_returns_security_report_type(tool, tmp_path):
     from jsat._models import SecurityReport
     assert isinstance(tool.run(path=tmp_path), SecurityReport)
+
+# severity_threshold must filter secrets and CVEs uniformly, not just Semgrep findings.
+@pytest.mark.ci
+def test_severity_threshold_filters_secret_findings(tool, tmp_path, monkeypatch):
+    from jsat._models import SecurityFinding
+
+    mixed = [
+        SecurityFinding(file="a.py", line=1, category="secret_detection",
+                        severity="low", title="low secret", description="d"),
+        SecurityFinding(file="b.py", line=2, category="secret_detection",
+                        severity="critical", title="critical secret", description="d"),
+    ]
+    monkeypatch.setattr(tool, "_run_semgrep", lambda *a, **kw: [])
+    monkeypatch.setattr(tool, "_detect_secrets", lambda *a, **kw: (len(mixed), mixed))
+    monkeypatch.setattr(tool, "_check_cves", lambda *a, **kw: [])
+
+    report = tool.run(path=tmp_path, severity_threshold="critical", include_deps=False)
+
+    assert report.secrets_found == 1
+    assert all(f.severity == "critical" for f in report.findings)
+
+@pytest.mark.ci
+def test_severity_threshold_filters_cve_findings(tool, tmp_path, monkeypatch):
+    from jsat._models import CVEFinding
+
+    mixed_cves = [
+        CVEFinding(package="pkg-a", version="1.0", cve_id="CVE-1", cvss=3.0,
+                   severity="low"),
+        CVEFinding(package="pkg-b", version="2.0", cve_id="CVE-2", cvss=9.5,
+                   severity="critical"),
+    ]
+    monkeypatch.setattr(tool, "_run_semgrep", lambda *a, **kw: [])
+    monkeypatch.setattr(tool, "_detect_secrets", lambda *a, **kw: (0, []))
+    monkeypatch.setattr(tool, "_check_cves", lambda *a, **kw: mixed_cves)
+
+    report = tool.run(path=tmp_path, severity_threshold="critical", include_deps=True)
+
+    assert len(report.cves) == 1
+    assert report.cves[0].cve_id == "CVE-2"
+
+@pytest.mark.ci
+def test_severity_threshold_medium_keeps_everything_at_or_above(tool, tmp_path, monkeypatch):
+    from jsat._models import CVEFinding, SecurityFinding
+
+    secrets = [
+        SecurityFinding(file="a.py", line=1, category="secret_detection",
+                        severity="low", title="x", description="d"),
+        SecurityFinding(file="a.py", line=2, category="secret_detection",
+                        severity="high", title="y", description="d"),
+    ]
+    cves = [
+        CVEFinding(package="p", version="1", cve_id="CVE-3", cvss=8.0, severity="high"),
+    ]
+    monkeypatch.setattr(tool, "_run_semgrep", lambda *a, **kw: [])
+    monkeypatch.setattr(tool, "_detect_secrets", lambda *a, **kw: (len(secrets), secrets))
+    monkeypatch.setattr(tool, "_check_cves", lambda *a, **kw: cves)
+
+    report = tool.run(path=tmp_path, severity_threshold="medium", include_deps=True)
+
+    assert report.secrets_found == 1  # only "high" passes "medium" threshold
+    assert len(report.cves) == 1

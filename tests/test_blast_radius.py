@@ -91,3 +91,30 @@ def test_impacts_sorted_by_severity(graph):
     impacts = _tool(graph).run("fn::a", max_depth=5).impacts
     order = [SEVERITY_ORDER.get(i.severity, 99) for i in impacts]
     assert order == sorted(order)
+
+# "no start nodes found" warning must actually be reachable — _resolve_target
+# must not fabricate a fake start node out of an unresolved target string.
+@pytest.mark.ci
+def test_resolve_target_returns_empty_for_unknown_target(graph):
+    assert _tool(graph)._resolve_target("totally-unknown-thing") == []
+
+@pytest.mark.ci
+def test_unknown_target_triggers_no_start_nodes_warning(graph):
+    import jsat._call_context as call_context
+
+    call_context._call_ctx.events = []
+    try:
+        result = _tool(graph).run("totally-unknown-thing", max_depth=3)
+        events = list(call_context._call_ctx.events)
+    finally:
+        # Remove the attribute entirely rather than setting it to None: this
+        # thread-local is shared process-wide (the main pytest thread runs
+        # every test in this session), and leaving `.events = None` behind
+        # previously broke unrelated tests elsewhere (e.g.
+        # test_mcp_server.py's hard-timeout tests, whose
+        # `getattr(_call_ctx, "events", [])[-5:]` call is only safe when the
+        # attribute is either absent or a real list, never None).
+        del call_context._call_ctx.events
+
+    assert result.impacts == []
+    assert any("no start nodes" in e.lower() for e in events)

@@ -111,11 +111,15 @@ def _make_metrics_handler():
     return _MetricsHandler
 
 
-def _run_server(port: int) -> None:
-    """Blocking HTTP server — runs in a daemon thread."""
+def _bind_server(port: int) -> Any:
+    """Synchronously bind the metrics HTTPServer. Raises OSError on port conflict."""
     from http.server import HTTPServer
     handler = _make_metrics_handler()
-    server = HTTPServer(("", port), handler)
+    return HTTPServer(("", port), handler)
+
+
+def _run_server(server: Any, port: int) -> None:
+    """Blocking HTTP server loop — runs in a daemon thread. `server` is already bound."""
     _log.info(
         "jsat.prometheus: metrics server listening on http://0.0.0.0:%d/metrics", port
     )
@@ -158,9 +162,24 @@ def start_metrics_server() -> bool:
         if not _init_prometheus():
             return False
 
+        # Bind synchronously here (not inside the daemon thread) so a port conflict
+        # (OSError) surfaces to the caller immediately and _server_started is only
+        # ever set to True once the socket is actually listening. Previously the bind
+        # happened inside the daemon thread, so this function returned True before
+        # the thread had a chance to fail, and a bind failure crashed the thread
+        # silently while callers believed metrics were being served.
+        try:
+            server = _bind_server(port)
+        except OSError as exc:
+            _log.warning(
+                "jsat.prometheus: failed to bind metrics server on port %d: %s",
+                port, exc,
+            )
+            return False
+
         t = threading.Thread(
             target=_run_server,
-            args=(port,),
+            args=(server, port),
             daemon=True,
             name="jsat-prometheus-metrics",
         )

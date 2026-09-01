@@ -189,16 +189,53 @@ def _jsat_binary() -> str:
     return "jsat"
 
 
+class ConfigParseError(Exception):
+    """Raised when an existing config file exists but fails to parse as JSON.
+
+    Callers that are about to overwrite ``path`` via ``_write_json`` MUST catch
+    this and refuse to proceed — silently swallowing it and writing anyway would
+    destroy the user's existing (merely malformed) settings.
+    """
+
+    def __init__(self, path: Path, original: Exception) -> None:
+        self.path = path
+        self.original = original
+        super().__init__(
+            f"{path} exists but is not valid JSON ({original}). "
+            "Fix the file manually (or remove it) before retrying — refusing to "
+            "overwrite it automatically."
+        )
+
+
 def _read_json(path: Path) -> dict:
-    """Read JSON file; return {} if missing or invalid."""
+    """Read JSON file; return {} if missing.
+
+    Raises ``ConfigParseError`` if the file exists but is not valid JSON, so
+    callers that would otherwise call ``_write_json`` on the same path can abort
+    instead of silently clobbering the user's existing config.
+    """
     if not path.exists():
         return {}
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
+    except json.JSONDecodeError as e:
+        raise ConfigParseError(path, e) from e
 
 
 def _write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def _read_json_or_abort(path: Path) -> dict:
+    """Like ``_read_json``, but prints a clear error and exits instead of raising.
+
+    Use this at any call site that is about to merge new keys into ``path`` and
+    then call ``_write_json`` on it — malformed-but-recoverable JSON must never
+    be silently replaced with a file containing only the newly written keys.
+    """
+    try:
+        return _read_json(path)
+    except ConfigParseError as e:
+        err.print(f"[bold red]✗[/] {e}")
+        raise typer.Exit(1) from e

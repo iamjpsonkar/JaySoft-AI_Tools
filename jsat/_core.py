@@ -246,6 +246,9 @@ class JSAT:
                 from jsat._exceptions import ProfileError
                 raise ProfileError("Neo4j requires jsat[team].\nInstall: pip install 'jsat[team]'",
                                    required_extra="team") from e
+        elif backend == "lightgraph":
+            from jsat._graph.lightgraph import LightGraph
+            self._graph = LightGraph(self._cfg.graph)
         else:
             from jsat._graph.sqlite import SQLiteGraph
             self._graph = SQLiteGraph(self._cfg.graph)
@@ -452,17 +455,62 @@ class JSAT:
 
     @property
     def index_status(self) -> dict[str, Any]:
-        """Quick snapshot: nodes, edges, commit, is_fresh."""
+        """Quick snapshot: nodes, edges, commit, is_fresh.
+
+        Freshness is computed by comparing the commit recorded in the index
+        manifest at last-index time (jsat/_parsers/manifest.py IndexManifest.save,
+        written by IndexerTool.run — see jsat/tools/indexer.py) against the repo's
+        current git HEAD, using the same 12-char short-sha convention as
+        IndexerTool._get_commit. If either commit is unavailable (no manifest yet,
+        or repo has no git history), is_fresh is conservatively False rather than
+        assumed True.
+        """
         try:
             g = self._get_graph()
+            stored_commit = self._read_manifest_commit()
+            current_commit = self._current_git_commit()
+            is_fresh = (
+                stored_commit is not None
+                and current_commit is not None
+                and stored_commit == current_commit
+            )
             return {
                 "nodes": g.node_count(),
                 "edges": g.edge_count(),
-                "commit": None,
-                "is_fresh": True,
+                "commit": stored_commit,
+                "is_fresh": is_fresh,
             }
         except Exception as e:
             return {"nodes": 0, "edges": 0, "commit": None, "is_fresh": False, "error": str(e)}
+
+    def _read_manifest_commit(self) -> str | None:
+        """Return the commit hash recorded in the index manifest, or None if unset."""
+        import json
+
+        from jsat._config import jsat_data_dir
+
+        manifest_path = jsat_data_dir(self._repo) / "index-manifest.json"
+        if not manifest_path.exists():
+            return None
+        try:
+            raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+        commit = raw.get("commit")
+        return commit if commit and commit != "unknown" else None
+
+    def _current_git_commit(self) -> str | None:
+        """Return the repo's current HEAD short sha (12 chars), or None if unavailable.
+
+        Matches jsat.tools.indexer.IndexerTool._get_commit's hexsha[:12] convention
+        so stored and current commits are directly comparable.
+        """
+        try:
+            import git
+            repo = git.Repo(self._repo, search_parent_directories=True)
+            return repo.head.commit.hexsha[:12]
+        except Exception:
+            return None
 
     def doctor(self) -> dict[str, Any]:
         """Full health check — what the CLI `jsat doctor` calls."""

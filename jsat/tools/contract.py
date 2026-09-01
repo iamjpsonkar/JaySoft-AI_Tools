@@ -89,8 +89,9 @@ class ContractTool(BaseTool):
         changes: list[dict] = []
         removed: list[str] = []
         added: list[str] = []
+        diff_lines = diff.splitlines()
 
-        for line in diff.splitlines():
+        for line in diff_lines:
             if line.startswith("---") or line.startswith("+++"):
                 continue
             if line.startswith("-"):
@@ -99,6 +100,7 @@ class ContractTool(BaseTool):
                 added.append(line[1:].strip())
 
         added_set = set(added)
+        newly_required = self._newly_required_list_items(diff_lines)
 
         for content in removed:
             norm = content.lower()
@@ -121,9 +123,67 @@ class ContractTool(BaseTool):
                                 "change_type": "removed"})
 
         for content in added:
-            changes.append({"content": content, "is_breaking": False, "change_type": "added"})
+            norm = content.lower()
+            # A field/parameter newly marked `required: true`, or newly added to a
+            # `required:` list, is breaking: existing clients that don't send it
+            # will now fail request validation.
+            is_required_true = bool(re.search(r'required\s*:\s*true', norm))
+            is_required_list_item = content in newly_required
+            if is_required_true or is_required_list_item:
+                changes.append({
+                    "content": content, "is_breaking": True,
+                    "change_type": "field_added_required",
+                    "reason": (
+                        f"New required field will reject requests from existing "
+                        f"clients that don't send it: {content}"
+                    ),
+                })
+            else:
+                changes.append({
+                    "content": content, "is_breaking": False, "change_type": "added",
+                })
 
         return changes
+
+    def _newly_required_list_items(self, diff_lines: list[str]) -> set[str]:
+        """Find YAML list items newly added under a `required:` key.
+
+        Handles the common OpenAPI/JSON-Schema pattern where a field is made
+        required by appending its name to an existing (or newly added)
+        `required:` list, e.g.::
+
+            required:
+              - name
+            +  - email
+
+        Returns the raw (diff-marker-stripped, whitespace-stripped) added lines,
+        e.g. ``"- email"``, so callers can match directly against `added` items.
+        """
+        newly_required: set[str] = set()
+        in_required_block = False
+        required_indent = 0
+
+        for raw in diff_lines:
+            if raw.startswith("---") or raw.startswith("+++"):
+                continue
+            tag = raw[0] if raw and raw[0] in "+- " else " "
+            content = raw[1:] if raw and raw[0] in "+- " else raw
+            stripped = content.strip()
+            indent = len(content) - len(content.lstrip())
+
+            if re.match(r'required\s*:\s*$', stripped, re.IGNORECASE):
+                in_required_block = True
+                required_indent = indent
+                continue
+
+            if in_required_block:
+                if stripped.startswith("-") and indent > required_indent:
+                    if tag == "+":
+                        newly_required.add(stripped)
+                    continue
+                in_required_block = False
+
+        return newly_required
 
     def _guide(self, changes: list[dict], base: str, head: str) -> str:
         breaking = [c for c in changes if c["is_breaking"]]

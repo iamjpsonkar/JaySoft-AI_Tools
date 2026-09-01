@@ -154,7 +154,14 @@ class BlastRadiusTool(BaseTool):
             "SELECT id FROM nodes WHERE id LIKE ?",
             {"pattern": f"%::{target}"}
         )
-        return [r["id"] for r in rows] if rows else [target]
+        if rows:
+            return [r["id"] for r in rows]
+        # No real match anywhere — return empty rather than fabricating a fake
+        # start node out of the raw target string. An invented node id would
+        # silently defeat the `if not start_ids:` "no start nodes found"
+        # warning below and mask a "target not found" condition as a
+        # near-empty-but-unexplained blast-radius report.
+        return []
 
     def _start_ids_from_diff(self, diff: str) -> list[str]:
         """Extract node IDs for all files changed in a unified diff."""

@@ -78,6 +78,25 @@ class ExportTool(BaseTool):
             created_at=manifest_data["created_at"],
         )
 
+    def _safe_extract_target(self, dest_root: Path, rel_name: str) -> Path:
+        """Resolve a zip-entry-relative name to a path inside ``dest_root``.
+
+        Rejects (raises ``ImportCorrupted``) any entry whose resolved path would
+        escape ``dest_root`` — covers ``../`` traversal, absolute paths, and
+        symlink-adjacent tricks. This is the same "resolve then verify
+        containment" pattern used by ``jsat.tools._patch.apply_patch`` for
+        sandboxed patch application.
+        """
+        from jsat._exceptions import ImportCorrupted
+
+        target = (dest_root / rel_name).resolve()
+        if target != dest_root and dest_root not in target.parents:
+            raise ImportCorrupted(
+                f"Unsafe archive entry escapes {dest_root}: {rel_name!r}",
+                path=str(dest_root), detail=f"resolved target {target} is outside {dest_root}",
+            )
+        return target
+
     def restore(self, archive: Path, password: str | None = None,
                 migrate: bool = False) -> None:
         import structlog
@@ -118,10 +137,17 @@ class ExportTool(BaseTool):
                 except KeyError:
                     log.warning("import_no_graph_file", archive=str(archive))
 
-                # Restore artifacts
+                # Restore artifacts — guard against zip-slip path traversal:
+                # a crafted entry (e.g. "artifacts/../../.ssh/authorized_keys" or an
+                # absolute path) must not be allowed to write outside .jsat/.
+                dest_root = Path(".jsat").resolve()
                 for name in zf.namelist():
                     if name.startswith("artifacts/"):
-                        target = Path(".jsat") / name.removeprefix("artifacts/")
+                        target = self._safe_extract_target(
+                            dest_root, name.removeprefix("artifacts/")
+                        )
+                        log.debug("import_artifact_extracting", entry=name,
+                                  target=str(target))
                         target.parent.mkdir(parents=True, exist_ok=True)
                         target.write_bytes(zf.read(name))
 

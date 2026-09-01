@@ -438,7 +438,7 @@ def cmd_knowledge_ingest(
 
     console.print(f"\nFound [bold]{len(records)}[/] entries to ingest from [cyan]{target}[/]\n")
     for r in records[:10]:
-        console.print(f"  [dim]{r.category:15}[/] {r.source_file.name}: {r.text[:60]}...")
+        console.print(f"  [dim]{r.category:15}[/] {Path(r.source_path).name}: {r.text[:60]}...")
     if len(records) > 10:
         console.print(f"  [dim]... and {len(records)-10} more[/dim]")
 
@@ -455,6 +455,6 @@ def cmd_knowledge_ingest(
             tool.add(r.text, category=r.category)
             ingested += 1
         except Exception as e:
-            err.print(f"[yellow]Skip {r.source_file.name}:[/] {e}")
+            err.print(f"[yellow]Skip {Path(r.source_path).name}:[/] {e}")
 
     console.print(f"\n[green]✓[/] Ingested [bold]{ingested}[/] entries into knowledge base.")

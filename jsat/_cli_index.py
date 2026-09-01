@@ -14,7 +14,17 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from ._cli_common import _jsat, _ok, _read_json, _write_json, app, console, err
+from ._cli_common import (
+    ConfigParseError,
+    _jsat,
+    _ok,
+    _read_json,
+    _read_json_or_abort,
+    _write_json,
+    app,
+    console,
+    err,
+)
 from ._cli_connect import _CONNECT_LOCATIONS
 
 _log = structlog.get_logger(__name__)
@@ -66,6 +76,7 @@ def cmd_index(
             + skipped
         )
     if watch:
+        import shlex
         import shutil
         import subprocess
         if not shutil.which("entr"):
@@ -74,9 +85,17 @@ def cmd_index(
         console.print("[dim]Watching for changes... Ctrl+C to stop.[/dim]")
         target = Path(path or ".").resolve()
         jsat_bin = shutil.which("jsat") or "jsat"
-        find_cmd = (f'find {target} -name "*.py" -o -name "*.go" -o -name "*.ts" '
+        # Security: target/jsat_bin are interpolated into a shell=True string below.
+        # A path containing shell metacharacters (e.g. "; rm -rf ~") is otherwise a
+        # command-injection vector, so every interpolated component must be quoted.
+        quoted_target = shlex.quote(str(target))
+        quoted_jsat_bin = shlex.quote(jsat_bin)
+        find_cmd = (f'find {quoted_target} -name "*.py" -o -name "*.go" -o -name "*.ts" '
                     f'-o -name "*.java" -o -name "*.rb" -o -name "*.rs"')
-        subprocess.run(f'{find_cmd} | entr -c {jsat_bin} index {target} --incremental', shell=True)
+        subprocess.run(
+            f'{find_cmd} | entr -c {quoted_jsat_bin} index {quoted_target} --incremental',
+            shell=True,
+        )
 
 
 # ── doctor ────────────────────────────────────────────────────────────────────
@@ -169,7 +188,10 @@ def cmd_doctor(
     tool_t.add_column("Config")
     tool_t.add_column("How to connect")
     for label, cfg_path, key in _CONNECT_LOCATIONS:
-        jsat_cfg = _read_json(cfg_path).get(key, {}).get("jsat")
+        try:
+            jsat_cfg = _read_json(cfg_path).get(key, {}).get("jsat")
+        except ConfigParseError:
+            jsat_cfg = None
         if jsat_cfg:
             tool_t.add_row(label, "[green]✓ connected[/]", str(cfg_path), "")
         else:
@@ -354,7 +376,7 @@ def cmd_remove(
 
     # Claude MCP entry
     settings_path = cwd / ".claude" / "settings.json"
-    settings = _read_json(settings_path)
+    settings = _read_json_or_abort(settings_path)
     has_mcp = "jsat" in settings.get("mcpServers", {})
     if has_mcp:
         items.append(("mcpServers.jsat in .claude/settings.json", settings_path))

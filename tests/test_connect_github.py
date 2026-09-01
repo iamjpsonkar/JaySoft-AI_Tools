@@ -113,6 +113,62 @@ def test_supports_codex_with_global_toml(monkeypatch, tmp_path):
 
 
 @pytest.mark.ci
+def test_malicious_token_env_is_rejected_before_reaching_codex_config(monkeypatch, tmp_path):
+    """Bug 1 (Critical, security): shell injection via --token-env in Codex config.
+
+    --token-env is interpolated into a literal `sh -c "..."` command written into
+    Codex's config.toml and executed whenever Codex launches the MCP server. A
+    value like `X"; touch pwned #` must never reach that string unsanitized.
+    """
+    import jsat._cli_connect as connectmod
+
+    home = tmp_path / "home"
+    monkeypatch.setattr(connectmod.Path, "home", classmethod(lambda cls: home))
+
+    malicious = 'X"; touch pwned #'
+    result = runner.invoke(app, [
+        "connect", "github", "codex", "--repo", str(tmp_path),
+        "--token-env", malicious,
+    ])
+
+    # The CLI must reject it outright with a clear error, not write it to disk.
+    assert result.exit_code != 0
+    assert "Invalid" in result.output or "invalid" in result.output
+    config_path = home / ".codex" / "config.toml"
+    assert not config_path.exists()
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("malicious", [
+    'X"; touch pwned #',
+    "FOO$(touch pwned)",
+    "FOO`touch pwned`",
+    "FOO; touch pwned",
+    "FOO && touch pwned",
+    "FOO TOKEN",  # contains a space — not a valid env var name either
+])
+def test_malicious_token_env_rejected_for_json_config_tools_too(malicious, tmp_path):
+    """Same validation must apply to the JSON-config tools (claude/cursor/...),
+    not just Codex, since --token-env is a shared option."""
+    result = runner.invoke(app, [
+        "connect", "github", "--repo", str(tmp_path), "--token-env", malicious,
+    ])
+    assert result.exit_code != 0
+    assert not _config(tmp_path).exists()
+
+
+@pytest.mark.ci
+def test_valid_token_env_names_are_still_accepted(tmp_path):
+    for name in ("GITHUB_PAT", "_MY_TOKEN", "TOKEN123"):
+        result = runner.invoke(app, [
+            "connect", "github", "--repo", str(tmp_path), "--token-env", name,
+        ])
+        assert result.exit_code == 0
+        entry = json.loads(_config(tmp_path).read_text())["mcpServers"]["github"]
+        assert entry["env"]["GITHUB_PERSONAL_ACCESS_TOKEN"] == f"${{{name}}}"
+
+
+@pytest.mark.ci
 def test_unknown_tool_suggests_closest(tmp_path):
     result = runner.invoke(app, ["connect", "github", "cursr", "--repo", str(tmp_path)])
     assert result.exit_code == 1

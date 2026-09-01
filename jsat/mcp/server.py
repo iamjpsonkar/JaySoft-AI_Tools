@@ -83,7 +83,7 @@ def _hard_timeout_response(tool: str, budget_s: float, hard_limit_s: float,
                            elapsed_s: float) -> dict:
     """Structured hard-timeout payload — fired only when the safety-net fires (5× budget)."""
     suggestion = _TIMEOUT_SUGGESTIONS.get(tool, _TIMEOUT_SUGGESTIONS["_default"])
-    events: list = getattr(_call_ctx, "events", [])[-5:]
+    events: list = (getattr(_call_ctx, "events", None) or [])[-5:]
     return {
         "_hard_timeout": True,
         "tool": tool,
@@ -246,6 +246,14 @@ class MCPServer:
 
         # In-memory metrics: {tool_name: {"calls": int, "total_ms": float, "errors": int}}
         self._metrics: dict[str, dict[str, Any]] = {}
+
+        # Futures abandoned after a hard timeout (the underlying work keeps running
+        # in its own thread against shared JSAT/graph state after we've already
+        # returned a timeout response to the client). We can't kill a running Python
+        # thread, but we track these so unbounded accumulation is at least visible
+        # in logs instead of failing completely silently.
+        self._abandoned_futures: list[concurrent.futures.Future[Any]] = []
+        self._abandoned_futures_lock = threading.Lock()
 
         # Legacy single-token auth (backward-compat) — read once at init, not in run()
         self._auth_token: str | None = os.environ.get("JSAT_MCP_TOKEN")
@@ -471,7 +479,7 @@ class MCPServer:
                 _budget_notified.set()
                 elapsed = round(time.monotonic() - t0, 1)
                 suggestion = _TIMEOUT_SUGGESTIONS.get(name, _TIMEOUT_SUGGESTIONS["_default"])
-                events: list = getattr(_call_ctx, "events", [])[-5:]
+                events: list = (getattr(_call_ctx, "events", None) or [])[-5:]
                 events_text = ", ".join(events) if events else "no progress recorded"
                 self._log.warning(
                     "mcp_tool_over_budget",
@@ -497,6 +505,19 @@ class MCPServer:
                                budget_s=budget, elapsed_s=elapsed)
 
             try:
+                with self._abandoned_futures_lock:
+                    still_pending = [f for f in self._abandoned_futures if not f.done()]
+                    self._abandoned_futures = still_pending
+                    if still_pending:
+                        self._log.warning(
+                            "mcp_abandoned_futures_pending",
+                            count=len(still_pending), name=name,
+                            note=(
+                                "Prior hard-timed-out tool call(s) are still running in "
+                                "background threads and may interleave with this call "
+                                "against shared JSAT/graph state."
+                            ),
+                        )
                 future = pool.submit(self._call, name, args, _notify, _dash_push, _call_id)
                 monitor = threading.Thread(
                     target=_monitor_budget, args=(future,), daemon=True, name=f"jsat-budget-{name}"
@@ -522,9 +543,18 @@ class MCPServer:
                 except concurrent.futures.TimeoutError:
                     elapsed = round(time.monotonic() - t0, 1)
                     result = _hard_timeout_response(name, budget, hard_limit, elapsed)
+                    # Best-effort: cancel() only succeeds if the work hasn't started yet
+                    # (queued, not-yet-running futures). Once a thread has actually
+                    # started, Python offers no way to kill it — it keeps running
+                    # against shared state. Track it so the leak is observable.
+                    cancelled = future.cancel()
+                    if not cancelled:
+                        with self._abandoned_futures_lock:
+                            self._abandoned_futures.append(future)
                     self._log.error(
                         "mcp_tool_hard_timeout",
                         name=name, budget_s=budget, hard_limit_s=hard_limit, elapsed_s=elapsed,
+                        future_cancelled=cancelled,
                     )
                     try:
                         from jsat._improve import record_signal
@@ -568,7 +598,7 @@ class MCPServer:
                     # Single tool call (no _dashboard_session passed) → close session now.
                     # Multi-call sessions rely on the idle-watcher to close after 30s idle.
                     if not _args_had_session and _dash_session_done is not None:
-                        _dash_session_done(_elapsed)
+                        _dash_session_done(_elapsed, _call_id)
                 elapsed_ms = (time.monotonic() - t0) * 1000
                 self._record_metric(name, elapsed_ms, error=error_occurred)
 

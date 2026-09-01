@@ -21,6 +21,77 @@ def isolated_runtime(monkeypatch, tmp_path):
 
 
 @pytest.mark.ci
+def test_descendants_falls_back_to_psutil_when_proc_unavailable(monkeypatch):
+    """Bug 6 (Medium): `_descendants()` always returned [] on macOS/Windows because
+    it only ever looked at /proc, which doesn't exist on Darwin — so `jsat stop`
+    left child processes orphaned there. It must now fall back to psutil."""
+    import jsat._lifecycle as lifecycle
+
+    # Simulate a macOS-like environment: /proc reads always fail.
+    monkeypatch.setattr(lifecycle, "_children_via_proc", lambda pid: None)
+
+    class FakeChild:
+        def __init__(self, pid):
+            self.pid = pid
+
+    class FakeProcess:
+        def __init__(self, pid):
+            self._pid = pid
+
+        def children(self, recursive=False):
+            assert recursive is False
+            tree = {100: [200, 201], 200: [300], 201: [], 300: []}
+            return [FakeChild(p) for p in tree.get(self._pid, [])]
+
+    fake_psutil = type("FakePsutil", (), {"Process": staticmethod(FakeProcess)})
+    monkeypatch.setitem(__import__("sys").modules, "psutil", fake_psutil)
+
+    descendants = lifecycle._descendants(100)
+
+    assert sorted(descendants) == [200, 201, 300]
+
+
+@pytest.mark.ci
+def test_descendants_via_psutil_returns_empty_on_lookup_failure(monkeypatch):
+    """A psutil lookup failure (e.g. process already gone) must not raise — it
+    should degrade to 'no descendants found', not block stop_record entirely."""
+    import jsat._lifecycle as lifecycle
+
+    monkeypatch.setattr(lifecycle, "_children_via_proc", lambda pid: None)
+
+    class ExplodingPsutil:
+        class Process:
+            def __init__(self, pid):
+                raise LookupError("no such process")
+
+    monkeypatch.setitem(__import__("sys").modules, "psutil", ExplodingPsutil)
+
+    assert lifecycle._descendants(999) == []
+
+
+@pytest.mark.ci
+def test_descendants_prefers_proc_when_available(monkeypatch):
+    """On Linux, /proc must still be used directly (no psutil dependency needed
+    for the common case)."""
+    import jsat._lifecycle as lifecycle
+
+    calls: list[int] = []
+
+    def fake_proc_children(pid):
+        calls.append(pid)
+        return {42: [43]}.get(pid, [])
+
+    monkeypatch.setattr(lifecycle, "_children_via_proc", fake_proc_children)
+    monkeypatch.setattr(
+        lifecycle, "_children_via_psutil",
+        lambda pid: (_ for _ in ()).throw(AssertionError("psutil fallback must not be used")),
+    )
+
+    assert lifecycle._descendants(42) == [43]
+    assert 42 in calls
+
+
+@pytest.mark.ci
 def test_record_round_trip_omits_commands_and_prompts() -> None:
     record = LifecycleRecord(
         tool="opencode",

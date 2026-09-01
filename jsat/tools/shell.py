@@ -308,7 +308,10 @@ class JSATShell:
             candidates = [Path.home() / ".profile"]
 
         profile = next((p for p in candidates if p.exists()), candidates[0])
-        line = f'\nexport {env_var}="{key}"  # added by jsat\n'
+        # Escape via shlex.quote — the key is user/API-provided and may contain
+        # shell metacharacters (", $, `, ;, etc.); without quoting, a crafted key
+        # would become literal shell code executed on every future login.
+        line = f'\nexport {env_var}={shlex.quote(key)}  # added by jsat\n'
         try:
             with profile.open("a") as f:
                 f.write(line)

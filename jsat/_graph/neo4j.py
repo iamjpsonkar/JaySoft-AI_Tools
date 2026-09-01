@@ -7,6 +7,19 @@ from typing import Any
 from jsat._graph import GraphClient
 
 
+def _looks_like_sql(query: str) -> bool:
+    """Heuristic: does `query` look like SQLite SQL rather than Cypher?
+
+    Every real jsat/tools/* call site currently builds SQLite-specific SQL
+    (SELECT ..., json_extract(...)) because SQLiteGraph.query()/LightGraph.query()
+    execute the string as raw SQL. Cypher queries never start with SELECT and never
+    contain SQLite's json_extract(...) function, so this is a safe, cheap detector
+    for "wrong backend, wrong query language" without needing a full SQL/Cypher parser.
+    """
+    stripped = query.strip().lower()
+    return stripped.startswith("select") or "json_extract(" in stripped
+
+
 class Neo4jGraph(GraphClient):
     """
     Neo4j-backed graph using the official neo4j Python driver.
@@ -116,7 +129,28 @@ class Neo4jGraph(GraphClient):
                     queue.append((target_id, depth + 1, path + [edge_type]))
 
     def query(self, cypher_like: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        """Execute Cypher directly on Neo4j."""
+        """Execute Cypher directly on Neo4j.
+
+        LIMITATION (scoping fix, not a full translation layer): every current
+        jsat/tools/* call site (query.py, blast_radius.py, feature.py, test_helper.py,
+        indexer.py) builds SQLite-specific SQL strings (SELECT ..., json_extract(...))
+        rather than backend-agnostic Cypher, because SQLiteGraph/LightGraph execute
+        `query()`'s argument as raw SQL. Translating those call sites to real Cypher is
+        a separate, larger follow-up project and is intentionally out of scope here.
+        To avoid silently returning wrong/empty results (if callers swallow the driver's
+        syntax error) or crashing with an opaque Cypher parse error, we detect
+        SQL-shaped input up front and fail loud with an actionable message.
+        """
+        if _looks_like_sql(cypher_like):
+            from jsat._exceptions import GraphQueryError
+            raise GraphQueryError(
+                "Neo4jGraph.query() received a SQL query; the SQLite-specific query "
+                "API (raw SELECT / json_extract(...)) is not supported on the Neo4j "
+                "backend. The caller needs a Cypher-equivalent query — translating "
+                "jsat/tools/* call sites to Cypher is tracked as follow-up work and "
+                "is not yet implemented.",
+                query=cypher_like, detail="sql_query_on_neo4j_backend",
+            )
         return self._run(cypher_like, params)
 
     def node_count(self) -> int:

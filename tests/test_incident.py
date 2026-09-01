@@ -83,6 +83,53 @@ def test_mitigations_non_empty_with_hypothesis(tool):
 def test_mitigations_non_empty_empty_list(tool):
     assert len(tool._mitigations([])) >= 1
 
+# services filter must actually narrow which commits are considered.
+@pytest.mark.ci
+def test_commit_touches_services_matches_prefix(tool):
+    assert tool._commit_touches_services(["service-a/foo.py"], ["service-a"]) is True
+
+@pytest.mark.ci
+def test_commit_touches_services_rejects_other_service(tool):
+    assert tool._commit_touches_services(["service-b/bar.py"], ["service-a"]) is False
+
+@pytest.mark.ci
+def test_commit_touches_services_no_filter_matches_everything(tool):
+    assert tool._commit_touches_services(["anything.py"], []) is True
+
+@pytest.mark.ci
+def test_commit_touches_services_case_insensitive(tool):
+    assert tool._commit_touches_services(["Service-A/foo.py"], ["service-a"]) is True
+
+@pytest.mark.ci
+def test_recent_commits_services_filter_end_to_end(tool, tmp_path, monkeypatch):
+    """services=[...] must exclude commits that only touch a different service's files."""
+    git = pytest.importorskip("git")
+
+    repo = git.Repo.init(tmp_path)
+    with repo.config_writer() as cw:
+        cw.set_value("user", "name", "Test")
+        cw.set_value("user", "email", "test@example.com")
+
+    (tmp_path / "service-a").mkdir()
+    (tmp_path / "service-b").mkdir()
+
+    (tmp_path / "service-a" / "foo.py").write_text("a = 1\n")
+    repo.index.add(["service-a/foo.py"])
+    commit_a = repo.index.commit("touch service-a only")
+
+    (tmp_path / "service-b" / "bar.py").write_text("b = 1\n")
+    repo.index.add(["service-b/bar.py"])
+    repo.index.commit("touch service-b only")
+
+    monkeypatch.chdir(tmp_path)
+
+    all_commits = tool._recent_commits("72h")
+    assert len(all_commits) == 2
+
+    scoped = tool._recent_commits("72h", services=["service-a"])
+    assert len(scoped) == 1
+    assert scoped[0]["hash"] == commit_a.hexsha
+
 @pytest.mark.ci
 def test_incident_report_model():
     from jsat._models import IncidentReport

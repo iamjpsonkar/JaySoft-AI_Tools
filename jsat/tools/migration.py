@@ -24,7 +24,19 @@ _SAFE_ALTS = {
     "CREATE INDEX": "Use CREATE INDEX CONCURRENTLY to avoid locking reads.",
     "ALTER TABLE ALTER COLUMN": "Add new column, back-fill, rename — avoids table rewrite.",
     "DROP TABLE": "Ensure all FK references are removed first.",
+    "ALTER TABLE ADD COLUMN": (
+        "Add the column as nullable with no DEFAULT, back-fill in batches, then add "
+        "the NOT NULL constraint separately (or use Postgres 11+, which does this "
+        "class of ADD COLUMN as a metadata-only change)."
+    ),
 }
+# `ADD COLUMN ... NOT NULL DEFAULT <value>` forces a full-table rewrite on
+# Postgres < 11 (and on some migration tooling still targeting it) — it is NOT
+# the metadata-only change a plain/nullable ADD COLUMN is. Reuse the same
+# high-risk lock type already used for other rewrite-class operations.
+_ADD_COLUMN_REWRITE_LOCK: tuple[str, int] = _LOCK_TYPES["ALTER TABLE ALTER COLUMN"]
+_NOT_NULL_RE = re.compile(r"\bNOT\s+NULL\b", re.IGNORECASE)
+_DEFAULT_RE = re.compile(r"\bDEFAULT\b", re.IGNORECASE)
 _TABLE_RE = re.compile(r"(?:TABLE|INDEX\s+\w+\s+ON)\s+(\w+)", re.IGNORECASE)
 
 
@@ -65,6 +77,8 @@ class MigrationTool(BaseTool):
         ops = []
         for stmt, op_type in raw_ops:
             lock, rate = _LOCK_TYPES.get(op_type, ("metadata", 100_000))
+            if op_type == "ALTER TABLE ADD COLUMN" and self._is_rewrite_add_column(stmt):
+                lock, rate = _ADD_COLUMN_REWRITE_LOCK
             table = self._table_name(stmt)
             rows = table_rows.get(table, 0) if table else 0
             dur = rows / rate if rows else 1.0
@@ -136,6 +150,15 @@ class MigrationTool(BaseTool):
 
         words = norm.split()
         return " ".join(words[:2]) if len(words) >= 2 else (words[0] if words else "UNKNOWN")
+
+    def _is_rewrite_add_column(self, stmt: str) -> bool:
+        """True for ``ADD COLUMN ... NOT NULL DEFAULT <value>`` (full-table-rewrite class).
+
+        On Postgres < 11 (and some migration tools still targeting it), adding a
+        NOT NULL column with a DEFAULT requires rewriting every existing row —
+        this is not the metadata-only change a plain/nullable ADD COLUMN is.
+        """
+        return bool(_NOT_NULL_RE.search(stmt) and _DEFAULT_RE.search(stmt))
 
     def _table_name(self, sql: str) -> str | None:
         m = _TABLE_RE.search(sql)

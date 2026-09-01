@@ -8,7 +8,13 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 from jsat._ai import AIProvider
-from jsat._exceptions import AIAuthError, AIRateLimitError, AITimeoutError, ProfileError
+from jsat._exceptions import (
+    AIAuthError,
+    AIProviderError,
+    AIRateLimitError,
+    AITimeoutError,
+    ProfileError,
+)
 
 if TYPE_CHECKING:
     from jsat._models import JSATConfig
@@ -31,7 +37,11 @@ class OpenAIProvider(AIProvider):
 
         api_key_env = cfg.ai.api_key_env or "OPENAI_API_KEY"
         self._model: str | None = cfg.ai.model
-        self._client = self._openai.OpenAI(api_key=os.environ.get(api_key_env))
+        try:
+            self._client = self._openai.OpenAI(api_key=os.environ.get(api_key_env))
+        except Exception as e:
+            self._log.error("openai_client_init_failed", error=str(e))
+            raise AIAuthError(provider="openai") from e
         self._log.info("openai_init", model=self._model,
                        api_key_set=bool(os.environ.get(api_key_env)))
 
@@ -60,6 +70,15 @@ class OpenAIProvider(AIProvider):
             raise AIAuthError(provider="openai") from e
         except self._openai.APITimeoutError as e:
             raise AITimeoutError("OpenAI timeout", provider="openai", timeout_seconds=120) from e
+        except self._openai.APIConnectionError as e:
+            raise AIProviderError(
+                f"OpenAI connection error: {e}", provider="openai", status_code=0
+            ) from e
+        except self._openai.APIStatusError as e:
+            raise AIProviderError(
+                f"OpenAI API error: {e}", provider="openai",
+                status_code=getattr(e, "status_code", 0) or 0,
+            ) from e
         elapsed = round((time.monotonic() - t0) * 1000)
         text: str = resp.choices[0].message.content or ""
         self._log.info("openai_complete_done", response_len=len(text), duration_ms=elapsed)

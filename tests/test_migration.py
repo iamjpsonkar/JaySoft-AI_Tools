@@ -100,6 +100,31 @@ def test_three_statements_three_ops(tool, tmp_path):
 def test_block_comment_ignored(tool, tmp_path):
     assert len(tool.run(_sql(tmp_path, "/* cmt */ CREATE TABLE x (id INT);")).operations) == 1
 
+# ADD COLUMN NOT NULL DEFAULT reclassification (full-table-rewrite class, not metadata)
+@pytest.mark.ci
+def test_add_column_not_null_default_is_high_risk_lock(tool, tmp_path):
+    sql = _sql(tmp_path, "ALTER TABLE foo ADD COLUMN bar INT NOT NULL DEFAULT 0;")
+    r = tool.run(sql)
+    op = r.operations[0]
+    assert op.lock_type == "AccessExclusiveLock"
+    assert op.is_dangerous is True
+    assert r.risk_level == "dangerous"
+
+@pytest.mark.ci
+def test_add_column_nullable_stays_metadata_safe(tool, tmp_path):
+    sql = _sql(tmp_path, "ALTER TABLE foo ADD COLUMN bar INT;")
+    r = tool.run(sql)
+    op = r.operations[0]
+    assert op.lock_type == "metadata"
+    assert op.is_dangerous is False
+
+@pytest.mark.ci
+def test_add_column_default_without_not_null_stays_metadata(tool, tmp_path):
+    # DEFAULT alone (nullable) does not force a full-table rewrite.
+    sql = _sql(tmp_path, "ALTER TABLE foo ADD COLUMN bar INT DEFAULT 0;")
+    r = tool.run(sql)
+    assert r.operations[0].lock_type == "metadata"
+
 # Table name detection
 @pytest.mark.ci
 def test_table_name_alter(tool):

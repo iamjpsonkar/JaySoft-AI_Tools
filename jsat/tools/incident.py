@@ -40,9 +40,10 @@ class IncidentTool(BaseTool):
         t0 = time.monotonic()
 
         checkpoint(f"incident: fetching git commits from last {since}")
-        commits = self._recent_commits(since)
-        log.info("incident_commits_found", count=len(commits))
-        checkpoint(f"incident: found {len(commits)} commit(s) in range")
+        commits = self._recent_commits(since, services)
+        log.info("incident_commits_found", count=len(commits), services=services)
+        checkpoint(f"incident: found {len(commits)} commit(s) in range"
+                   + (f" scoped to services={services}" if services else ""))
 
         capped = commits[:20]
         checkpoint(f"incident: scoring {len(capped)} candidate commit(s)")
@@ -91,7 +92,9 @@ class IncidentTool(BaseTool):
             duration_ms=duration_ms,
         )
 
-    def _recent_commits(self, since: str) -> list[dict]:
+    def _recent_commits(self, since: str, services: list[str] | None = None) -> list[dict]:
+        import structlog
+        log = structlog.get_logger(__name__)
         try:
             import git
             repo = git.Repo(".", search_parent_directories=True)
@@ -99,20 +102,44 @@ class IncidentTool(BaseTool):
             from datetime import datetime, timedelta, timezone
             cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
             commits = []
+            skipped_out_of_scope = 0
             for c in repo.iter_commits(since=cutoff.isoformat()):
+                files = [str(f) for f in c.stats.files]
+                if services and not self._commit_touches_services(files, services):
+                    skipped_out_of_scope += 1
+                    continue
                 commits.append({
                     "hash": c.hexsha,
                     "summary": c.summary,
                     "author": str(c.author),
                     "timestamp": c.authored_datetime.isoformat(),
-                    "files": list(c.stats.files.keys()),
+                    "files": files,
                     "authored_datetime": c.authored_datetime,
                 })
+            if services:
+                log.info("incident_commits_filtered_by_service", services=services,
+                          kept=len(commits), skipped=skipped_out_of_scope)
             return commits
         except Exception as e:
-            import structlog
-            structlog.get_logger(__name__).warning("incident_git_error", error=str(e))
+            log.warning("incident_git_error", error=str(e))
             return []
+
+    def _commit_touches_services(self, files: list[str], services: list[str]) -> bool:
+        """True if any changed file lives under one of the given services' path prefix.
+
+        A file "belongs" to a service if its path starts with `<service>/`
+        (case-insensitive) or is exactly `<service>` — the same directory-prefix
+        convention used elsewhere in JSAT to map files to services.
+        """
+        normalized = [s.strip().strip("/").lower() for s in services if s.strip()]
+        if not normalized:
+            return True
+        for f in files:
+            f_lower = f.lower()
+            for svc in normalized:
+                if f_lower == svc or f_lower.startswith(f"{svc}/"):
+                    return True
+        return False
 
     def _score(self, commit: dict, description: str, all_commits: list[dict] | None = None) -> float:  # noqa: E501
         from datetime import datetime, timezone

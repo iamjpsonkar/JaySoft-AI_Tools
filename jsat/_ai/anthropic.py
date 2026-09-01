@@ -8,7 +8,13 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 from jsat._ai import AIProvider
-from jsat._exceptions import AIAuthError, AIRateLimitError, AITimeoutError, ProfileError
+from jsat._exceptions import (
+    AIAuthError,
+    AIProviderError,
+    AIRateLimitError,
+    AITimeoutError,
+    ProfileError,
+)
 
 if TYPE_CHECKING:
     from jsat._models import JSATConfig
@@ -31,7 +37,11 @@ class AnthropicProvider(AIProvider):
 
         self._model: str | None = cfg.ai.model
         api_key_env = cfg.ai.api_key_env or "ANTHROPIC_API_KEY"
-        self._client = self._anthropic.Anthropic(api_key=os.environ.get(api_key_env))
+        try:
+            self._client = self._anthropic.Anthropic(api_key=os.environ.get(api_key_env))
+        except Exception as e:
+            self._log.error("anthropic_client_init_failed", error=str(e))
+            raise AIAuthError(provider="anthropic") from e
         self._log.info("anthropic_init", model=self._model,
                        api_key_set=bool(os.environ.get(api_key_env)))
 
@@ -61,6 +71,15 @@ class AnthropicProvider(AIProvider):
         except self._anthropic.APITimeoutError as e:
             raise AITimeoutError("Anthropic timeout", provider="anthropic",
                                   timeout_seconds=120) from e
+        except self._anthropic.APIConnectionError as e:
+            raise AIProviderError(
+                f"Anthropic connection error: {e}", provider="anthropic", status_code=0
+            ) from e
+        except self._anthropic.APIStatusError as e:
+            raise AIProviderError(
+                f"Anthropic API error: {e}", provider="anthropic",
+                status_code=getattr(e, "status_code", 0) or 0,
+            ) from e
         elapsed = round((time.monotonic() - t0) * 1000)
         text: str = resp.content[0].text
         self._log.info("anthropic_complete_done", response_len=len(text), duration_ms=elapsed)

@@ -32,6 +32,12 @@ import structlog
 
 _log = structlog.get_logger(__name__)
 
+
+def _slugify(session_name: str) -> str:
+    """Turn a session name into the URL-safe slug used to key sessions and routes."""
+    return "".join(c if c.isalnum() or c in "-_" else "-" for c in session_name).strip("-")
+
+
 # ── Data model ────────────────────────────────────────────────────────────────
 
 @dataclass
@@ -57,8 +63,7 @@ class _DashboardSession:
 
     @property
     def url(self) -> str:
-        safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in self.session_name).strip("-")
-        return f"http://localhost:{self.port}/jsat/dashboard/{safe}"
+        return f"http://localhost:{self.port}/jsat/dashboard/{_slugify(self.session_name)}"
 
     def register_call(self, call_id: str, name: str, parent_id: str | None) -> None:
         with self._lock:
@@ -139,8 +144,20 @@ class _DashboardSession:
 
 # ── Module-level singletons ───────────────────────────────────────────────────
 
-_session: _DashboardSession | None = None
+# Sessions are keyed by their URL slug (see _slugify) so that two concurrently
+# active /jsat commands with different `_dashboard_session` names get separate
+# tabs instead of being silently merged into whichever session happened to be
+# "current". `_latest_session_slug` tracks the most recently active session for
+# callers that don't have a call_id to resolve a specific session from (e.g. the
+# SSE stream and the deprecated push_event shim) — this preserves prior
+# single-tab-at-a-time behaviour for those code paths.
+_sessions: dict[str, _DashboardSession] = {}
+_latest_session_slug: str | None = None
 _session_lock = threading.Lock()
+
+# call_id -> session slug, so push_call_event/finish_call/session_done (which are
+# only ever given a call_id, not a session name) can be routed to the right session.
+_call_index: dict[str, str] = {}
 
 _server: HTTPServer | None = None
 _server_port: int = 0
@@ -323,18 +340,24 @@ src.onerror=()=>{{if(!done)statusEl.textContent='⚠ Connection lost';}};
 
 def _html_landing_page(port: int) -> str:
     """Landing page at /jsat/dashboard listing active and recent sessions."""
-    active_sess = _session
+    with _session_lock:
+        active_sessions = [s for s in _sessions.values() if not s.is_done]
 
     active_html = ""
-    if active_sess is not None and not active_sess.is_done:
-        elapsed = round(time.monotonic() - active_sess.started_at, 1)
+    if active_sessions:
+        rows = ""
+        for active_sess in active_sessions:
+            elapsed = round(time.monotonic() - active_sess.started_at, 1)
+            rows += (
+                f'<div class="session-row active">'
+                f'<a href="{active_sess.url}">{active_sess.session_name}</a>'
+                f'<span class="badge running">● RUNNING {elapsed}s</span>'
+                f'</div>\n'
+            )
         active_html = f"""
 <div class="section">
-  <div class="section-title">● Active Session</div>
-  <div class="session-row active">
-    <a href="{active_sess.url}">{active_sess.session_name}</a>
-    <span class="badge running">● RUNNING {elapsed}s</span>
-  </div>
+  <div class="section-title">● Active Session{"s" if len(active_sessions) > 1 else ""}</div>
+  {rows}
 </div>"""
 
     with _recent_sessions_lock:
@@ -358,7 +381,7 @@ def _html_landing_page(port: int) -> str:
 </div>"""
 
     empty_html = ""
-    if not active_sess and not recent:
+    if not active_sessions and not recent:
         empty_html = '<div class="empty">No sessions yet. Run <code>/jsat magic dashboard=true &lt;task&gt;</code> to start one.</div>'
 
     return f"""<!DOCTYPE html>
@@ -415,7 +438,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         if p in ("/jsat/dashboard", "/jsat/dashboard/"):
             self._serve_landing()
         elif p.startswith("/jsat/dashboard/"):
-            self._serve_html()
+            slug = p[len("/jsat/dashboard/"):].strip("/")
+            self._serve_html(slug)
         elif p == "/jsat/events":
             self._serve_sse()
         elif p.startswith("/dashboard/session"):
@@ -442,10 +466,21 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _serve_html(self) -> None:
-        sess = _session
-        name = sess.session_name if sess else "jsat"
-        body = _html_page(name).encode()
+    def _serve_html(self, slug: str) -> None:
+        with _session_lock:
+            sess = _sessions.get(slug)
+        if sess is None:
+            body = (
+                f"Not found: no dashboard session '{slug}'. "
+                "It may have already closed, or never started."
+            ).encode()
+            self.send_response(404)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        body = _html_page(sess.session_name).encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -462,7 +497,9 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         try:
             sent = 0
             while True:
-                sess = _session
+                with _session_lock:
+                    slug = _latest_session_slug
+                    sess = _sessions.get(slug) if slug else None
                 if sess is None:
                     time.sleep(0.1)
                     continue
@@ -505,7 +542,7 @@ def _ensure_server(port: int) -> bool:
         return True
 
 
-def _start_idle_watcher(sess: _DashboardSession) -> None:
+def _start_idle_watcher(sess: _DashboardSession, slug: str) -> None:
     """Background thread: auto-fire session_done() after 30s of idle."""
     def _watch() -> None:
         while True:
@@ -518,20 +555,27 @@ def _start_idle_watcher(sess: _DashboardSession) -> None:
                 _log.info("dashboard_idle_timeout", session=sess.session_name, idle_s=round(idle_s, 1))
                 elapsed = round(time.monotonic() - sess.started_at, 1)
                 sess.close(elapsed)
-                _schedule_session_reset()
+                _schedule_session_reset(slug)
                 return
 
     threading.Thread(target=_watch, daemon=True, name="jsat-dash-idle").start()
 
 
-def _schedule_session_reset() -> None:
-    """Clear the module-level _session after SHUTDOWN_DELAY so a new /jsat gets a fresh one."""
+def _schedule_session_reset(slug: str) -> None:
+    """Remove this specific session (by slug) after SHUTDOWN_DELAY so its tab's
+    URL eventually 404s and a later reuse of the same name starts fresh.
+    Other concurrently active sessions (different slugs) are untouched.
+    """
     def _reset() -> None:
-        global _session
+        global _latest_session_slug
         time.sleep(_SHUTDOWN_DELAY)
         with _session_lock:
-            _session = None
-        _log.debug("dashboard_session_cleared")
+            _sessions.pop(slug, None)
+            if _latest_session_slug == slug:
+                _latest_session_slug = None
+            for cid in [c for c, s in _call_index.items() if s == slug]:
+                _call_index.pop(cid, None)
+        _log.debug("dashboard_session_cleared", session=slug)
 
     threading.Thread(target=_reset, daemon=True, name="jsat-dash-reset").start()
 
@@ -556,24 +600,33 @@ def start_dashboard(
 
     Returns (url, open_browser). open_browser=True only when a new session is created.
     """
-    global _session
+    global _latest_session_slug
+
+    slug = _slugify(session_name)
 
     if not _ensure_server(port):
-        safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in session_name).strip("-")
-        return f"http://localhost:{port}/jsat/dashboard/{safe}", False
+        return f"http://localhost:{port}/jsat/dashboard/{slug}", False
 
     with _session_lock:
-        sess = _session
+        sess = _sessions.get(slug)
+        # A session is only reusable if it's the SAME name (slug) AND not yet done.
+        # Previously this only checked is_done and ignored session_name entirely, so
+        # a second concurrently-active /jsat command with a different
+        # `_dashboard_session` name got silently merged into whatever session was
+        # "current" — cross-contaminating two unrelated tabs' call trees.
         is_new_session = sess is None or sess.is_done
 
         if is_new_session:
             sess = _DashboardSession(session_name, port)
-            _session = sess
-            _start_idle_watcher(sess)
-            _log.info("dashboard_session_created", session=session_name, url=sess.url)
+            _sessions[slug] = sess
+            _start_idle_watcher(sess, slug)
+            _log.info("dashboard_session_created", session=session_name, slug=slug, url=sess.url)
         else:
             _log.debug("dashboard_session_reuse", session=sess.session_name, call=call_id,
                        tool=tool_name)
+
+        _latest_session_slug = slug
+        _call_index[call_id] = slug
 
     sess.register_call(call_id, tool_name, parent_id)
 
@@ -588,9 +641,21 @@ def start_dashboard(
     return sess.url, is_new_session
 
 
+def _session_for_call(call_id: str) -> _DashboardSession | None:
+    """Resolve the session a given call_id belongs to, via the call_id -> slug index.
+
+    Falls back to the most-recently-active session for pseudo call_ids (e.g. the
+    deprecated push_event shim's "__session__" sentinel) that were never registered
+    via start_dashboard()/register_call().
+    """
+    with _session_lock:
+        slug = _call_index.get(call_id) or _latest_session_slug
+        return _sessions.get(slug) if slug else None
+
+
 def push_call_event(call_id: str, event_type: str, msg: str, **extra: Any) -> None:
     """Push a typed event for a call. Thread-safe. No-op if no active session."""
-    sess = _session
+    sess = _session_for_call(call_id)
     if sess is None or sess.is_done:
         return
     try:
@@ -601,7 +666,7 @@ def push_call_event(call_id: str, event_type: str, msg: str, **extra: Any) -> No
 
 def finish_call(call_id: str, elapsed_s: float, status: str = "done") -> None:
     """Mark a call done. Tab stays open; idle timer handles session close."""
-    sess = _session
+    sess = _session_for_call(call_id)
     if sess is None:
         return
     try:
@@ -611,12 +676,18 @@ def finish_call(call_id: str, elapsed_s: float, status: str = "done") -> None:
         _log.warning("dashboard_finish_failed", call_id=call_id, error=str(exc))
 
 
-def session_done(elapsed_s: float) -> None:
+def session_done(elapsed_s: float, call_id: str | None = None) -> None:
     """Mark the whole session done (called when /jsat command ends or on single-tool call).
     Tab stays open; session is cleared after SHUTDOWN_DELAY seconds.
     Records the session in _recent_sessions for the landing page.
+
+    `call_id` (when available) resolves which session to close, since multiple
+    sessions may be active concurrently. Falls back to the most-recently-active
+    session for older call sites that don't pass call_id.
     """
-    sess = _session
+    with _session_lock:
+        slug = _call_index.get(call_id) if call_id else _latest_session_slug
+        sess = _sessions.get(slug) if slug else None
     if sess is None:
         return
     sess.close(elapsed_s)
@@ -630,14 +701,16 @@ def session_done(elapsed_s: float) -> None:
         })
         if len(_recent_sessions) > _MAX_RECENT_SESSIONS:
             _recent_sessions.pop(0)
-    _schedule_session_reset()
+    _schedule_session_reset(slug)  # type: ignore[arg-type]
 
 
 # ── Backward-compat shim (old callers used push_event / stop_dashboard) ──────
 
 def push_event(type: str, msg: str, **extra: Any) -> None:  # noqa: A002
     """Deprecated shim — routes to push_call_event with a synthetic call_id."""
-    sess = _session
+    with _session_lock:
+        slug = _latest_session_slug
+        sess = _sessions.get(slug) if slug else None
     if sess is None:
         return
     # Route to the most recent running call if available, else session root

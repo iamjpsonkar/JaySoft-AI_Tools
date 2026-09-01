@@ -10,8 +10,10 @@ import structlog
 import typer
 
 from ._cli_common import (
+    ConfigParseError,
     _jsat_binary,
     _read_json,
+    _read_json_or_abort,
     _write_json,
     connect_app,
     console,
@@ -87,7 +89,7 @@ def cmd_connect_claude(
         label = f"project (.claude/settings.json in {Path.cwd().name}/)"
 
     # Read existing settings (preserve all other keys)
-    settings = _read_json(settings_path)
+    settings = _read_json_or_abort(settings_path)
 
     # Build the JSAT MCP entry.
     # Inject JSAT_AI_PROVIDER so the MCP subprocess can run LLM-based tools
@@ -172,7 +174,7 @@ def _connect_mcp_tool(
     env: dict[str, str] | None = None,
 ) -> None:
     """Write JSAT into a standard {mcpServers: {jsat: {command, args}}} config."""
-    settings = _read_json(config_path)
+    settings = _read_json_or_abort(config_path)
     settings.setdefault("mcpServers", {})
     already = "jsat" in settings["mcpServers"]
     entry: dict = {
@@ -271,7 +273,7 @@ def cmd_connect_opencode(
         f"  Config : [cyan]{config_path}[/]\n"
     )
     if show:
-        entry = _read_json(config_path)["mcp"]["jsat"]
+        entry = _read_json_or_abort(config_path)["mcp"]["jsat"]
         console.print_json(json.dumps({"mcp": {"jsat": entry}}, indent=2))
     if install_commands:
         commands_dir = _install_opencode_commands()
@@ -643,9 +645,24 @@ def cmd_connect_github(
     Needs `repo` scope (add `read:org` for org-wide issue search).
     """
     import os
+    import re
     import shutil as _shutil
 
     tool_key = tool.strip().lower()
+
+    # Security: token_env is later interpolated into a literal `sh -c "..."` string
+    # written to disk (Codex's config.toml) and executed whenever Codex launches
+    # the MCP server. It must be a bare environment-variable NAME — never free-form
+    # text — so reject anything containing shell metacharacters outright rather
+    # than trying to safely quote it.
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token_env):
+        err.print(
+            f"[bold red]Invalid --token-env value:[/] {token_env!r}\n"
+            "  Must be a valid environment variable name: letters, digits, "
+            "underscore, not starting with a digit (e.g. GITHUB_PERSONAL_ACCESS_TOKEN)."
+        )
+        raise typer.Exit(1)
+
     if tool_key not in _MCP_CONFIG_PATHS:
         from jsat._ai.aliases import suggest
         err.print(f"[red]Unknown tool:[/] {tool}")
@@ -716,7 +733,7 @@ def cmd_connect_github(
         settings = {}
         has_jsat = _has_toml_mcp_server(config_path, "jsat")
     else:
-        settings = _read_json(config_path)
+        settings = _read_json_or_abort(config_path)
         settings.setdefault("mcpServers", {})
         already = "github" in settings["mcpServers"]
         settings["mcpServers"]["github"] = entry
@@ -1072,7 +1089,7 @@ def cmd_connect_zed(
     config_path = Path.home() / ".config" / "zed" / "settings.json"
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
-    settings = _read_json(config_path)
+    settings = _read_json_or_abort(config_path)
     settings.setdefault("context_servers", {})
     already = "jsat" in settings["context_servers"]
     settings["context_servers"]["jsat"] = {
@@ -1088,7 +1105,7 @@ def cmd_connect_zed(
         # Write project-level system prompt for Zed
         zed_proj = Path(repo).resolve() / ".zed" / "settings.json"
         zed_proj.parent.mkdir(parents=True, exist_ok=True)
-        proj_settings = _read_json(zed_proj)
+        proj_settings = _read_json_or_abort(zed_proj)
         proj_settings["assistant"] = proj_settings.get("assistant", {})
         proj_settings["assistant"]["default_model"] = proj_settings["assistant"].get(
             "default_model", {"provider": "anthropic", "model": "claude-sonnet-4-6"})
@@ -1225,7 +1242,11 @@ def cmd_connect_list() -> None:
                 console.print(f"[green]✓[/] [bold]{label}[/]  ({path})")
                 console.print("   command: see [mcp_servers.jsat] in config.toml\n")
             continue
-        data = _read_json(path)
+        try:
+            data = _read_json(path)
+        except ConfigParseError:
+            console.print(f"[yellow]⚠[/] [bold]{label}[/]  ({path}) — invalid JSON, skipped")
+            continue
         jsat_cfg = data.get(key, {}).get("jsat")
         if jsat_cfg:
             found_any = True
@@ -1248,7 +1269,10 @@ def cmd_connect_list() -> None:
 
     # Zed uses context_servers key
     zed_path = Path.home() / ".config" / "zed" / "settings.json"
-    zed_cfg = _read_json(zed_path).get("context_servers", {}).get("jsat")
+    try:
+        zed_cfg = _read_json(zed_path).get("context_servers", {}).get("jsat")
+    except ConfigParseError:
+        zed_cfg = None
     if zed_cfg:
         found_any = True
         console.print(f"[green]✓[/] [bold]Zed[/]  ({zed_path})")
@@ -1282,7 +1306,7 @@ def cmd_connect_remove(
     else:
         settings_path = Path.cwd() / ".claude" / "settings.json"
 
-    settings = _read_json(settings_path)
+    settings = _read_json_or_abort(settings_path)
     if "jsat" in settings.get("mcpServers", {}):
         del settings["mcpServers"]["jsat"]
         _write_json(settings_path, settings)
