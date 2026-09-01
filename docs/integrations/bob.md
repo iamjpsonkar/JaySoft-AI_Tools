@@ -1,7 +1,7 @@
 # Bob Shell
 
 Use this route when the `bob` executable is installed and Bob Shell should own the conversation
-and model selection. JSAT supplies MCP tools plus 41 `/jsat-*` slash commands and `BOB.md`
+and model selection. JSAT supplies MCP tools plus 47 `/jsat-*` slash commands and `BOB.md`
 guidance.
 
 ## Prerequisites and connect

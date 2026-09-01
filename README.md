@@ -26,7 +26,7 @@ Long-running tools stream **live progress notifications** to Claude Code — and
 | Feature | What it does |
 |---------|-------------|
 | **Persistent graph** | Index once, query forever — functions, classes, services, endpoints, Kafka topics, DB tables |
-| **41 slash commands** | `/jsat magic`, `/jsat crack`, `/jsat improve`, `/jsat security` and 37 more |
+| **47 slash commands** | `/jsat magic`, `/jsat crack`, `/jsat improve`, `/jsat security` and 43 more |
 | **Universal flags** | `timeout=<N>` sets a soft budget on any call; `dashboard=true` opens a live browser dashboard |
 | **Smart budgets** | Over-budget → AI gets notified (call keeps running). Force-kill only at 5× the budget |
 | **Session files** | All major skills write resumable session files — `--continue` picks up where it left off |
@@ -217,6 +217,30 @@ Two flags work on **every** `/jsat` command — strip them from ARGS before rout
 | `timeout=<N>` | After N s: ⏱ AI notified with last steps, call keeps running | At 5×N s |
 | *(default)* | Per-tool budget (blast_radius: 30s, crack: 55s, query: 45s) | At 5× budget |
 
+### ✏️ Universal Input Correction & Learning Module
+
+Every `/jsat <command>` invocation runs two extra passes by default, before and after the
+subcommand itself:
+
+**Before routing** — free-form ARGS are cleaned up (typos, run-on phrasing, ambiguous
+pronouns tightened) via `jsat__prompt_rewrite` before being handed to the subcommand.
+Literal payloads are never touched: file paths, diffs/patches, code blocks, git refs/SHAs,
+and URLs are passed through verbatim even when they sit next to prose that gets corrected.
+If the rewrite meaningfully changes ARGS, the AI reports what changed with a one-line
+`📝 Interpreted as: <rewritten>` before proceeding, so a bad guess is visible and
+correctable rather than silently substituted. Add `raw=true` to any command to skip this
+step entirely and route ARGS exactly as typed (e.g. `/jsat query raw=true find PaymnetService`).
+
+**After completion** — a short pass checks whether the command surfaced anything worth
+remembering beyond this conversation. Most invocations produce nothing durable and this
+runs silently with no output. When something concrete is learned, it's classified and
+saved via `jsat__knowledge_add`:
+- **Project-specific** facts (a gotcha, a non-obvious dependency, a false-positive pattern
+  to exclude next time) are saved to this project's knowledge base (`category="project-learning"`) — searchable later with `/jsat knowledge`.
+- **JSAT-specific** facts (a tool misbehaving, a missing capability, a stale parameter)
+  are saved to JSAT's own improvement backlog (`category="jsat-improvement"`), which
+  `/jsat improve` reads from later — this is feedback about JSAT itself, not the user's repo.
+
 ### 📊 Live Dashboard
 
 Add `dashboard=true` to any `/jsat` command and a real-time browser dashboard opens automatically. Each `/jsat` command gets **one persistent tab** — all tool calls in that session stream into the same collapsible tree, not separate tabs.
@@ -301,7 +325,7 @@ Most connect commands write both an MCP config **and** a guidance file so the AI
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
-| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (41 files) + `CLAUDE.md` | Slash commands + always-on guidance |
+| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (47 files) + `CLAUDE.md` | Slash commands + always-on guidance |
 | Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` + `~/CLAUDE.md` | Slash commands + always-on guidance |
 | Codex | `~/.codex/config.toml` | `~/.codex/skills/jsat/SKILL.md` | `$jsat` dispatcher + MCP tools; no project files |
 | Bob Shell (project) | `.bob/settings.json` | `BOB.md` + `.bob/commands/jsat-*.md` | Slash commands |
@@ -318,10 +342,10 @@ Pass `--no-instructions` to skip writing guidance files on integrations that sup
 
 ### `/jsat` dispatcher
 
-`jsat connect claude` installs a single `/jsat` command rather than 41 individual `/jsat-*` commands. All skills are accessible as subcommands:
+`jsat connect claude` installs a single `/jsat` command rather than 47 individual `/jsat-*` commands. All skills are accessible as subcommands:
 
 ```bash
-/jsat help               # list all 41 subcommands
+/jsat help               # list all 47 subcommands
 /jsat query <question>   # answer codebase questions (Discuss→Verify pipeline)
 /jsat crack <task>       # multi-agent war room with artifact carry-forward
 /jsat aw <task>          # workflow advisor
@@ -345,10 +369,10 @@ jsat disconnect gemini                     # Gemini CLI
 jsat disconnect all                        # every tool at once
 ```
 
-### Claude Code — slash commands (41 subcommands + `/jsat-help`)
+### Claude Code — slash commands (47 subcommands + `/jsat-help`)
 
 `jsat connect claude` installs two slash commands:
-- `/jsat <subcommand>` — 41 subcommands organized by category (see table below)
+- `/jsat <subcommand>` — 47 subcommands organized by category (see table below)
 - `/jsat-help [command]` — no args lists all commands; `/jsat-help magic` shows full flags and examples for that command
 
 **Graph exploration**
@@ -372,6 +396,8 @@ jsat disconnect all                        # every tool at once
 | `/jsat security [path]` | OWASP scan — Critical and High first |
 | `/jsat migration <file>` | DB migration safety — lock type, duration estimate |
 | `/jsat contract <diff>` | API contract compatibility check |
+| `/jsat service-health-check <service>` | Validate one service's readiness — CLAUDE.md completeness, catalog registration, auth coverage, test gaps, index freshness |
+| `/jsat upgrade-impact <dependency>` | Blast radius of bumping a dependency — importers, criticality, known CVEs |
 
 **Code quality**
 | Command | What it does |
@@ -379,6 +405,17 @@ jsat disconnect all                        # every tool at once
 | `/jsat review <diff>` | Multi-model parallel code review |
 | `/jsat test-gaps [path]` | Find untested paths, generate tests |
 | `/jsat coverage [path]` | Behavioral coverage estimate |
+| `/jsat dead-code [path]` | Find functions/classes with no callers (blast-radius inversion) |
+| `/jsat verify <change>` | Prove a change works end-to-end, prioritized by graph impact |
+
+**Git workflow**
+| Command | What it does |
+|---|---|
+| `/jsat changelog <ref1>..<ref2>` | Changelog between two refs, grouped by service and impact |
+| `/jsat cherry-pick <commit>` | Cherry-pick a commit with graph-aware impact analysis and semantic conflict resolution |
+| `/jsat merge <branch>` | Merge a branch with graph-aware impact analysis, semantic conflict resolution, post-merge verification |
+| `/jsat rebase <target>` | Rebase onto a target using the same graph-aware conflict resolution engine as `/jsat merge` |
+| `/jsat pr-describe` | Compose a PR description from review findings, contract diff, and test coverage |
 
 **Knowledge & investigation**
 | Command | What it does |
@@ -388,6 +425,7 @@ jsat disconnect all                        # every tool at once
 | `/jsat runbook <target>` | Generate an incident runbook |
 | `/jsat incident <description>` | Root-cause hypotheses ranked by confidence |
 | `/jsat recent [path]` | Recent changes in an area |
+| `/jsat internet <question>` | Query the live internet for up-to-date facts (docs, versions, CVEs, best practices), optionally grounded in this codebase — a skill, not a `jsat__*` MCP tool or bare CLI command; the one sanctioned way to reach outside the graph |
 
 **Prompt & token tools**
 | Command | What it does |
@@ -416,7 +454,7 @@ jsat disconnect all                        # every tool at once
 **Help**
 | Command | What it does |
 |---|---|
-| `/jsat-help` | List all 41 commands with one-liner descriptions |
+| `/jsat-help` | List all 47 commands with one-liner descriptions |
 | `/jsat-help <command>` | Full description, flags, and examples for a specific command (e.g. `/jsat-help magic`) |
 
 ### Open Claude with JSAT context pre-loaded
@@ -770,9 +808,9 @@ findings forward to the next.
 | 7. Reflect | ithinking reflect | Log outcomes and decisions |
 
 ```bash
-jsat sprint "add rate limiting to the checkout API"
-jsat sprint --stage 4 "add rate limiting"    # resume from Review
-jsat sprint --dry "redesign auth flow"       # show plan without running
+/jsat sprint "add rate limiting to the checkout API"
+/jsat sprint --stage 4 "add rate limiting"    # resume from Review
+/jsat sprint --dry "redesign auth flow"       # show plan without running
 ```
 
 ---
@@ -1034,7 +1072,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 
 | Command | Description |
 |---|---|
-| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 41 slash commands |
+| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 47 slash commands |
 | `jsat connect claude --global` | Wire JSAT into Claude Code globally (all projects) |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
 | `jsat connect codex` | Wire JSAT into OpenAI Codex CLI via `~/.codex/config.toml` + `~/.codex/skills/jsat/SKILL.md` |
@@ -1080,6 +1118,19 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat skills run <name>` | Run a named skill with optional `key=val` args |
 | `jsat ci-setup` | Write a GitHub Actions workflow for JSAT |
 | `jsat ci-setup --provider gitlab` | Write a GitLab CI pipeline for JSAT |
+
+### Maintenance
+
+| Command | Description |
+|---|---|
+| `jsat clean` | Remove cached data from `.jsat/` — flags: `--cache`, `--graph`, `--vectors`, `--history` |
+| `jsat clean --all` | Full reset — delete cache, graph, vectors, and prompt history |
+| `jsat update` | Self-upgrade JSAT via pip |
+| `jsat update --pre` | Include pre-release versions |
+| `jsat knowledge-ingest <path>` | Bulk-ingest markdown files (CLAUDE.md, ADRs, runbooks) into the knowledge base |
+| `jsat knowledge-ingest . --pattern "**/*.md" --dry-run` | Preview what would be ingested without writing |
+| `jsat mcp-server` | Start the JSAT MCP server on stdin/stdout — invoked automatically by Claude Code/Cursor; rarely run directly |
+| `jsat mcp-server --repo /path --verbose` | Run manually against a specific repo with debug logging |
 
 ---
 

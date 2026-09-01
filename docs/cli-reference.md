@@ -409,9 +409,15 @@ jsat prompt --single "what does the payment service do?"
 
 Session file written to `~/.jsat/sessions/prompt-<slug>-<ts>.md`; actions file auto-executed after Phase 6.
 
-### `jsat magic`
+> **Note:** The five sections below (`magic`, `plan`, `decide`, `sprint`, `cohesion`) are **AI skills**,
+> not real `jsat` CLI subcommands — they do not appear in `jsat --help` and cannot be run from a plain
+> shell. They are invoked as `/jsat <name> ...` from inside a connected AI tool (Claude Code, Codex, etc.)
+> once `jsat connect claude` (or the equivalent `connect` command) has installed the `/jsat` dispatcher.
+> See [`/jsat` dispatcher](#jsat-dispatcher) below for how the dispatcher routes these.
 
-AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 41,
+### `/jsat magic` *(AI skill, not a `jsat` CLI subcommand — run inside a connected AI tool such as Claude Code or Codex)*
+
+AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 47,
 and runs them in the optimal order.
 
 ```bash
@@ -431,7 +437,7 @@ and runs them in the optimal order.
 
 Session file written to `~/.jsat/sessions/magic-<slug>-<ts>.md`; actions file auto-executed after synthesis.
 
-### `jsat plan`
+### `/jsat plan` *(AI skill, not a `jsat` CLI subcommand)*
 
 Pre-implementation planning gate. Six forcing questions + scope, architecture, and security review.
 
@@ -441,7 +447,7 @@ Pre-implementation planning gate. Six forcing questions + scope, architecture, a
 /jsat plan --security add a new admin endpoint
 ```
 
-### `jsat decide`
+### `/jsat decide` *(AI skill, not a `jsat` CLI subcommand)*
 
 Architectural decision journal. Log decisions; retrieve by file, topic, or blast-radius context.
 
@@ -452,7 +458,7 @@ Architectural decision journal. Log decisions; retrieve by file, topic, or blast
 /jsat decide list adr
 ```
 
-### `jsat sprint`
+### `/jsat sprint` *(AI skill, not a `jsat` CLI subcommand)*
 
 Seven-stage delivery workflow: Think → Plan → Build → Review → Test → Ship → Reflect.
 
@@ -471,7 +477,7 @@ Seven-stage delivery workflow: Think → Plan → Build → Review → Test → 
 
 Session file written to `~/.jsat/sessions/sprint-<slug>-<ts>.md`; actions file auto-executed after Stage 7.
 
-### `jsat cohesion`
+### `/jsat cohesion` *(AI skill, not a `jsat` CLI subcommand)*
 
 Code health analysis — flags oversized files, high-complexity functions, and mixed responsibilities.
 
@@ -572,7 +578,7 @@ JSAT works as an MCP server with any AI tool that supports the Model Context Pro
 
 ### `jsat connect claude`
 
-Wire JSAT into Claude Code as an MCP server and install the `/jsat` dispatcher (41 subcommands) and `/jsat-help`.
+Wire JSAT into Claude Code as an MCP server and install the `/jsat` dispatcher (47 subcommands) and `/jsat-help`.
 
 ```
 jsat connect claude [OPTIONS]
@@ -600,11 +606,11 @@ Restart Claude Code after running.
 
 `jsat connect claude` installs two commands:
 
-- **`/jsat <subcommand>`** — single dispatcher routing to all 41 skills
-- **`/jsat-help [command]`** — standalone help command; no args lists all 41 commands with one-liners; `/jsat-help <command>` shows full flags and examples
+- **`/jsat <subcommand>`** — single dispatcher routing to all 47 skills
+- **`/jsat-help [command]`** — standalone help command; no args lists all 47 commands with one-liners; `/jsat-help <command>` shows full flags and examples
 
 ```bash
-/jsat-help               # list all 41 subcommands with descriptions
+/jsat-help               # list all 47 subcommands with descriptions
 /jsat-help magic         # full flags and examples for /jsat magic
 /jsat query <question>   # answer codebase questions (6-phase Discuss→Verify)
 /jsat crack <task>       # multi-agent war room (artifact carry-forward)
@@ -853,7 +859,7 @@ jsat connect bob --global                   # global — all Bob sessions (recom
 
 Writes:
 - `.bob/settings.json` (or `~/.bob/settings.json`) — MCP server registration
-- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 41 slash commands
+- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 47 slash commands
 - `BOB.md` — JSAT tool guidance (Bob Shell reads from project root automatically)
 
 ---

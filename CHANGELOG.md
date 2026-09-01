@@ -4,6 +4,124 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.15] — 2026-09-01
+
+### Added
+
+- **`jsat-internet` skill** (`/jsat internet [query] <question>`) — the one
+  sanctioned exception to the "use only `jsat__*` MCP tools" rule, since no
+  `jsat__*` tool reaches the live internet. Runs a native `WebSearch`/`WebFetch`
+  lookup (docs, current library versions, public CVEs, best-practice guidance),
+  with a redaction pass before anything leaves the machine, prompt-injection
+  caution on fetched page content, mandatory source citation, and an optional
+  `--context` flag to also ground the answer against this codebase via
+  `jsat__query`. Wired into `/jsat magic` as an opt-in "Layer W" — never
+  auto-selected for a task that's purely about this repo's own code.
+- **`jsat-help.md` is now a generated artifact, not hand-maintained.**
+  `_generate_help_body()` (`jsat/_cli_skills_data.py`) builds it fresh from the
+  live `jsat/commands/jsat-*.md` catalog every time `jsat connect <tool>` runs
+  — the same source of truth the main dispatcher and Codex skill already use —
+  so it can no longer drift stale (it previously listed deleted commands and
+  omitted new ones after a catalog change).
+- **Default AI input-correction before every `/jsat <command>` routes.**
+  Free-form `/jsat` invocations are now run through an AI prompt-rewrite pass
+  (spelling/grammar correction, clarity tightening) before being routed to the
+  matching command, across both the Claude and Codex dispatchers. Skipped
+  automatically for literal payloads (diffs, file paths, code blocks, git
+  refs, URLs) and for any call passing `raw=true`. If the rewrite materially
+  changes the input, the rewritten text is shown back to the user
+  (`📝 Interpreted as: ...`) rather than silently substituted.
+- **Post-completion Learning Module.** After every `/jsat <command>` finishes,
+  a lightweight pass checks whether anything durable was learned: facts about
+  the current project are saved to that project's knowledge base
+  (`jsat__knowledge_add(..., category="project-learning")`); facts about
+  JSAT's own tools/skills misbehaving are saved to a `/jsat improve` backlog
+  (`category="jsat-improvement"`) instead of being patched inline. Most
+  invocations save nothing — this only fires when something concrete
+  surfaced.
+- **New `/jsat` skills**: `merge`, `rebase`, `cherry-pick` (git-mutation
+  workflows with non-destructive conflict forecasting, fast-forward
+  short-circuits, and explicit confirmation before any mutating step),
+  `verify`, `pr-describe`, `service-health-check`, `changelog`, `dead-code`,
+  `upgrade-impact`.
+- Catalog cleanup: `think`, `reflect`, `token-budget`, and `knowledge-add`
+  were folded into `ithinking`'s subcommands, `tokens --model`, and
+  `knowledge add` respectively, removing four redundant/overlapping commands.
+
+### Fixed
+
+Whole-project security and correctness audit (5 parallel deep-review passes
+plus `ruff`/`mypy`/the full `pytest` suite, followed by 4 parallel fix passes
+— every fix below ships with a regression test):
+
+- **Zip-slip path traversal in `jsat import`** (`jsat/tools/export.py`) — a
+  crafted archive could write outside `.jsat/` via `../` or an absolute entry
+  name; extraction targets are now validated to stay inside the destination
+  root.
+- **Shell/command injection (3 separate cases)**: the API-key-to-shell-profile
+  writer (`jsat/tools/shell.py`), `--token-env` in Codex GitHub connect
+  (`jsat/_cli_connect.py`), and the repo path in `jsat index --watch`
+  (`jsat/_cli_index.py`) all now quote/validate untrusted input before it
+  reaches a shell string.
+- **`jsat knowledge-ingest` crashed unconditionally**, even with `--dry-run`
+  (`jsat/_cli_tools.py` referenced a nonexistent `IngestRecord.source_file`
+  attribute).
+- **Neo4j-backed repos silently got wrong or crashing results** from `query`,
+  `blast_radius`, and other tools: raw SQLite SQL was being sent to Neo4j as
+  Cypher. `Neo4jGraph.query()` now fails loudly with a clear error instead of
+  crashing unhandled or silently returning an empty/placeholder result.
+- **`lightgraph` backend was silently unreachable** — `backend: lightgraph`
+  fell through to SQLite with no warning despite being a documented option;
+  now correctly wired.
+- **`get_index_status`/`doctor` always reported `is_fresh: true`**, even long
+  after the repo changed with no re-index — now compares the indexed commit
+  against current HEAD.
+- **`get_test_gaps` on a single file silently reported "0% coverage, 0
+  untested functions"** (a self-contradictory result) instead of checking the
+  file itself — `Path.rglob()` on a file (not a directory) yields nothing,
+  with no error.
+- **The entropy-based secret scanner had a systemic false-positive bug** —
+  it flagged its own regex-pattern definitions and ordinary long identifiers
+  as "high-entropy secrets" (14 of 14 findings on this repo's own `jsat/`
+  package were false positives). Token extraction now uses the same
+  charset-restricted regex real secrets are made of, plus a heuristic for
+  literal alphabet/charset-enumeration strings, which are high-entropy by
+  construction regardless of tokenization.
+- **`security_review`'s `severity_threshold` only filtered Semgrep findings**
+  — secret and CVE findings ignored it entirely; now filtered uniformly.
+- **Several scoping/filter parameters were silent no-ops**: `query`'s
+  `service` filter only scoped the Service summary (Endpoint/Table/Function/
+  Class sections ignored it); `incident`'s `services` filter was never
+  threaded through to commit scoring; `blast_radius` fabricated a fake start
+  node for an unresolved target instead of returning empty, so its "no start
+  nodes found" warning could never fire.
+- **`contract` never flagged a newly-required field as a breaking change** —
+  only field/endpoint removals were classified breaking.
+- **`migration` always classified `ALTER TABLE ADD COLUMN` as a safe
+  metadata-only lock**, even with `NOT NULL DEFAULT ...`, which triggers a
+  full-table-rewrite-class lock on Postgres <11.
+- **Malformed JSON config files were silently overwritten** by every
+  `jsat connect <tool>` variant instead of aborting with a clear error.
+- **AI provider error handling was inconsistent** across `ollama`/
+  `anthropic`/`openai`: a few paths leaked a raw SDK exception (missing
+  response key, client-construction failure, connection/status errors)
+  instead of the normalized `AIProviderError`/`AIAuthError` used everywhere
+  else.
+- **`jsat stop <tool>` left orphaned child processes on macOS/Windows** — the
+  descendant-process lookup relied on Linux's `/proc`, now falls back to
+  `psutil`.
+- **MCP server hardening**: hard-timed-out tool calls are now tracked
+  (previously silently abandoned, with a risk of two calls running
+  concurrently against shared state); concurrent `/jsat` dashboard sessions
+  with different names no longer collide into one tab; a Prometheus
+  metrics-port conflict now fails synchronously instead of reporting success
+  before the bind error surfaces.
+- **Knowledge-base re-ingestion accumulated permanent duplicates** — editing
+  a living doc (CLAUDE.md, an ADR, a runbook) and re-running
+  `ingest_directory`/`scan_repo` never superseded the prior version; entries
+  are now flagged stale when a newer ingestion from the same source file
+  lands.
+
 ## [0.4.14] — 2026-08-31
 
 ### Added

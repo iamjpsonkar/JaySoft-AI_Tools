@@ -85,7 +85,7 @@ Connect JSAT as an MCP server so your AI tool can call JSAT without leaving the 
 Claude commands:
 
 1. Write a JSAT MCP server entry into the Claude settings file
-2. Install 41 `/jsat-*` slash command skill files in the Claude commands directory
+2. Install 47 `/jsat-*` slash command skill files in the Claude commands directory
 
 === "OpenAI Codex CLI"
 
@@ -303,7 +303,7 @@ Running `jsat index` and `jsat connect claude` creates these files:
     └── .claude/
         ├── settings.json    # MCP server entry (jsat connect claude)
         └── commands/
-            └── jsat-*.md    # 41 slash command files
+            └── jsat-*.md    # 47 slash command files
     ```
 
 === "Global connect (jsat connect claude --global)"

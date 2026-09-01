@@ -36,6 +36,19 @@ The 15 tools correspond to the Python modules in `jsat/tools/`:
 | 13 | SDK | (the `JSAT` class itself — `_core.py`) |
 | 14 | IThinking | `tools/ithinking.py` |
 
+> **Two different kinds of "tool" below.** Tools 0–16 and 26 (Shell, Indexer, TestHelper,
+> FeatureHelper, BlastRadius, ContractValidator, SecurityReview, IncidentHelper,
+> MigrationValidator, MultiModelReview, KnowledgeBase, Orchestrator, Export, SDK, IThinking,
+> Token Optimizer, JSAT Crack, Improve) are each backed by a dedicated Python module under
+> `jsat/tools/` and most are also real `jsat <command>` CLI subcommands. Tools 18–25 (Smart,
+> Lazy, Aw, Magic, Plan, Decide, Sprint, Cohesion) have **no dedicated `jsat/tools/` module** —
+> they exist only as AI-skill prompt files (`jsat/commands/jsat-<name>.md`) invoked via the
+> `/jsat <name>` dispatcher inside a connected AI tool (Claude Code, Codex, etc.), not as
+> standalone shell commands. Tool 17 (Short) is a partial exception: `jsat short` *is* a real
+> CLI command, but it is implemented inline in `jsat/_cli_tools.py` rather than via a dedicated
+> `jsat/tools/` module, and it also has a `/jsat-short` skill wrapper for AI-tool use. Each
+> affected heading below is tagged accordingly.
+
 ---
 
 ## Tool 0 — Shell
@@ -961,7 +974,7 @@ If no AI is configured, each agent returns a structural placeholder based on the
 
 ---
 
-## Tool 17 — JSAT Short
+## Tool 17 — JSAT Short *(real CLI command, but no dedicated `jsat/tools/` module — implemented inline)*
 
 Get the briefest possible correct answer to any question. Prepends a brevity constraint to any query.
 
@@ -1000,7 +1013,7 @@ jsat short --words 20 "explain the retry logic"
 
 ---
 
-## Tool 18 — Smart
+## Tool 18 — Smart *(skill-only, no dedicated jsat/tools/ module)*
 
 Terse compression mode that strips filler language from answers while preserving code, function names, file paths, and data byte-for-byte.
 
@@ -1032,7 +1045,7 @@ jsat smart --lite "explain the checkout flow"
 
 ---
 
-## Tool 19 — Lazy
+## Tool 19 — Lazy *(skill-only, no dedicated jsat/tools/ module)*
 
 Reuse-first planning tool. Before suggesting new code, runs a 5-rung ladder against the indexed graph and stops at the first match.
 
@@ -1067,7 +1080,7 @@ If any rung finds a match, it stops and reports: "Already exists — reuse this.
 
 ---
 
-## Tool 20 — Aw (Workflow Advisor)
+## Tool 20 — Aw (Workflow Advisor) *(skill-only, no dedicated jsat/tools/ module)*
 
 Classifies a task into one of 7 types and runs the optimal JSAT tool sequence for that type. Each step uses output from prior steps as context.
 
@@ -1102,12 +1115,12 @@ Classifies a task into one of 7 types and runs the optimal JSAT tool sequence fo
 
 ---
 
-## Tool 21 — Magic
+## Tool 21 — Magic *(skill-only, no dedicated jsat/tools/ module)*
 
 **Slash command:** `/jsat magic <task>`
 
 The only JSAT skill with no fixed template. Analyzes any task, composes a minimal
-sufficient skill sequence from all 41 JSAT commands using a 6-layer dependency model, executes
+sufficient skill sequence from all 47 JSAT commands using a 6-layer dependency model, executes
 each skill adaptively, and converges when the task is answerable.
 
 | Layer | Skills used |
@@ -1142,7 +1155,7 @@ each skill adaptively, and converges when the task is answerable.
 
 ---
 
-## Tool 22 — Plan
+## Tool 22 — Plan *(skill-only, no dedicated jsat/tools/ module)*
 
 **Slash command:** `/jsat plan <task>`
 
@@ -1175,7 +1188,7 @@ then runs up to three review perspectives.
 
 ---
 
-## Tool 23 — Decide
+## Tool 23 — Decide *(skill-only, no dedicated jsat/tools/ module)*
 
 **Slash command:** `/jsat decide <subcommand>`
 
@@ -1203,7 +1216,7 @@ Decisions are retrievable by file, topic, or blast-radius context.
 
 ---
 
-## Tool 24 — Sprint
+## Tool 24 — Sprint *(skill-only, no dedicated jsat/tools/ module)*
 
 **Slash command:** `/jsat sprint <task>`
 
@@ -1234,7 +1247,7 @@ Ship readiness (yes/no based on Stage 6), plus decisions worth logging.
 
 ---
 
-## Tool 25 — Cohesion
+## Tool 25 — Cohesion *(skill-only, no dedicated jsat/tools/ module)*
 
 **Slash command:** `/jsat cohesion [path]`
 

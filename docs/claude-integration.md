@@ -1,6 +1,6 @@
 # Claude Integration
 
-JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the `/jsat` slash command with 41 subcommands.
+JSAT integrates with Claude Code as an MCP (Model Context Protocol) server. After connecting, Claude can call JSAT tools automatically during a conversation, and you get the `/jsat` slash command with 47 subcommands.
 
 ## How It Works
 
@@ -11,7 +11,7 @@ Claude Code  ←→  MCP (stdin/stdout JSON-RPC)  ←→  jsat mcp-server  ←�
 When you run `jsat connect claude`, JSAT:
 
 1. Writes an MCP server entry into `.claude/settings.json` (or `~/.claude/settings.json` for global scope)
-2. Installs the `/jsat` dispatcher skill file (`~/.claude/commands/jsat.md`) containing all 41 subcommands
+2. Installs the `/jsat` dispatcher skill file (`~/.claude/commands/jsat.md`) containing all 47 subcommands
 3. Installs `/jsat-help` as a standalone skill file (`~/.claude/commands/jsat-help.md`)
 
 Claude Code reads these on startup, starts the `jsat mcp-server` process, and makes all JSAT tools available during your session.
@@ -83,7 +83,7 @@ jsat connect list
 
 ## Slash Commands
 
-A single `/jsat` dispatcher is installed into Claude Code when you run `jsat connect claude`. It routes to 41 subcommands, organized into layers:
+A single `/jsat` dispatcher is installed into Claude Code when you run `jsat connect claude`. It routes to 47 subcommands, organized into layers:
 
 ```
 /jsat <subcommand> [args]
@@ -127,7 +127,7 @@ Two flags work on **every** `/jsat` command — strip them from `$ARGUMENTS` bef
 | **Index** | `index`, `ithinking` |
 | **Maintain** | `improve` |
 
-> **`/jsat-help`** is a separate command (not a subcommand of `/jsat`): `/jsat-help` lists all 41 with one-liners; `/jsat-help <command>` shows full flags and examples for that command. `/jsat-help universal-flags` explains `timeout=<N>` and `dashboard=true`.
+> **`/jsat-help`** is a separate command (not a subcommand of `/jsat`): `/jsat-help` lists all 47 with one-liners; `/jsat-help <command>` shows full flags and examples for that command. `/jsat-help universal-flags` explains `timeout=<N>` and `dashboard=true`.
 
 ### Common examples
 

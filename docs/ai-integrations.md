@@ -18,10 +18,34 @@ keep model ownership, local pulls, cloud sign-in, and managed lifecycle commands
 | Auto-connect on launch | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ |
 | `jsat connect <tool>` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `--scope project/global` | ✅ | Global only | Global only | ✅ | — (global) | — (global) | — (global) | — (global) | ✅ |
-| Skills / custom commands | 41 slash cmds | `$jsat` dispatcher | `/jsat` + `/jsat-help` | .cursorrules | .windsurfrules | 10 custom cmds | .zed/JSAT.md | GEMINI.md | 41 slash cmds + BOB.md |
+| Skills / custom commands | 47 slash cmds | `$jsat` dispatcher | `/jsat` + `/jsat-help` | .cursorrules | .windsurfrules | 10 custom cmds | .zed/JSAT.md | GEMINI.md | 47 slash cmds + BOB.md |
 | `switch <tool>` in shell | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | ✅ | ✅ |
 | `--keep-guidance` on disconnect | ✅ | ✅ | n/a | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Tool type | CLI | CLI | CLI | GUI | GUI | IDE ext | GUI | CLI | CLI |
+
+---
+
+## Universal Behaviors (every connected tool)
+
+Two behaviors ship with every `/jsat <command>` (or `$jsat`) dispatcher, regardless of which
+AI tool is connected — Claude Code, Codex, OpenCode, Cursor, Windsurf, Continue, Zed, Gemini
+CLI, and Bob Shell all get the same behavior because it's built into the generated dispatcher
+text, not into any one integration.
+
+**Input correction (on by default).** Before routing, free-form ARGS are rewritten via
+`jsat__prompt_rewrite` to fix spelling, grammar, and phrasing without changing intent.
+Literal payloads — file paths, diffs, code blocks, git refs, URLs — are left untouched so a
+misspelled path like `fix src/paymnet/service.py` still resolves correctly. If the rewrite
+materially changes ARGS, the dispatcher tells you what changed before routing. Pass
+`raw=true` on any call to skip this step and use ARGS exactly as typed.
+
+**Learning module (after every command).** Once a command's reply is given, the dispatcher
+asks whether anything durable was learned — most calls yield nothing new and are skipped
+silently. A concrete, project-specific fact (a gotcha, a verified false positive, a
+non-obvious dependency) is saved to the project's knowledge base via `jsat__knowledge_add`.
+A concrete gap in JSAT's own tools or skills is saved instead to the `jsat improve` backlog,
+feeding future `jsat improve` runs. Either way you'll see a one-line `Learned: ...` note
+naming where it was saved.
 
 ---
 
@@ -120,11 +144,11 @@ jsat connect claude --no-skills          # MCP only, skip slash commands
 
 **What gets installed (global):**
 - `~/.claude/settings.json` — MCP server config
-- `~/.claude/commands/jsat-*.md` — 41 slash commands
+- `~/.claude/commands/jsat-*.md` — 47 slash commands
 
 **What gets installed (project):**
 - `.claude/settings.json` — MCP server config
-- `.claude/commands/jsat-*.md` — 41 slash commands
+- `.claude/commands/jsat-*.md` — 47 slash commands
 
 **Slash commands:** `/jsat-query`, `/jsat-blast-radius`, `/jsat-security`, `/jsat-review`,
 `/jsat-test-gaps`, `/jsat-knowledge`, `/jsat-incident`, `/jsat-prompt`,
@@ -288,7 +312,7 @@ loaded from `.bob/` and `BOB.md`, so nothing is injected as a throwaway prompt.
 
 **What gets installed:**
 - `.bob/settings.json` (project) or `~/.bob/settings.json` (global) — MCP server config
-- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 41 `/jsat-*` slash commands
+- `.bob/commands/jsat-*.md` (or `~/.bob/commands/`) — 47 `/jsat-*` slash commands
 - `BOB.md` — JSAT tool guidance (Bob Shell reads from project root)
 
 **Slash commands:** type `/` in Bob Shell to browse them — `/jsat-query`,
