@@ -3,6 +3,7 @@ jsat._cli_skills_data — Static skill definitions and command writers.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import structlog
@@ -1442,11 +1443,15 @@ def _extract_flags_examples(body: str) -> tuple[str, str]:
     """
     lines = body.splitlines()
     flag_lines: list[str] = []
+    flag_line_re = re.compile(r"^--[A-Za-z]")
     for line in lines:
         stripped = line.strip()
         # A flag definition line is near-universally "  --name ... " or
-        # "  --name <arg>   → description" across the whole catalog.
-        if stripped.startswith("--") and len(flag_lines) < 8:
+        # "  --name <arg>   → description" across the whole catalog. Require a
+        # letter immediately after "--" so this doesn't also match markdown
+        # "---" dividers or prose that happens to use "--" as a dash (both
+        # confirmed polluting the generated Flags block before this fix).
+        if flag_line_re.match(stripped) and len(flag_lines) < 8:
             flag_lines.append("  " + stripped)
     flags_block = "\n".join(flag_lines) if flag_lines else "  (no flags — see /jsat <command> for full behavior)"
 
@@ -1786,9 +1791,15 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
 
     lines += ["", "---", ""]
 
-    # Embed each skill file's body as a named section
+    # Embed each skill file's body as a named section. Skip "help" — its
+    # generated content (built above via _generate_help_body) is already
+    # ~800 lines and has its own "## help" table section earlier in this
+    # preamble; embedding it again here duplicated the whole file into
+    # jsat.md a second time until this fix.
     for fpath in skill_files:
         short = fpath.stem.removeprefix("jsat-")
+        if short == "help":
+            continue
         content = fpath.read_text(encoding="utf-8")
         desc = _frontmatter_desc(content)
         body = _strip_frontmatter(content)
@@ -1853,6 +1864,17 @@ def _write_codex_skill(skill_dir: Path | None = None) -> Path:
         text = text.replace("by you, Claude", "by you, Codex")
         text = text.replace("Claude Code slash commands", "JSAT Codex commands")
         text = text.replace("Claude Code slash command", "JSAT Codex command")
+        text = text.replace("Claude Code skill", "Codex skill")
+        text = text.replace("Claude session", "Codex session")
+        text = text.replace("`claude mcp list`", "your MCP client's server-list command")
+        text = text.replace("Read tool", "a file read")
+        text = text.replace("`jsat connect claude`", "`jsat connect codex`")
+        text = text.replace("jsat connect claude", "jsat connect codex")
+        # CLAUDE.md is Claude Code's per-project instructions file; AGENTS.md is
+        # the equivalent convention for Codex-style agents (this repo's own
+        # root file is AGENTS.md) — confirmed leaking untranslated into the
+        # generated Codex skill before this fix (jsat-service-health-check.md).
+        text = text.replace("CLAUDE.md", "AGENTS.md")
         text = re.sub(r"/jsat-([A-Za-z0-9_-]+)", r"$jsat \1", text)
         text = text.replace("/jsat ", "$jsat ")
         return text
@@ -1933,6 +1955,8 @@ def _write_codex_skill(skill_dir: Path | None = None) -> Path:
 
     for fpath in skill_files:
         short = fpath.stem.removeprefix("jsat-")
+        if short == "help":
+            continue  # same duplication as jsat.md — see the parallel fix there
         content = fpath.read_text(encoding="utf-8")
         desc = _codex_text(_frontmatter_desc(content))
         body = _codex_text(_strip_frontmatter(content))

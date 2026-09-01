@@ -233,7 +233,9 @@ def test_ollama_positional_tool_name_routes_to_tool_launch(monkeypatch, tmp_path
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    result = runner.invoke(app, ["ollama", "--repo", str(tmp_path), "opencode", "--model", "qwen3.5"])
+    result = runner.invoke(
+        app, ["ollama", "--repo", str(tmp_path), "opencode", "--model", "qwen3.5"]
+    )
 
     assert result.exit_code == 0
     assert captured["cmd"] == ["/fake/bin/ollama", "launch", "opencode", "--model", "qwen3.5"]

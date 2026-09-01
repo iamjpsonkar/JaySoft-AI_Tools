@@ -38,8 +38,10 @@ both are present in $ARGUMENTS.
 `model` is a required argument to jsat__token_budget (no server-side default) — if
 neither --model nor --budget was given but a budget check is being requested, ask
 which model, or introspect the assistant's own current model name; do not guess a
-hardcoded string (see jsat-token-budget.md for why a mismatched name can silently
-prefix-match the wrong context-window entry).
+hardcoded string — a mismatched or misspelled model name can silently prefix-match
+the wrong context-window entry in the tool's internal model table (e.g. a typo'd
+"claude-3" variant matching an unrelated older entry instead of erroring), giving a
+budget verdict for the wrong model with no indication anything went wrong.
 
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):

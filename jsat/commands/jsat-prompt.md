@@ -189,7 +189,7 @@ After Phase 6: set status → completed. Print: "✅ Session complete: <path>"
 From Phase 6 synthesis, extract concrete follow-up work:
   - Fixes for ⚠️ unverified claims (look them up and correct the answer)
   - Decisions to log (run /jsat decide log)
-  - Knowledge to store (run /jsat knowledge-add)
+  - Knowledge to store (run /jsat knowledge add)
   - Tests or verification steps recommended
 
 Write ~/.jsat/sessions/prompt-actions-<SLUG>-<YYYYMMDD-HHMM>.md.

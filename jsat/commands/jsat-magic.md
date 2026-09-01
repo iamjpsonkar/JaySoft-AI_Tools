@@ -333,7 +333,7 @@ blast-radius sub-call if you need deeper traversal on a fast repo.
   - Open risks not yet resolved: <anything from CONVERGE rubric (b) still open — say "none" if clean>
   - Actions: <1-3 concrete next steps>
   - Log a decision? <yes/no — if yes: /jsat decide log <decision>>
-  - Record outcome? <yes/no — if yes: /jsat reflect <outcome>>
+  - Record outcome? <yes/no — if yes: /jsat ithinking reflect subtask=<outcome>>
 
 Update session file frontmatter: status → completed.
 Print: "✅ Session complete: ~/.jsat/sessions/<filename>"

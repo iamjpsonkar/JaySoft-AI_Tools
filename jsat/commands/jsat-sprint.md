@@ -71,21 +71,27 @@ the start, not be added ad hoc later). Every stage below writes into this
 section, not just Stage 1.
 Print: "📄 Session: <path>"
 
-AI-DEPENDENCY WARNING (applies to every stage below): Stages 1, 2 (query call),
-4 (fallback query call), and 7 call jsat__ithinking_plan / jsat__query /
-jsat__ithinking_audit_assumptions / jsat__ithinking_reflect, all of which need a
-working LLM backend and can return "[AI unavailable: ..." when the provider is
-down — a common failure mode, not a rare one. If any stage's call returns that,
-do NOT record the error text as the stage's finding and mark it [x] as if it
-succeeded — that corrupts every later stage's context and --continue's resume
-point. Instead: mark the stage's checklist item with a "⚠ blocked: AI
-unavailable" note (not [x]), stop the sprint there, and tell the user to fix
-the AI provider (e.g. `jsat doctor`) and resume with --continue once it's back.
-Stages 3, 5, and 6 use only jsat__get_function/jsat__blast_radius/
-jsat__get_test_gaps, which are pure graph lookups with no LLM dependency, so
-they can proceed even while AI is down — running them out of order to make
-partial progress is fine, but Stage 7's Reflect still needs AI and should stay
-blocked until it's back.
+AI-DEPENDENCY WARNING (applies to every stage below): only Stage 2's
+jsat__query call and Stage 4's fallback jsat__query call need a working LLM
+backend and can return "[AI unavailable: ..." when the provider is down — a
+common failure mode, not a rare one. jsat__ithinking_plan (Stage 1),
+jsat__ithinking_audit_assumptions (used inside Stage 1/2's planning per
+jsat-ithinking.md), and jsat__ithinking_reflect (Stage 7) are pure offline/
+algorithmic tools with no LLM call anywhere in their implementation — they
+always succeed regardless of AI backend status, matching jsat-magic.md's own
+"ithinking's plan/reflect are NOT AI-backed" note. Do not block Stage 1 or
+Stage 7 on an AI-unavailable check; only Stage 2/4's query calls need it.
+If Stage 2 or 4's query call returns "[AI unavailable...", do NOT record the
+error text as the stage's finding and mark it [x] as if it succeeded — that
+corrupts every later stage's context and --continue's resume point. Instead:
+mark that stage's checklist item with a "⚠ blocked: AI unavailable" note (not
+[x]), stop the sprint there, and tell the user to fix the AI provider (e.g.
+`jsat doctor`) and resume with --continue once it's back.
+Stages 1, 3, 5, 6, and 7 use only jsat__ithinking_plan/get_function/
+blast_radius/get_test_gaps/ithinking_reflect — none need an LLM backend — so
+they can all proceed even while AI is down; running them out of order to make
+partial progress is fine, and only Stage 2/4's query step should ever show as
+blocked.
 
 ### Stage 1 — Think (~10s)
 Call: jsat__ithinking_plan(task=<task>)

@@ -189,8 +189,6 @@ Flags:
   --phases N   → run in N phases (2-6, default: 6)
   --single     → run all agents at once (original one-shot behavior, may timeout)
   --continue   → resume the most recent in_progress crack session
-  ---
-  ---
   --continue will retry it once the backend is fixed, and STOP the war room rather
   --phases value; a phase-number reference that happened to be correct in 6-phase
 
@@ -404,7 +402,7 @@ Flags:
   --service <name>  → scope all skills to one service (avoids timeout)
   --preview         → compose plan only, do NOT run any skills
   --continue        → resume the most recent in_progress magic session
-  ---
+  --generate to Layer 5). When you add a skill this way, ALSO append it to the
 
 Examples:
 (see /jsat <command> for usage)

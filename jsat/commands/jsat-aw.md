@@ -40,7 +40,7 @@ Show the recommended sequence before running anything:
 
   feature:   jsat-lazy → jsat-find-function → jsat-blast-radius → jsat-crack → jsat-test-gaps
   bugfix:    jsat-recent → jsat-incident → jsat-find-function → jsat-blast-radius
-  security:  jsat-security → jsat-blast-radius --severity breaking → jsat-crack --phases 3 → jsat-knowledge-add
+  security:  jsat-security → jsat-blast-radius --severity breaking → jsat-crack --phases 3 → jsat-knowledge add
   understand:jsat-smart → jsat-trace → jsat-find-function → jsat-query
   incident:  jsat-incident → jsat-recent → jsat-blast-radius → jsat-runbook
   refactor:  jsat-lazy → jsat-blast-radius → jsat-test-gaps → jsat-crack → jsat-review
@@ -120,7 +120,7 @@ After all steps complete, produce:
   - Steps run: <N>
   - Key findings: <one bullet per step>
   - Recommended action: <1-2 concrete next steps>
-  - Save to knowledge base: <yes/no — if yes, use jsat-knowledge-add>
+  - Save to knowledge base: <yes/no — if yes, use jsat-knowledge add>
 
 ## Flags
 

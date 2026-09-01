@@ -44,6 +44,11 @@ def test_connect_codex_writes_only_global_config(monkeypatch, tmp_path):
     assert "Do not delegate this request" in skill_text
     assert "Claude Code" not in skill_text
     assert "by you, Claude" not in skill_text
+    assert "Claude session" not in skill_text
+    assert "claude mcp list" not in skill_text
+    assert "CLAUDE.md" not in skill_text
+    assert "jsat connect claude" not in skill_text
+    assert skill_text.count("\n## help\n") == 0
 
     assert not (repo / ".codex").exists()
     assert not (repo / "AGENTS.md").exists()
