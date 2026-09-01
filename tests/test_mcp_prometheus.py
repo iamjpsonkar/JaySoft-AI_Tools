@@ -45,6 +45,13 @@ def test_start_metrics_server_returns_false_synchronously_on_bind_conflict(monke
     """A port already in use must make start_metrics_server() return False
     immediately (not True followed by a silent background crash).
     """
+    # prometheus_client is an intentionally optional dependency (see this
+    # module's own docstring) — _make_metrics_handler() imports it
+    # unconditionally once _bind_server() is reached, so this test (which
+    # exercises the real bind path, not just the early env/port-validation
+    # returns the other two tests in this file cover) needs it installed.
+    # Skip cleanly on a minimal/core-only install instead of failing CI.
+    pytest.importorskip("prometheus_client")
     # Bypass real prometheus_client registration (not the thing under test here,
     # and re-registering the same metric names across tests in one process would
     # collide in prometheus_client's global CollectorRegistry).
@@ -75,6 +82,8 @@ def test_start_metrics_server_binds_synchronously_and_returns_true(monkeypatch):
     start_metrics_server() (not deferred into the daemon thread), and the
     function must return True only once the socket is genuinely listening.
     """
+    # See the skip note in the bind-conflict test above — same reason.
+    pytest.importorskip("prometheus_client")
     monkeypatch.setattr(prometheus, "_init_prometheus", lambda: True)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
