@@ -72,6 +72,7 @@ nav:
       - DeepSeek API: integrations/deepseek.md
   - Documentation:
       - Home: index.md
+      - Architecture: architecture.md
       - Getting Started: getting-started.md
       - Other AI clients: ai-integrations.md
       - AI Providers: ai-providers.md
