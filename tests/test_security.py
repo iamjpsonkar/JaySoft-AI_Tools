@@ -146,3 +146,66 @@ def test_severity_threshold_medium_keeps_everything_at_or_above(tool, tmp_path, 
 
     assert report.secrets_found == 1  # only "high" passes "medium" threshold
     assert len(report.cves) == 1
+
+
+# Entropy fallback must not false-positive on regex-pattern-literal source or
+# ordinary long identifiers — confirmed live on this repo's own jsat/_secrets.py
+# and jsat/_config.py before this fix (whitespace-split tokens included
+# surrounding punctuation, inflating entropy on non-secret text).
+@pytest.mark.ci
+def test_entropy_fallback_ignores_regex_pattern_literal(tool, tmp_path):
+    f = tmp_path / "patterns.py"
+    f.write_text(
+        "_P = (re.compile(r'\\\\bgh[ps]_[A-Za-z0-9]{36}\\\\b'), \"critical\")\n"
+    )
+    import structlog
+    log = structlog.get_logger("test")
+    count, findings = tool._detect_secrets(tmp_path, log)
+    entropy_findings = [x for x in findings if x.rule_id == "jsat.secret.high_entropy"]
+    assert entropy_findings == []
+
+
+@pytest.mark.ci
+def test_entropy_fallback_ignores_long_identifier(tool, tmp_path):
+    f = tmp_path / "config.py"
+    f.write_text("detected_profile_from_system_environment_probe = detected\n")
+    import structlog
+    log = structlog.get_logger("test")
+    count, findings = tool._detect_secrets(tmp_path, log)
+    entropy_findings = [x for x in findings if x.rule_id == "jsat.secret.high_entropy"]
+    assert entropy_findings == []
+
+
+@pytest.mark.ci
+def test_entropy_fallback_ignores_sequential_charset_literal(tool, tmp_path):
+    f = tmp_path / "sanitize.py"
+    f.write_text('_SAFE_STR_CHARS = set("abcdefghijklmnopqrstuvwxyz0123456789_")\n')
+    import structlog
+    log = structlog.get_logger("test")
+    count, findings = tool._detect_secrets(tmp_path, log)
+    entropy_findings = [x for x in findings if x.rule_id == "jsat.secret.high_entropy"]
+    assert entropy_findings == []
+
+
+@pytest.mark.ci
+def test_sequential_charset_literal_helper():
+    from jsat.tools.security import _is_sequential_charset_literal
+
+    assert _is_sequential_charset_literal("abcdefghijklmnopqrstuvwxyz0123456789_")
+    assert _is_sequential_charset_literal("0123456789")
+    assert not _is_sequential_charset_literal("aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789ab")
+
+
+@pytest.mark.ci
+def test_entropy_fallback_still_catches_real_looking_secret_in_punctuated_line(tool, tmp_path):
+    # A real secret embedded in a quoted assignment (punctuation around it)
+    # must still be caught — the fix narrows the *charset*, not the ability
+    # to find a token inside a normal line of code.
+    token = "aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789ab"
+    f = tmp_path / "leak.py"
+    f.write_text(f'SOME_TOKEN = "{token}"  # oops\n')
+    import structlog
+    log = structlog.get_logger("test")
+    count, findings = tool._detect_secrets(tmp_path, log)
+    entropy_findings = [x for x in findings if x.rule_id == "jsat.secret.high_entropy"]
+    assert len(entropy_findings) >= 1

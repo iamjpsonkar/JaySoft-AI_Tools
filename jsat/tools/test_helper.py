@@ -28,11 +28,32 @@ class TestHelperTool(BaseTool):
         import structlog
         log = structlog.get_logger(__name__)
         root = path or Path.cwd()
-        log.info("test_helper_start", root=str(root), service=service, types=types)
+        # Path.rglob() on a FILE (not a directory) silently yields nothing —
+        # no exception, just an empty iterator — so passing a single source
+        # file previously made both _find_tests()/_find_sources() return []
+        # unconditionally, producing a self-contradictory "0.0% coverage, 0
+        # untested functions" result (confirmed live: get_test_gaps on
+        # jsat/mcp/server.py, the single biggest/least-tested file in this
+        # repo, silently reported as if it had zero source lines at all).
+        # Treat a file path as single-file mode: the file itself is the one
+        # source file to check, and its containing directory is where we
+        # look for a matching test file.
+        single_file_mode = root.is_file()
+        search_root = root.parent if single_file_mode else root
+        log.info("test_helper_start", root=str(root), service=service, types=types,
+                 single_file_mode=single_file_mode)
         t0 = time.monotonic()
 
-        test_files = self._find_tests(root)
-        src_files = self._find_sources(root)
+        test_files = self._find_tests(search_root)
+        if single_file_mode:
+            # Mirror _find_sources()'s own exclusion rule: a file that is
+            # itself a test file (or lives under an excluded dir) has no
+            # source-file coverage question to ask.
+            is_own_test_file = "test" in root.name.lower()
+            is_excluded = any(ex in str(root) for ex in _EXCLUDES)
+            src_files = [] if (is_own_test_file or is_excluded) else [root]
+        else:
+            src_files = self._find_sources(search_root)
 
         untested = [str(s) for s in src_files if not self._has_test(s, test_files)]
         over_mocked = [str(t) for t in test_files if self._is_over_mocked(t)]

@@ -13,7 +13,7 @@ from typing import Any
 from jsat._call_context import checkpoint
 
 # Re-exported from jsat._secrets so low-level code can scan without importing BaseTool.
-from jsat._secrets import _SECRET_PATTERNS, _entropy
+from jsat._secrets import _SECRET_PATTERNS, _TOKEN_RE, _entropy
 from jsat.tools import BaseTool
 
 __all__ = ["SecurityTool", "_SECRET_PATTERNS", "_entropy"]
@@ -21,6 +21,30 @@ __all__ = ["SecurityTool", "_SECRET_PATTERNS", "_entropy"]
 _SCAN_EXTS = frozenset({".py", ".js", ".ts", ".go", ".yaml", ".env", ".json"})
 _SEVERITY_ORDER = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 _SEMGREP_MAP = {"ERROR": "critical", "WARNING": "high", "INFO": "medium"}
+
+# Fraction of adjacent character pairs that must ascend by exactly one code
+# point (…'a','b','c'… or …'0','1','2'…) before a token is treated as a
+# charset/alphabet literal rather than a candidate secret.
+_SEQUENTIAL_RUN_THRESHOLD = 0.6
+
+
+def _is_sequential_charset_literal(tok: str) -> bool:
+    """True if ``tok`` looks like an enumerated alphabet/charset string
+    (e.g. "abcdefghijklmnopqrstuvwxyz0123456789_") rather than a secret.
+
+    Confirmed live on this repo's own jsat/_improve/_sanitize.py: a literal
+    charset-definition string is, by construction, close to uniformly
+    distributed over its symbols — it always looks "high entropy" no matter
+    how the token is delimited, since that is not a property unique to
+    secrets. What DOES distinguish it from a real (effectively random) token
+    is that most of its characters form a strictly ascending run against
+    standard alphabet/digit ordering; a real secret's adjacent-character
+    deltas are close to random, not mostly +1.
+    """
+    if len(tok) < 2:
+        return False
+    ascending_pairs = sum(1 for a, b in zip(tok, tok[1:], strict=False) if ord(b) - ord(a) == 1)
+    return (ascending_pairs / (len(tok) - 1)) >= _SEQUENTIAL_RUN_THRESHOLD
 
 
 class SecurityTool(BaseTool):
@@ -157,9 +181,25 @@ class SecurityTool(BaseTool):
                             remediation="Remove secret from source. Use environment variables or a secrets manager.",  # noqa: E501
                             rule_id=f"jsat.secret.{pattern_name}",
                         ))
-                # Entropy fallback for unlabelled high-entropy tokens
-                for tok in line.split():
-                    if len(tok) >= min_token_len and _entropy(tok) > entropy_threshold:
+                # Entropy fallback for unlabelled high-entropy tokens. Extract
+                # candidates via the secret-charset-restricted regex (letters/
+                # digits/+//=/_/- only), NOT plain whitespace-splitting: a
+                # naive line.split() token includes surrounding punctuation
+                # (quotes, brackets, dots, parens), so regex-pattern-literal
+                # source lines and long snake_case identifier chains — neither
+                # of which is a secret — routinely exceed the entropy
+                # threshold once punctuation is counted in. Confirmed live:
+                # this repo's own _SECRET_PATTERNS regex definitions and an
+                # ordinary `detected_profile=detected`-style identifier were
+                # both false-positively flagged before this fix; restricting
+                # to the same charset a real token/key is actually made of
+                # eliminates both with no loss of real-secret detection.
+                for tok in _TOKEN_RE.findall(line):
+                    if (
+                        len(tok) >= min_token_len
+                        and _entropy(tok) > entropy_threshold
+                        and not _is_sequential_charset_literal(tok)
+                    ):
                         rel = str(fpath.relative_to(path) if path in fpath.parents else fpath)
                         findings.append(SecurityFinding(
                             file=rel, line=lineno,
