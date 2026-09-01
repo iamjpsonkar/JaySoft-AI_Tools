@@ -1,0 +1,2781 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="JSAT — JaySoft AI Tools. Open-source codebase intelligence shell and SDK.">
+      
+      
+        <meta name="author" content="Jay Prakash Sonkar">
+      
+      
+        <link rel="canonical" href="https://iamjpsonkar.github.io/JaySoft-AI_Tools/architecture/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../getting-started/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Architecture - JSAT Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#jsat-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="JSAT Docs" class="md-header__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            JSAT Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iamjpsonkar/JaySoft-AI_Tools
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integrations/claude/" class="md-tabs__link">
+          
+  
+  
+  Claude
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integrations/codex/" class="md-tabs__link">
+          
+  
+  
+  Codex
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integrations/opencode/" class="md-tabs__link">
+          
+  
+  
+  OpenCode
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integrations/bob/" class="md-tabs__link">
+          
+  
+  
+  Bob
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integrations/" class="md-tabs__link">
+          
+  
+  
+  Ollama
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integrations/deepseek/" class="md-tabs__link">
+          
+  
+  
+  DeepSeek
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="JSAT Docs" class="md-nav__button md-logo" aria-label="JSAT Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    JSAT Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    iamjpsonkar/JaySoft-AI_Tools
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Claude
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude + Ollama
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../claude-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude command reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codex
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Codex
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/codex/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native Codex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-codex/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codex + Ollama
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenCode
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OpenCode
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/opencode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native OpenCode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-opencode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenCode + Ollama
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bob
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Bob
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/bob/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bob Shell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ollama
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Ollama
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Choose a setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/ollama-local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Direct Ollama
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DeepSeek
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    DeepSeek
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/deepseek/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DeepSeek API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#verified-snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verified snapshot
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-runtime-layers-and-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Runtime layers and ownership
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Runtime layers and ownership">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#module-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-indexing-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Indexing pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Indexing pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parser-output-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser output model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-request-execution-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Request execution paths
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Request execution paths">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#direct-cli-or-sdk-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct CLI or SDK call
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-tool-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP tool call
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-how-the-major-feature-families-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. How the major feature families work
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. How the major feature families work">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#query-grounding-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query grounding pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-configuration-paths-and-deployment-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Configuration, paths, and deployment profiles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-ai-provider-selection-and-degradation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. AI provider selection and degradation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-self-improvement-privacy-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Self-improvement privacy boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-integration-and-process-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Integration and process lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-extensibility-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Extensibility map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-resilience-and-observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Resilience and observability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-testing-architecture-and-current-health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Testing architecture and current health
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-architectural-strengths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Architectural strengths
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-risks-and-known-debt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Risks and known debt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-recommended-evolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Recommended evolution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-reading-order-for-contributors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Reading order for contributors
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-integrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Other AI clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sdk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../publishing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#verified-snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verified snapshot
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-runtime-layers-and-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Runtime layers and ownership
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Runtime layers and ownership">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#module-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-indexing-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Indexing pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Indexing pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parser-output-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser output model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-request-execution-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Request execution paths
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Request execution paths">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#direct-cli-or-sdk-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct CLI or SDK call
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-tool-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP tool call
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-how-the-major-feature-families-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. How the major feature families work
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. How the major feature families work">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#query-grounding-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query grounding pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-configuration-paths-and-deployment-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Configuration, paths, and deployment profiles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-ai-provider-selection-and-degradation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. AI provider selection and degradation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-self-improvement-privacy-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Self-improvement privacy boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-integration-and-process-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Integration and process lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-extensibility-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Extensibility map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-resilience-and-observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Resilience and observability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-testing-architecture-and-current-health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Testing architecture and current health
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-architectural-strengths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Architectural strengths
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-risks-and-known-debt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Risks and known debt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-recommended-evolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Recommended evolution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-reading-order-for-contributors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Reading order for contributors
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="jsat-architecture">JSAT architecture<a class="headerlink" href="#jsat-architecture" title="Permanent link">&para;</a></h1>
+<p>This document explains how JSAT 0.4.14 is assembled and how requests move through it. It is
+based on the code and a refreshed self-index on 2026-09-01, not only on the public feature
+description.</p>
+<h2 id="verified-snapshot">Verified snapshot<a class="headerlink" href="#verified-snapshot" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th style="text-align: right;">Current value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python modules under <code>jsat/</code></td>
+<td style="text-align: right;">90</td>
+</tr>
+<tr>
+<td>Python source lines under <code>jsat/</code></td>
+<td style="text-align: right;">26,914</td>
+</tr>
+<tr>
+<td>Top-level CLI commands</td>
+<td style="text-align: right;">33</td>
+</tr>
+<tr>
+<td>MCP tools</td>
+<td style="text-align: right;">69</td>
+</tr>
+<tr>
+<td>Shipped slash-command documents</td>
+<td style="text-align: right;">41</td>
+</tr>
+<tr>
+<td>Self-index graph</td>
+<td style="text-align: right;">1,950 nodes / 9,004 edges</td>
+</tr>
+<tr>
+<td>Graph nodes</td>
+<td style="text-align: right;">1,635 functions, 185 classes, 122 files, 8 knowledge nodes</td>
+</tr>
+<tr>
+<td>CI-safe pytest run</td>
+<td style="text-align: right;">611 passed / 9 skipped / 34 deselected</td>
+</tr>
+</tbody>
+</table>
+<p>The current repository is a <strong>layered modular monolith</strong>. The CLI, SDK, shell, and MCP server
+are adapters around one <code>JSAT</code> facade. The facade lazily selects graph and AI adapters, while
+feature logic lives in <code>jsat/tools/</code>. The persistent graph is the product's shared source of
+codebase context.</p>
+<h2 id="1-system-context">1. System context<a class="headerlink" href="#1-system-context" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>flowchart LR
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    Developer([Developer])
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    Automation([CI / Python automation])
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    Client[AI coding client&lt;br/&gt;Claude, Codex, Cursor, OpenCode, Bob, Gemini]
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    subgraph JSAT[JSAT process]
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        CLI[Typer CLI / shell]
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        SDK[Python SDK]
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        MCP[MCP JSON-RPC server]
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        Core[JSAT facade + tools]
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    end
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    Repo[(Source repository)]
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    Local[(Per-repo JSAT data&lt;br/&gt;graph, manifest, index, history)]
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    Shared[(Optional team services&lt;br/&gt;Neo4j, Qdrant, Redis)]
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    AI[(AI providers&lt;br/&gt;local CLIs, Ollama, hosted APIs)]
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    Improve[(Global improve store&lt;br/&gt;sanitized JSAT-only signals)]
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    Developer --&gt; CLI
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    Automation --&gt; SDK
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    Client &lt;--&gt;|MCP over stdio| MCP
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    CLI --&gt; Core
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    SDK --&gt; Core
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    MCP --&gt; Core
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    Repo --&gt;|tree-sitter parse + Git metadata| Core
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    Core &lt;--&gt; Local
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    Core -. optional .-&gt; Shared
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    Core -. AI-assisted tools .-&gt; AI
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    Core -. privacy-filtered failures .-&gt; Improve
+</code></pre></div>
+<p>The AI coding client and the AI provider are separate roles. A client may call JSAT through MCP,
+while an AI-assisted JSAT tool can independently use a configured provider. Launch routing in
+<code>_ai/routing.py</code> prevents one client's model selection from leaking into another provider.</p>
+<h2 id="2-runtime-layers-and-ownership">2. Runtime layers and ownership<a class="headerlink" href="#2-runtime-layers-and-ownership" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>flowchart TB
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    subgraph Entry[Entry and integration adapters]
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        cli[cli.py + _cli_*.py]
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        shell[tools/shell.py]
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        sdk[jsat.JSAT public SDK]
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        mcp[mcp/server.py registry + JSON-RPC]
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        slash[commands/jsat-*.md + _JSAT_SKILLS]
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    end
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    subgraph App[Application facade]
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        core[_core.py / JSAT]
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        models[_models.py]
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        config[_config.py]
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        context[_call_context.py]
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    end
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    subgraph Features[Feature tools]
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        indexing[indexer / query / blast radius]
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        assurance[security / contract / migration / review / tests]
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        reasoning[prompt optimizer / IThinking / crack / orchestrator]
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>        memory[knowledge / sessions / improve]
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>        utility[export / tokens / feature planning]
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    end
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>    subgraph Ports[Backend contracts and adapters]
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        graph[_graph: SQLite / Neo4j / LightGraph]
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>        ai[_ai: CLI / Ollama / Anthropic / OpenAI / compat / none]
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>        embed[_embed: local / OpenAI / none]
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>        cache[_cache: memory / disk / Redis]
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>        parsers[_parsers: Python / JS / Go / Java / Ruby / Rust]
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>    end
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>    Entry --&gt; App
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>    App --&gt; Features
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>    Features --&gt; Ports
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>    config --&gt; Ports
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>    models --&gt; App
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>    context --&gt; Features
+</code></pre></div>
+<p>The intended dependency direction is inward-to-outward through the facade: adapters parse or
+serialize requests, <code>JSAT</code> selects dependencies, and tools contain the use cases. Heavy imports
+are deliberately inside functions so <code>jsat --help</code> and <code>JSAT()</code> remain fast and optional extras
+fail only when invoked.</p>
+<h3 id="module-responsibilities">Module responsibilities<a class="headerlink" href="#module-responsibilities" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Responsibility</th>
+<th>Important boundary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cli.py</code>, <code>_cli_*.py</code></td>
+<td>Typer commands, argument validation, Rich presentation, launch/connect workflows</td>
+<td>Presentation only; imports tool logic lazily</td>
+</tr>
+<tr>
+<td><code>_core.py</code></td>
+<td>Stable SDK facade, config/path pinning, lazy graph and AI creation</td>
+<td>Shared route used by CLI and SDK</td>
+</tr>
+<tr>
+<td><code>mcp/server.py</code></td>
+<td>69-tool registry, JSON-RPC, RBAC, budgets, progress, dashboard and metrics</td>
+<td>MCP schemas and handlers; not <code>mcp/tools.py</code></td>
+</tr>
+<tr>
+<td><code>tools/</code></td>
+<td>Indexing and every analysis/reasoning use case</td>
+<td>Real feature implementation</td>
+</tr>
+<tr>
+<td><code>_parsers/</code></td>
+<td>Tree-sitter extraction into normalized nodes and edges</td>
+<td>One parser instance per worker/file</td>
+</tr>
+<tr>
+<td><code>_graph/</code></td>
+<td><code>GraphClient</code> contract and storage adapters</td>
+<td>SQLite is the solo default; Neo4j is optional team storage</td>
+</tr>
+<tr>
+<td><code>_ai/</code></td>
+<td>Provider contract, aliases, launch routing and adapters</td>
+<td><code>NoOpProvider</code> is the degradation boundary</td>
+</tr>
+<tr>
+<td><code>_config.py</code>, <code>_models.py</code></td>
+<td>Detection, presets, merge/defaults and validation</td>
+<td>All config fields default for backward compatibility</td>
+</tr>
+<tr>
+<td><code>_improve/</code></td>
+<td>Capture, sanitization, clustering and safe persistence</td>
+<td>JSAT-internal data only; drop rather than redact</td>
+</tr>
+<tr>
+<td><code>commands/</code>, <code>_cli_skills_data.py</code></td>
+<td>Agent instructions for supported clients</td>
+<td>Parallel registries that must remain synchronized</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-indexing-pipeline">3. Indexing pipeline<a class="headerlink" href="#3-indexing-pipeline" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sequenceDiagram
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    autonumber
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    actor Caller
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    participant Surface as CLI / SDK / MCP
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    participant Core as JSAT.index()
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    participant Indexer as IndexerTool
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    participant Manifest as IndexManifest
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    participant Pool as ThreadPoolExecutor (max 8)
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    participant Parser as Language parser
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    participant Graph as GraphClient
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    Caller-&gt;&gt;Surface: index repo
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    Surface-&gt;&gt;Core: index(path, branch, force, languages)
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    Core-&gt;&gt;Graph: lazy-open configured graph
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    Core-&gt;&gt;Indexer: run(...)
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    Indexer-&gt;&gt;Manifest: load previous mtime + SHA-256 state
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    Indexer-&gt;&gt;Indexer: collect supported, non-excluded, size-safe files
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    Indexer-&gt;&gt;Manifest: compute added / modified / deleted / unchanged
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    Indexer-&gt;&gt;Graph: remove stale nodes and outgoing edges
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    loop changed file, in parallel
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>        Indexer-&gt;&gt;Pool: submit parse job
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>        Pool-&gt;&gt;Parser: tree-sitter parse(file)
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>        Parser--&gt;&gt;Pool: File / Class / Function nodes + edges
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    end
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>    Indexer-&gt;&gt;Graph: bulk upsert batches (2,000 nodes)
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>    Indexer-&gt;&gt;Graph: resolve unique CALLS / IMPORTS names to node IDs
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>    Indexer-&gt;&gt;Manifest: save new manifest + Git commit
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>    Indexer-&gt;&gt;Indexer: calculate complexity hotspots and write INDEX.md
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>    Indexer--&gt;&gt;Caller: IndexResult
+</code></pre></div>
+<p>Indexing is incremental unless forced. Files are filtered using configured languages, exclude
+patterns, maximum size, and symlink policy. Parsing failures are isolated per file and return an
+empty result for that file rather than aborting the full index.</p>
+<h3 id="parser-output-model">Parser output model<a class="headerlink" href="#parser-output-model" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>erDiagram
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    FILE ||--o{ FUNCTION : contains
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    FILE ||--o{ CLASS : contains
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    CLASS ||--o{ FUNCTION : defines
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    FUNCTION }o--o{ FUNCTION : CALLS
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    FILE }o--o{ FILE : IMPORTS
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    CLASS }o--o{ CLASS : INHERITS
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    FUNCTION }o--o{ EXCEPTION : RAISES
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    SERVICE ||--o{ ENDPOINT : exposes
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    SERVICE }o--o{ TABLE : READS_FROM_or_WRITES_TO
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    SERVICE }o--o{ TOPIC : PRODUCES_or_CONSUMES
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    KNOWLEDGE_ENTRY ||--o{ KNOWLEDGE_ENTITY : HAS_ENTITY
+</code></pre></div>
+<p>The storage schema is deliberately generic: <code>nodes(id, label, properties JSON)</code> and
+<code>edges(id, type, source_id, target_id, properties JSON)</code>. The richer diagram above is a logical
+schema imposed by labels, edge types, and JSON properties, not separate SQL tables.</p>
+<p>The refreshed self-index currently contains mostly code topology:</p>
+<ul>
+<li>7,831 <code>CALLS</code>, 936 <code>IMPORTS</code>, 116 <code>RAISES</code>, and 110 <code>INHERITS</code> edges.</li>
+<li>Eight knowledge nodes add <code>HAS_ENTITY</code>, <code>USES</code>, <code>DEPENDS_ON</code>, and <code>DOCUMENTS</code> relationships.</li>
+<li>No <code>Service</code>, <code>Endpoint</code>, <code>Table</code>, or <code>Topic</code> nodes exist in this Python-only repository, but
+  the query and MCP surfaces understand those labels for indexed application repositories.</li>
+</ul>
+<h2 id="4-request-execution-paths">4. Request execution paths<a class="headerlink" href="#4-request-execution-paths" title="Permanent link">&para;</a></h2>
+<h3 id="direct-cli-or-sdk-call">Direct CLI or SDK call<a class="headerlink" href="#direct-cli-or-sdk-call" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sequenceDiagram
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    actor Caller
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    participant Adapter as CLI or Python caller
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    participant Core as JSAT facade
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    participant Tool as tools/&amp;lt;feature&amp;gt;.py
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    participant Graph as GraphClient
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    participant AI as AIProvider
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    Caller-&gt;&gt;Adapter: request
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    Adapter-&gt;&gt;Core: typed method call
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    Core-&gt;&gt;Graph: _get_graph() if needed
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    opt AI-assisted feature
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        Core-&gt;&gt;AI: _get_ai() if needed
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        AI--&gt;&gt;Core: provider or NoOpProvider
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    end
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    Core-&gt;&gt;Tool: construct with graph/config/AI
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    Tool-&gt;&gt;Graph: graph queries / traversal
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    opt synthesis or review
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        Tool-&gt;&gt;AI: complete / stream
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        AI--&gt;&gt;Tool: response or error
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    end
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>    Tool--&gt;&gt;Adapter: Pydantic model / dataclass / dict
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>    Adapter--&gt;&gt;Caller: Rich, JSON, or Python result
+</code></pre></div>
+<h3 id="mcp-tool-call">MCP tool call<a class="headerlink" href="#mcp-tool-call" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sequenceDiagram
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    autonumber
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    actor Client as MCP client
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    participant Server as MCPServer
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    participant Guard as Auth + RBAC
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    participant Worker as single-call worker
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    participant Handler as registry handler
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    participant Tool as JSAT tool
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    participant Obs as progress / dashboard / metrics
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    Client-&gt;&gt;Server: tools/call(name, arguments, progressToken)
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    Server-&gt;&gt;Guard: validate token and role
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    Guard--&gt;&gt;Server: allowed / JSON-RPC error
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    Server-&gt;&gt;Server: strip _budget and dashboard control args
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    Server-&gt;&gt;Worker: submit call with hard limit = 5 x soft budget
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    par monitor
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        Worker-&gt;&gt;Handler: dispatch registry entry
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        Handler-&gt;&gt;Tool: execute use case
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        Tool--&gt;&gt;Obs: checkpoint events
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>    and budget watcher
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        Server-&gt;&gt;Obs: soft-budget notification if late
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    end
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>    alt completed
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>        Worker--&gt;&gt;Server: serialized result
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>    else hard timeout
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>        Server-&gt;&gt;Server: structured retry/scope guidance
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>    else exception
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>        Server-&gt;&gt;Server: JSON-RPC error + sanitized improve signal
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>    end
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>    Server-&gt;&gt;Obs: record duration/error metric and finish dashboard call
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>    Server--&gt;&gt;Client: text content result
+</code></pre></div>
+<p>MCP has three authorization levels. <code>viewer</code> can use 17 read-only tools; <code>developer</code> can use 43
+listed tools including impact, assurance, knowledge writes, and IThinking; <code>admin</code> is
+unrestricted. With no auth environment variables, local stdio access is intentionally open and
+emits a warning unless explicitly acknowledged.</p>
+<p>Nested calls have depth-sensitive sub-budgets (120, 30, 15, 8, 4, 2, 1 seconds) and are rejected
+at depth seven. A soft timeout reports progress but does not cancel work; the worker future gets a
+hard timeout at five times the selected soft budget.</p>
+<h2 id="5-how-the-major-feature-families-work">5. How the major feature families work<a class="headerlink" href="#5-how-the-major-feature-families-work" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Main algorithm</th>
+<th>AI required?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Index</td>
+<td>Incremental manifest, parallel tree-sitter parse, bulk upsert, symbol resolution</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Query</td>
+<td>Extract question keywords, select graph context, build grounded prompt, synthesize</td>
+<td>Yes for answer; graph context still builds without it</td>
+</tr>
+<tr>
+<td>Blast radius</td>
+<td>Resolve a file/symbol, breadth-first graph traversal, classify by final edge type</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>Semgrep when installed, secret entropy/pattern checks, graph-based auth/data-flow checks</td>
+<td>No for core scan</td>
+</tr>
+<tr>
+<td>Incident</td>
+<td>Read recent Git commits, score recency/relevance/scope, optionally synthesize hypotheses</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Contract/migration</td>
+<td>Compare specs or parse SQL operations and classify breaking/locking risk</td>
+<td>No for structural result</td>
+</tr>
+<tr>
+<td>Review</td>
+<td>Run configured providers, parse findings, deduplicate and rank multi-model agreement</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Test gaps</td>
+<td>Find functions/endpoints lacking graph-linked tests and rank risk</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Prompt optimizer</td>
+<td>Offline classify/context/constraints/examples/format/compress pipeline; optional LLM rewrites</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>IThinking</td>
+<td>Seven-phase planning/execution/reflection workflow through a callback</td>
+<td>Optional by phase</td>
+</tr>
+<tr>
+<td>Crack/orchestrator</td>
+<td>Role-based parallel AI discussion or specialized task decomposition, then synthesis</td>
+<td>Optional; offline fallback exists in Crack</td>
+</tr>
+<tr>
+<td>Knowledge</td>
+<td>Store entries/entities in the graph; Graphiti when available, regex + AI fallback otherwise</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Improve</td>
+<td>Capture JSAT-only friction, sanitize twice, cluster, diagnose in temp, create review bundle</td>
+<td>Optional for diagnosis</td>
+</tr>
+<tr>
+<td>Tokens</td>
+<td>Offline token estimation, section accounting, and deterministic compression passes</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h3 id="query-grounding-pipeline">Query grounding pipeline<a class="headerlink" href="#query-grounding-pipeline" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>flowchart LR
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    Q[Question] --&gt; KW[Lexical keyword extraction]
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    KW --&gt; GQ[Graph queries by labels]
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    GQ --&gt; REL[Filter functions/classes by matching properties]
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    REL --&gt; BUD[Character cap = token budget x 4]
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    BUD --&gt; P[Grounded prompt]
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    P --&gt; AI{AI available?}
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    AI --&gt;|yes| ANS[Answer + cited context lines]
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    AI --&gt;|no| DEG[Explicit AI-unavailable result]
+</code></pre></div>
+<p>The main <code>QueryTool</code> currently uses lexical matching over graph properties. Embedding and cache
+adapter packages exist, but the query path does not instantiate them. They are architectural
+extension points rather than active dependencies in this flow.</p>
+<h2 id="6-configuration-paths-and-deployment-profiles">6. Configuration, paths, and deployment profiles<a class="headerlink" href="#6-configuration-paths-and-deployment-profiles" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>flowchart TB
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    Init[JSAT construction] --&gt; Load[Load first matching YAML config]
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    Load --&gt; Detect[Detect RAM, CPU, GPU, CI and local services]
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    Detect --&gt; Preset{Auto-selected profile}
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    Preset --&gt;|solo| Solo[SQLite + local embeddings + memory cache]
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    Preset --&gt;|team| Team[Neo4j + OpenAI embeddings/Qdrant + Redis]
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    Preset --&gt;|CI| CI[SQLite + no embeddings + no AI + memory cache]
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    Preset --&gt;|Raspberry Pi| Pi[SQLite + reduced local embedding batch + disk cache]
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    Solo --&gt; Override[Constructor/provider overrides win]
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    Team --&gt; Override
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    CI --&gt; Override
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    Pi --&gt; Override
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    Override --&gt; Pin[Pin .jsat paths to the repository data directory]
+</code></pre></div>
+<p>Config search starts with an explicit path and <code>JSAT_CONFIG</code>, then repository-local, global user,
+and system paths. Per-repository data resolves in this order:</p>
+<ol>
+<li><code>JSAT_DATA_DIR</code> override.</li>
+<li>Existing substantial <code>&lt;repo&gt;/.jsat/</code> data for backward compatibility.</li>
+<li><code>~/.jsat/&lt;first-12-chars-of-SHA1(resolved-repo-path)&gt;/</code>.</li>
+</ol>
+<p>The graph database, vector path, disk cache, audit log, and prompt history are pinned under that
+location. Session files are global under <code>~/.jsat/sessions/</code>. Self-improvement data is separately
+global under <code>~/.jsat/improve/</code> so it can never be confused with user repository data.</p>
+<h2 id="7-ai-provider-selection-and-degradation">7. AI provider selection and degradation<a class="headerlink" href="#7-ai-provider-selection-and-degradation" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>flowchart LR
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    Need[AI-assisted tool] --&gt; Cached{Provider cached?}
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    Cached --&gt;|yes| Use[Use provider]
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    Cached --&gt;|no| Factory[get_ai_provider]
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    Factory --&gt; CLI[Claude / Codex / OpenCode / Bob CLI]
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    Factory --&gt; Local[Ollama]
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    Factory --&gt; Hosted[Anthropic / OpenAI / OpenAI-compatible]
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    Factory --&gt; None[NoOpProvider]
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    CLI --&gt; Check{is_available}
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    Local --&gt; Check
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    Hosted --&gt; Check
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    Check --&gt;|yes| Use
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    Check --&gt;|no or factory error| None
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    None --&gt; Explicit[complete() raises AIError]
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    Explicit --&gt; ToolFallback[Tool catches error and returns partial/offline result]
+</code></pre></div>
+<p><code>JSAT._get_ai()</code> never propagates provider construction or reachability failures; it substitutes
+<code>NoOpProvider</code>. That provider reports unavailable and raises on actual completion, so feature
+tools must explicitly degrade. Query, review, Crack, and other multi-agent tools isolate failures
+at the smallest practical unit.</p>
+<h2 id="8-self-improvement-privacy-boundary">8. Self-improvement privacy boundary<a class="headerlink" href="#8-self-improvement-privacy-boundary" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>flowchart LR
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    Fail[JSAT crash / gap / timeout / friction] --&gt; Build[Build JSAT-owned record]
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    Build --&gt; Frames[Keep package-relative frames and exception type]
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    Frames --&gt; Context[Keep allowlisted finite context; other values become type-only]
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    Context --&gt; Verify{Adversarial verify_clean}
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    Verify --&gt;|machine path, user marker, env value, secret, oversized| Drop[Drop entire record]
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    Verify --&gt;|clean| Buffer[Throttle + in-memory buffer]
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    Buffer --&gt; Store[(signals.jsonl + clusters.json)]
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    Store --&gt; Diagnose[Optional AI diagnosis in temporary copy]
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    Diagnose --&gt; Verify2{Verify every bundle file}
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    Verify2 --&gt;|unsafe| Drop2[Reject bundle]
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    Verify2 --&gt;|clean| Bundle[(analysis.md + patch.diff + issue.md)]
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    Bundle --&gt; Human{Human consent}
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    Human --&gt;|review / submit| External[GitHub or patch workflow]
+</code></pre></div>
+<p>The design uses <strong>drop, never redact</strong>. Exception messages, user paths, identifiers, source code,
+environment values, and secrets are not persisted. Writes go through a path guard that permits
+only the improve store or an explicit temporary root. JSAT does not patch its installed source,
+and outward actions remain human-controlled.</p>
+<h2 id="9-integration-and-process-lifecycle">9. Integration and process lifecycle<a class="headerlink" href="#9-integration-and-process-lifecycle" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>flowchart LR
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    Connect[jsat connect CLIENT] --&gt; Config[Write the client's native MCP config]
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    Connect --&gt; Guidance[Install client-specific command/instruction files]
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    Start[jsat start CLIENT --via native/ollama] --&gt; Resolve[Resolve route and model ownership]
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    Resolve --&gt; Ensure[Ensure MCP wiring]
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    Ensure --&gt; Spawn[Spawn client process]
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    Spawn --&gt; Registry[(Global process registry)]
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    Registry --&gt; PS[jsat ps]
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    Registry --&gt; Stop[jsat stop / restart / resume]
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    Spawn --&gt; MCP[jsat mcp-server --repo ...]
+</code></pre></div>
+<p>Connection code is client-specific because Claude, Codex, Cursor, Continue, OpenCode, Gemini,
+Bob, Windsurf, and Zed use different configuration formats. The generated entry launches the
+same local stdio MCP server. Slash-command files and MCP registration are separate surfaces: the
+presence of one does not prove the other is active.</p>
+<h2 id="10-extensibility-map">10. Extensibility map<a class="headerlink" href="#10-extensibility-map" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>flowchart TB
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    Feature[New feature] --&gt; Logic[tools/&amp;lt;feature&amp;gt;.py]
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    Logic --&gt; SDK[_core.py public method if SDK-facing]
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    Logic --&gt; CLI[_cli_*.py command if human-facing]
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    Logic --&gt; MCP[mcp/server.py registry entry + handler]
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    MCP --&gt; RBAC[_ROLE_PERMISSIONS + optional budget]
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    Logic --&gt; Slash[commands/jsat-NAME.md if agent workflow]
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    Slash --&gt; Help[commands/jsat-help.md]
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    Slash --&gt; Skills[_JSAT_SKILLS registry]
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    Feature --&gt; Models[_models.py result/config types]
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    Feature --&gt; Tests[CI-marked isolated tests]
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    Feature --&gt; Docs[README / docs / changelog as applicable]
+</code></pre></div>
+<p>A capability is not fully integrated merely because its tool module exists. The public surfaces,
+RBAC, agent command registries, documentation, and tests are independent integration points.</p>
+<h2 id="11-resilience-and-observability">11. Resilience and observability<a class="headerlink" href="#11-resilience-and-observability" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>checkpoint()</code> records progress events without coupling feature modules to the MCP server.</li>
+<li>MCP can mirror checkpoints to standard progress notifications and the zero-dependency SSE
+  dashboard.</li>
+<li>In-memory per-tool metrics track calls, total time, and errors; an optional Prometheus sidecar
+  exports process metrics.</li>
+<li>Indexing catches failures per file; review and multi-agent features catch failures per provider
+  or agent; telemetry is always best-effort and cannot fail the caller.</li>
+<li>SQLite and LightGraph use WAL mode and bulk writes. Neo4j implements the same <code>GraphClient</code>
+  contract, although its bulk methods currently loop over individual operations.</li>
+<li>Export/import moves the graph through a portable archive. The default SQLite graph is local;
+  the team profile moves the graph, vectors, and cache to shared services.</li>
+</ul>
+<h2 id="12-testing-architecture-and-current-health">12. Testing architecture and current health<a class="headerlink" href="#12-testing-architecture-and-current-health" title="Permanent link">&para;</a></h2>
+<p>The test suite is organized by feature rather than by architectural layer. Tests use temporary
+state directories, <code>MagicMock</code> for the SDK in MCP tests, and <code>LightGraph</code> or temporary SQLite for
+graph-dependent behavior. CI selects tests marked <code>ci</code>; integration and slow tests are excluded
+from the normal local/CI run.</p>
+<p>The verified direct CI-safe pytest run produced <strong>611 passed, 9 skipped, 34 deselected</strong> and 35
+deprecation warnings from <code>datetime.utcnow()</code> in the generated <code>INDEX.md</code> path. The combined
+<code>local_test.sh</code> runner currently stops at an upstream 102-character line in
+<code>tests/test_ollama_launch.py:236</code>, so its Ruff stage is not green at this snapshot.</p>
+<h2 id="13-architectural-strengths">13. Architectural strengths<a class="headerlink" href="#13-architectural-strengths" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>One graph, multiple adapters.</strong> CLI, SDK, shell, and MCP do not maintain separate analysis
+   engines.</li>
+<li><strong>Useful offline core.</strong> Indexing, traversal, token work, migration inspection, and much of
+   security analysis do not require an LLM.</li>
+<li><strong>Lazy optional dependencies.</strong> Core startup stays light and deployment profiles can omit
+   expensive integrations.</li>
+<li><strong>Explicit degradation.</strong> Missing providers and per-file/per-model failures normally yield
+   partial results instead of process-wide crashes.</li>
+<li><strong>Strong privacy boundary.</strong> Self-improvement is structurally separated from indexed project
+   data and uses a second adversarial verification pass.</li>
+<li><strong>Operational MCP controls.</strong> RBAC, nesting limits, progress, budgets, hard timeouts,
+   dashboards, and metrics live at the common server boundary.</li>
+</ol>
+<h2 id="14-risks-and-known-debt">14. Risks and known debt<a class="headerlink" href="#14-risks-and-known-debt" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Finding</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>High</td>
+<td><code>mcp/server.py</code> is 2,881 lines and <code>_handle</code> has measured complexity 52</td>
+<td>Registry, transport, auth, budgets, dashboards, metrics, and serialization change together</td>
+</tr>
+<tr>
+<td>High</td>
+<td>The MCP “hard timeout” is <code>Future.result(timeout=...)</code> over a worker thread; <code>shutdown(wait=False)</code> cannot terminate code already running</td>
+<td>The client receives a timeout response, but the underlying operation may continue using resources or mutating state</td>
+</tr>
+<tr>
+<td>High</td>
+<td><code>_cli_skills_data.py</code> and command Markdown are parallel hand-maintained registries</td>
+<td>A new or renamed slash command can silently diverge across clients</td>
+</tr>
+<tr>
+<td>High</td>
+<td><code>JSAT.index_status</code> returns <code>commit=None</code> and <code>is_fresh=True</code> whenever graph access works</td>
+<td>Health reports graph availability, not actual Git/index freshness</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td><code>GraphConfig</code> accepts <code>lightgraph</code>, but <code>JSAT._get_graph()</code> selects Neo4j or <code>SQLiteGraph</code>; it never constructs <code>LightGraph</code></td>
+<td>The advertised configuration value does not select its named backend through the SDK facade</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>Embedding and cache backends are implemented but not wired into the main query flow</td>
+<td>Config implies semantic retrieval/caching that <code>QueryTool</code> currently does not use</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>Neo4j <code>bulk_add_nodes</code> and <code>bulk_add_edges</code> loop item-by-item; symbol resolution is skipped for non-SQLite backends</td>
+<td>Team indexing can be slower and may preserve unresolved call/import targets</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>YAML skill clusters reference skills that may not exist; non-script dispatch mostly returns instructions</td>
+<td>This registry is secondary to shipped command Markdown and is only partially executable</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>Current docs still contain 0.4.12 examples while package metadata is 0.4.14</td>
+<td>Operators can mistake documentation snapshots for runtime truth</td>
+</tr>
+<tr>
+<td>Low</td>
+<td>The local test doctor reports two stale/shadowing installations</td>
+<td>Console-script behavior may differ by environment even while source-root tests are green</td>
+</tr>
+<tr>
+<td>Low</td>
+<td>Generated index timestamps call deprecated <code>datetime.utcnow()</code></td>
+<td>Python deprecation warnings add noise and will eventually require a code change</td>
+</tr>
+</tbody>
+</table>
+<p>The largest cohesion hotspots after <code>mcp/server.py</code> are <code>_cli_skills_data.py</code> (1,694 lines),
+<code>_cli_connect.py</code> (1,291), <code>tools/shell.py</code> (1,188), and <code>tools/prompt_optimizer.py</code> (902).
+Measured function hotspots include <code>cmd_disconnect</code> (complexity 61), <code>MCPServer._handle</code> (52),
+and <code>cmd_ai_use</code> (36).</p>
+<h2 id="15-recommended-evolution">15. Recommended evolution<a class="headerlink" href="#15-recommended-evolution" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Split MCP transport/auth/execution/observability from the declarative tool catalogue and
+   feature handlers; generate tool schemas and RBAC checks from one typed definition.</li>
+<li>Generate client command assets and help tables from one command manifest, eliminating the two
+   manually synchronized registries.</li>
+<li>Make index freshness compare the manifest commit and working tree against current Git state,
+   and expose separate <code>graph_available</code> and <code>index_fresh</code> signals.</li>
+<li>Either route <code>lightgraph</code> correctly from <code>_get_graph()</code> or remove it from user configuration
+   and document it as a test-only constructor.</li>
+<li>Introduce explicit retriever and cache ports into <code>QueryTool</code>, then wire the existing embedder
+   and cache packages or simplify the unused configuration surface.</li>
+<li>Batch Neo4j writes with <code>UNWIND</code> and define a backend-neutral symbol-resolution strategy.</li>
+<li>Keep architectural snapshot counts generated by tests or documentation checks so version,
+   command, and tool counts cannot drift silently.</li>
+</ol>
+<h2 id="16-reading-order-for-contributors">16. Reading order for contributors<a class="headerlink" href="#16-reading-order-for-contributors" title="Permanent link">&para;</a></h2>
+<p>For the fastest accurate mental model, read in this order:</p>
+<ol>
+<li><code>jsat/_core.py</code> — public facade and lazy dependency selection.</li>
+<li><code>jsat/tools/indexer.py</code> and <code>jsat/_parsers/</code> — how source becomes graph data.</li>
+<li><code>jsat/_graph/__init__.py</code> and <code>jsat/_graph/sqlite.py</code> — graph contract and default storage.</li>
+<li><code>jsat/tools/query.py</code> and <code>jsat/tools/blast_radius.py</code> — representative read workflows.</li>
+<li><code>jsat/mcp/server.py</code> lines around <code>_handle</code>, <code>_call</code>, and <code>_build_registry</code> — shared AI-client
+   execution boundary.</li>
+<li><code>jsat/_config.py</code>, <code>_models.py</code>, and <code>_ai/</code> — deployment and provider behavior.</li>
+<li><code>jsat/_improve/</code> — the privacy and safe-write invariants.</li>
+<li>Feature-specific modules under <code>jsat/tools/</code>, followed by their tests.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/iamjpsonkar/JaySoft-AI_Tools" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
