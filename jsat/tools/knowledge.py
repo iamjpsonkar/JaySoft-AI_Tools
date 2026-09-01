@@ -264,7 +264,7 @@ class KnowledgeTool(BaseTool):
         )
         return result
 
-    def add(self, text: str, category: str = "general") -> None:
+    def add(self, text: str, category: str = "general", source_path: str | None = None) -> None:
         import structlog
         log = structlog.get_logger(__name__)
 
@@ -278,7 +278,7 @@ class KnowledgeTool(BaseTool):
         ).hexdigest()[:16]
 
         log.info("knowledge_add_start", entry_id=entry_id, category=category,
-                 text_len=len(text))
+                 text_len=len(text), source_path=source_path)
 
         # Entity extraction
         entities, relations = self._extract(text)
@@ -288,6 +288,7 @@ class KnowledgeTool(BaseTool):
         props: dict[str, Any] = {
             "text": text,
             "category": category,
+            "source_path": source_path,
             "stale": False,
             "created_at": datetime.datetime.utcnow().isoformat(),
             "entities": [
@@ -347,6 +348,7 @@ class KnowledgeTool(BaseTool):
                     "id": r.get("id", ""),
                     "text": props.get("text", ""),
                     "category": props.get("category", ""),
+                    "source_path": props.get("source_path"),
                     "stale": props.get("stale", False),
                     "created_at": props.get("created_at", ""),
                     "entities": props.get("entities", []),
@@ -375,6 +377,37 @@ class KnowledgeTool(BaseTool):
 
     # ── Ingestion API ─────────────────────────────────────────────────────────
 
+    def _supersede_prior_entries_for_source(self, source_path: str) -> int:
+        """Flag every non-stale entry previously ingested from ``source_path``
+        as stale, before re-ingesting it.
+
+        Without this, re-running ingest_directory/scan_repo on a living doc
+        (CLAUDE.md, an ADR, a runbook) accumulates a brand-new,
+        content-addressed entry per edit forever — the entry_id is a hash of
+        (category, text), so any edit to the source produces a new id with
+        no relationship to the old one. The old entries were never
+        superseded automatically (flag_stale only ever ran manually,
+        one-at-a-time by entry_id), so repeated CI-driven ingestion degraded
+        search quality with permanently-duplicated, increasingly-stale
+        knowledge over time. This is a coarse "same source_path" match, not
+        a diff — it does not try to detect whether the content actually
+        changed, since staleness here just means "a newer ingestion from
+        this same file exists," which is true even if the file is unchanged
+        (the new entry_id will happen to match the old one in that case and
+        flag_stale on it is a harmless no-op).
+        """
+        import structlog
+        log = structlog.get_logger(__name__)
+        superseded = 0
+        for entry in self.list_entries():
+            if entry.get("source_path") == source_path and not entry.get("stale"):
+                self.flag_stale(entry["id"])
+                superseded += 1
+        if superseded:
+            log.info("knowledge_superseded_prior_entries",
+                     source_path=source_path, count=superseded)
+        return superseded
+
     def ingest_file(self, path: Path, category: str | None = None) -> int:
         """Ingest a single markdown (or text) file. Returns number of entries created."""
         import structlog
@@ -396,13 +429,16 @@ class KnowledgeTool(BaseTool):
         if category is None:
             category = self._infer_category(path)
 
+        source_path = str(path)
+        self._supersede_prior_entries_for_source(source_path)
+
         # Split large files into logical sections
         sections = self._split_sections(text, path)
         count = 0
         for section_text, section_cat in sections:
             if len(section_text.strip()) < 20:
                 continue
-            self.add(section_text, category=section_cat or category)
+            self.add(section_text, category=section_cat or category, source_path=source_path)
             count += 1
 
         log.info("knowledge_ingest_file_done", path=str(path), entries=count, category=category)
