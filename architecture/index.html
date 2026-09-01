@@ -2164,7 +2164,7 @@ while an AI-assisted JSAT tool can independently use a configured provider. Laun
 <a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    end
 <a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
 <a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>    subgraph Ports[Backend contracts and adapters]
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        graph[_graph: SQLite / Neo4j / LightGraph]
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        graphPort[_graph: SQLite / Neo4j / LightGraph]
 <a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>        ai[_ai: CLI / Ollama / Anthropic / OpenAI / compat / none]
 <a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>        embed[_embed: local / OpenAI / none]
 <a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>        cache[_cache: memory / disk / Redis]
@@ -2280,16 +2280,16 @@ patterns, maximum size, and symlink policy. Parsing failures are isolated per fi
 empty result for that file rather than aborting the full index.</p>
 <h3 id="parser-output-model">Parser output model<a class="headerlink" href="#parser-output-model" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>erDiagram
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    FILE ||--o{ FUNCTION : contains
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    FILE ||--o{ CLASS : contains
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    CLASS ||--o{ FUNCTION : defines
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    FUNCTION }o--o{ FUNCTION : CALLS
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    FILE }o--o{ FILE : IMPORTS
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    CLASS }o--o{ CLASS : INHERITS
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    FUNCTION }o--o{ EXCEPTION : RAISES
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    SERVICE ||--o{ ENDPOINT : exposes
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    SERVICE }o--o{ TABLE : READS_FROM_or_WRITES_TO
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    SERVICE }o--o{ TOPIC : PRODUCES_or_CONSUMES
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    SOURCE_FILE ||--o{ CODE_FUNCTION : contains
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    SOURCE_FILE ||--o{ CODE_CLASS : contains
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    CODE_CLASS ||--o{ CODE_FUNCTION : defines
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    CODE_FUNCTION }o--o{ CODE_FUNCTION : CALLS
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    SOURCE_FILE }o--o{ SOURCE_FILE : IMPORTS
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    CODE_CLASS }o--o{ CODE_CLASS : INHERITS
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    CODE_FUNCTION }o--o{ ERROR_TYPE : RAISES
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    APP_SERVICE ||--o{ API_ENDPOINT : exposes
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    APP_SERVICE }o--o{ DB_TABLE : READS_FROM_or_WRITES_TO
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    APP_SERVICE }o--o{ EVENT_TOPIC : PRODUCES_or_CONSUMES
 <a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    KNOWLEDGE_ENTRY ||--o{ KNOWLEDGE_ENTITY : HAS_ENTITY
 </code></pre></div>
 <p>The storage schema is deliberately generic: <code>nodes(id, label, properties JSON)</code> and
@@ -2308,7 +2308,7 @@ schema imposed by labels, edge types, and JSON properties, not separate SQL tabl
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    actor Caller
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    participant Adapter as CLI or Python caller
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    participant Core as JSAT facade
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    participant Tool as tools/&amp;lt;feature&amp;gt;.py
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    participant Tool as tools/feature.py
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    participant Graph as GraphClient
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    participant AI as AIProvider
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
@@ -2503,7 +2503,7 @@ global under <code>~/.jsat/improve/</code> so it can never be confused with user
 <a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    Hosted --&gt; Check
 <a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    Check --&gt;|yes| Use
 <a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    Check --&gt;|no or factory error| None
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    None --&gt; Explicit[complete() raises AIError]
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    None --&gt; Explicit[completion call raises AIError]
 <a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    Explicit --&gt; ToolFallback[Tool catches error and returns partial/offline result]
 </code></pre></div>
 <p><code>JSAT._get_ai()</code> never propagates provider construction or reachability failures; it substitutes
