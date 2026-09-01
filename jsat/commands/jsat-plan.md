@@ -21,13 +21,36 @@ Before any perspective review, answer these six questions from the task descript
   5. What is the minimum change that would solve it?
   6. What is the hardest part — and what assumption am I making about it?
 
-Call: jsat__ithinking_audit_assumptions(task=<task>)
+Call: jsat__ithinking_audit_assumptions(subtask=<task>) — NOT task=<task>; this
+tool's parameter is named "subtask" (verified against the MCP schema in
+/jsat-ithinking's docs), and calling it with "task" will fail schema validation.
 Call: jsat__query(question="what exists in the codebase related to: <task>") to answer question 4.
+
+Note on overlap with /jsat ithinking: this command's forcing-question audit and
+jsat__ithinking_plan's own Phase 4 both call jsat__ithinking_audit_assumptions
+under the hood. If the user already ran (or is about to run) /jsat ithinking
+plan on this same task in this session, do not call the audit tool a second
+time here — reuse that Phase 4 output instead and note that question 4/6's
+assumption check was answered from the earlier ithinking-plan call, not a
+fresh one. Only invoke the audit call above when no such plan has run yet.
+
+FALLBACK if jsat__query returns "[AI unavailable]" (a down/unconfigured AI provider
+takes the whole tool with it — this is a common failure mode, not rare): fall back to
+Bash (`grep -ril` for the task's key nouns/identifiers across the repo) to find
+candidate existing files, then call jsat__get_function / jsat__get_class on any hits
+to describe what they actually do — those two tools are pure graph lookups and do not
+need the AI backend. Mark question 4's answer as "Bash-enumerated" in the output so
+the user knows it wasn't a semantic search.
+
 Label: "🔍 Forcing Questions"
 
 ## Scope Perspective (--scope or --full)
 Classify the task: full scope / reduced scope (cut what loses no core value) / expanded scope (what adjacent improvement would compound value?).
-Call: jsat__blast_radius(target=<most relevant file or symbol from Q4>)
+If Q4 identified an existing file/symbol this task would extend: call
+jsat__blast_radius(target=<that file or symbol>). If Q4 found nothing (this is
+genuinely new code with no existing integration point), skip the call and state
+"new code path — no existing blast radius to measure" instead of calling
+blast_radius with an empty/guessed target.
 Show: recommended scope with reason. Label: "📐 Scope"
 
 ## Architecture Perspective (--architecture or --full)

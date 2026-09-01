@@ -12,9 +12,28 @@ Parse $ARGUMENTS for an optional level flag (strip before processing):
   --ultra   → one bullet per fact, ≤8 words each (~70% reduction)
   (no flag) → full mode
 
+If more than one level flag is present in $ARGUMENTS (e.g. "--lite --ultra
+explain X"), this is ambiguous, not additive — the three levels are mutually
+exclusive compression strategies (phrase-stripping vs fragments vs bullets),
+not stackable passes. Do not silently apply the first one found or chain them.
+Use the MOST aggressive one specified (--ultra > --full > --lite) and strip
+all level flags from the query text, since that's the safer failure mode for
+a "maximum compression" command — under-compressing loses less than a user
+discovering their explicit --ultra was silently downgraded to --lite.
+
 Steps:
-1. Strip the level flag; query = all remaining text.
+1. Strip the level flag; query = all remaining text. If nothing remains after
+   stripping flags, stop and ask for a question — do not call jsat__query("").
 2. Call jsat__query(question=<query>) to get the answer.
+   CHECK FIRST: jsat__query needs a working LLM backend and returns
+   "[AI unavailable: ..." when the provider is down — a common failure mode,
+   not a rare edge case. If the response matches that pattern, STOP before
+   step 3: do not compress it. An error string run through the "fragments,
+   ≤8 words, no connectives" compressor would come out looking like a normal
+   terse answer (e.g. a bullet reading "AI unavailable ollama down") and could
+   be mistaken for a real, compressed response to the user's actual question.
+   Instead report plainly, uncompressed: "AI backend unavailable — cannot
+   answer '<query>' right now. Check the provider (e.g. `jsat doctor`)."
 3. Compress the answer based on level:
    - lite:  remove phrases like "In order to", "It is worth noting", "As mentioned",
             "Additionally", "It should be noted", "In summary". Keep sentences intact.

@@ -8,7 +8,16 @@ Parse $ARGUMENTS for optional --language flag, then call jsat__list_services:
   (no flag)          → list all services
 
 Show each service with: name, language, entry point file, endpoint count.
-Show total count at the end. If no services found, suggest /jsat-index .
+Show total count at the end.
+
+If --language <lang> was given and zero services match, distinguish the two possible
+causes explicitly: (a) the repo genuinely has no services in that language — check by
+also reporting the total service count across all languages so the user can tell the
+filter excluded results rather than the index being empty; vs (b) the index itself is
+empty/stale — in that case (total count is also 0), suggest `jsat index .`.
+
+This tool is pure graph lookup (no LLM backend involved), so it does not degrade when
+an AI provider is down — no fallback needed here.
 
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):

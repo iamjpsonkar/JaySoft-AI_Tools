@@ -6,12 +6,30 @@ Parse $ARGUMENTS for optional flags, then call the right security tool:
 
 Supported flags:
   --file <path>          → call jsat__security_scan_file with file=<path>
+                            (--severity has NO effect on this call — the tool
+                            takes no severity_threshold param; if combined,
+                            say so and show unfiltered results)
   --secrets              → call jsat__list_secrets to find hardcoded credentials
+                            (--severity has NO effect here either — same reason)
   --auth                 → call jsat__get_auth_coverage to show auth gaps
-  --cves                 → call jsat__get_dependency_cves for CVE check
-  --severity critical    → filter to critical only (pass severity_threshold="critical")
-  --severity high        → filter to high+ (default: medium)
+                            (--severity has NO effect here either — same reason)
+  --cves [path]          → CVE check (see "CVE check" below — does NOT call
+                            jsat__get_dependency_cves directly). --severity DOES
+                            apply here, because this path reads
+                            jsat__security_review's output under the hood.
+  --severity critical    → filter to critical only (pass severity_threshold="critical").
+                            Only takes effect on the default path scan and --cves
+                            (both go through jsat__security_review); has no effect
+                            when combined with --file, --secrets, or --auth.
+  --severity high        → filter to high+ (default: medium). Same scope limit as above.
   (no flag / path only)  → call jsat__security_review with path=<rest or ".">
+
+Flags are independent scans over different data, not composable filters on each
+other: --severity only has an effect on tools that accept severity_threshold
+(currently jsat__security_review and, by extension, --cves since it reads
+security_review's output — --file/--secrets/--auth ignore it, so state that
+plainly if the user combines --severity with one of those rather than silently
+dropping it).
 
 Examples:
   /jsat-security
@@ -22,8 +40,20 @@ Examples:
     → jsat__security_scan_file(file="src/auth/login.py")
   /jsat-security --secrets
     → jsat__list_secrets()
-  /jsat-security --cves
-    → jsat__get_dependency_cves()
+  /jsat-security --cves src/payment/
+    → jsat__security_review(path="src/payment/") → read its `cves` field
+
+CVE check (--cves):
+  Do NOT call jsat__get_dependency_cves directly — as of this writing it
+  unconditionally returns `status: "not_implemented"` regardless of the repo or
+  package, so it will never produce real data and a command built only on it
+  would silently report "0 CVEs" forever, which is worse than an error because
+  it looks like a clean bill of health. Instead call
+  jsat__security_review(path=<path or ".">) and read its `cves` field — that is
+  the actual working CVE data path (same fix as /jsat-upgrade-impact Phase 2).
+  If the `cves` field is itself empty/absent from the response, report that
+  explicitly as "no CVE data returned" rather than as "0 vulnerabilities found" —
+  those are different claims and conflating them overstates confidence.
 
 Group findings by severity: Critical → High → Medium → Low.
 For each finding: file, line, rule ID, description, remediation.

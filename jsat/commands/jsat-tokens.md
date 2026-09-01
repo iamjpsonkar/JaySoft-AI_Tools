@@ -25,6 +25,22 @@ Examples:
 
 Show: token count, savings (if compressed), budget % used and status (ok/warn/critical).
 
+All three tools (jsat__token_count, jsat__token_compress, jsat__token_budget) are
+offline/character-based — no LLM call, unaffected by an AI-provider-down condition.
+
+FLAG PRECEDENCE: --compress and --model/--budget are different single-action calls,
+not composable in one call — jsat__token_compress and jsat__token_budget are separate
+tools. If the user wants both (compress AND then check budget on the result), run
+them as two sequential calls: jsat__token_compress first, then jsat__token_budget with
+the COMPRESSED text as input — do not silently pick one flag and ignore the other if
+both are present in $ARGUMENTS.
+
+`model` is a required argument to jsat__token_budget (no server-side default) — if
+neither --model nor --budget was given but a budget check is being requested, ask
+which model, or introspect the assistant's own current model name; do not guess a
+hardcoded string (see jsat-token-budget.md for why a mismatched name can silently
+prefix-match the wrong context-window entry).
+
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):
   timeout=<N>     → override soft budget to N seconds (default varies per tool)

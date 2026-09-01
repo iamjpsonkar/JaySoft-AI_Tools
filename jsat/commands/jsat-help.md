@@ -25,7 +25,37 @@ Examples:
   ...
 ```
 
-If COMMAND is not found: print `Unknown command: <COMMAND>` and show the Full Command List.
+If COMMAND is not an exact match against a `### <COMMAND>` section, do NOT jump
+straight to "Unknown command" — a bare miss-list dump is only correct feedback
+when the user's input has nothing in common with any real command, and that is
+rarely why someone typed the wrong name. Two more likely cases first:
+
+1. RENAMED/MERGED COMMAND: commands get merged or renamed as JSAT evolves. Muscle
+   memory for an old name is common and deserves a redirect, not a dead end.
+   Maintain this alias table BEFORE falling back to fuzzy match — whenever a
+   command is folded into another, add its old name here (this table is
+   necessarily hand-maintained since a removed name has no live section to
+   introspect; unlike the command list below, it does NOT self-update — review
+   it whenever commands are merged):
+     think, reflect, audit, estimate  → folded into `ithinking` subcommands
+     token-budget                     → folded into `tokens --model`
+     knowledge-add                    → folded into `knowledge add`
+   If COMMAND matches one of these AND it is not ALSO a `### <COMMAND>` section
+   of its own below (check the live list first — this table can lag a moment
+   behind an intentional un-merge), print:
+   "`/jsat <COMMAND>` was folded into `/jsat <successor>`. Showing that:"
+   then print the successor's help block.
+
+2. TYPO / CLOSE MATCH: if COMMAND is not an exact section match and not a known
+   alias above, compare it against every command name in the Full Command List
+   table using a simple closeness heuristic (shares a long common substring,
+   edit distance of 1-2 characters, or a transposition). If exactly one close
+   match stands out, respond: "Unknown command: <COMMAND> — did you mean
+   `/jsat <closest-match>`?" and print that command's help block underneath, so
+   the user isn't forced into a second round trip.
+   If nothing is close enough to name with confidence, THEN fall back to plain
+   `Unknown command: <COMMAND>` plus the Full Command List — do not guess a match
+   you are not reasonably confident in, a wrong suggestion is worse than none.
 
 ---
 
@@ -36,686 +66,696 @@ then pass as tool call arguments (_budget=N, _dashboard=True).
 Universal flags (any command):
   timeout=<N>     → soft time budget in seconds (notification-only; hard kill at 5×N)
   dashboard=true  → open a real-time browser dashboard for this call
-
-How they work:
-  timeout=<N>
-    • After N seconds: ⏱ progress notification sent to AI (tool still running)
-    • After 5×N seconds: ⛔ force-killed (hard limit)
-    • Default budgets vary per tool (blast_radius: 30s, crack: 55s, query: 45s, …)
-    • Pass as _budget=N in the tool call: jsat__crack(task='...', _budget=300)
-
-  dashboard=true
-    • Starts a local HTTP server at http://localhost:7432 (or JSAT_DASHBOARD_PORT)
-    • Opens the browser automatically
-    • Streams all events in real time: start, progress, checkpoints, over-budget warnings, result, done
-    • Server closes 10 s after the call completes (clears on the next dashboard=true call)
-    • Pass as _dashboard=True in the tool call: jsat__crack(task='...', _dashboard=True)
-
-Examples:
-  /jsat crack timeout=300 redesign the payment retry system
-    → jsat__crack(task='redesign the payment retry system', _budget=300)
-
-  /jsat blast-radius dashboard=true src/payment/
-    → jsat__blast_radius(target='src/payment/', _dashboard=True)
-
-  /jsat magic timeout=180 dashboard=true --service payments investigate the auth flow
-    → jsat__query(…, _budget=180, _dashboard=True)  (and all sub-calls inherit budget)
+  raw=true        → skip the default input-correction rewrite; use ARGS exactly as typed
 ```
 
 ---
 
 ### aw
-Workflow advisor — classifies your task and runs the optimal tool sequence end-to-end.
+Workflow advisor — classifies your task and runs the optimal JSAT tool sequence end-to-end.
 ```
-/jsat aw [--type <type>] [--dry] <task>
+/jsat aw [flags] <args>
 
 Flags:
-  --type feature|bugfix|security|understand|incident|refactor|review
-                  skip classification, force a specific workflow
-  --dry           show the workflow plan without running any tools
+  --type <type>   → skip classification, force a specific workflow type
+  --dry           → show the workflow plan only, do NOT run any tools
 
 Examples:
-  /jsat aw add idempotency keys to the payment mutation
-  /jsat aw --type security src/auth/
-  /jsat aw --dry investigate the checkout 500 errors
+  /jsat-aw add idempotency keys to the payment mutation endpoint
+    → classifies as "feature": lazy → find-function → blast-radius → crack → test-gaps
 ```
 
 ### blast-radius
-Trace downstream impact of a change. Severity-ranked: breaking → degraded → warning → safe.
+Trace downstream impact of a change. Supports flags in $ARGUMENTS.
 ```
-/jsat blast-radius [--file|--diff|--symbol] [--severity <lvl>] <target>
+/jsat blast-radius [flags] <args>
 
 Flags:
-  --file <path>      blast radius for a file
-  --diff <diff>      blast radius from a raw git diff
-  --symbol <name>    blast radius for a single symbol
-  --severity breaking|degraded|warning|safe   filter output to one level
-  (no flag)          auto-detect from target
+  --file           → call jsat__blast_radius_file with path=<rest>
+  --diff           → call jsat__blast_radius_diff with diff=<rest>
+  --symbol         → call jsat__blast_radius_symbol with symbol=<rest>
+  --severity <lvl> → filter the RESULT to breaking|degraded|warning|safe only (client-side —
+  --depth <N>      → override BFS depth (maps to max_depth; default 3 for the bare
 
 Examples:
-  /jsat blast-radius src/payment/service.py
-  /jsat blast-radius --symbol PaymentService.process
-  /jsat blast-radius --severity breaking jsat/cli.py
+  /jsat-blast-radius src/payment/service.py
+    → jsat__blast_radius(target="src/payment/service.py")
+```
+
+### changelog
+Generate a changelog between two refs, grouped by service and impact, from commit history and the graph.
+```
+/jsat changelog [flags] <args>
+
+Flags:
+  --service <name>   → scope to one service's changes only
+  --breaking-only    → show only changes with a breaking blast-radius impact
+
+Examples:
+  /jsat-changelog
+    → changelog since the last tag
+  /jsat-changelog v1.2.0 v1.3.0
+    → changelog between two tags
+  /jsat-changelog --service PaymentService main HEAD
+```
+
+### cherry-pick
+Cherry-pick a single commit onto the current branch with graph-aware impact analysis and semantic conflict resolution.
+```
+/jsat cherry-pick [flags] <args>
+
+Flags:
+  --dry-run      → show impact + conflict forecast only, do NOT touch git state
+  --continue     → resume a cherry-pick already in progress
+  --abort        → run `git cherry-pick --abort` and stop
+  --allow-dirty  → stash uncommitted changes before starting, restore after (Phase 0)
+
+Examples:
+  /jsat-cherry-pick a1b2c3d
+  /jsat-cherry-pick --dry-run a1b2c3d
 ```
 
 ### cohesion
-File and function cohesion analysis — flags oversized files, high complexity, mixed responsibilities.
+File and function cohesion analysis — flags oversized files, high complexity, and mixed responsibilities.
 ```
-/jsat cohesion [--service <name>] [--threshold <N>] [--functions]
+/jsat cohesion [flags] <args>
 
 Flags:
-  --service <name>    scope to one service
-  --threshold <N>     flag files with more than N lines (default: 800)
-  --functions         show function-level analysis only
+  --service <name>    → scope to one service
+  --threshold <N>     → flag files with more than N lines (default: 800)
+  --functions         → show function-level analysis only (no file-level)
 
 Examples:
-  /jsat cohesion
-  /jsat cohesion --threshold 600
-  /jsat cohesion --service PaymentService --functions
+(see /jsat <command> for usage)
 ```
 
 ### contract
 Check API contract compatibility between branches.
 ```
-/jsat contract [<base> <head>] [--score] [--breaking]
+/jsat contract [flags] <args>
 
 Flags:
-  <base> <head>   branches to diff (default: main HEAD)
-  --score         show only the numeric compatibility score (0-100)
-  --breaking      show breaking changes only
+  --score              → show only the numeric compatibility score (0-100)
+  --breaking           → show breaking changes only
 
 Examples:
-  /jsat contract
-  /jsat contract main feature/new-payments
-  /jsat contract --breaking
+  /jsat-contract
+    → diff main...HEAD for all OpenAPI/AsyncAPI specs in the repo
 ```
 
 ### coverage
-Behavioral test coverage estimate. Optionally generate missing tests.
+Show behavioral test coverage estimate. Supports generating tests for gaps.
 ```
-/jsat coverage [--generate] [--service <name>] [--limit N] <path>
+/jsat coverage [flags] <args>
 
 Flags:
-  --generate          generate unit tests for top uncovered paths
-  --service <name>    scope to one service (avoids timeout)
-  --limit N           show only top N uncovered paths
+  --generate       → after showing gaps, call jsat__generate_unit_test for top uncovered paths
+  --service <name> → scope to one service (the ONLY native scoping this tool supports —
+  --limit N        → show only top N uncovered paths (default: all for display; see
+  --generate; do not rank by whatever order the tool happens to return): rank by, in
+  --generate DEFAULT CAP: if --generate is given WITHOUT --limit, do not generate a
 
 Examples:
-  /jsat coverage src/payment/
-  /jsat coverage --generate --limit 5 src/payment/
-  /jsat coverage --service PaymentService
+  /jsat-coverage --service PaymentService
+    → jsat__get_behavioral_coverage(service="PaymentService")  (native scoping)
 ```
 
 ### crack
-Multi-agent war room — architect → security → implementer → tester → skeptic → moderator.
+Multi-agent war room with artifact carry-forward — each agent builds on prior findings.
 ```
-/jsat crack [--phases N] [--single] [--continue] <task>
+/jsat crack [flags] <args>
 
 Flags:
-  --phases N    run in N phases: 2-6 (default: 6, one agent per phase)
-  --single      run all agents at once (may timeout on complex tasks)
-  --continue    resume the most recent in_progress crack session
-
-Phase splits:
-  N=2  [arch+sec+impl] / [tester+skeptic+mod]
-  N=3  [arch+sec] / [impl+tester] / [skeptic+mod]
-  N=6  one agent per phase (default, maximum granularity)
+  --phases N   → run in N phases (2-6, default: 6)
+  --single     → run all agents at once (original one-shot behavior, may timeout)
+  --continue   → resume the most recent in_progress crack session
+  ---
+  ---
+  --continue will retry it once the backend is fixed, and STOP the war room rather
+  --phases value; a phase-number reference that happened to be correct in 6-phase
 
 Examples:
-  /jsat crack redesign the payment retry system
-  /jsat crack --phases 3 add rate limiting to checkout
-  /jsat crack --continue
+(see /jsat <command> for usage)
+```
+
+### dead-code
+Find functions and classes with no callers in the codebase — a graph inversion of blast-radius, not a new capability.
+```
+/jsat dead-code [flags] <args>
+
+Flags:
+  --service <name>   → scope to one service (avoids timeout on large codebases)
+  --include-private  → also flag private/internal (_prefixed) functions (default: only
+
+Examples:
+  /jsat-dead-code
+    → scan the whole indexed codebase for unreferenced functions/classes
+  /jsat-dead-code --service PaymentService
+    → scope to one service
+  /jsat-dead-code src/legacy/
+    → scope to one path
 ```
 
 ### decide
-Architectural decision journal. Log decisions; retrieve by file, topic, or blast-radius context.
+Decision journal — log architectural decisions and surface them by file, topic, or blast-radius context.
 ```
-/jsat decide [log [--impact h|m|l]] | [list [<category>]] | [search <query>] | [context <file>]
+/jsat decide [flags] <args>
 
-Subcommands:
-  log <text>                  store a decision
-  log --impact h|m|l <text>   store with impact rating (high/medium/low)
-  list                        show all decisions (recent first)
-  list <category>             filter by category
-  search <query>              semantic search across decisions
-  context <file_or_symbol>    decisions relevant to this file
+Flags:
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat decide log --impact h Chose PostgreSQL for ACID compliance on payments
-  /jsat decide list
-  /jsat decide search caching strategy
+  /jsat decide log Switched caching from Redis to in-memory — cost $500/month, latency acceptable
+  /jsat decide log --impact h Chose PostgreSQL over MongoDB for ACID compliance on payment records
   /jsat decide context src/payments/service.py
+  /jsat decide search caching strategy
 ```
 
 ### doctor
-Full JSAT system health check.
+Run a full JSAT system health check.
 ```
-/jsat doctor
+/jsat doctor [flags] <args>
 
-No flags. Checks: version, graph backend, AI provider, MCP tools loaded, config profile.
+Flags:
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat doctor
+(see /jsat <command> for usage)
+```
+
+### find-class
+Find a class in the indexed codebase. Supports service scoping.
+```
+/jsat find-class [flags] <args>
+
+Flags:
+  --service <name>  → scope search to one service
+
+Examples:
+(see /jsat <command> for usage)
+```
+
+### find-function
+Find a function or method in the indexed codebase. Supports service scoping.
+```
+/jsat find-function [flags] <args>
+
+Flags:
+  --service <name>  → scope search to one service
+
+Examples:
+(see /jsat <command> for usage)
 ```
 
 ### improve
 Diagnose problems JSAT hit in itself and draft a patch to JSAT's own source.
 ```
-/jsat improve [--list] [--id <fp8>] [--report]
+/jsat improve [flags] <args>
 
 Flags:
-  --list        show what has been recorded, analyse nothing (read-only, no tokens)
-  --id <fp8>    work on one specific recorded issue (ids come from --list)
-  --report      after diagnosing, open a pre-filled GitHub issue in the browser
-
-What it does:
-  JSAT passively records friction it hits in ITSELF — crashes, capability gaps,
-  unhelpful errors, tools that blow their time budget. This turns the most frequent
-  one into a diagnosis plus a candidate patch, written to ~/.jsat/improve/bundles/.
-
-Privacy:
-  Only JSAT-internal data is recorded — JSAT's own stack frames, exception type
-  names, tool names, versions, config KEYS. The user's code, paths, identifiers and
-  queries are DROPPED, never redacted. Capture is a local file; nothing is
-  transmitted unless the user runs --report and presses Submit themselves.
-  JSAT never modifies its own installed files.
-  Disable: JSAT_NO_IMPROVE=1, privacy.no_telemetry, or improve.enabled: false.
+  --list          → only show what has been recorded, analyse nothing
+  --id <fp8>      → work on one specific recorded issue
+  --report        → open a pre-filled GitHub issue in the browser after diagnosing
 
 Examples:
-  /jsat improve --list
-  /jsat improve
-  /jsat improve --id 85be55de --report
-```
-
-### find-class
-Find a class in the indexed codebase.
-```
-/jsat find-class [--service <name>] <ClassName>
-
-Flags:
-  --service <name>   scope search to one service
-
-Examples:
-  /jsat find-class PaymentService
-  /jsat find-class --service payments RefundProcessor
-```
-
-### find-function
-Find a function or method in the indexed codebase.
-```
-/jsat find-function [--service <name>] <function_name>
-
-Flags:
-  --service <name>   scope search to one service
-
-Examples:
-  /jsat find-function process_refund
-  /jsat find-function --service payments validate_cart
+(see /jsat <command> for usage)
 ```
 
 ### incident
-Investigate a production incident with ranked root-cause hypotheses.
+Investigate a production incident. Supports subcommands in $ARGUMENTS.
 ```
-/jsat incident [hypotheses|recent [path]|runbook <svc>] [--since <time>] [--service <name>] <description>
-
-Subcommands:
-  hypotheses          list ranked root-cause hypotheses (after a previous investigation)
-  recent [path]       show recent commits in an area
-  runbook <svc>       generate an incident runbook
+/jsat incident [flags] <args>
 
 Flags:
-  --since 24h|7d      limit commit search window
-  --service <name>    scope to one service
+  --since <time>      → limit commit search to window (24h, 7d)
+  --service <name>    → scope graph correlation to one service
 
 Examples:
-  /jsat incident 500 errors spiking on checkout since 14:00
-  /jsat incident hypotheses
-  /jsat incident recent src/payment/
-  /jsat incident runbook PaymentService
+  /jsat-incident 500 errors spiking on checkout since 14:00
+    → jsat__investigate_incident(description="500 errors spiking on checkout since 14:00")
 ```
 
 ### index
-Build or refresh the JSAT codebase graph index.
+Build or refresh the JSAT codebase graph index. Supports flags in $ARGUMENTS.
 ```
-/jsat index [--force] [--languages X,Y] <path>
+/jsat index [flags] <args>
 
 Flags:
-  --force            full re-index (ignores incremental cache)
-  --languages X,Y    limit to specific languages (python, go, js, ...)
-  (no flag)          incremental index of path (default: .)
+  --force          → pass force=true  (full re-index, ignores incremental cache)
+  --languages X,Y  → pass languages=["X","Y"]  (limit to specific languages)
 
 Examples:
-  /jsat index .
-  /jsat index src/ --force
-  /jsat index . --languages python,go
+  /jsat-index .                    → jsat__index_repo(path=".")
+  /jsat-index src/ --force         → jsat__index_repo(path="src/", force=true)
+  /jsat-index . --languages python,go  → jsat__index_repo(path=".", languages=["python","go"])
+```
+
+### internet
+Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. The one sanctioned exception to JSAT's "jsat__* tools only" rule, since no jsat__* tool reaches the internet.
+```
+/jsat internet [flags] <args>
+
+Flags:
+  --fetch <url>        → skip search, WebFetch this exact URL directly (use when
+  --site <domain>      → restrict search to one domain (passed as
+  --context             → also call jsat__query(question=<question>) to ground the
+  --context forces it on even without that wording.
+  --no-context          → skip codebase grounding even if the heuristic above
+
+Examples:
+  /jsat internet query what is the current stable version of pydantic
+    → WebSearch(query="pydantic current stable version 2026")
 ```
 
 ### ithinking
-IThinking meta-cognitive reasoning — plan before acting, reflect after.
+IThinking meta-cognitive reasoning. Supports subcommands in $ARGUMENTS.
 ```
-/jsat ithinking [plan|reflect|audit|execute|estimate] <task>
+/jsat ithinking [flags] <args>
 
-Subcommands:
-  plan <task>       clarify intent, check assumptions, decompose work (default)
-  reflect <done>    log what was done and what was learned
-  audit <task>      audit assumptions before starting
-  execute <plan>    execute a plan step
-  estimate <task>   token/complexity estimate for a task
+Flags:
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat ithinking refactor the payment retry logic
-  /jsat ithinking reflect completed PaymentService.process() refactor
-  /jsat ithinking audit migrate users table to add nullable column
+  /jsat-ithinking refactor the payment retry logic
+    → jsat__ithinking_plan(task="refactor the payment retry logic")
 ```
 
 ### knowledge
-Query or manage the JSAT knowledge base.
+Query or manage the JSAT knowledge base. Supports subcommands in $ARGUMENTS.
 ```
-/jsat knowledge [add [--category <cat>] | list [<cat>] | search <query> | stale <id>] <query>
-
-Subcommands:
-  add <text>                   store a note
-  add --category <cat> <text>  store with category: adr|runbook|pattern|decision
-  list                         show all entries
-  list <category>              filter by category
-  search <query>               semantic search
-  stale <id>                   flag entry as potentially outdated
-  (no subcommand)              semantic query (same as search)
-
-Examples:
-  /jsat knowledge what are the payment ADRs?
-  /jsat knowledge add --category adr Payments require idempotency keys
-  /jsat knowledge list adr
-  /jsat knowledge search retry patterns
-```
-
-### knowledge-add
-Add a single entry to the knowledge base.
-```
-/jsat knowledge-add [--category <cat>] <text>
+/jsat knowledge [flags] <args>
 
 Flags:
-  --category adr|runbook|pattern|decision|context
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat knowledge-add Use tenancy for retry logic per ADR-007
-  /jsat knowledge-add --category adr All payment mutations require idempotency keys
+  /jsat-knowledge what are the payment service ADRs?
+    → jsat__knowledge_query(question="what are the payment service ADRs?")
 ```
 
 ### lazy
-Reuse-first code planning — checks the graph for existing implementations before suggesting new code.
+Reuse-first code planning — runs a 5-rung ladder against the graph before suggesting new code.
 ```
-/jsat lazy [--audit] [--review] <task>
+/jsat lazy [flags] <args>
 
 Flags:
-  --audit    scan a diff/file for code that reimplements existing functionality
-  --review   check a proposed implementation for duplication
-  (no flag)  run the 5-rung reuse ladder for the task
-
-Reuse ladder: exact match → similar pattern → existing service → existing endpoint → minimal new code
+  --audit   → scan a diff/file for over-engineering (code that reimplements existing)
+  --review  → check a proposed implementation against the graph for duplication
 
 Examples:
-  /jsat lazy add a retry wrapper for HTTP calls
-  /jsat lazy --audit src/payment/retry.py
-  /jsat lazy --review add idempotency key validation
+(see /jsat <command> for usage)
 ```
 
 ### list-endpoints
-List all API endpoints found in the indexed codebase.
+List all API endpoints found in the indexed codebase. Supports filtering.
 ```
-/jsat list-endpoints [--service <name>] [--method <METHOD>]
+/jsat list-endpoints [flags] <args>
 
 Flags:
-  --service <name>    filter to one service
-  --method GET|POST|PUT|PATCH|DELETE   filter by HTTP method
+  --service <name>    → filter to one service's endpoints
+  --method <METHOD>   → filter by HTTP method (GET, POST, PUT, PATCH, DELETE)
 
 Examples:
-  /jsat list-endpoints
-  /jsat list-endpoints --service payment
-  /jsat list-endpoints --method POST
+(see /jsat <command> for usage)
 ```
 
 ### list-services
-List all services found in the indexed codebase.
+List all services found in the indexed codebase. Supports language filtering.
 ```
-/jsat list-services [--language <lang>]
+/jsat list-services [flags] <args>
 
 Flags:
-  --language python|go|javascript|java|ruby|rust
+  --language <lang>  → filter by language (python, go, javascript, java, ruby, rust)
 
 Examples:
-  /jsat list-services
-  /jsat list-services --language python
+(see /jsat <command> for usage)
 ```
 
 ### magic
-AI-orchestrated skill composer — selects and runs the optimal JSAT skills for any task.
+AI-orchestrated skill composer — analyzes any task and dynamically selects, orders, and runs the optimal JSAT skills to complete it.
 ```
-/jsat magic [--depth quick|standard|deep] [--budget N] [--service <name>] [--preview] [--continue] <task>
+/jsat magic [flags] <args>
 
 Flags:
-  --depth quick       cap at 4 skills (fast, breadth-first)
-  --depth standard    cap at 8 skills (default, balanced)
-  --depth deep        cap at 15 skills (comprehensive)
-  --budget N          explicit skill invocation cap
-  --service <name>    scope all skills to one service (avoids timeout)
-  --preview           compose plan only, do NOT run any skills
-  --continue          resume the most recent in_progress magic session
+  --depth quick     → cap at 4 skills (fast pass, breadth-first)
+  --depth standard  → cap at 8 skills (default, balanced)
+  --depth deep      → cap at 15 skills (comprehensive)
+  --budget N        → explicit cap on skill invocations (overrides --depth's cap)
+  --service <name>  → scope all skills to one service (avoids timeout)
+  --preview         → compose plan only, do NOT run any skills
+  --continue        → resume the most recent in_progress magic session
+  ---
 
 Examples:
-  /jsat magic improve the payment retry logic
-  /jsat magic --depth deep analyze and fix the auth flow
-  /jsat magic --preview what would you do to refactor the checkout service?
-  /jsat magic --continue
+(see /jsat <command> for usage)
+```
+
+### merge
+Merge a source branch into a target branch with graph-aware impact analysis, semantic conflict resolution, and post-merge verification.
+```
+/jsat merge [flags] <args>
+
+Flags:
+  --dry-run          → run Phases 0-2 only (context + blast-radius + plan). Do NOT touch git state.
+  --strategy ours|theirs|manual  → tie-breaker for PURELY NON-SEMANTIC conflicts only
+  --no-verify        → skip Phase 5 (test-gaps/review) after the merge — NOT recommended
+  --continue         → resume a merge that is already in progress (working tree has an in-progress merge)
+  --allow-dirty      → stash uncommitted changes before starting, restore after (Phase 0)
+  --dry-run was combined with a would-be-FF merge — report "would fast-forward" instead.
+
+Examples:
+  /jsat-merge feature/checkout-retry main
+    → merge feature/checkout-retry into main, full flow
 ```
 
 ### migration
-Validate a database migration file for lock type, duration, and zero-downtime safety.
+Validate a database migration file for safety. Supports row count hints.
 ```
-/jsat migration [--rows <table:N>] <path>
+/jsat migration [flags] <args>
 
 Flags:
-  --rows <table:N>   hint row count for lock duration estimation
-                     e.g. --rows orders:5000000
+  --rows <table:N>[,<table:N>...]   → hint row count(s) for lock duration estimation.
 
 Examples:
-  /jsat migration db/migrations/0042_add_index.sql
-  /jsat migration --rows orders:5000000 db/migrations/0042.sql
+  /jsat-migration db/migrations/0042_add_index.sql
+    → jsat__validate_migration(path="db/migrations/0042_add_index.sql")
 ```
 
 ### plan
-Pre-implementation planning gate — six forcing questions + scope/architecture/security review.
+Pre-implementation planning — six forcing questions + scope/architecture/security review before writing code.
 ```
-/jsat plan [--scope] [--architecture] [--security] [--full] <task>
+/jsat plan [flags] <args>
 
 Flags:
-  --scope          scope review only (what to build and why)
-  --architecture   architecture review (how to build it)
-  --security       security review (what can go wrong)
-  --full           all three perspectives (default)
+  --scope          → scope review only: what to build and why
+  --architecture   → architecture review: how to build it
+  --security       → security review: what can go wrong
+  --full           → run all three perspectives (default)
 
 Examples:
-  /jsat plan add idempotency keys to the payment mutation
-  /jsat plan --security add a new admin endpoint
-  /jsat plan --scope implement a refund retry mechanism
+(see /jsat <command> for usage)
 ```
 
-### prompt
-Discuss → Plan → Execute → Verify → Synthesize pipeline for any codebase question.
+### pr-describe
+Compose a ready-to-post PR description from review findings, contract diff, and test coverage — pure recombination, no new analysis.
 ```
-/jsat prompt [--rewrite|--agents] [--diff] [--optimize-only] [--phases N] [--service <name>] [--single] [--continue] <query>
+/jsat pr-describe [flags] <args>
 
 Flags:
-  --rewrite         Phase 1: single LLM agent rewrite
-  --agents          Phase 1: 3 parallel LLM rewrite agents (best output wins)
-  --diff            show raw vs optimized prompt diff after Phase 1
-  --optimize-only   stop after Phase 1 optimization
-  --phases N        run N phases: 2-6 (default: 6)
-  --service <name>  scope all queries to one service
-  --single          one-shot mode (optimize → one query call)
-  --continue        resume most recent in_progress prompt session
+  --no-tests    → skip the test-gaps section (for docs-only / trivial PRs)
 
 Examples:
-  /jsat prompt what calls process_refund and what do they pass?
-  /jsat prompt --agents redesign the payment retry system
-  /jsat prompt --phases 3 how does the checkout flow work?
-  /jsat prompt --continue
+  /jsat-pr-describe
+    → describe the diff between main and the current branch
 ```
 
 ### prompt-diff
 Show what you typed vs what JSAT sent to the AI after optimization.
 ```
-/jsat prompt-diff <query>
+/jsat prompt-diff [flags] <args>
 
-No flags. Shows two panels: Raw (what you typed) and Optimized (what was sent).
+Flags:
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat prompt-diff improve the retry logic
-  /jsat prompt-diff what does the checkout service do?
+(see /jsat <command> for usage)
 ```
 
 ### prompt-rewrite
-Rewrite a prompt using 3 parallel LLM agents for maximum clarity.
+Rewrite a prompt using offline pipeline + parallel LLM agents for maximum clarity.
 ```
-/jsat prompt-rewrite <query>
+/jsat prompt-rewrite [flags] <args>
 
-No flags. Runs: clarity rewrite + context expansion + constraint hardening in parallel.
-Shows winning rewrite with agent name and score.
+Flags:
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat prompt-rewrite add rate limiting to the checkout API
+(see /jsat <command> for usage)
+```
+
+### prompt
+Discuss → Plan → Execute → Verify → Synthesize — uses the right tool per query type and checks its own answers.
+```
+/jsat prompt [flags] <args>
+
+Flags:
+  --rewrite or --agent  → Phase 1 optimizer: jsat__prompt_rewrite  (1 LLM agent)
+  --agents              → Phase 1 optimizer: jsat__prompt_multi_agent (3 parallel agents)
+  --diff                → ALSO show raw vs optimized diff after Phase 1
+  --optimize-only       → Stop after Phase 1; show optimized prompt only
+  --phases N            → Run N phases (2-6, default: 6)
+  --service <name>      → Scope all query phases to this one service
+  --single              → Original one-shot flow (optimize → one jsat__query call)
+  --continue            → Resume most recent in_progress prompt session
+
+Examples:
+(see /jsat <command> for usage)
 ```
 
 ### query
-Answer any question about this codebase using the graph index.
+Answer a question about this codebase using JSAT's graph index. Supports service scoping.
 ```
-/jsat query [--service <name>] [--short] <question>
+/jsat query [flags] <args>
 
 Flags:
-  --service <name>   scope answer to one service (reduces context, avoids timeout)
-  --short            constrain to ≤3 sentences
+  --service <name>  → scope answer to one service (reduces context, avoids timeout)
+  --short           → prepend brevity constraint (≤3 sentences)
+  --service SCOPE SEMANTICS (unverified against tool internals — flag this
 
 Examples:
-  /jsat query what does the payment service do?
-  /jsat query --service PaymentService how is retry handled?
-  /jsat query --short what does process_refund return?
+  /jsat-query what does the payment service do?
+    → jsat__query(question="what does the payment service do?")
+```
+
+### rebase
+Rebase the current branch onto a target using the same graph-aware, semantic conflict resolution engine as /jsat merge.
+```
+/jsat rebase [flags] <args>
+
+Flags:
+  --dry-run      → show impact + conflict forecast only, do NOT touch git state
+  --continue     → resume a rebase already in progress (conflict markers in the tree)
+  --abort        → run `git rebase --abort` and stop (escape hatch, no analysis)
+  --no-verify    → skip Phase 3 (test-gaps/breaking check) after the rebase — NOT recommended
+  --allow-dirty  → stash uncommitted changes before starting, restore after (Phase 0)
+  --continue` — do not bypass with git's own `--no-verify` unless the user
+
+Examples:
+  /jsat-rebase main
+    → rebase current branch onto main
 ```
 
 ### recent
-Show recent changes in the codebase.
+Show recent changes in the codebase. Supports time range and author filters.
 ```
-/jsat recent [--since <time>] [--author <name>] [--service <name>] [path]
+/jsat recent [flags] <args>
 
 Flags:
-  --since 24h|7d|30d   limit to changes since this window
-  --author <name>      filter by commit author (substring match)
-  --service <name>     scope to one service's files
+  --since <time>    → limit to changes since (24h, 7d, 30d)
+  --author <name>   → filter by commit author name (substring match)
+  --service <name>  → scope to one service's files (takes precedence over a
 
 Examples:
-  /jsat recent
-  /jsat recent --since 24h src/payment/
-  /jsat recent --author jay
-```
-
-### reflect
-Record what was done after completing a task (IThinking phase 6 log).
-```
-/jsat reflect <what was done>
-
-No flags. Logs outcome, what worked, what didn't, follow-up actions.
-
-Examples:
-  /jsat reflect completed RBAC fail-closed fix in mcp/server.py
-  /jsat reflect split cli.py into 8 focused modules, all tests pass
+  /jsat-recent
+    → jsat__get_recent_changes(target=".")   — see SCOPE WARNING below
 ```
 
 ### review
-Multi-model code review. Confirms bugs when 2+ models agree.
+Multi-model code review. Supports flags in $ARGUMENTS.
 ```
-/jsat review [--findings] [--bugs] [--min high|medium] <diff>
+/jsat review [flags] <args>
 
 Flags:
-  --findings    show results of the most recent review (no new review)
-  --bugs        show confirmed bugs only (2+ model agreement)
-  --min high    filter to high-confidence findings only
-  --min medium  filter to medium+ (default)
-  (no flag)     submit a diff for review
+  --findings        → call jsat__get_review_findings to show results of last review
+  --bugs            → call jsat__get_high_confidence_bugs to list confirmed bugs only
+  --min high        → filter to high-confidence findings only (applies to whichever
+  --min medium      → filter to medium+ (default)
 
 Examples:
-  /jsat review <paste diff here>
-  /jsat review --bugs
-  /jsat review --findings --min high
+  /jsat-review <paste diff here>
+    → jsat__submit_for_review(diff="<diff>")
 ```
 
 ### runbook
 Generate an incident runbook for a service or component.
 ```
-/jsat runbook [sections] <target>
+/jsat runbook [flags] <args>
 
-Subcommands:
-  sections <target>   show section outline only (no full content)
-  (no subcommand)     full runbook with symptoms, diagnosis, rollback, escalation, monitoring
+Flags:
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat runbook PaymentService
-  /jsat runbook sections PaymentService
+  /jsat-runbook PaymentService
+    → jsat__generate_runbook(target="PaymentService")
 ```
 
 ### security
-Security scan — OWASP, secrets, auth gaps, CVEs.
+Run a security scan. Supports flags in $ARGUMENTS.
 ```
-/jsat security [--file <path>] [--secrets] [--auth] [--cves] [--severity critical|high] [path]
+/jsat security [flags] <args>
 
 Flags:
-  --file <path>        scan a single file
-  --secrets            find hardcoded credentials (key names only, values redacted)
-  --auth               show endpoints missing auth middleware
-  --cves               check dependencies for CVEs above threshold
-  --severity critical  filter to critical only
-  --severity high      filter to high+ (default: medium)
-  (no flag / path)     full OWASP scan of path
+  --file <path>          → call jsat__security_scan_file with file=<path>
+  --secrets              → call jsat__list_secrets to find hardcoded credentials
+  --auth                 → call jsat__get_auth_coverage to show auth gaps
+  --cves [path]          → CVE check (see "CVE check" below — does NOT call
+  --severity critical    → filter to critical only (pass severity_threshold="critical").
+  --severity high        → filter to high+ (default: medium). Same scope limit as above.
 
 Examples:
-  /jsat security
-  /jsat security src/payment/
-  /jsat security --file src/auth/login.py
-  /jsat security --secrets
-  /jsat security --cves
+  /jsat-security
+    → jsat__security_review(path=".")
+  /jsat-security src/payment/
+    → jsat__security_review(path="src/payment/")
+  /jsat-security --file src/auth/login.py
+    → jsat__security_scan_file(file="src/auth/login.py")
+  /jsat-security --secrets
+    → jsat__list_secrets()
+  /jsat-security --cves src/payment/
+    → jsat__security_review(path="src/payment/") → read its `cves` field
+```
+
+### service-health-check
+Validate one service's readiness — CLAUDE.md completeness, catalog registration, auth coverage, test gaps, and index freshness for that service.
+```
+/jsat service-health-check [flags] <args>
+
+Flags:
+  (no flags — see /jsat <command> for full behavior)
+
+Examples:
+  /jsat-service-health-check PaymentService
+  /jsat-service-health-check jsat
 ```
 
 ### short
 Ask any question — get the briefest possible correct answer (≤3 sentences).
 ```
-/jsat short [--one-line] <question>
+/jsat short [flags] <args>
 
 Flags:
-  --one-line   constrain to exactly one sentence
+  --one-line  → request exactly one sentence
 
 Examples:
-  /jsat short what does process_refund return?
-  /jsat short --one-line where is the retry logic?
+(see /jsat <command> for usage)
 ```
 
 ### smart
-Terse compression mode — fragment-based answers, filler stripped, code intact.
+Terse compression mode — answers in fragments, no filler, code intact. Supports --lite / --full / --ultra.
 ```
-/jsat smart [--lite|--full|--ultra] <question>
+/jsat smart [flags] <args>
 
 Flags:
-  --lite    remove filler phrases only (~30% compression)
-  --full    convert to fragments, remove preamble (~55%, default)
-  --ultra   one bullet per fact, ≤8 words each (~70% compression)
+  --lite    → remove filler phrases only (~30% reduction)
+  --full    → fragments + no explanatory preamble (~55% reduction, default)
+  --ultra   → one bullet per fact, ≤8 words each (~70% reduction)
 
 Examples:
-  /jsat smart what does the payment service do?
-  /jsat smart --ultra what does process_refund return?
-  /jsat smart --lite explain the checkout flow
+  /jsat-smart what does the payment service do?
+    → full mode: fragment bullets, no filler
 ```
 
 ### sprint
-Seven-stage delivery workflow — Think → Plan → Build → Review → Test → Ship → Reflect.
+Seven-stage delivery workflow — Think → Plan → Build → Review → Test → Ship → Reflect, each stage fast and focused.
 ```
-/jsat sprint [--stage N] [--dry] [--continue] <task>
+/jsat sprint [flags] <args>
 
 Flags:
-  --stage N     resume from a specific stage (1-7, skips earlier stages)
-  --dry         show the sprint plan without running any tools
-  --continue    resume the most recent in_progress sprint session
-
-Stages: 1-Think  2-Plan  3-Build  4-Review  5-Test  6-Ship  7-Reflect
+  --stage <1-7>    → resume from a specific stage (skip earlier stages)
+  --dry            → show the sprint plan without running any tools
+  --continue       → resume most recent in_progress sprint session
+  --continue, since that would run without the task the user originally gave
+  --stage <N> skips stages 1..N-1 entirely, but stages 2-7 all reference outputs
+  --stage both read ## Findings for prior-stage context, so it must exist from
 
 Examples:
-  /jsat sprint add rate limiting to the checkout API
-  /jsat sprint --dry refactor the payment retry system
-  /jsat sprint --stage 5 add rate limiting to the checkout API
-  /jsat sprint --continue
+(see /jsat <command> for usage)
 ```
 
 ### status
 Show JSAT index statistics and health.
 ```
-/jsat status
+/jsat status [flags] <args>
 
-No flags. Shows: node/edge counts, graph backend, JSAT version, index freshness.
+Flags:
+  (no flags — see /jsat <command> for full behavior)
 
 Examples:
-  /jsat status
+(see /jsat <command> for usage)
 ```
 
 ### test-gaps
-Find untested code paths; optionally generate tests.
+Find untested code paths and optionally generate tests. Supports flags in $ARGUMENTS.
 ```
-/jsat test-gaps [--generate] [--integration] [--contract <A> <B>] [--untested] [--service <name>] [path]
+/jsat test-gaps [flags] <args>
 
 Flags:
-  --generate               generate unit tests for each gap after finding them
-  --integration            generate integration tests (instead of unit)
-  --contract <A> <B>       generate a contract test between two services
-  --untested               flat list of highest-risk untested paths
-  --service <name>         scope to one service (avoids timeout)
+  --generate         → after finding gaps, call jsat__generate_unit_test for each gap
+  --integration      → call jsat__generate_integration_test instead of unit tests
+  --contract <A> <B> → call jsat__generate_contract_test between two services;
+  --untested         → call jsat__list_untested_paths for a flat list
+  --service <name>   → scope to one service (avoids timeout on large codebases)
 
 Examples:
-  /jsat test-gaps src/payment/
-  /jsat test-gaps --generate src/payment/
-  /jsat test-gaps --untested
-  /jsat test-gaps --contract PaymentService RefundService
-```
-
-### think
-Think carefully before acting — IThinking planning shortcut.
-```
-/jsat think <task>
-
-No flags. Clarifies intent, checks assumptions, and decomposes the task before proceeding.
-
-Examples:
-  /jsat think refactor the payment retry logic
-  /jsat think add idempotency keys to all payment mutations
-```
-
-### token-budget
-Check how much of a model's context window a text uses.
-```
-/jsat token-budget [--model <name>] <text>
-
-Flags:
-  --model claude-sonnet-4-6|gpt-4o|gpt-4o-mini|claude-haiku-4-5   (default: current session model)
-
-Shows: tokens used, limit, % used, headroom. Warns at ≥80%, critical at ≥95%.
-
-Examples:
-  /jsat token-budget <paste large context here>
-  /jsat token-budget --model gpt-4o <paste context here>
+  /jsat-test-gaps src/payment/
+    → jsat__get_test_gaps(path="src/payment/")
 ```
 
 ### tokens
-Count, compress, or check token budget for any text.
+Count, compress, or check token budget. Supports flags in $ARGUMENTS.
 ```
-/jsat tokens [--compress] [--model <name>] <text>
+/jsat tokens [flags] <args>
 
 Flags:
-  --compress         apply offline compression (dedup, whitespace, import collapse)
-  --model <name>     check % of model's context window used
+  --compress           → call jsat__token_compress with text=<rest>  (apply compression)
+  --model <name>       → call jsat__token_budget with text=<rest>, model=<name>
+  --budget <model>     → same as --model  (alias)
 
 Examples:
-  /jsat tokens explain the payment service
-  /jsat tokens --compress <paste large context here>
-  /jsat tokens --model gpt-4o <paste context here>
+  /jsat-tokens explain the payment service
+    → jsat__token_count(text="explain the payment service")
 ```
 
 ### trace
-Trace a call chain from a symbol through the codebase.
+Trace a call chain from a symbol through the codebase. Supports depth and direction.
 ```
-/jsat trace [--depth N] [--upstream] <symbol>
+/jsat trace [flags] <args>
 
 Flags:
-  --depth N     limit trace depth to N levels
-  --upstream    show callers of this symbol (who calls it), not what it calls
+  --upstream         → find who calls <source> (see below — different tool, not
 
 Examples:
-  /jsat trace PaymentService.process
-  /jsat trace --depth 3 PaymentService.process
-  /jsat trace --upstream process_refund
+  /jsat-trace PaymentService.process RefundService.issue
+    → jsat__trace_call_chain(from="PaymentService.process", to="RefundService.issue")
+      → shortest path between the two, up to 10 hops; {"found": false, ...} if none
+```
+
+### upgrade-impact
+Assess the blast radius of bumping a dependency — which files import it, how critical those paths are, and whether the current version has known CVEs.
+```
+/jsat upgrade-impact [flags] <args>
+
+Flags:
+  --service <name>   → scope the import search to one service
+  --to <version>     → the target version being considered (used only for the summary
+
+Examples:
+  /jsat-upgrade-impact requests
+  /jsat-upgrade-impact --to 3.0.0 --service PaymentService pydantic
+```
+
+### verify
+Prove a code change actually works by driving it end-to-end, prioritized by graph impact rather than blind manual testing.
+```
+/jsat verify [flags] <args>
+
+Flags:
+  --service <name>   → scope graph lookups to one service (avoids timeout on large repos)
+  --claim <text>     → the specific behavior to verify ("returns 402 on insufficient funds")
+
+Examples:
+  /jsat-verify src/payment/service.py
+    → blast-radius + test-gaps on that file, then drive the affected behavior live
 ```
 
 ---
@@ -724,55 +764,60 @@ Examples:
 
 | Command | One-line description |
 |---------|---------------------|
-| `aw` | Workflow advisor — classifies task, runs optimal tool sequence end-to-end |
-| `blast-radius` | Trace downstream impact of a file/symbol change |
-| `cohesion` | Oversized file, high complexity, mixed responsibility analysis |
-| `contract` | API contract diff — breaking vs non-breaking changes between branches |
-| `coverage` | Behavioral test coverage estimate with optional test generation |
-| `crack` | Multi-agent war room: arch → sec → impl → tester → skeptic → mod |
-| `decide` | Architectural decision journal — log, search, surface by blast-radius |
-| `doctor` | Full JSAT system health check |
-| `find-class` | Find a class in the indexed codebase |
-| `find-function` | Find a function or method in the indexed codebase |
-| `improve` | Diagnose problems JSAT hit in itself and draft a patch for JSAT |
-| `incident` | Investigate a production incident with ranked root-cause hypotheses |
-| `index` | Build or refresh the codebase graph index |
-| `ithinking` | Meta-cognitive plan/reflect/audit/estimate (IThinking) |
-| `knowledge` | Query or manage the JSAT knowledge base |
-| `knowledge-add` | Add a single entry to the knowledge base |
-| `lazy` | Reuse-first planning — checks graph before suggesting new code |
-| `list-endpoints` | List all API endpoints, filterable by service or HTTP method |
-| `list-services` | List all services found in the indexed codebase |
-| `magic` | AI-orchestrated skill composer — picks and runs the right skills |
-| `migration` | Validate DB migration for lock type, duration, zero-downtime safety |
-| `plan` | Pre-implementation gate: forcing questions + scope/arch/security review |
-| `prompt` | Discuss → Plan → Execute → Verify → Synthesize pipeline |
-| `prompt-diff` | Show raw vs optimized prompt diff |
-| `prompt-rewrite` | Rewrite prompt with 3 parallel LLM agents |
-| `query` | Answer any codebase question using the graph index |
-| `recent` | Show recent commits, filterable by time, author, service |
-| `reflect` | Log what was done (IThinking phase 6) |
-| `review` | Multi-model code review — confirms bugs when 2+ models agree |
-| `runbook` | Generate incident runbook for a service or component |
-| `security` | OWASP scan, secrets detection, auth gaps, CVE check |
-| `short` | Briefest correct answer (≤3 sentences) |
-| `smart` | Terse fragment mode — strips filler, preserves code |
-| `sprint` | Seven-stage delivery: Think→Plan→Build→Review→Test→Ship→Reflect |
-| `status` | Index node/edge counts, graph backend, JSAT version |
-| `test-gaps` | Find untested code paths, optionally generate tests |
-| `think` | Think and plan before acting (IThinking shortcut) |
-| `token-budget` | Check text size against a model's context limit |
-| `tokens` | Count, compress, or budget-check tokens |
-| `trace` | Trace call chain from a symbol, supports --upstream |
+| `aw` | Workflow advisor — classifies your task and runs the optimal JSAT tool sequence end-to-end. |
+| `blast-radius` | Trace downstream impact of a change. Supports flags in $ARGUMENTS. |
+| `changelog` | Generate a changelog between two refs, grouped by service and impact, from commit history and the graph. |
+| `cherry-pick` | Cherry-pick a single commit onto the current branch with graph-aware impact analysis and semantic conflict resolution. |
+| `cohesion` | File and function cohesion analysis — flags oversized files, high complexity, and mixed responsibilities. |
+| `contract` | Check API contract compatibility between branches. |
+| `coverage` | Show behavioral test coverage estimate. Supports generating tests for gaps. |
+| `crack` | Multi-agent war room with artifact carry-forward — each agent builds on prior findings. |
+| `dead-code` | Find functions and classes with no callers in the codebase — a graph inversion of blast-radius, not a new capability. |
+| `decide` | Decision journal — log architectural decisions and surface them by file, topic, or blast-radius context. |
+| `doctor` | Run a full JSAT system health check. |
+| `find-class` | Find a class in the indexed codebase. Supports service scoping. |
+| `find-function` | Find a function or method in the indexed codebase. Supports service scoping. |
+| `help` | Show flags, params, and examples for any /jsat command. Usage: /jsat-help <command> |
+| `improve` | Diagnose problems JSAT hit in itself and draft a patch to JSAT's own source. |
+| `incident` | Investigate a production incident. Supports subcommands in $ARGUMENTS. |
+| `index` | Build or refresh the JSAT codebase graph index. Supports flags in $ARGUMENTS. |
+| `internet` | Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. The one sanctioned exception to JSAT's "jsat__* tools only" rule, since no jsat__* tool reaches the internet. |
+| `ithinking` | IThinking meta-cognitive reasoning. Supports subcommands in $ARGUMENTS. |
+| `knowledge` | Query or manage the JSAT knowledge base. Supports subcommands in $ARGUMENTS. |
+| `lazy` | Reuse-first code planning — runs a 5-rung ladder against the graph before suggesting new code. |
+| `list-endpoints` | List all API endpoints found in the indexed codebase. Supports filtering. |
+| `list-services` | List all services found in the indexed codebase. Supports language filtering. |
+| `magic` | AI-orchestrated skill composer — analyzes any task and dynamically selects, orders, and runs the optimal JSAT skills to complete it. |
+| `merge` | Merge a source branch into a target branch with graph-aware impact analysis, semantic conflict resolution, and post-merge verification. |
+| `migration` | Validate a database migration file for safety. Supports row count hints. |
+| `plan` | Pre-implementation planning — six forcing questions + scope/architecture/security review before writing code. |
+| `pr-describe` | Compose a ready-to-post PR description from review findings, contract diff, and test coverage — pure recombination, no new analysis. |
+| `prompt-diff` | Show what you typed vs what JSAT sent to the AI after optimization. |
+| `prompt-rewrite` | Rewrite a prompt using offline pipeline + parallel LLM agents for maximum clarity. |
+| `prompt` | Discuss → Plan → Execute → Verify → Synthesize — uses the right tool per query type and checks its own answers. |
+| `query` | Answer a question about this codebase using JSAT's graph index. Supports service scoping. |
+| `rebase` | Rebase the current branch onto a target using the same graph-aware, semantic conflict resolution engine as /jsat merge. |
+| `recent` | Show recent changes in the codebase. Supports time range and author filters. |
+| `review` | Multi-model code review. Supports flags in $ARGUMENTS. |
+| `runbook` | Generate an incident runbook for a service or component. |
+| `security` | Run a security scan. Supports flags in $ARGUMENTS. |
+| `service-health-check` | Validate one service's readiness — CLAUDE.md completeness, catalog registration, auth coverage, test gaps, and index freshness for that service. |
+| `short` | Ask any question — get the briefest possible correct answer (≤3 sentences). |
+| `smart` | Terse compression mode — answers in fragments, no filler, code intact. Supports --lite / --full / --ultra. |
+| `sprint` | Seven-stage delivery workflow — Think → Plan → Build → Review → Test → Ship → Reflect, each stage fast and focused. |
+| `status` | Show JSAT index statistics and health. |
+| `test-gaps` | Find untested code paths and optionally generate tests. Supports flags in $ARGUMENTS. |
+| `tokens` | Count, compress, or check token budget. Supports flags in $ARGUMENTS. |
+| `trace` | Trace a call chain from a symbol through the codebase. Supports depth and direction. |
+| `upgrade-impact` | Assess the blast radius of bumping a dependency — which files import it, how critical those paths are, and whether the current version has known CVEs. |
+| `verify` | Prove a code change actually works by driving it end-to-end, prioritized by graph impact rather than blind manual testing. |
 
 Run `/jsat-help <command>` for flags and examples on any specific command.
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):
   timeout=<N>     → override soft budget to N seconds (default varies per tool)
   dashboard=true  → open a real-time browser dashboard for this call (closes 10s after done)
-                    Example: /jsat crack dashboard=true timeout=300 redesign the auth flow
-                             → jsat__crack(task='...', _budget=300, _dashboard=True)
+  raw=true        → skip the default AI input-correction rewrite for this call
   ⏱ progress notification = still running (wait, skip, or split — AI decides)
   ⏱ _slow in response = completed after budget (result is valid)
   ⛔ _hard_timeout in response = force-killed at 5× budget (retry with narrower scope)
-

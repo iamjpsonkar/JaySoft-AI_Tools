@@ -1425,6 +1425,191 @@ def _write_jsat_skills(scope: str, commands_dir: Path | None = None) -> Path:
     return commands_dir
 
 
+def _extract_flags_examples(body: str) -> tuple[str, str]:
+    """Best-effort extraction of a command's flag list and Examples block from
+    its own body text, so jsat-help.md's per-command cheat-sheet can be
+    generated from the same source of truth every other artifact uses instead
+    of being hand-duplicated (and silently drifting — see jsat-help.md's
+    history: it once listed commands that no longer existed and omitted 9
+    real ones, because it was a second, manually-maintained copy of content
+    that already lived in each jsat-command.md file).
+
+    This is heuristic, not a strict parser — command files are prose, not a
+    fixed schema — so on ambiguous input it prefers omitting a flag/example
+    over fabricating one. Getting the COMMAND LIST right (never stale, never
+    a ghost entry) is the primary fix this enables; flag/example fidelity is
+    a secondary best-effort nicety on top of that.
+    """
+    lines = body.splitlines()
+    flag_lines: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        # A flag definition line is near-universally "  --name ... " or
+        # "  --name <arg>   → description" across the whole catalog.
+        if stripped.startswith("--") and len(flag_lines) < 8:
+            flag_lines.append("  " + stripped)
+    flags_block = "\n".join(flag_lines) if flag_lines else "  (no flags — see /jsat <command> for full behavior)"
+
+    examples_block = "(see /jsat <command> for usage)"
+    # Find the LAST "Examples:" header (files sometimes have one earlier in a
+    # flag's own description text) and take indented/arrow lines after it.
+    last_idx = None
+    for i, line in enumerate(lines):
+        if line.strip().lower() == "examples:":
+            last_idx = i
+    if last_idx is not None:
+        collected: list[str] = []
+        for line in lines[last_idx + 1:]:
+            if len(collected) >= 10:
+                break
+            if not line.strip():
+                if collected:
+                    break
+                continue
+            if line.startswith("#"):
+                break
+            if line.strip().startswith("/jsat") or line.strip().startswith("→") or line.startswith("  "):
+                collected.append(line.rstrip())
+                continue
+            break
+        if collected:
+            examples_block = "\n".join(collected)
+    return flags_block, examples_block
+
+
+def _generate_help_body(skill_files: list, frontmatter_desc, strip_frontmatter) -> str:
+    """Generate jsat-help.md's full content from the live skill_files list —
+    this is now the single build artifact both jsat-help.md (standalone) and
+    jsat.md's own "## help" section derive from, so the two can never disagree
+    and neither can go stale relative to what commands actually exist.
+    """
+    lines: list[str] = [
+        "---",
+        "description: Show flags, params, and examples for any /jsat command. Usage: /jsat-help <command>",
+        "---",
+        "",
+        "Parse $ARGUMENTS:",
+        "- First word = COMMAND (e.g. `magic`, `crack`, `blast-radius`)",
+        "- Everything after = ignored",
+        "",
+        "If $ARGUMENTS is empty: print the **Full Command List** table at the bottom of this file and stop.",
+        "",
+        "Otherwise find the matching `### <COMMAND>` section below and print its help block verbatim.",
+        "Format the output as:",
+        "",
+        "```",
+        "/jsat <COMMAND> [flags] <args>",
+        "",
+        "<one-line description>",
+        "",
+        "Flags:",
+        "  <flag>  —  <what it does>",
+        "  ...",
+        "",
+        "Examples:",
+        "  <example>",
+        "  ...",
+        "```",
+        "",
+        "If COMMAND is not an exact match against a `### <COMMAND>` section, do NOT jump",
+        "straight to \"Unknown command\" — a bare miss-list dump is only correct feedback",
+        "when the user's input has nothing in common with any real command, and that is",
+        "rarely why someone typed the wrong name. Two more likely cases first:",
+        "",
+        "1. RENAMED/MERGED COMMAND: commands get merged or renamed as JSAT evolves. Muscle",
+        "   memory for an old name is common and deserves a redirect, not a dead end.",
+        "   Maintain this alias table BEFORE falling back to fuzzy match — whenever a",
+        "   command is folded into another, add its old name here (this table is",
+        "   necessarily hand-maintained since a removed name has no live section to",
+        "   introspect; unlike the command list below, it does NOT self-update — review",
+        "   it whenever commands are merged):",
+        "     think, reflect, audit, estimate  → folded into `ithinking` subcommands",
+        "     token-budget                     → folded into `tokens --model`",
+        "     knowledge-add                    → folded into `knowledge add`",
+        "   If COMMAND matches one of these AND it is not ALSO a `### <COMMAND>` section",
+        "   of its own below (check the live list first — this table can lag a moment",
+        "   behind an intentional un-merge), print:",
+        "   \"`/jsat <COMMAND>` was folded into `/jsat <successor>`. Showing that:\"",
+        "   then print the successor's help block.",
+        "",
+        "2. TYPO / CLOSE MATCH: if COMMAND is not an exact section match and not a known",
+        "   alias above, compare it against every command name in the Full Command List",
+        "   table using a simple closeness heuristic (shares a long common substring,",
+        "   edit distance of 1-2 characters, or a transposition). If exactly one close",
+        "   match stands out, respond: \"Unknown command: <COMMAND> — did you mean",
+        "   `/jsat <closest-match>`?\" and print that command's help block underneath, so",
+        "   the user isn't forced into a second round trip.",
+        "   If nothing is close enough to name with confidence, THEN fall back to plain",
+        "   `Unknown command: <COMMAND>` plus the Full Command List — do not guess a match",
+        "   you are not reasonably confident in, a wrong suggestion is worse than none.",
+        "",
+        "---",
+        "",
+        "### universal-flags",
+        "Two flags work on EVERY /jsat command. Extract them from ARGS before routing to the subcommand,",
+        "then pass as tool call arguments (_budget=N, _dashboard=True).",
+        "```",
+        "Universal flags (any command):",
+        "  timeout=<N>     → soft time budget in seconds (notification-only; hard kill at 5×N)",
+        "  dashboard=true  → open a real-time browser dashboard for this call",
+        "  raw=true        → skip the default input-correction rewrite; use ARGS exactly as typed",
+        "```",
+        "",
+        "---",
+        "",
+    ]
+    for fpath in skill_files:
+        short = fpath.stem.removeprefix("jsat-")
+        if short == "help":
+            continue  # this file itself — no self-referential detail section
+        content = fpath.read_text(encoding="utf-8")
+        desc = frontmatter_desc(content)
+        body = strip_frontmatter(content)
+        flags_block, examples_block = _extract_flags_examples(body)
+        lines += [
+            f"### {short}",
+            desc,
+            "```",
+            f"/jsat {short} [flags] <args>",
+            "",
+            "Flags:",
+            flags_block,
+            "",
+            "Examples:",
+            examples_block,
+            "```",
+            "",
+        ]
+
+    lines += [
+        "---",
+        "",
+        "## Full Command List",
+        "",
+        "| Command | One-line description |",
+        "|---------|---------------------|",
+    ]
+    for fpath in skill_files:
+        short = fpath.stem.removeprefix("jsat-")
+        desc = frontmatter_desc(fpath.read_text(encoding="utf-8"))
+        lines.append(f"| `{short}` | {desc} |")
+
+    lines += [
+        "",
+        "Run `/jsat-help <command>` for flags and examples on any specific command.",
+        "",
+        "BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):",
+        "  timeout=<N>     → override soft budget to N seconds (default varies per tool)",
+        "  dashboard=true  → open a real-time browser dashboard for this call (closes 10s after done)",
+        "  raw=true        → skip the default AI input-correction rewrite for this call",
+        "  ⏱ progress notification = still running (wait, skip, or split — AI decides)",
+        "  ⏱ _slow in response = completed after budget (result is valid)",
+        "  ⛔ _hard_timeout in response = force-killed at 5× budget (retry with narrower scope)",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path:
     """Write a single /jsat dispatcher sourced from the bundled jsat/commands/*.md files.
 
@@ -1466,6 +1651,16 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
         except ValueError:
             return text
 
+    # Regenerate jsat-help.md's SOURCE file from the live skill_files list before
+    # anything else reads it. jsat-help.md used to be hand-maintained prose that
+    # silently drifted from reality (it once documented deleted commands and
+    # omitted new ones) — it is now a build artifact like jsat.md itself, so it
+    # cannot go stale independently of the commands it describes.
+    (pkg_commands_dir / "jsat-help.md").write_text(
+        _generate_help_body(skill_files, _frontmatter_desc, _strip_frontmatter),
+        encoding="utf-8",
+    )
+
     # Build help table
     lines: list[str] = [
         "---",
@@ -1475,6 +1670,32 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
         "Parse the first word of $ARGUMENTS as COMMAND; everything after is ARGS.",
         "Find the matching section below and execute its instructions, treating ARGS as $ARGUMENTS.",
         "If COMMAND is \"help\" or $ARGUMENTS is empty: print the command list and stop.",
+        "",
+        "## Universal input correction (apply BEFORE routing, on by default)",
+        "",
+        "Typed input is often rushed — typos, run-on phrasing, ambiguous pronouns. By",
+        "default, clean up ARGS before routing to the subcommand:",
+        "",
+        "1. Skip this step entirely if ARGS contains `raw=true` (strip the flag, use the",
+        "   rest of ARGS verbatim), OR if ARGS is / contains a LITERAL PAYLOAD that must",
+        "   never be rewritten: a diff/patch block, a file path, a code block or inline",
+        "   code, a git ref/SHA, a URL, or anything already inside a here-doc/quoted",
+        "   block. Rewriting these silently corrupts the command — e.g. in",
+        "   \"fix src/paymnet/service.py\" the misspelled PATH must stay intact; only",
+        "   prose around a literal payload is fair game for correction.",
+        "2. Otherwise, if the remaining ARGS look like free-form prose (not just a bare",
+        "   flag+path invocation), call jsat__prompt_rewrite(prompt=ARGS) — this",
+        "   corrects spelling/grammar and tightens phrasing without changing intent.",
+        "   If it returns a string starting with \"[AI unavailable\", the AI backend is",
+        "   down: silently proceed with the ORIGINAL ARGS un-rewritten. Do not surface",
+        "   the raw error to the user for this step — a best-effort cleanup skipping",
+        "   itself is not a failure worth interrupting the command for.",
+        "3. If the rewrite succeeds and materially changes ARGS (not just whitespace),",
+        "   route using the REWRITTEN text but tell the user what changed in one line:",
+        "   \"📝 Interpreted as: <rewritten>\" — so a rewrite that guesses wrong intent is",
+        "   immediately visible and correctable, not silently substituted.",
+        "4. Never apply this to COMMAND itself (the first word) — that is matched",
+        "   against the alias/fuzzy-match logic in the `help` section below, not rewritten.",
         "",
         "## Universal flags (apply to every command before routing)",
         "",
@@ -1504,11 +1725,53 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
         "                                                  _dashboard_session='blast-radius')",
         "                    If dashboard=true is absent, do NOT pass _dashboard at all.",
         "",
+        "  raw=true        → disables the Universal input correction step above for this",
+        "                    call only. Use ARGS exactly as typed, no rewrite attempted.",
+        "",
         "CRITICAL — tool call rule: ALWAYS use jsat__* MCP tools for every step.",
         "  NEVER use Bash, Read, Explore, WebSearch, or other native tools as substitutes.",
         "  jsat tools have graph access; native tools do not. This rule has no exceptions.",
         "",
         "After extracting universal flags, remove them from ARGS before passing to the subcommand.",
+        "",
+        "## Universal learning module (apply AFTER every command completes)",
+        "",
+        "Once the routed subcommand's own \"HOW TO RESPOND\" reply has been given, before",
+        "ending the turn, spend one short pass asking: did this command surface anything",
+        "worth remembering past this conversation? Most invocations will not — routine",
+        "queries and clean results produce nothing new. Only act when something concrete",
+        "was actually learned; do not fabricate a lesson to fill this section.",
+        "",
+        "1. Classify each candidate learning as one of:",
+        "   PROJECT-SPECIFIC — a fact about THIS codebase/repo that would help a future",
+        "     call in this project: a gotcha, a non-obvious dependency, a fix that",
+        "     worked, a false-positive pattern to exclude next time, a convention",
+        "     discovered by exploration. Examples: 'blast_radius flags all uses of",
+        "     LegacyLogger as breaking — verified safe, exclude from future reports',",
+        "     'PaymentService.retry has a 3-attempt cap enforced only in prod config'.",
+        "   JSAT-SPECIFIC — a fact about JSAT'S OWN tools/skills misbehaving,",
+        "     returning wrong data, using a stale parameter, or missing a capability",
+        "     that this command needed. Examples: 'jsat__foo requires param X not Y',",
+        "     'jsat__bar returns [AI unavailable] with no documented fallback for this",
+        "     command'. This is feedback about JSAT itself, not about the user's repo.",
+        "   NONE — nothing durable surfaced (the common case). Skip silently, do not",
+        "     mention this module ran at all.",
+        "",
+        "2. For PROJECT-SPECIFIC learnings: call",
+        "   jsat__knowledge_add(text=\"<the specific fact>\", category=\"project-learning\")",
+        "   Keep `text` concrete and self-contained (a future reader has no access to",
+        "   this conversation) — name the file/symbol/behavior, not \"this was tricky\".",
+        "",
+        "3. For JSAT-SPECIFIC learnings: call",
+        "   jsat__knowledge_add(text=\"<the specific tool/skill gap>\", category=\"jsat-improvement\")",
+        "   This is a durable backlog `/jsat improve` reads from later — it is NOT a bug",
+        "   report filed anywhere public, just a local note. Do not attempt to patch",
+        "   JSAT's own source from inside a routed command; that is `/jsat improve`'s job.",
+        "",
+        "4. If either call is made, add one line to the reply: \"🧠 Learned: <one-line",
+        "   summary> (saved to <project knowledge base|jsat improve backlog>)\". If",
+        "   knowledge_add itself returns an AI-unavailable error, note it was NOT saved",
+        "   rather than silently dropping it — a failed save is worth one honest line.",
         "",
         "---",
         "## help",
@@ -1623,11 +1886,38 @@ def _write_codex_skill(skill_dir: Path | None = None) -> Path:
         "If no `jsat__*` tools are available, tell the user to run `jsat connect codex`",
         "and restart Codex.",
         "",
+        "## Input correction (on by default)",
+        "",
+        "Before routing, if ARGS is free-form prose (not `raw=true`, and not a literal",
+        "payload — a diff, file path, code block, git ref, or URL that must not be",
+        "touched), call `jsat__prompt_rewrite(prompt=ARGS)` to fix spelling/grammar and",
+        "tighten phrasing. If the result starts with `[AI unavailable`, proceed with the",
+        "original ARGS silently — this is best-effort, not a blocking step. If the",
+        "rewrite materially changes ARGS, route with the rewritten text and say",
+        "`Interpreted as: <rewritten>` in one line so a bad guess is visible. `raw=true`",
+        "skips this step for one call.",
+        "",
         "Before routing, extract universal flags from ARGS and pass them to every JSAT",
         "MCP tool call:",
         "",
         "- `timeout=<N>`: pass `_budget=<N>`.",
         "- `dashboard=true`: pass `_dashboard=True` and `_dashboard_session=<COMMAND>`.",
+        "- `raw=true`: skip the input-correction rewrite above for this call.",
+        "",
+        "## Learning module (after every command completes)",
+        "",
+        "After giving the routed command's reply, decide if anything durable was",
+        "learned — most calls yield nothing new, so skip silently unless something",
+        "concrete surfaced:",
+        "",
+        "- PROJECT-SPECIFIC (a fact about this repo worth keeping): call",
+        "  `jsat__knowledge_add(text=\"<concrete fact>\", category=\"project-learning\")`.",
+        "- JSAT-SPECIFIC (JSAT's own tool/skill misbehaved or was missing something):",
+        "  call `jsat__knowledge_add(text=\"<concrete gap>\", category=\"jsat-improvement\")`",
+        "  — this feeds `$jsat improve`'s backlog later; do not patch JSAT source here.",
+        "",
+        "If either call is made, add one line: `Learned: <summary> (saved to <project",
+        "knowledge base|jsat improve backlog>)`.",
         "",
         "## Command List",
         "",

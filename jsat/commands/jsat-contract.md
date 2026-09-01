@@ -9,6 +9,29 @@ Usage:
   <base> <head>        → jsat__get_api_diff(base=<base>, head=<head>)
   --score              → show only the numeric compatibility score (0-100)
   --breaking           → show breaking changes only
+  (--score and --breaking together)  → show the score line followed by the
+                          breaking-only change list; --score alone never suppresses
+                          the change list on its own unless --breaking is absent AND
+                          the user asked for the score specifically — if only --score
+                          is given, print the score and stop there (that's the
+                          documented single-purpose meaning of the flag)
+
+PREFLIGHT — do not trust the "main" default blindly: the tool's own default base is
+the literal string "main", which does not exist in every repo (some use `master`,
+`trunk`, `develop`, etc.). Before calling with no args, run via Bash:
+  `git rev-parse --verify main` (or `git show-ref --verify refs/heads/main`)
+If it fails, do NOT call get_api_diff(base="main") — it will silently diff against a
+ref that isn't the intended baseline (or error). Instead detect the actual default
+branch (`git symbolic-ref refs/remotes/origin/HEAD` → strip `origin/`, or ask the
+user) and pass that explicitly as `base`.
+
+This check is about the DEFAULT specifically, but an explicitly-supplied <base> or
+<head> is not automatically safe either — a typo'd branch/tag name is just as likely
+whether it was typed by the user or substituted by this command. Whenever <base>
+and/or <head> come from $ARGUMENTS rather than the default, still run
+`git rev-parse --verify <ref>` on each explicit value before calling get_api_diff,
+and stop with a clear error naming which one failed to resolve — same discipline
+/jsat-merge and /jsat-cherry-pick apply to their own source/target/commit args.
 
 Examples:
   /jsat-contract
@@ -18,10 +41,21 @@ Examples:
     → jsat__get_api_diff(base="main", head="feature/new-payments")
 
 Show:
-  - Compatibility score (100 = no breaking changes; score decays logarithmically)
+  - Compatibility score (100 = no breaking changes; decays EXPONENTIALLY with the
+    number of breaking changes — verified from the tool's own implementation:
+    score = round(100 * e^(-0.15 * breaking_count)), so each additional breaking
+    change costs progressively less in absolute points but the score never fully
+    recovers to 100 once any breaking change exists; do not describe this as
+    "logarithmic" or as a flat per-change penalty, both are wrong)
   - Breaking changes: endpoint removed, required field removed, type changed
   - Non-breaking: new endpoints, optional fields added
-  - Migration guide for each breaking change
+  - Migration guide: the tool returns this natively as a single pre-formatted
+    `migration_guide` string field (one numbered entry per breaking change, already
+    tied to the spec file and the exact changed line) — print/relay that field
+    verbatim under a "Migration Guide" heading. Do not re-synthesize your own
+    migration steps from the raw change list; the field is empty ("") when there are
+    no breaking changes, which is the correct, non-error state — show "No migration
+    required" in that case instead of an empty section.
 
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):

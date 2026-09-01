@@ -15,12 +15,41 @@ Parse $ARGUMENTS for optional flags:
 RUNG 1 — Exact function/class match
   Extract the key function or class name implied by the task.
   Call: jsat__get_function(name=<key_term>)
-  If found: show file:line, signature, and say "✅ Already exists — reuse this."
+  If found: do NOT immediately say "reuse this" — a name match only proves the
+  symbol exists, not that it's safe/healthy to build on. Call
+  jsat__blast_radius(target=<key_term>) as a live-health check before recommending
+  it (this is the same inversion jsat-dead-code.md runs deliberately, just for one
+  symbol instead of the whole codebase — reuse it here rather than re-deriving it):
+    - If blast_radius shows zero inbound CALLS edges from anywhere else in the
+      codebase, treat that as a signal the match may be exactly what
+      jsat-dead-code.md would flag as unreferenced scaffolding, not a
+      battle-tested utility — unless the symbol itself is an obvious entry point
+      (main, a route handler, a CLI command), the same exclusions jsat-dead-code
+      applies. In that case, say "⚠️ Found <name> at <file:line>, but it has no
+      callers anywhere else in the codebase — verify it's not dead/unfinished code
+      before reusing it" instead of an unqualified "✅ reuse this."
+    - If the function's docstring/signature returned by get_function mentions
+      deprecated/superseded/legacy, surface that verbatim rather than recommending
+      reuse.
+    - Only say the unqualified "✅ Already exists — reuse this" when the symbol
+      has at least one real inbound caller and no deprecation signal — i.e. it is
+      demonstrably live code, not merely present in the graph.
 
 RUNG 2 — Similar pattern in the codebase
   Call: jsat__query(question="find existing implementation for: <task>")
   If the answer names specific functions/files: show them.
   Say "✅ Reuse this pattern from <file>:<line>."
+
+  FALLBACK if jsat__query returns "[AI unavailable]" (a down/unconfigured AI
+  provider takes the whole tool with it — this is common, not rare): do NOT
+  treat this the same as "no match found" and silently fall through to Rung 3 —
+  that would let a real duplicate slip past undetected, defeating the entire
+  point of this reuse-first command. Instead substitute a keyword search via
+  Bash (`grep -rn` for the task's key nouns/verbs across the codebase, or
+  jsat__knowledge_search(query=<task>) for prior recorded decisions on the same
+  area) and explicitly mark Rung 2's verdict as "UNVERIFIED (AI unavailable) —
+  keyword search only" rather than "nothing found", so the final recommendation
+  in Rung 5 is honest about what was and wasn't actually checked.
 
 RUNG 3 — Existing service already handles this domain
   Call: jsat__list_services()
@@ -33,7 +62,11 @@ RUNG 4 — Existing endpoint already exposes this
   If found: say "✅ Call existing endpoint <METHOD> <route> instead."
 
 RUNG 5 — Nothing found: minimum viable implementation
-  Only reach this rung if rungs 1-4 all return empty.
+  Only reach this rung if rungs 1-4 all return empty. If Rung 2 was marked
+  UNVERIFIED (AI unavailable) rather than a confirmed empty result, say so
+  explicitly in the recommendation — e.g. "⚠️ Rung 2 could not be fully checked
+  (AI unavailable); minimum implementation below, but re-run Rung 2 once the AI
+  backend is back before treating this as confirmed non-duplicate."
   Suggest the minimum code:
   - One function, not a class
   - No abstraction layers

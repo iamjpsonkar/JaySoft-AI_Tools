@@ -7,8 +7,34 @@ Parse $ARGUMENTS for an optional subcommand, then call the right tool:
 Subcommands:
   hypotheses          → call jsat__get_hypotheses to list ranked root-cause hypotheses
   recent [path]       → call jsat__get_recent_changes to show recent commits in area
-  runbook <svc>       → call jsat__generate_runbook to produce an incident runbook
+  runbook <svc>       → delegate to jsat-runbook.md's full behavior. Read the file
+                        at jsat/commands/jsat-runbook.md now (Read tool, exact path
+                        relative to the JSAT repo root) and follow it verbatim for
+                        this invocation — do not reimplement a subset of it here.
+                        Concretely, that means: (1) pass everything after `runbook`
+                        as jsat-runbook's own $ARGUMENTS, so `runbook sections <svc>`
+                        correctly routes to the outline-only mode instead of always
+                        calling the full generator; (2) run its pre-check —
+                        jsat__list_services() to confirm <svc> resolves to a real
+                        indexed service before generating anything; (3) on
+                        "[AI unavailable...]" from jsat__generate_runbook, use its
+                        documented raw-graph fallback (trace_call_chain,
+                        blast_radius, list_services, get_consumers, list_endpoints)
+                        and the same "⚠ AI unavailable — assembled runbook..." label
+                        — never fall back to a plain jsat__generate_runbook(target=X)
+                        call with no validation and no degraded-mode handling, since
+                        that reintroduces exactly the duplication this delegation
+                        exists to avoid.
   (no subcommand)     → call jsat__investigate_incident with description=<rest>
+
+If no subcommand matched AND the remaining text is empty (e.g. bare `/jsat-incident`
+with nothing else): stop and ask the user for an incident description — do not
+call jsat__investigate_incident(description="") and let it score commits against
+nothing meaningful.
+
+jsat__investigate_incident itself is pure heuristic git-commit scoring (recency,
+blast-radius weight, frequency, pattern match) — it does NOT call an LLM, so it
+has no "[AI unavailable]" failure mode.
 
 Supported flags:
   --since <time>      → limit commit search to window (24h, 7d)
@@ -25,7 +51,13 @@ Examples:
     → jsat__get_recent_changes(target="src/payment/")
 
   /jsat-incident runbook PaymentService
-    → jsat__generate_runbook(target="PaymentService")
+    → follow jsat-runbook.md's full flow: confirm "PaymentService" resolves via
+      jsat__list_services() first, THEN jsat__generate_runbook(target="PaymentService")
+      (or its AI-unavailable raw-graph fallback if that call degrades) — not a bare
+      unvalidated tool call
+
+  /jsat-incident runbook sections PaymentService
+    → follow jsat-runbook.md's `sections` mode: outline only, no full content
 
 Show top hypotheses ranked by score. For each: commit hash, author, changed files, keyword evidence.
 BUDGET STRATEGY: Use --since 24h to narrow the commit range on large repos.

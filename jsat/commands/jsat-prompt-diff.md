@@ -4,6 +4,17 @@ description: Show what you typed vs what JSAT sent to the AI after optimization.
 
 Use jsat__prompt_diff with query="$ARGUMENTS" to show the before/after comparison: raw input vs fully optimized prompt with injected context, constraints, few-shot examples, and model formatting. Label one panel 'You sent' and the other 'AI received'.
 
+AI-BACKEND CAUTION: if the "AI received" side of the result is or contains
+"[AI unavailable...", the optimization step itself failed — do not display it
+as if it were a normal optimized prompt (that would misrepresent a failure as a
+successful diff with an empty/garbage right panel). Instead:
+  1. Call jsat__prompt_optimize (offline, non-AI) with the same query as a
+     substitute and clearly label that panel "AI received (offline fallback —
+     AI-backed optimizer unavailable)" instead of the normal "AI received".
+  2. State plainly in your response that the requested optimizer needs a live
+     AI provider and it was down for this call, so the diff shown reflects the
+     offline pipeline only, not the LLM-based optimization the user asked to see.
+
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):
   timeout=<N>     → override soft budget to N seconds (default varies per tool)
