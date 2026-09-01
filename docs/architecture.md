@@ -88,7 +88,7 @@ flowchart TB
     end
 
     subgraph Ports[Backend contracts and adapters]
-        graph[_graph: SQLite / Neo4j / LightGraph]
+        graphPort[_graph: SQLite / Neo4j / LightGraph]
         ai[_ai: CLI / Ollama / Anthropic / OpenAI / compat / none]
         embed[_embed: local / OpenAI / none]
         cache[_cache: memory / disk / Redis]
@@ -165,16 +165,16 @@ empty result for that file rather than aborting the full index.
 
 ```mermaid
 erDiagram
-    FILE ||--o{ FUNCTION : contains
-    FILE ||--o{ CLASS : contains
-    CLASS ||--o{ FUNCTION : defines
-    FUNCTION }o--o{ FUNCTION : CALLS
-    FILE }o--o{ FILE : IMPORTS
-    CLASS }o--o{ CLASS : INHERITS
-    FUNCTION }o--o{ EXCEPTION : RAISES
-    SERVICE ||--o{ ENDPOINT : exposes
-    SERVICE }o--o{ TABLE : READS_FROM_or_WRITES_TO
-    SERVICE }o--o{ TOPIC : PRODUCES_or_CONSUMES
+    SOURCE_FILE ||--o{ CODE_FUNCTION : contains
+    SOURCE_FILE ||--o{ CODE_CLASS : contains
+    CODE_CLASS ||--o{ CODE_FUNCTION : defines
+    CODE_FUNCTION }o--o{ CODE_FUNCTION : CALLS
+    SOURCE_FILE }o--o{ SOURCE_FILE : IMPORTS
+    CODE_CLASS }o--o{ CODE_CLASS : INHERITS
+    CODE_FUNCTION }o--o{ ERROR_TYPE : RAISES
+    APP_SERVICE ||--o{ API_ENDPOINT : exposes
+    APP_SERVICE }o--o{ DB_TABLE : READS_FROM_or_WRITES_TO
+    APP_SERVICE }o--o{ EVENT_TOPIC : PRODUCES_or_CONSUMES
     KNOWLEDGE_ENTRY ||--o{ KNOWLEDGE_ENTITY : HAS_ENTITY
 ```
 
@@ -198,7 +198,7 @@ sequenceDiagram
     actor Caller
     participant Adapter as CLI or Python caller
     participant Core as JSAT facade
-    participant Tool as tools/&lt;feature&gt;.py
+    participant Tool as tools/feature.py
     participant Graph as GraphClient
     participant AI as AIProvider
 
@@ -346,7 +346,7 @@ flowchart LR
     Hosted --> Check
     Check -->|yes| Use
     Check -->|no or factory error| None
-    None --> Explicit[complete() raises AIError]
+    None --> Explicit[completion call raises AIError]
     Explicit --> ToolFallback[Tool catches error and returns partial/offline result]
 ```
 
