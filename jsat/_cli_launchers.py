@@ -12,6 +12,24 @@ from ._cli_common import _jsat, _jsat_binary, _read_json, _write_json, app, cons
 
 _log = structlog.get_logger(__name__)
 
+
+def _auto_ai_provider_for(provider: str, repo: str = ".") -> str | None:
+    """Return `provider` if the repo's config hasn't already picked one explicitly.
+
+    `jsat claude` / `jsat bob` shell out to a native AI CLI that's guaranteed to
+    be running this exact process — so unless the user already chose a different
+    provider (anything but the untouched "ollama" factory default), route JSAT's
+    own AI-backed tools (query, prompt_rewrite, …) through that same CLI instead
+    of silently trying Ollama and failing.
+    """
+    try:
+        from jsat._config import load_config
+        cfg = load_config(repo=Path(repo).resolve())
+    except Exception:
+        return provider  # can't tell what's configured — safe to prefer this CLI
+    return provider if cfg.ai.provider in (None, "ollama") else None
+
+
 @app.command("shell", rich_help_panel="🤖  AI Launchers")
 def cmd_shell(
     repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
@@ -77,7 +95,8 @@ def cmd_claude(
     Continue most recent session: jsat claude --continue
     """
     from jsat.tools.shell import launch_ai_with_jsat_tools
-    js = _jsat(repo=repo, verbose=verbose)
+    js = _jsat(repo=repo, verbose=verbose,
+               ai_provider=_auto_ai_provider_for("claude_cli", repo))
     launch_ai_with_jsat_tools(js, ai="claude", resume=resume, continue_session=continue_)
 
 
@@ -104,7 +123,8 @@ def cmd_bob(
     Specific mode:                jsat bob --mode advanced
     """
     from jsat.tools.shell import launch_ai_with_jsat_tools
-    js = _jsat(repo=repo, verbose=verbose)
+    js = _jsat(repo=repo, verbose=verbose,
+               ai_provider=_auto_ai_provider_for("bob_cli", repo))
     launch_ai_with_jsat_tools(js, ai="bob", resume=resume, continue_session=continue_, mode=mode)
 
 @app.command("gpt", rich_help_panel="🤖  AI Launchers")

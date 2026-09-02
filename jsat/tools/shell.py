@@ -1048,7 +1048,12 @@ def launch_ai_with_jsat_tools(
                 "jsat": {
                     "command": jsat_bin,
                     "args": ["mcp-server", "--repo", repo],
-                    "env": {},
+                    # This spawns a FRESH `jsat mcp-server` child that only sees its
+                    # own env, not this process's in-memory jsat._cfg.ai.provider —
+                    # without this, it silently falls back to whatever provider
+                    # ~/.jsat/config.yaml happens to have (see _persist_ai_provider_if_default
+                    # in _cli_connect.py for the config-file half of this fix).
+                    "env": {"JSAT_AI_PROVIDER": "claude_cli"},
                 }
             }
         }

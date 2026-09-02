@@ -30,6 +30,32 @@ _log = structlog.get_logger(__name__)
 
 _OLLAMA_CONNECT_TOOLS = ("claude", "codex", "opencode")
 
+
+def _persist_ai_provider_if_default(cfg_path: Path, provider: str) -> None:
+    """Write `ai.provider` into cfg_path, but only if it's still the factory
+    default ("ollama") or unset — never overwrite a provider the user already
+    chose explicitly (e.g. via `jsat ai use anthropic`)."""
+    import yaml
+
+    existing: dict = {}
+    if cfg_path.exists():
+        try:
+            existing = yaml.safe_load(cfg_path.read_text()) or {}
+        except Exception:
+            return  # don't clobber a config file we can't parse
+
+    current = existing.get("ai", {}).get("provider")
+    if current not in (None, "ollama"):
+        return
+
+    existing.setdefault("ai", {})
+    existing["ai"]["provider"] = provider
+    existing["ai"].pop("model", None)  # native CLIs use their own default model
+
+    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    with cfg_path.open("w", encoding="utf-8") as f:
+        yaml.safe_dump(existing, f, sort_keys=False)
+
 @connect_app.command("claude")
 def cmd_connect_claude(
     scope: str = typer.Option(
@@ -103,6 +129,18 @@ def cmd_connect_claude(
     }
     if _shutil.which("claude"):
         _ai_env["JSAT_AI_PROVIDER"] = "claude_cli"
+        # JSAT_AI_PROVIDER only reaches the live MCP server process — it does
+        # nothing for `jsat doctor`/`jsat ai status` invoked from a plain shell,
+        # and is silently dropped if the MCP client caches an older process
+        # without it. Persist the same choice to the on-disk config so every
+        # entry point (CLI, MCP server, doctor) agrees, unless the user already
+        # made an explicit choice (anything other than the untouched "ollama"
+        # factory default).
+        _persist_ai_provider_if_default(
+            Path.home() / ".jsat" / "config.yaml" if effective_scope == "global"
+            else Path(repo_path) / ".jsat" / "config.yaml",
+            "claude_cli",
+        )
     jsat_entry = {
         "command": binary,
         "args": ["mcp-server", "--repo", repo_path],
@@ -236,6 +274,10 @@ def _connect_opencode_mcp(config_path: Path, binary: str) -> bool:
         },
     }
     _write_json(config_path, settings)
+    # OpenCode starts local MCP servers in whatever workspace is active, not a
+    # fixed repo pinned at connect time — persist to the global config, which
+    # load_config() falls back to when no repo-local one exists.
+    _persist_ai_provider_if_default(Path.home() / ".jsat" / "config.yaml", "opencode_cli")
     return already
 
 
@@ -545,13 +587,20 @@ def _connect_codex_mcp(
     server_name: str = "jsat",
     env: dict[str, str] | None = None,
 ) -> bool:
-    return _write_toml_mcp_server(
+    already = _write_toml_mcp_server(
         config_path,
         server_name,
         command=binary,
         args=["mcp-server"],
         env=env,
     )
+    provider = (env or {}).get("JSAT_AI_PROVIDER")
+    if provider:
+        # Codex resolves its repo from cwd at launch time, not connect time, so
+        # there's no fixed per-repo config.yaml — persist to the global config,
+        # which load_config() falls back to when no repo-local one exists.
+        _persist_ai_provider_if_default(Path.home() / ".jsat" / "config.yaml", provider)
+    return already
 
 
 @connect_app.command("cursor")
@@ -1196,6 +1245,11 @@ def cmd_connect_bob(
     # they work out of the box instead of falling back to the no-op provider.
     _connect_mcp_tool(label, config_path, binary, repo_path, "Restart Bob Shell",
                       env={"JSAT_AI_PROVIDER": "bob_cli", "JSAT_MCP_ALLOW_INSECURE": "1"})
+    _persist_ai_provider_if_default(
+        Path.home() / ".jsat" / "config.yaml" if effective_scope == "global"
+        else Path(repo_path) / ".jsat" / "config.yaml",
+        "bob_cli",
+    )
 
     if install_commands:
         cmds_dir = _write_bob_commands(effective_scope)

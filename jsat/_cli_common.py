@@ -145,11 +145,12 @@ console = Console()
 err = Console(stderr=True)
 
 
-def _jsat(repo: str = ".", verbose: bool = False):
+def _jsat(repo: str = ".", verbose: bool = False, ai_provider: str | None = None):
     from jsat._core import JSAT
     from jsat._exceptions import JSATError
     try:
-        return JSAT(repo=repo, log_level="DEBUG" if verbose else "WARNING")
+        return JSAT(repo=repo, ai_provider=ai_provider,
+                    log_level="DEBUG" if verbose else "WARNING")
     except JSATError as e:
         try:
             from jsat._improve import record_signal
