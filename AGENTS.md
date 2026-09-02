@@ -182,6 +182,14 @@ shell, and `jsat ai use`.
   (tmp_path fixtures). Never let a test touch `~/.jsat/`.
 - Follow `tests/test_mcp_server.py` for style: small builders, `MagicMock` for JSAT.
 
+**No-mocking black-box check**: `./scripts/jsat-selftest.sh` runs the real installed
+`jsat` binary end-to-end (real CLI calls, real scratch-repo index, real MCP stdio
+JSON-RPC handshake/tool-call). `--live-agent` additionally drives a real headless
+`claude -p` agent through jsat's real `--mcp-config` and a curated `/jsat` skill set
+— costs real API tokens, opt-in only. Writes a JSON+Markdown report any AI agent can
+read to triage failures. Any missing external dependency (Ollama, Neo4j, Qdrant, a
+CLI, an API key) is reported `unavailable`, never a false failure.
+
 ---
 
 ## 7. Environment traps — every one of these cost real time
@@ -194,6 +202,21 @@ shell, and `jsat ai use`.
    cd /tmp && python -c "import jsat; print(jsat.__file__)"
    ```
    If that is not your checkout, `pip uninstall -y jsat && pip install -e .`.
+   The same cwd-shadowing that hides this bug from a naive check ALSO means
+   `local_test.sh`/`pytest -m` (always run `cd`'d to `$REPO_ROOT` first) resolve
+   `import jsat` to the checkout regardless of which interpreter's site-packages
+   is stale — so a green pytest run is still trustworthy even when `--doctor`
+   (which deliberately checks from a neutral `/tmp` dir, unshadowed, to surface
+   the true installed state) reports a stale non-editable copy for that same
+   interpreter. The console script (`jsat` on PATH) has no such protection,
+   though: invoking it does *not* put your repo's cwd on its `sys.path`, so it
+   can genuinely run stale code even when both `--doctor` and pytest look
+   fine, if `jsat` on PATH shebangs to a *different* interpreter than the one
+   `--doctor` happened to check. `scripts/jsat-selftest.sh` checks the console
+   script specifically (resolved from `sys.executable`'s own `bin/`, not a
+   bare `shutil.which("jsat")`, which can silently pick a different
+   environment's copy) for exactly this reason.
+
 2. **Two venvs on different dependency versions.** typer ≥0.27 vendors click as
    `typer._click`, whose `UsageError` is a **different class** from `click.UsageError`.
    Catch both (`_cli_common._usage_errors()`). A test suite on typer 0.23 stays green

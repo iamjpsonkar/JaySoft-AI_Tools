@@ -41,3 +41,4 @@ node_modules/
 *.pem
 *.key
 .env.local
+jsat-selftest-report-*

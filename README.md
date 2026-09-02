@@ -1416,6 +1416,27 @@ most time: a **stale non-editable install shadowing your checkout** (so your edi
 nothing), and **typer/click drift between venvs** — typer ≥0.27 vendors its own click, so
 the CLI can behave differently in two environments while the test suite stays green in both.
 
+### End-to-end self-test (no mocking)
+
+`local_test.sh` runs the pytest suite — unit-level, with mocks where the code under
+test expects them. `scripts/jsat-selftest.sh` is a different, complementary check: it
+exercises the **currently installed `jsat` binary** as a real black box — real CLI
+subprocess calls, a real scratch repo indexed for real, the real MCP server driven
+over real stdio JSON-RPC, and (opt-in) a real headless `claude -p` agent driving the
+real `/jsat` dispatcher. Any external dependency that isn't present (Ollama, Neo4j,
+Qdrant, a CLI, an API key) is reported as **unavailable**, never silently skipped and
+never counted as a failure. Emits a JSON + Markdown report any AI agent can read to
+triage.
+
+```bash
+./scripts/jsat-selftest.sh              # full run — free, ~15s
+./scripts/jsat-selftest.sh --quick      # skip local_test.sh --all
+./scripts/jsat-selftest.sh --live-agent # + a real headless claude agent driving jsat
+                                         # claude's real MCP config and a curated set of
+                                         # /jsat skills end-to-end — costs real API
+                                         # tokens (~$4-5, ~2 min for the full set)
+```
+
 - Repository: [github.com/iamjpsonkar/JaySoft-AI_Tools](https://github.com/iamjpsonkar/JaySoft-AI_Tools)
 - Bug reports: open an issue on GitHub
 - Author: Jay Prakash Sonkar — [iamjpsonkar@gmail.com](mailto:iamjpsonkar@gmail.com)

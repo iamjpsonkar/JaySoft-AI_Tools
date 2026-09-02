@@ -4,6 +4,46 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+### Added
+
+- **`scripts/jsat-selftest.sh` / `scripts/jsat_selftest.py`** — a no-mocking,
+  end-to-end self-test of the currently installed local `jsat`. Real CLI
+  subprocess calls, a real scratch repo indexed for real, the real MCP server
+  driven over real stdio JSON-RPC, and an opt-in `--live-agent` mode that
+  drives a real headless `claude -p` agent through jsat's actual `--mcp-config`
+  and a curated set of `/jsat` skills end-to-end (costs real API tokens, never
+  runs by default). Missing external dependencies (Ollama, Neo4j, Qdrant, a
+  CLI, an API key) are reported `unavailable`, never a false failure. Emits a
+  JSON + Markdown report for any AI agent to triage.
+- 2 regression tests in `tests/test_mcp_server.py` covering the service-
+  inference fix below.
+
+### Fixed
+
+- **Bogus service inferred from a nested worktree.** `_infer_services_from_files`
+  (`jsat/mcp/server.py`) — the fallback used when no explicit `Service` nodes
+  exist — took `path.split("/")[0]` as the service name with no exclusion logic
+  of its own, unlike the indexer's `IndexerConfig.exclude_patterns`. A nested
+  git worktree under a dot-directory (e.g. `.claude/worktrees/<id>/...`, from
+  an agent sandbox) was reported as its own "service." Now skips any
+  dot-prefixed top-level path component.
+- **`jsat claude`'s own `--mcp-config` never set `JSAT_AI_PROVIDER`.**
+  `launch_ai_with_jsat_tools` (`jsat/tools/shell.py`) builds a throwaway MCP
+  config for the launched session, separate from the one `jsat connect claude`
+  writes to `settings.json`. It hardcoded `"env": {}`, so the spawned
+  `jsat mcp-server` child only ever saw whatever `~/.jsat/config.yaml` happened
+  to have — if that reverted to the `ollama` default, every JSAT tool in the
+  launched session silently degraded with no self-correction. Now injects
+  `JSAT_AI_PROVIDER=claude_cli` explicitly, same as the connector.
+- **`jsat connect claude/codex/bob/opencode` never persisted the AI provider
+  choice.** The connector correctly injected `JSAT_AI_PROVIDER` into the MCP
+  server's launch env, but nothing wrote that choice into `~/.jsat/config.yaml`
+  — so `jsat doctor`, `jsat ai status`, and any invocation outside the live MCP
+  process (which doesn't inherit that env var) still reported the untouched
+  `ollama` factory default. Added `_persist_ai_provider_if_default` — writes
+  the connector's provider choice to the config file, but only when it's still
+  the untouched default, never overwriting an explicit user choice.
+
 ## [0.4.15] — 2026-09-01
 
 ### Added
