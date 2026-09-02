@@ -4,6 +4,8 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.16] — 2026-09-02
+
 ### Added
 
 - **`scripts/jsat-selftest.sh` / `scripts/jsat_selftest.py`** — a no-mocking,
