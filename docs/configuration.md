@@ -74,6 +74,13 @@ graph:
   max_edges: 20000000
 
 # ── Embeddings ─────────────────────────────────────────────────────────────────
+# NOT YET WIRED IN. The embedding backends and vector stores below are
+# implemented and unit-tested, but no part of indexing or querying calls them
+# yet: all retrieval in JSAT today (query, knowledge, the prompt optimizer's
+# context and few-shot agents) is keyword/substring/Jaccard based, not vector
+# based. These settings are accepted and validated, and changing them has no
+# effect on results. Semantic retrieval is planned; until then treat this
+# block as reserved.
 embeddings:
   provider: local               # "local" | "openai" | "huggingface" | "none"
   model: nomic-embed-code       # local model name or OpenAI model
@@ -104,7 +111,6 @@ cache:
   enabled: true
   backend: memory               # "memory" | "disk" | "redis"
   redis_uri: null               # "redis://localhost:6379"
-  similarity_threshold: 0.95   # semantic dedup threshold
   ttl_seconds: 3600
   max_memory_mb: 512
   disk_path: .jsat/cache/
@@ -438,7 +444,7 @@ Semantic caching: identical or near-identical queries are served from cache with
 - `disk` — persists across restarts, stored in `.jsat/cache/`
 - `redis` — shared cache for teams
 
-`similarity_threshold: 0.95` means queries with cosine similarity >= 0.95 are considered equivalent and served from cache.
+Cache lookups key on an exact `(query, context_hash)` pair. Entries record the source files they depend on, so `invalidate_for_files` drops just the answers a changed file could have affected.
 
 ---
 

@@ -692,6 +692,26 @@ def cmd_mcp_server(
             from jsat.tools.export import ExportTool
             return ExportTool(graph=self._get_graph(), cfg=self._cfg).export(Path(output))
 
+        def reload_graph(self) -> None:
+            """Mirror of JSAT.reload_graph — see the note on import_archive."""
+            if self._graph is not None:
+                with contextlib.suppress(Exception):
+                    self._graph.close()
+                self._graph = None
+
+        def import_archive(self, archive, password=None) -> None:
+            """Mirror of JSAT.import_archive.
+
+            This shim is a long-lived process, so the graph client MUST be
+            re-created after the database file is replaced; otherwise every
+            later tool call in the session talks to a closed handle.
+            """
+            from jsat.tools.export import ExportTool
+            ExportTool(graph=self._get_graph(), cfg=self._cfg).restore(
+                Path(archive), password
+            )
+            self.reload_graph()
+
     js = _MinimalJSAT()
 
     from jsat.mcp.server import MCPServer

@@ -28,6 +28,14 @@ class LightGraph(GraphClient):
         self._conn.execute("PRAGMA journal_mode=WAL;")
         self._create_schema()
         self._conn.commit()
+        # graph.max_nodes / graph.max_edges were configurable and documented
+        # but never checked anywhere, so GraphCapacityError could not fire.
+        # They are enforced at the bulk-insert boundary — the only path mass
+        # growth takes (the indexer batches 2000 at a time), which makes one
+        # COUNT per batch free while keeping the documented limit real.
+        self._max_nodes = int(getattr(cfg, "max_nodes", 0) or 0)
+        self._max_edges = int(getattr(cfg, "max_edges", 0) or 0)
+
         self._log.info("lightgraph_init", path=db_path,
                        nodes=self.node_count(), edges=self.edge_count())
 
@@ -75,6 +83,30 @@ class LightGraph(GraphClient):
         ).fetchall()
         return [(r[0], r[1], json.loads(r[2])) for r in rows]
 
+    def edges(
+        self,
+        edge_types: list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return edges as dicts, optionally filtered by type.
+
+        `type` is indexed, so the filter runs in SQL rather than in Python.
+        """
+        sql = "SELECT source_id, target_id, type, properties FROM edges"
+        params: list[Any] = []
+        if edge_types:
+            sql += f" WHERE type IN ({','.join('?' * len(edge_types))})"
+            params.extend(edge_types)
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+        rows = self._conn.execute(sql, tuple(params)).fetchall()
+        return [
+            {"source": r["source_id"], "target": r["target_id"],
+             "type": r["type"], "properties": json.loads(r["properties"])}
+            for r in rows
+        ]
+
     def bfs(self, start_ids: list[str], max_depth: int = 5) -> Iterator[tuple[str, int, list[str]]]:
         visited: set[str] = set()
         queue: deque = deque()
@@ -120,13 +152,36 @@ class LightGraph(GraphClient):
             results.append(rec)
         return results
 
+    def _enforce_capacity(self, adding_nodes: int = 0, adding_edges: int = 0) -> None:
+        """Raise GraphCapacityError before a bulk insert would exceed a cap."""
+        from jsat._exceptions import GraphCapacityError
+        if self._max_nodes and adding_nodes:
+            current = self.node_count()
+            if current + adding_nodes > self._max_nodes:
+                raise GraphCapacityError(
+                    f"Adding {adding_nodes} node(s) would exceed graph.max_nodes "
+                    f"({self._max_nodes}); the graph already holds {current}.",
+                    current_nodes=current, max_nodes=self._max_nodes,
+                )
+        if self._max_edges and adding_edges:
+            current_e = self.edge_count()
+            if current_e + adding_edges > self._max_edges:
+                raise GraphCapacityError(
+                    f"Adding {adding_edges} edge(s) would exceed graph.max_edges "
+                    f"({self._max_edges}); the graph already holds {current_e}.",
+                    current_nodes=self.node_count(), max_nodes=self._max_nodes,
+                    current_edges=current_e, max_edges=self._max_edges,
+                )
+
     def bulk_add_nodes(self, nodes: list[dict[str, Any]]) -> None:
+        self._enforce_capacity(adding_nodes=len(nodes))
         self._conn.executemany(
             "INSERT OR REPLACE INTO nodes (id, label, properties) VALUES (?,?,?)",
             [(n["id"], n["label"], json.dumps(n.get("properties", {}))) for n in nodes],
         )
 
     def bulk_add_edges(self, edges: list[dict[str, Any]]) -> None:
+        self._enforce_capacity(adding_edges=len(edges))
         rows = []
         for e in edges:
             src, tgt, typ = e["source"], e["target"], e["type"]
@@ -146,6 +201,11 @@ class LightGraph(GraphClient):
 
     def edge_count(self) -> int:
         return self._conn.execute("SELECT COUNT(*) FROM edges").fetchone()[0]
+
+    def checkpoint(self) -> None:
+        """Move WAL contents into the main database file (see GraphClient)."""
+        self._conn.commit()
+        self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
 
     def close(self) -> None:
         self._log.info("lightgraph_close")

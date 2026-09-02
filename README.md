@@ -656,10 +656,10 @@ Three compression levels:
 | full | *(default)* | ~55% | Fragments + no explanatory preamble |
 | ultra | `--ultra` | ~70% | One bullet per fact, ≤8 words each |
 
-```bash
-jsat smart "what does the payment service do?"
-jsat smart --ultra "what does process_refund return?"
-jsat smart --lite "explain the checkout flow"
+```
+/jsat smart what does the payment service do?
+/jsat smart --ultra what does process_refund return?
+/jsat smart --lite explain the checkout flow
 ```
 
 Use as a fast fallback when `/jsat query` times out on large contexts.

@@ -5,6 +5,7 @@ Thin shell: all tool logic lives in jsat/tools/. Every heavy import is lazy.
 """
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -372,10 +373,41 @@ class JSAT:
     @classmethod
     def from_import(cls, archive: str | Path, password: str | None = None) -> JSAT:
         """Restore a JSAT instance from an exported archive."""
-        from jsat.tools.export import ExportTool
         instance = cls(repo=str(Path(archive).parent))
-        ExportTool(graph=instance._get_graph(), cfg=instance._cfg).restore(Path(archive))
+        instance.import_archive(archive, password)
         return instance
+
+    def reload_graph(self) -> None:
+        """Release the cached graph client so the next access reconnects.
+
+        Needed whenever the database file is replaced underneath us: the open
+        connection (and, in WAL mode, its -wal/-shm sidecars) describes the
+        old file, so reads through it would return the pre-replacement
+        contents.
+        """
+        if self._graph is not None:
+            # Already closed, or a wedged handle — either way the point is to
+            # stop using it, so a failure to close cleanly is not fatal.
+            with contextlib.suppress(Exception):
+                self._graph.close()
+            self._graph = None
+
+    def import_archive(self, archive: str | Path,
+                       password: str | None = None) -> None:
+        """Restore an exported index into this instance's data dir.
+
+        Both callers — ``from_import`` and the MCP ``import_index`` tool — go
+        through here, because the sequence is easy to get wrong in a way that
+        fails silently: restore() replaces the database file wholesale, so the
+        live connection must be released first and the client re-created
+        afterwards. Skipping the re-create leaves a long-lived process (the
+        MCP server) reading a closed or stale handle for every later call.
+        """
+        from jsat.tools.export import ExportTool
+        ExportTool(graph=self._get_graph(), cfg=self._cfg).restore(
+            Path(archive), password
+        )
+        self.reload_graph()
 
     def prompt(
         self,

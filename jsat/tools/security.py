@@ -153,7 +153,15 @@ class SecurityTool(BaseTool):
         entropy_threshold = 4.8   # raised from 4.5 — eliminates false positives on CLI help text / test fixtures  # noqa: E501
         min_token_len = 24         # raised from 20 — further reduces noise from short high-entropy identifiers  # noqa: E501
         files_scanned = 0
-        all_files = [f for f in path.rglob("*") if f.is_file() and f.suffix in _SCAN_EXTS]
+        # `Path.rglob` on a FILE yields nothing, so a single-file target used
+        # to scan zero files and report a confident all-clear — which is the
+        # worst possible failure mode for a secret scanner, and exactly what
+        # the security_scan_file MCP tool passes in. Handle both shapes.
+        if path.is_file():
+            all_files = [path] if path.suffix in _SCAN_EXTS else []
+        else:
+            all_files = [f for f in path.rglob("*")
+                         if f.is_file() and f.suffix in _SCAN_EXTS]
         checkpoint(f"security: scanning {len(all_files)} file(s) for secrets")
 
         for fpath in all_files:
@@ -217,7 +225,10 @@ class SecurityTool(BaseTool):
     def _parse_requirements(self, path: Path) -> list[tuple[str, str]]:
         """Return (package_name, version) pairs from requirements*.txt files."""
         packages: list[tuple[str, str]] = []
-        for req_file in list(path.rglob("requirements*.txt"))[:5]:
+        # Same rglob-on-a-file problem: when the target is a single file, look
+        # for dependency manifests beside it rather than finding none.
+        dep_root = path.parent if path.is_file() else path
+        for req_file in list(dep_root.rglob("requirements*.txt"))[:5]:
             for line in req_file.read_text(errors="ignore").splitlines():
                 line = line.strip()
                 if not line or line.startswith("#") or line.startswith("-"):

@@ -6,14 +6,22 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from jsat.skills.registry import SkillsRegistry
 
+# Ordered sequences of JSAT commands for common workflows.
+#
+# Every name here must be a real command shipped in jsat/commands/ — these
+# previously referenced an older naming scheme (`quickstart`, `newfeature`,
+# `multi-review`, `vuln-triage`, …) that never existed, so every cluster
+# resolved to nothing and `run_cluster` only ever emitted "not installed".
 BUILT_IN_CLUSTERS: dict[str, list[str]] = {
-    "start-session":          ["quickstart", "status", "loadrules"],
-    "new-feature":            ["newfeature", "blast-radius", "contract-check", "commit-and-pr"],
-    "pre-merge":              ["multi-review", "qa", "service-health-check", "security-review"],
-    "incident":               ["incident-investigation", "blast-radius", "diff"],
-    "security-release":       ["vuln-triage", "vuln-fix", "security-review"],
-    "db-schema-change":       ["migration-plan", "blast-radius", "contract-check"],
-    "knowledge-maintenance":  ["syncknowledge", "saveknowledge", "update-feature"],
+    "start-session":          ["index", "status", "knowledge"],
+    "new-feature":            ["plan", "lazy", "blast-radius", "contract",
+                               "pr-describe"],
+    "pre-merge":              ["review", "test-gaps", "service-health-check",
+                               "security"],
+    "incident":               ["incident", "blast-radius", "recent"],
+    "security-release":       ["security", "upgrade-impact", "verify"],
+    "db-schema-change":       ["migration", "blast-radius", "contract"],
+    "knowledge-maintenance":  ["knowledge", "decide", "runbook"],
 }
 
 
@@ -23,7 +31,15 @@ def list_clusters() -> list[str]:
 
 
 def run_cluster(name: str, registry: SkillsRegistry) -> list[str]:
-    """Run all skills in a named cluster sequentially. Returns list of outputs."""
+    """Run every skill in a named cluster in order. Returns one line per step.
+
+    Note what this does and does not do. It dispatches through
+    ``SkillsRegistry``, which executes only ``source.type == "script"``
+    manifests; JSAT ships no such manifests, so on a stock install each step
+    reports "not installed — skipping". The cluster is therefore useful today
+    as the canonical *ordering* for a workflow — the same order the `/jsat`
+    slash commands should be run in — rather than as an execution engine.
+    """
     from jsat._exceptions import SkillNotFound
 
     skills = BUILT_IN_CLUSTERS.get(name)

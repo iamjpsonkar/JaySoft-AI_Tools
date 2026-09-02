@@ -48,7 +48,20 @@ class ExportTool(BaseTool):
             # Write manifest
             zf.writestr(MANIFEST_FILE, json.dumps(manifest_data, indent=2))
 
-            # Write SQLite graph file if it exists
+            # Write SQLite graph file if it exists.
+            #
+            # Checkpoint first. The graph runs in WAL mode, so rows committed
+            # by this same process are still in the `-wal` sidecar and NOT in
+            # the file being copied here. Without this, exporting straight
+            # after an index (the SDK's `js.index(); js.export()` and the
+            # export_index MCP tool both do exactly that) produced a valid,
+            # readable, EMPTY database — while the manifest above reported the
+            # true node count, so the archive looked fine until restored.
+            if self._graph is not None:
+                try:
+                    self._graph.checkpoint()
+                except Exception as e:  # never fail an export over this
+                    log.warning("export_checkpoint_failed", error=str(e))
             graph_path = Path(self._cfg.graph.path)
             if graph_path.exists():
                 zf.write(graph_path, "graph/graph.db")
@@ -127,11 +140,35 @@ class ExportTool(BaseTool):
                         export_version=export_ver, current_version=JSAT_VERSION
                     )
 
-                # Restore graph file
+                # Restore graph file.
+                #
+                # The database file is replaced wholesale, so any connection
+                # already open on it must be closed first. SQLite runs in WAL
+                # mode here (see _graph/sqlite.py pragmas), which means an open
+                # handle also owns -wal/-shm sidecars describing the OLD file.
+                # Leaving either behind makes the restored data invisible: the
+                # stale WAL shadows the new main file and every read returns
+                # the empty database that opening the graph had just created.
+                # That is what made `jsat import` report nodes=0 for a
+                # perfectly good archive.
                 try:
                     graph_data = zf.read("graph/graph.db")
                     graph_path = Path(self._cfg.graph.path)
                     graph_path.parent.mkdir(parents=True, exist_ok=True)
+                    if self._graph is not None:
+                        try:
+                            self._graph.close()
+                        except Exception as e:  # a stuck handle must not abort
+                            log.warning("import_graph_close_failed", error=str(e))
+                    for sidecar in (
+                        graph_path.with_name(graph_path.name + "-wal"),
+                        graph_path.with_name(graph_path.name + "-shm"),
+                    ):
+                        try:
+                            sidecar.unlink(missing_ok=True)
+                        except OSError as e:
+                            log.warning("import_sidecar_unlink_failed",
+                                        path=str(sidecar), error=str(e))
                     graph_path.write_bytes(graph_data)
                     log.info("import_graph_restored", path=str(graph_path))
                 except KeyError:
@@ -140,7 +177,11 @@ class ExportTool(BaseTool):
                 # Restore artifacts — guard against zip-slip path traversal:
                 # a crafted entry (e.g. "artifacts/../../.ssh/authorized_keys" or an
                 # absolute path) must not be allowed to write outside .jsat/.
-                dest_root = Path(".jsat").resolve()
+                # Anchor artifacts to the CONFIGURED data dir, not to
+                # ./.jsat relative to whatever cwd the caller happened to be
+                # in — with JSAT_DATA_DIR set (or the hashed global store in
+                # use) the old path wrote them somewhere nothing reads.
+                dest_root = Path(self._cfg.graph.path).resolve().parent.parent
                 for name in zf.namelist():
                     if name.startswith("artifacts/"):
                         target = self._safe_extract_target(

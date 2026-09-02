@@ -492,11 +492,23 @@ def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
         log.warning("auto_configure_no_preset", profile=p)
         return cfg
 
-    # Profile presets are defaults, not overrides. Pydantic retains which nested
-    # fields came from the user's config, so preserve an explicit provider/model.
-    # Without this, the solo preset silently changed `codex_cli` back to Ollama.
+    # Profile presets are defaults, not overrides.
+    #
+    # Pydantic records which fields actually came from the user's config
+    # (`model_fields_set`), and EVERY one of them must survive the preset.
+    # This used to be special-cased for `ai.provider`/`ai.model` only, which
+    # left the same bug live everywhere else: with a Neo4j container running
+    # for some unrelated project, the `team` preset overrode an explicit
+    # `graph.backend: sqlite` and JSAT tried to index into Neo4j, failing
+    # outright. Whatever the user wrote down wins over whatever we detected.
+    explicit: dict[str, dict[str, object]] = {}
+    for section in preset:
+        sub = getattr(cfg, section, None)
+        if sub is not None and hasattr(sub, "model_fields_set"):
+            chosen = {f: getattr(sub, f) for f in sub.model_fields_set}
+            if chosen:
+                explicit[section] = chosen
     explicit_ai_provider = "provider" in cfg.ai.model_fields_set
-    explicit_ai_model = "model" in cfg.ai.model_fields_set
 
     raw = cfg.model_dump()
     for key, val in preset.items():
@@ -505,10 +517,18 @@ def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
         else:
             raw[key] = val
 
-    if explicit_ai_provider:
-        raw["ai"]["provider"] = cfg.ai.provider
-    if explicit_ai_model:
-        raw["ai"]["model"] = cfg.ai.model
+    for section, fields in explicit.items():
+        if isinstance(raw.get(section), dict):
+            for field, value in fields.items():
+                # Nested models (e.g. embeddings.vector_store) come back as
+                # model instances from getattr; dump them so validation of the
+                # merged dict does not choke.
+                raw[section][field] = (
+                    value.model_dump() if hasattr(value, "model_dump") else value
+                )
+            if fields:
+                log.debug("auto_configure_preserved_explicit",
+                          section=section, fields=sorted(fields))
 
     new_cfg = JSATConfig.model_validate(raw)
 

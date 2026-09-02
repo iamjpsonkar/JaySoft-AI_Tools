@@ -405,6 +405,49 @@ print(js.index_status)
 
 ---
 
+### `import_archive`
+
+Restore an exported archive into an **existing** instance. Use this when you
+already hold a `JSAT` object; use `JSAT.from_import` to build a new one.
+
+```python
+js.import_archive(archive, password=None)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `archive` | `str \| Path` | (required) | Path to `.jsat.zip` archive |
+| `password` | `str \| None` | `None` | Decryption password if encrypted |
+
+```python
+js = JSAT(repo=".")
+js.index()                              # local work
+js.import_archive("team-index.jsat.zip")  # replace with the shared index
+print(js.index_status["nodes"])
+```
+
+Restoring replaces the graph database file wholesale, so the open connection
+is released and re-created for you. Read the graph through the same instance
+afterwards — it reconnects on next access.
+
+---
+
+### `reload_graph`
+
+Drop the cached graph client so the next access reconnects.
+
+```python
+js.reload_graph()
+```
+
+Needed only if something outside JSAT replaces the database file underneath a
+live instance — for example another process running `jsat import`. The open
+connection (and, in WAL mode, its `-wal`/`-shm` sidecars) describes the old
+file, so reads through it would return pre-replacement contents.
+`import_archive` already does this for you.
+
+---
+
 ### `switch_ai`
 
 Switch the AI provider mid-session without reconstructing the `JSAT` instance.

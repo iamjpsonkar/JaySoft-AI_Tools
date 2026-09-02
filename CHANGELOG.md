@@ -4,6 +4,139 @@ All notable changes to JSAT.
 
 ## [Unreleased]
 
+## [0.4.17] — 2026-09-02
+
+Everything below was found by running the rebuilt self-test against the real
+installed artifact — no mocks, real subprocesses, a real MCP server over real
+stdio, a real scratch repo, and a real headless agent. Several of these bugs
+were invisible in the worst way: the tool returned a confident empty answer
+rather than an error.
+
+### Fixed
+
+- **`jsat export` silently produced an EMPTY archive.** The graph runs in WAL
+  mode, so rows committed by the current process still live in the `-wal`
+  sidecar; `export` copied the main database file, yielding a valid, readable,
+  empty database — while the manifest reported the true node count, so the
+  archive looked correct until someone restored it. Affected every in-process
+  export: the SDK's `js.index(); js.export()` and the `export_index` MCP tool.
+  `ExportTool.export` now checkpoints first, via a new `GraphClient.checkpoint()`.
+- **`jsat import` restored nothing usable.** `from_import` opened the graph
+  (creating an empty database plus WAL sidecars) and then replaced the file
+  underneath that live connection, so `index_status` read the empty one and
+  reported `nodes=0`. The safe sequence now lives in one place,
+  `JSAT.import_archive`, used by both the CLI/SDK path and the `import_index`
+  MCP tool — which previously left the long-lived server holding a handle to a
+  replaced database, failing every subsequent call with "Cannot operate on a
+  closed database".
+- **A profile preset overrode explicitly configured values.** With a Neo4j
+  container running for some unrelated project, `detect_system` picked the
+  `team` profile and `auto_configure` replaced an explicit
+  `graph.backend: sqlite` with `neo4j` — so indexing failed outright trying to
+  reach Bolt. "Presets are defaults, not overrides" was implemented for
+  `ai.provider`/`ai.model` only; it now holds for every field the user
+  actually set, in every section.
+- **`cache.backend: redis` crashed when no `redis_uri` was given.**
+  `redis_uri` defaults to `None`, so the client died on `None.startswith`
+  instead of using the documented `redis://localhost:6379` default. A missing
+  `redis` package now also logs a clear fallback rather than silently landing
+  on the in-memory cache.
+- **`get_data_flow` and `get_consumers` never worked.** Both called
+  `graph.edges(...)`, a method no backend implemented — the `# type: ignore`
+  on the call sites had silenced the warning. `edges(edge_types=…, limit=…)`
+  is now part of the `GraphClient` contract with indexed implementations for
+  the SQLite backends and a real Cypher one for Neo4j.
+- **`security_scan_file` gave a false all-clear for any file.**
+  `_detect_secrets` used `path.rglob("*")`, which yields nothing for a file
+  path, so a single-file scan examined zero files and reported no findings.
+  The dependency-manifest lookup had the same flaw. (Same bug class already
+  fixed once in `test_helper.py`.)
+- **MCP file arguments were resolved against the server's cwd, not the repo.**
+  An agent naturally passes the repo-relative paths the graph stores, but the
+  MCP server inherits its cwd from whatever launched it. `validate_migration`
+  raised ENOENT; `security_scan_file`, `list_secrets` and `get_test_gaps`
+  silently scanned nothing; `create_index_md` wrote an empty INDEX.md to the
+  wrong directory. Added `_repo_path` and applied it to every argument that
+  touches the filesystem (graph-id arguments deliberately stay relative).
+- **TypeScript, Java, Ruby and Rust files were never indexed.**
+  `IndexerConfig.languages` defaulted to `python, javascript, go`, so files
+  whose parsers exist and whose grammars were installed were skipped in
+  silence — contradicting the documented language support. Now defaults to all
+  seven; a missing optional grammar still degrades to zero nodes for those
+  files rather than failing the index.
+- **`jsat ci-setup` generated a workflow that could not run.** It invoked
+  `jsat blast-radius`, `jsat contract-check` and `jsat security-review`, none
+  of which existed as CLI commands. All three now exist
+  (`jsat/_cli_analysis.py`) with the flags the template uses, including real
+  SARIF 2.1.0 output for the upload step, and non-zero exits on breaking
+  changes or critical findings.
+- **26 of 69 MCP tools were unreachable by any non-admin role.** Anyone who
+  secured the server with `JSAT_MCP_TOKEN_ROLES` silently lost a third of the
+  toolset, including `token_count` and `index_repo`. `_ROLE_PERMISSIONS` now
+  covers every registered tool; `import_index` alone stays admin-only, because
+  it replaces the whole graph.
+- **`get_dependency_cves` reported "not implemented — planned for v0.3"**
+  while the osv.dev lookup it needed was already shipping and working inside
+  `security_review`. Now wired to it, with real CVSS threshold filtering.
+- **`graph.max_nodes` / `max_edges` were never enforced**, so
+  `GraphCapacityError` could not fire. Enforced at the bulk-insert boundary —
+  the path mass growth takes — where one COUNT per 2,000-row batch is free.
+- **Four slash commands referenced MCP tools that do not exist.** Three were
+  deliberate ("there is no `jsat__run_app` tool — use Bash") and are kept;
+  `jsat-ithinking.md`'s `jsat__tokens` was a genuine error, now
+  `jsat__token_count`.
+- **All seven skill clusters named skills that never existed**
+  (`quickstart`, `newfeature`, `vuln-triage`, …), so every cluster resolved to
+  nothing. Remapped onto real shipped commands.
+- **`docs/claude-integration.md` linked to a file outside the docs tree**,
+  breaking `mkdocs build --strict`.
+- **README documented `jsat smart` as a shell command**; `smart` is a slash
+  command.
+
+### Changed
+
+- **`_JSAT_SKILLS` is now derived from `jsat/commands/*.md`** instead of being
+  a hand-maintained duplicate of them. The two had drifted: ten command files
+  had no entry, so Continue and Bob users silently received a smaller command
+  set than Claude users, while four stale entries installed commands that no
+  longer existed. `jsat/_cli_skills_data.py` drops from ~2,000 to ~690 lines
+  and the whole drift class is gone. Continue and Bob now install all 46.
+- **`graph.backend: neo4j` now says what it cannot do.** Every tool that
+  issues a graph query builds SQLite-specific SQL, which the Neo4j backend
+  rejects by design rather than returning wrong data; selecting it previously
+  half-worked in silence. It now warns at construction, naming exactly what
+  degrades.
+- **The embeddings and vector-store config is marked NOT YET WIRED IN**, at
+  the schema and in the docs. Three embedder backends and the
+  sqlite-vss/qdrant/pgvector settings are implemented but have no call sites,
+  so configuring them changes nothing; all retrieval today is
+  keyword/substring/Jaccard based. Removed the inert
+  `cache.similarity_threshold`, which the docs described as doing cosine
+  similarity matching that no cache performs.
+- `jsat/mcp/tools.py` deleted — a second, dead 52-entry tool catalogue that
+  nothing imported and that had drifted to under 70% of the real registry,
+  while reading like ground truth.
+
+### Added
+
+- **The self-test is now a real self-test** (`scripts/selftest/`, run via
+  `scripts/jsat-selftest.sh`). It grew from ~25 checks to ~230 across twelve
+  selectable suites, and it exercises **all 69 MCP tools**, **all 38 CLI
+  commands**, every public SDK method, all seven connectors round-tripped
+  against seeded configs, all nine AI providers, the graph and cache backends,
+  the dashboard and its SSE stream, Prometheus metrics, the privacy invariant,
+  and the built wheel installed into a clean virtualenv.
+  Three coverage gates make it stay complete: a new MCP tool, CLI command or
+  public SDK method fails the suite until it is actually exercised.
+- 29 regression tests (`tests/test_selftest_regressions.py`) covering every
+  fix above.
+- `GraphClient.checkpoint()` and `GraphClient.edges()` on the graph contract,
+  implemented for all three backends.
+- `jsat blast-radius`, `jsat contract-check`, `jsat security-review` as CLI
+  commands, with `--sarif`, `--output`, `--fail-on-breaking` and
+  `--fail-on-critical`.
+
+
 ## [0.4.16] — 2026-09-02
 
 ### Added

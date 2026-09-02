@@ -52,6 +52,27 @@ class Neo4jGraph(GraphClient):
         try:
             self._driver.verify_connectivity()
             self._log.info("neo4j_init", uri=uri, username=username)
+            # Say plainly what this backend can and cannot do. The graph
+            # primitives (add_node/add_edge/get_node/outgoing_edges/bfs/
+            # edges/counts) work, but every tool that reaches for query()
+            # builds SQLite-specific SQL, which query() rejects by design
+            # rather than silently returning wrong data. Selecting neo4j
+            # therefore yields a working index and a working blast radius,
+            # but query/feature/test-gaps and the indexer's symbol-resolution
+            # pass degrade. Warning here — at the moment the choice takes
+            # effect — is the only place the user can act on it.
+            self._log.warning(
+                "neo4j_partial_support",
+                message=(
+                    "graph.backend=neo4j supports indexing, traversal and "
+                    "blast radius, but tools that issue graph queries "
+                    "(query, feature, test-gaps) and the indexer's symbol "
+                    "resolution pass require the SQLite backend. Use "
+                    "graph.backend=sqlite for full functionality."
+                ),
+                unsupported=["query", "feature", "get_test_gaps",
+                             "indexer symbol resolution"],
+            )
         except Exception as e:
             from jsat._exceptions import GraphConnectionError
             raise GraphConnectionError(
@@ -171,6 +192,29 @@ class Neo4jGraph(GraphClient):
         for edge in edges:
             self.add_edge(edge["source"], edge["target"], edge["type"],
                           edge.get("properties", {}))
+
+    def edges(
+        self,
+        edge_types: list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return edges as dicts, optionally filtered by type.
+
+        Implemented in Cypher rather than inheriting the base fallback,
+        which issues SQL-shaped queries this backend refuses by design.
+        """
+        cypher = "MATCH (a)-[r]->(b)"
+        params: dict[str, Any] = {}
+        if edge_types:
+            cypher += " WHERE type(r) IN $types"
+            params["types"] = list(edge_types)
+        cypher += (" RETURN a.id AS source, b.id AS target, "
+                   "type(r) AS type, properties(r) AS properties")
+        if limit is not None:
+            cypher += " LIMIT $limit"
+            params["limit"] = limit
+        with self._driver.session() as session:
+            return [dict(rec) for rec in session.run(cypher, **params)]
 
     def close(self) -> None:
         self._driver.close()
