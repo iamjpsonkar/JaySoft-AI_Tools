@@ -1502,6 +1502,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../self-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../publishing/" class="md-nav__link">
         
   
@@ -1649,15 +1677,15 @@ keeps this setup explicit.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>claude
 </code></pre></div>
 <p>Exact local model:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen3.5
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>claude<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen2.5:0.5b<span class="w">      </span><span class="c1"># or any tag from `ollama list`</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>claude<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b
 </code></pre></div>
 <p>Exact cloud model:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ollama<span class="w"> </span>signin
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>claude<span class="w"> </span>--model<span class="w"> </span>gemma4:31b-cloud
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>claude<span class="w"> </span>--model<span class="w"> </span>&lt;model&gt;-cloud
 </code></pre></div>
 <p>Use <code>--yes</code> with <code>--model</code> to skip Ollama's selector. Arguments after <code>--</code> go to Claude:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>claude<span class="w"> </span>-m<span class="w"> </span>gemma4:31b-cloud<span class="w"> </span>--yes<span class="w"> </span>--<span class="w"> </span>-p<span class="w"> </span><span class="s2">"summarize this repo"</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>claude<span class="w"> </span>-m<span class="w"> </span>&lt;model&gt;-cloud<span class="w"> </span>--yes<span class="w"> </span>--<span class="w"> </span>-p<span class="w"> </span><span class="s2">"summarize this repo"</span>
 </code></pre></div>
 <p>The chosen model applies to this launched Claude process. It does not overwrite
 <code>.jsat/config.yaml</code> and does not require a second pull. Local models must exist in Ollama;
@@ -1671,7 +1699,7 @@ cloud models require sign-in instead of a pull.</p>
 <p>Ask Claude to call <code>jsat__get_index_status</code>. Also check the Claude UI/status line to verify the
 Ollama-selected model. Both checks are required: one proves MCP, the other proves model routing.</p>
 <h2 id="managed-lifecycle">Managed lifecycle<a class="headerlink" href="#managed-lifecycle" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>claude<span class="w"> </span>--via<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>claude<span class="w"> </span>--via<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>jsat<span class="w"> </span>ps
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>jsat<span class="w"> </span>restart<span class="w"> </span>claude
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>jsat<span class="w"> </span>stop<span class="w"> </span>claude
@@ -1686,7 +1714,7 @@ want only this route.</p>
 <li>If <code>/jsat</code> exists but MCP calls fail, reconnect and fully restart the launched Claude process.</li>
 <li>If Ollama reports a missing local model, pull the exact model/tag shown in the command.</li>
 <li>If a cloud model fails, run <code>ollama signin</code>; do not replace it with an unrelated local model.</li>
-<li>If errors mention the OpenAI provider with an Ollama model such as <code>llama3.2</code>, routing is
+<li>If errors mention the OpenAI provider with an Ollama model such as <code>qwen2.5:0.5b</code>, routing is
   mixed. Launch through this command or configure <code>jsat ai use ollama</code>, depending on which
   execution path you intended.</li>
 </ul>

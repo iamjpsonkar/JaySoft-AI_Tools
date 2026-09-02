@@ -1546,6 +1546,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../self-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../publishing/" class="md-nav__link">
         
   
@@ -1745,7 +1773,13 @@
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>jsat<span class="o">[</span>standard<span class="o">]</span>
 </code></pre></div>
-<p>Adds Semgrep for security scanning, OpenAPI validation, and parsers for Java, Ruby, and Rust.</p>
+<p>Adds Semgrep for security scanning, OpenAPI validation, and
+tree-sitter grammars for Java, Ruby, and Rust. Those languages are
+in the default <code>indexer.languages</code> list, so installing this extra
+is all it takes for their files to be indexed — no config change
+needed. (Before 0.4.17 the default list covered only Python,
+JavaScript and Go, so those files were silently skipped even with
+the grammars installed.)</p>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span>jsat<span class="o">[</span>team<span class="o">]</span>
@@ -1852,7 +1886,7 @@ arguments after <code>jsat codex</code> are forwarded to the Codex CLI.</p>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ollama<span class="w"> </span>serve<span class="w">          </span><span class="c1"># in a separate terminal</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.2<span class="w">  </span><span class="c1"># first time only</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen2.5:0.5b<span class="w">  </span><span class="c1"># first time only; `ollama list` to confirm</span>
 <a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>jsat<span class="w"> </span>ollama
 </code></pre></div>
 </div>

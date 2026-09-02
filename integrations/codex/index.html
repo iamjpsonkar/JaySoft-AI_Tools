@@ -1502,6 +1502,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../self-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../publishing/" class="md-nav__link">
         
   
@@ -1677,8 +1705,8 @@ different: it resumes an interrupted JSAT workflow such as <code>crack</code> or
 <ul>
 <li>If <code>$jsat</code> is missing, rerun <code>jsat connect codex</code>, then restart Codex completely.</li>
 <li>If MCP is missing, inspect <code>~/.codex/config.toml</code> and run <code>jsat doctor</code>.</li>
-<li>If an error shows <code>model: llama3.2</code> with <code>provider: openai</code>, the model/provider pair is
-  misrouted. Select <code>codex-cli</code> for native Codex or <code>ollama</code> for <code>llama3.2</code>; do not combine
+<li>If an error shows an Ollama tag with <code>provider: openai</code>, the model/provider pair is
+  misrouted. Select <code>codex_cli</code> for native Codex or <code>ollama</code> for an Ollama tag; do not combine
   an Ollama model name with the OpenAI provider.</li>
 <li>If Codex is not installed, use an <a href="../ollama-codex/">Ollama-launched client</a> or install Codex.</li>
 </ul>

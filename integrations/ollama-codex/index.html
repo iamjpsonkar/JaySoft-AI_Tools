@@ -1491,6 +1491,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../self-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../publishing/" class="md-nav__link">
         
   
@@ -1620,11 +1648,11 @@ It is distinct from native Codex authentication/model selection.</p>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>codex<span class="w">                 </span><span class="c1"># interactive selector</span>
 </code></pre></div>
 <p>Choose an exact local or cloud model when needed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen3.5
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>codex<span class="w"> </span>-m<span class="w"> </span>qwen3.5
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen2.5:0.5b<span class="w">      </span><span class="c1"># or any tag from `ollama list`</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>codex<span class="w"> </span>-m<span class="w"> </span>qwen2.5:0.5b
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>ollama<span class="w"> </span>signin
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>codex<span class="w"> </span>-m<span class="w"> </span>gemma4:31b-cloud
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>codex<span class="w"> </span>-m<span class="w"> </span>&lt;model&gt;-cloud
 </code></pre></div>
 <p>The chosen model belongs to the launched process and does not change JSAT's direct provider.
 Local models need one pull for the exact tag; cloud models need sign-in and no pull.</p>
@@ -1636,7 +1664,7 @@ Local models need one pull for the exact tag; cloud models need sign-in and no p
 <p>Ask Codex to call <code>jsat__get_index_status</code>, then verify its displayed model. This checks MCP and
 model routing independently.</p>
 <h2 id="managed-lifecycle">Managed lifecycle<a class="headerlink" href="#managed-lifecycle" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>codex<span class="w"> </span>--via<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>codex<span class="w"> </span>--via<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ps
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>restart<span class="w"> </span>codex
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>jsat<span class="w"> </span>stop<span class="w"> </span>codex

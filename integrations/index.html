@@ -1469,6 +1469,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../self-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../publishing/" class="md-nav__link">
         
   
@@ -1600,10 +1628,10 @@ launcher.</p>
 </div>
 <div class="tabbed-block">
 <p>JSAT talks directly to a model served by Ollama. No coding-client harness is involved.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen3.5
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen2.5:0.5b
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b
 </code></pre></div>
 <p><a href="ollama-local/">Complete direct Ollama guide</a></p>
 </div>
@@ -1683,7 +1711,7 @@ replace the other.</p>
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>jsat<span class="w"> </span>resume
 </code></pre></div>
 <p>Interactive clients open in separate terminals. To keep routes isolated, name one client and
-one route, for example <code>jsat start claude --via ollama --model qwen3.5</code>.</p>
+one route, for example <code>jsat start claude --via ollama --model qwen2.5:0.5b</code>.</p>
 
 
 

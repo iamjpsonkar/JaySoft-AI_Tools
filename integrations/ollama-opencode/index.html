@@ -1519,6 +1519,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../self-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../publishing/" class="md-nav__link">
         
   
@@ -1682,16 +1710,16 @@ standalone PATH installation of OpenCode is not required.</p>
 </code></pre></div>
 <h2 id="select-and-launch-a-model">Select and launch a model<a class="headerlink" href="#select-and-launch-a-model" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>opencode<span class="w">                 </span><span class="c1"># interactive local/cloud selector</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen3.5
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>opencode<span class="w"> </span>-m<span class="w"> </span>qwen3.5<span class="w">      </span><span class="c1"># exact local model</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen2.5:0.5b<span class="w">      </span><span class="c1"># or any tag from `ollama list`</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>opencode<span class="w"> </span>-m<span class="w"> </span>qwen2.5:0.5b<span class="w">      </span><span class="c1"># exact local model</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>ollama<span class="w"> </span>signin
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>opencode<span class="w"> </span>-m<span class="w"> </span>gemma4:31b-cloud
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>opencode<span class="w"> </span>-m<span class="w"> </span>&lt;model&gt;-cloud
 </code></pre></div>
 <p>The selected model is injected into only the launched OpenCode process. It does not persist as
 JSAT's direct AI provider and does not require another pull. A cloud model is authenticated with
 <code>ollama signin</code>, not downloaded.</p>
 <h3 id="remember-a-model-for-this-tool">Remember a model for this tool<a class="headerlink" href="#remember-a-model-for-this-tool" title="Permanent link">&para;</a></h3>
-<p><code>jsat connect ollama tool=opencode --model gemma4:31b-cloud</code> saves that model as OpenCode's
+<p><code>jsat connect ollama tool=opencode --model &lt;model&gt;-cloud</code> saves that model as OpenCode's
 default for this launch route. A later bare <code>jsat ollama --tool opencode</code> (or the shorthand
 <code>jsat ollama opencode</code>) reuses it automatically instead of showing Ollama's interactive
 selector — pass <code>-m</code>/<code>--model</code> explicitly to override it for a single launch.</p>
@@ -1705,7 +1733,7 @@ selector — pass <code>-m</code>/<code>--model</code> explicitly to override it
 status line. Seeing <code>1 MCP</code> alone proves only that a server is registered; a successful tool call
 proves it can execute.</p>
 <h2 id="managed-lifecycle">Managed lifecycle<a class="headerlink" href="#managed-lifecycle" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>opencode<span class="w"> </span>--via<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>opencode<span class="w"> </span>--via<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>jsat<span class="w"> </span>ps
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>jsat<span class="w"> </span>restart<span class="w"> </span>opencode
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>jsat<span class="w"> </span>stop<span class="w"> </span>opencode

@@ -1063,6 +1063,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#which-tools-actually-need-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which tools actually need the model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#from-the-python-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From the Python SDK
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lifecycle-and-isolation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1502,6 +1524,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../self-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Self-test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../publishing/" class="md-nav__link">
         
   
@@ -1590,6 +1640,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#which-tools-actually-need-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which tools actually need the model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#from-the-python-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From the Python SDK
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lifecycle-and-isolation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1632,57 +1704,151 @@
 
 
 <h1 id="direct-ollama-local-jsat-shell">Direct Ollama: local JSAT shell<a class="headerlink" href="#direct-ollama-local-jsat-shell" title="Permanent link">&para;</a></h1>
-<p>Use this route when JSAT itself should send LLM-backed tool requests to an Ollama model. There
-is no Claude, Codex, or OpenCode harness in this path.</p>
+<p>Use this route when <strong>JSAT itself</strong> should send its LLM-backed tool requests to
+an Ollama model. There is no Claude, Codex or OpenCode harness in this path —
+JSAT talks to Ollama directly.</p>
+<p>If you instead want to run a coding tool <em>against</em> an Ollama model with JSAT
+wired in as MCP, that is a different route: see
+<a href="../ollama-claude/">Ollama + Claude</a>, <a href="../ollama-codex/">Ollama + Codex</a> or
+<a href="../ollama-opencode/">Ollama + OpenCode</a>.</p>
 <h2 id="prerequisites-and-model-setup">Prerequisites and model setup<a class="headerlink" href="#prerequisites-and-model-setup" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'jsat[local]'</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>jsat<span class="w">              </span><span class="c1"># the [local] extra is optional — see below</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>ollama<span class="w"> </span>serve<span class="w">                  </span><span class="c1"># keep running in another terminal</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen3.5<span class="w">           </span><span class="c1"># local models only, once per model/tag</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>ollama<span class="w"> </span>list
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>ollama<span class="w"> </span>pull<span class="w"> </span>qwen2.5:0.5b<span class="w">      </span><span class="c1"># ~400 MB, enough to verify the wiring</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>ollama<span class="w"> </span>list<span class="w">                   </span><span class="c1"># ALWAYS confirm what is installed</span>
 </code></pre></div>
-<p>Model names are exact. <code>qwen3.5</code> matches <code>qwen3.5:latest</code>, but it does not match another tag.</p>
+<div class="admonition warning">
+<p class="admonition-title">A running daemon is not a usable daemon</p>
+<p><code>ollama serve</code> answering on <code>:11434</code> says nothing about whether a model is
+available. With zero models pulled, JSAT reports Ollama as present but
+cannot complete a request — there is nothing to run. If <code>ollama list</code>
+prints only a header row, that is the problem, and it is by far the most
+common one on this route.</p>
+</div>
+<p><code>pip install 'jsat[local]'</code> adds the official <code>ollama</code> Python SDK. It is
+<strong>not required</strong>: JSAT falls back to a plain HTTP client, so the provider works
+on a bare <code>pip install jsat</code>.</p>
+<p>Model names are exact, including the tag. <code>qwen2.5</code> resolves to
+<code>qwen2.5:latest</code> and does <strong>not</strong> match <code>qwen2.5:0.5b</code>. Choose a size that fits
+your RAM — <code>jsat doctor</code> prints what it detected; a model larger than available
+memory will refuse to load or swap badly enough to trip JSAT's tool timeouts.</p>
 <h2 id="configure-start-and-verify">Configure, start, and verify<a class="headerlink" href="#configure-start-and-verify" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>/path/to/project
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>jsat<span class="w"> </span>ai<span class="w"> </span>status
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen3.5
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span>models<span class="w"> </span>ollama<span class="w">                       </span><span class="c1"># what this server can offer</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>jsat<span class="w"> </span>ai<span class="w"> </span>status<span class="w">                              </span><span class="c1"># confirm it is the active provider</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span><span class="w">                                </span><span class="c1"># a real completion, end to end</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>qwen2.5:0.5b<span class="w">            </span><span class="c1"># open the JSAT shell</span>
 </code></pre></div>
 <p>Sample shell queries:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>what does this project do?
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>blast-radius src/payments/service.py
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>security-review src/auth/
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>switch ollama &lt;model&gt;          # change model without leaving the shell
 </code></pre></div>
-<p><code>jsat ai use ollama</code> persists the direct provider choice. <code>jsat ollama --model ...</code> opens a
-JSAT shell for that provider. Neither command launches a coding client.</p>
+<p><code>jsat ai use ollama</code> persists the choice (add <code>--global</code> for every project on
+the machine). <code>jsat ollama --model ...</code> opens a JSAT shell for that provider.
+Neither command launches a coding client.</p>
+<p>Since 0.4.17 an explicit choice in a config file wins over the profile JSAT
+infers from running services — previously a Neo4j or Redis container up for an
+unrelated project could move the whole config onto the <code>team</code> preset and
+replace your provider.</p>
 <h2 id="local-versus-cloud">Local versus cloud<a class="headerlink" href="#local-versus-cloud" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Local model such as <code>qwen3.5</code>: run <code>ollama pull</code> and keep <code>ollama serve</code> reachable.</li>
-<li>Cloud model such as <code>gemma4:31b-cloud</code>: run <code>ollama signin</code>; do not pull it.</li>
+<li><strong>Local</strong> (for example <code>qwen2.5:0.5b</code>): <code>ollama pull</code> it and keep
+  <code>ollama serve</code> reachable. No account, no internet.</li>
+<li><strong>Cloud</strong> (any <code>-cloud</code> / <code>:cloud</code> suffix): run <code>ollama signin</code>; do <strong>not</strong>
+  pull it. JSAT detects the suffix and treats the model as cloud-routed.</li>
 </ul>
-<p>For a cloud model used directly by JSAT:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ollama<span class="w"> </span>signin
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>gemma4:31b-cloud
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>&lt;name&gt;-cloud
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
 </code></pre></div>
+<h2 id="which-tools-actually-need-the-model">Which tools actually need the model<a class="headerlink" href="#which-tools-actually-need-the-model" title="Permanent link">&para;</a></h2>
+<p>Most of JSAT is offline and unaffected by this route — indexing, blast radius,
+contract diffing, migration analysis, incident ranking, token accounting and
+the whole first phase of the prompt optimizer need no model at all. Ollama is
+used by the LLM-backed tools: <code>query</code>, <code>crack</code>, <code>short</code>, review, runbook and
+test generation. A small local model is usually fine for <code>short</code> and <code>query</code>,
+and noticeably weak at <code>crack</code> and review, which reason over long context.</p>
+<h2 id="from-the-python-sdk">From the Python SDK<a class="headerlink" href="#from-the-python-sdk" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSAT</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">js</span> <span class="o">=</span> <span class="n">JSAT</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">"."</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">js</span><span class="o">.</span><span class="n">switch_ai</span><span class="p">(</span><span class="s2">"ollama"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"qwen2.5:0.5b"</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"which function validates the payment amount?"</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">answer</span><span class="p">)</span>
+</code></pre></div>
+<p>Building the provider directly needs the <strong>full</strong> config object; a bare
+<code>AIConfig</code> raises <code>TypeError</code> rather than silently returning a no-op provider:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat._ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_ai_provider</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">jsat._models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AIConfig</span><span class="p">,</span> <span class="n">JSATConfig</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">cfg</span> <span class="o">=</span> <span class="n">JSATConfig</span><span class="p">()</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">cfg</span><span class="o">.</span><span class="n">ai</span> <span class="o">=</span> <span class="n">AIConfig</span><span class="p">(</span><span class="n">provider</span><span class="o">=</span><span class="s2">"ollama"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"qwen2.5:0.5b"</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">provider</span> <span class="o">=</span> <span class="n">get_ai_provider</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">if</span> <span class="n">provider</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>          <span class="c1"># always check first</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">provider</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="s2">"Reply with one word: pong"</span><span class="p">))</span>
+</code></pre></div>
+<p>When nothing is reachable JSAT substitutes a no-op provider whose <code>complete()</code>
+raises <code>AIError</code>, so code that assumes success gets an exception rather than a
+wrong answer.</p>
 <h2 id="lifecycle-and-isolation">Lifecycle and isolation<a class="headerlink" href="#lifecycle-and-isolation" title="Permanent link">&para;</a></h2>
-<p>The top-level <code>jsat start|stop|restart|resume</code> commands manage Claude, Codex, and OpenCode
-processes; they do not manage <code>ollama serve</code> or a direct JSAT shell. Stop the shell normally and
-manage the Ollama service using the mechanism provided by your operating system.</p>
+<p><code>jsat start|stop|restart|resume</code> manage Claude, Codex and OpenCode processes.
+They do <strong>not</strong> manage <code>ollama serve</code> or a direct JSAT shell — run the daemon
+through your operating system's service manager and stop the shell normally.</p>
 <p>To switch away without affecting any connected coding client:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>claude_cli<span class="w">       </span><span class="c1"># or codex-cli, opencode, openai, anthropic</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>claude_cli<span class="w">       </span><span class="c1"># or codex_cli, opencode_cli, openai, anthropic</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
 </code></pre></div>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<ul>
-<li><code>model not found at http://localhost:11434</code>: the configured local model is not installed in
-  the Ollama instance at that URL. Pull the exact tag or select a model shown by <code>ollama list</code>.</li>
-<li>A cloud-suffixed model should prompt for/sign in to Ollama Cloud, not be downloaded locally.</li>
-<li>If <code>ollama launch opencode</code> already uses a model successfully, that proves the launched
-  OpenCode route works; it does not prove JSAT's direct Ollama provider has the same model
-  configured. Run <code>jsat ai status</code> and <code>jsat ai test</code> for this route.</li>
-</ul>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>jsat ai status</code> lists Ollama but <code>jsat ai test</code> fails</td>
+<td>the daemon is up with <strong>no models pulled</strong></td>
+<td><code>ollama pull qwen2.5:0.5b</code>, then <code>ollama list</code></td>
+</tr>
+<tr>
+<td><code>model not found at http://localhost:11434</code></td>
+<td>the configured tag is not installed on that server</td>
+<td>pull the exact tag, or pick one from <code>ollama list</code> — JSAT rewrites Ollama's bare 404 into a message naming what <em>is</em> installed</td>
+</tr>
+<tr>
+<td>JSAT asks you to pick a model</td>
+<td>several are installed and JSAT will not guess</td>
+<td><code>jsat ai use ollama --model &lt;exact tag&gt;</code></td>
+</tr>
+<tr>
+<td>a <code>-cloud</code> model starts downloading</td>
+<td>it is being treated as local</td>
+<td><code>ollama signin</code> first; never <code>ollama pull</code> a cloud model</td>
+</tr>
+<tr>
+<td>tool calls time out</td>
+<td>the model is too large for available RAM, or loading for the first time</td>
+<td>check RAM via <code>jsat doctor</code>, use a smaller tag, or raise the budget with <code>/jsat &lt;cmd&gt; timeout=300</code></td>
+</tr>
+<tr>
+<td><code>ollama launch opencode</code> works but JSAT's own tools do not</td>
+<td>those are two different routes</td>
+<td>the launched route proves nothing about the direct provider — run <code>jsat ai status</code> and <code>jsat ai test</code> for this one</td>
+</tr>
+<tr>
+<td>Ollama runs on another host or port</td>
+<td>JSAT probes <code>localhost:11434</code></td>
+<td>set <code>OLLAMA_HOST</code> before starting JSAT</td>
+</tr>
+</tbody>
+</table>
 
 
 
