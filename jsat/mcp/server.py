@@ -1625,6 +1625,15 @@ def _infer_services_from_files(g: object, language: str | None) -> list[dict]:
         svc = parts[0] if parts else "root"
         if svc in (".", "src", "app", "lib", "pkg") and len(parts) > 1:
             svc = parts[1]
+        # Dot-prefixed top-level dirs (.git, .claude, .venv, ...) are tooling/
+        # vendor directories, never a real service — this also catches nested
+        # git worktrees under them (e.g. .claude/worktrees/<id>/...), which
+        # otherwise get inferred as a bogus service once File nodes for them
+        # exist in the graph (IndexerConfig.exclude_patterns keeps them out of
+        # a fresh index, but this fallback has no exclusion of its own and
+        # doesn't re-check that list).
+        if svc.startswith(".") and svc != ".":
+            continue
         if svc not in service_map:
             service_map[svc] = {
                 "name": svc,

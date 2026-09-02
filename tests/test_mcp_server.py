@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from jsat.mcp.server import MCPServer, _allowed
+from jsat.mcp.server import MCPServer, _allowed, _infer_services_from_files
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -371,3 +371,53 @@ def test_new_call_warns_when_abandoned_futures_still_pending():
     assert warning_calls, "expected a mcp_abandoned_futures_pending warning to be logged"
 
     time.sleep(0.4)  # let the abandoned thread finish before test teardown
+
+
+class _FakeFileGraph:
+    """Minimal graph stub exposing only what _infer_services_from_files reads."""
+
+    def __init__(self, file_paths: list[str], language: str = "python"):
+        self._files = [
+            {"properties": {"path": p, "language": language}} for p in file_paths
+        ]
+
+    def nodes_by_label(self, label: str) -> list[dict]:
+        assert label == "File"
+        return self._files
+
+
+@pytest.mark.ci
+def test_infer_services_excludes_dot_prefixed_top_level_dirs():
+    """Regression test: a nested worktree under a dot-directory (e.g.
+    .claude/worktrees/<id>/jsat/mcp/server.py, produced by an agent sandbox)
+    must never be inferred as its own service. IndexerConfig.exclude_patterns
+    keeps this out of a fresh index, but this fallback has no exclusion of its
+    own — it must independently reject any dot-prefixed top-level dir.
+    """
+    files = [
+        "jsat/mcp/server.py",
+        "jsat/_core.py",
+        "tests/test_mcp_server.py",
+        # Nested worktree copy under a dot-directory — must be excluded.
+        ".claude/worktrees/agent-abc123/jsat/mcp/server.py",
+        ".claude/worktrees/agent-abc123/jsat/_core.py",
+        ".git/hooks/pre-commit",
+    ]
+    result = _infer_services_from_files(_FakeFileGraph(files), language=None)
+    names = {svc["name"] for svc in result}
+
+    assert ".claude" not in names
+    assert ".git" not in names
+    assert "jsat" in names
+    assert "tests" in names
+
+
+@pytest.mark.ci
+def test_infer_services_still_allows_dot_alone_and_remap_dirs():
+    """The existing remap for ".", "src", "app", "lib", "pkg" must survive
+    the new dot-prefix exclusion unchanged: src/payment/service.py should
+    still infer "payment" as the service, not "src"."""
+    files = ["src/payment/service.py", "src/payment/models.py"]
+    result = _infer_services_from_files(_FakeFileGraph(files), language=None)
+    names = {svc["name"] for svc in result}
+    assert names == {"payment"}
