@@ -24,6 +24,16 @@ from jsat._models import (
 _PROFILE_CACHE_NAME = Path("system-profile.json")  # relative to jsat_data_dir(repo)
 
 
+class _StderrProxy:
+    """Delegate writes to the current stderr instead of capturing one stream."""
+
+    def write(self, message: str) -> int:
+        return sys.stderr.write(message)
+
+    def flush(self) -> None:
+        sys.stderr.flush()
+
+
 def jsat_data_dir(repo: Path) -> Path:
     """Return the JSAT data directory for a given repo.
 
@@ -588,6 +598,8 @@ def setup_logging(cfg: JSATConfig) -> None:
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(level),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
+        # Keep diagnostics off stdout. Several JSAT surfaces (``doctor --json``
+        # and the stdio MCP server) reserve stdout for machine-readable data.
+        logger_factory=structlog.PrintLoggerFactory(file=_StderrProxy()),
         cache_logger_on_first_use=True,
     )

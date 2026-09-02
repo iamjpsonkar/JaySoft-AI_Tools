@@ -52,9 +52,20 @@ def _persist_ai_provider_if_default(cfg_path: Path, provider: str) -> None:
     existing["ai"]["provider"] = provider
     existing["ai"].pop("model", None)  # native CLIs use their own default model
 
-    cfg_path.parent.mkdir(parents=True, exist_ok=True)
-    with cfg_path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(existing, f, sort_keys=False)
+    try:
+        cfg_path.parent.mkdir(parents=True, exist_ok=True)
+        with cfg_path.open("w", encoding="utf-8") as f:
+            yaml.safe_dump(existing, f, sort_keys=False)
+    except OSError as exc:
+        # The MCP/client connection is still useful when the optional provider
+        # preference cannot be persisted (read-only home, sandbox, kiosk install).
+        # Do not turn a successful connection into a launcher failure.
+        _log.warning(
+            "ai_provider_persist_failed",
+            path=str(cfg_path),
+            error_type=type(exc).__name__,
+        )
+
 
 @connect_app.command("claude")
 def cmd_connect_claude(

@@ -20,6 +20,12 @@ All notable changes to JSAT.
 
 ### Fixed
 
+- **Self-test false failures in restricted environments.** Structlog now sends
+  diagnostics through a dynamic stderr proxy, keeping `doctor --json` and MCP
+  stdout machine-readable without retaining closed pytest capture streams.
+  Connector setup also remains usable when its optional global AI-provider
+  preference cannot be persisted to a read-only home directory, and the
+  dashboard socket test skips when a sandbox prohibits local sockets.
 - **Bogus service inferred from a nested worktree.** `_infer_services_from_files`
   (`jsat/mcp/server.py`) — the fallback used when no explicit `Service` nodes
   exist — took `path.split("/")[0]` as the service name with no exclusion logic

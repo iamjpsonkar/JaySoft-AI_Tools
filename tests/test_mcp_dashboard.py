@@ -21,7 +21,10 @@ from jsat.mcp import dashboard
 
 
 def _free_port() -> int:
-    s = socket.socket()
+    try:
+        s = socket.socket()
+    except PermissionError:
+        pytest.skip("local socket creation is blocked by this sandbox")
     s.bind(("127.0.0.1", 0))
     port = s.getsockname()[1]
     s.close()
