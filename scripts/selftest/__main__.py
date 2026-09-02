@@ -23,7 +23,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
@@ -107,10 +106,14 @@ def main() -> int:
     from selftest.suites import environment  # noqa: PLC0415
 
     _banner("Environment (real probes, none mocked)")
+    # Fingerprint the user's real ~/.jsat now; the isolation check at the end
+    # compares against it. Taken before anything else runs.
+    home_jsat_before = environment.snapshot_home_jsat()
     environment.run(report, jsat_bin)
 
     if not jsat_bin:
         print("\n❌ jsat console script not found — nothing else can be tested.")
+        report.add(environment.check_no_state_leak(home_jsat_before))
         _finish(report, args, t_start, jsat_bin, selected)
         return 1
 
@@ -203,6 +206,10 @@ def main() -> int:
     if "pytest" in selected:
         _banner("Test suite (delegates to local_test.sh)")
         report.add(_check_pytest(run_all=args.full))
+
+    # Last, so it sees everything every suite did.
+    _banner("State isolation (the harness must not touch the real ~/.jsat)")
+    report.add(environment.check_no_state_leak(home_jsat_before))
 
     return _finish(report, args, t_start, jsat_bin, selected)
 

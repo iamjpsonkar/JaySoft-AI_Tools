@@ -10,7 +10,6 @@ is invisible until someone pip-installs it.
 """
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
@@ -217,7 +216,7 @@ def check_ruff() -> Check:
 # but the codebase does not satisfy it and CI never runs mypy — so the count
 # below is the honest current state, ratcheted so it can only go down. Lower
 # it when you fix errors; never raise it to make a red run green.
-MYPY_BASELINE = 377
+MYPY_BASELINE = 373
 
 
 def _mypy_run(extra: list[str]) -> subprocess.CompletedProcess[str]:

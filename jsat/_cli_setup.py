@@ -564,18 +564,22 @@ def cmd_mcp_server(
     class _MinimalJSAT:
         """Thin JSAT wrapper for MCP mode — no system detection, no auto-index."""
         def __init__(self) -> None:
+            from jsat._config import pin_paths_to_repo
             self._repo = repo_path
-            self._cfg = cfg
+            # Pin exactly as JSAT does. Without this, cfg.graph.path stayed
+            # relative (".jsat/graph/graph.db") while _get_graph() below used
+            # the resolved data dir — so every tool that reads
+            # cfg.graph.path (export, import) targeted a different file than
+            # the one actually being queried, relative to the MCP server's
+            # cwd, which is the editor's directory rather than the repo.
+            self._cfg = pin_paths_to_repo(cfg, repo_path)
             self._graph = None
             self._ai = None
 
         def _get_graph(self):
             if self._graph is None:
-                from jsat._config import jsat_data_dir
                 from jsat._graph.sqlite import SQLiteGraph
-                from jsat._models import GraphConfig
-                graph_path = str(jsat_data_dir(repo_path) / "graph" / "graph.db")
-                self._graph = SQLiteGraph(GraphConfig(path=graph_path))
+                self._graph = SQLiteGraph(self._cfg.graph)
             return self._graph
 
         def _get_ai(self):
@@ -699,7 +703,8 @@ def cmd_mcp_server(
                     self._graph.close()
                 self._graph = None
 
-        def import_archive(self, archive, password=None) -> None:
+        def import_archive(self, archive: str | Path,
+                           password: str | None = None) -> None:
             """Mirror of JSAT.import_archive.
 
             This shim is a long-lived process, so the graph client MUST be

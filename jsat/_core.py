@@ -60,10 +60,13 @@ class JSAT:
         # ── Pin all .jsat/* paths to repo root ───────────────────────────────
         # Without this, SQLiteGraph and system-profile.json are created relative
         # to CWD, which scatters files when indexing a different directory.
-        self._cfg = self._pin_paths_to_repo(self._cfg)
-
+        # Order matters: auto_configure inspects `model_fields_set` to tell a
+        # user's explicit choice from a profile default, and pinning rebuilds
+        # nested models (marking their fields set), so pinning must come
+        # second. Reversed, no preset could ever set embeddings.vector_store.
         self._sys: SystemProfile = detect_system(repo_root=self._repo)
         self._cfg = auto_configure(self._cfg, self._sys)
+        self._cfg = self._pin_paths_to_repo(self._cfg)
 
         # Caller overrides win over auto-configure
         if ai_provider:
@@ -188,50 +191,9 @@ class JSAT:
         return f"{name} ({model})" if model else f"{name} (model not selected)"
 
     def _pin_paths_to_repo(self, cfg: JSATConfig) -> JSATConfig:
-        """Resolve all relative .jsat/* paths to the JSAT data directory.
-
-        By default the data dir is ~/.jsat/<hash12>/ (global, outside the repo)
-        so these files never appear in git. Falls back to {repo}/.jsat/ if that
-        directory already exists (backward compat for existing setups).
-        See jsat._config.jsat_data_dir for the full resolution order.
-        """
-        from jsat._config import jsat_data_dir
-        data_dir = jsat_data_dir(self._repo)
-
-        def _abs(p: str) -> str:
-            path = Path(p)
-            if path.is_absolute():
-                return p
-            # Strip leading ".jsat/" sentinel and root the rest under data_dir.
-            parts = path.parts
-            if parts and parts[0] == ".jsat":
-                remainder = Path(*parts[1:]) if len(parts) > 1 else Path()
-                return str(data_dir / remainder) if remainder.parts else str(data_dir)
-            # Non-.jsat relative paths (e.g. skills/) stay relative to the repo.
-            return str(self._repo / path)
-
-        return cfg.model_copy(update={
-            "graph": cfg.graph.model_copy(update={
-                "path": _abs(cfg.graph.path),
-            }),
-            "embeddings": cfg.embeddings.model_copy(update={
-                "vector_store": cfg.embeddings.vector_store.model_copy(update={
-                    "path": _abs(cfg.embeddings.vector_store.path),
-                }),
-            }),
-            "cache": cfg.cache.model_copy(update={
-                "disk_path": _abs(cfg.cache.disk_path),
-            }),
-            "skills": cfg.skills.model_copy(update={
-                "dir": _abs(cfg.skills.dir),
-            }),
-            "privacy": cfg.privacy.model_copy(update={
-                "audit_log_path": _abs(cfg.privacy.audit_log_path),
-            }),
-            "prompt": cfg.prompt.model_copy(update={
-                "history_path": _abs(cfg.prompt.history_path),
-            }),
-        })
+        """Resolve relative .jsat/* paths — see _config.pin_paths_to_repo."""
+        from jsat._config import pin_paths_to_repo
+        return pin_paths_to_repo(cfg, self._repo)
 
     # ── Lazy backend accessors ────────────────────────────────────────────────
 

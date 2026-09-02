@@ -286,12 +286,30 @@ class MCPClient:
                          timeout=timeout)
 
     def stderr_tail(self, n: int = 600) -> str:
+        """Best-effort stderr, without ever blocking.
+
+        A plain `.read(n)` on a live child's pipe blocks until n bytes or EOF,
+        and its only caller runs exactly when the server failed to answer
+        `initialize` — so a server that hung after emitting a little stderr
+        hung the whole self-test, and no report was ever written. Terminate
+        first, then drain with a timeout.
+        """
         if not self.proc.stderr:
             return ""
         try:
-            return self.proc.stderr.read(n) or ""
-        except Exception:
-            return ""
+            if self.proc.poll() is None:
+                self.proc.terminate()
+            _out, errs = self.proc.communicate(timeout=5)
+            return (errs or "")[-n:]
+        except subprocess.TimeoutExpired:
+            self.proc.kill()
+            try:
+                _out, errs = self.proc.communicate(timeout=5)
+                return (errs or "")[-n:]
+            except Exception:
+                return "(stderr unavailable: server did not exit)"
+        except Exception as e:
+            return f"(stderr unavailable: {type(e).__name__})"
 
     def close(self) -> None:
         try:

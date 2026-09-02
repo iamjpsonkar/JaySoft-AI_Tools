@@ -37,6 +37,7 @@ from ..core import (
     run_cli,
     timed,
 )
+from ..fixtures import scratch_facts
 
 # Commands that are inherently interactive (they open a REPL or attach to a
 # TTY) and so are verified via --help plus their side effects rather than by
@@ -116,6 +117,16 @@ def check_command_coverage(jsat_bin: str, env: dict[str, str],
                            exercised: set[str]) -> Check:
     """Coverage gate: a command Typer advertises but nothing here runs."""
     cmds = set(_all_cli_commands(jsat_bin, env))
+    # The parser depends on Rich's box-drawing output; if it ever yields
+    # nothing, "all 0 commands are exercised" would be a green light for zero
+    # coverage. Treat an empty parse as a failure of the gate itself.
+    if len(cmds) < 20:
+        return Check("cli_coverage_complete", "cli", FAIL,
+                     f"only parsed {len(cmds)} command(s) from `jsat --help`, "
+                     "so the coverage gate cannot be trusted",
+                     detail=f"parsed={sorted(cmds)}",
+                     remediation="fix _all_cli_commands' parsing of the "
+                                 "Typer/Rich help output")
     accounted = exercised | INTERACTIVE | set(COVERED_ELSEWHERE)
     missing = sorted(cmds - accounted)
     if missing:
@@ -247,8 +258,15 @@ def check_skills(jsat_bin: str, env: dict[str, str], repo: Path) -> Check:
 def check_clean_is_scoped(jsat_bin: str, env: dict[str, str],
                           tmp: Path, repo: Path) -> Check:
     """`clean --all` must remove only the redirected data dir's artifacts and
-    leave the source tree untouched."""
-    data_dir = Path(env["JSAT_DATA_DIR"])
+    leave the source tree untouched.
+
+    Runs against its OWN data dir: pointing it at the shared one deleted the
+    graph that connect/sdk/providers/improve/backends/dashboard still needed,
+    making their results depend on suite ordering.
+    """
+    data_dir = tmp / "clean-scoped-data"
+    env = {**env, "JSAT_DATA_DIR": str(data_dir)}
+    run_cli(jsat_bin, ["index", str(repo)], env, timeout=180)
     before_src = sorted(p.name for p in repo.iterdir())
     r = run_cli(jsat_bin, ["clean", "--all"], env, cwd=str(repo), timeout=60)
     after_src = sorted(p.name for p in repo.iterdir())
@@ -260,10 +278,14 @@ def check_clean_is_scoped(jsat_bin: str, env: dict[str, str],
         return Check("cli_clean_scoped", "cli", FAIL,
                      "jsat clean --all modified the source tree",
                      detail=f"before={before_src} after={after_src}")
-    graph_gone = not (data_dir / "graph" / "graph.db").exists()
+    if (data_dir / "graph" / "graph.db").exists():
+        return Check("cli_clean_scoped", "cli", FAIL,
+                     "jsat clean --all left the graph database in place",
+                     detail=f"still present: {data_dir / 'graph' / 'graph.db'}",
+                     remediation="check the --graph/--all branches of cmd_clean")
     return Check("cli_clean_scoped", "cli", PASS,
-                 f"jsat clean --all stayed inside the data dir "
-                 f"(graph removed={graph_gone}); source tree untouched")
+                 "jsat clean --all removed the graph from the data dir and "
+                 "left the source tree untouched")
 
 
 @timed
@@ -523,6 +545,105 @@ def check_pid_reuse_guard(tmp: Path) -> Check:
                  "a recycled one")
 
 
+@timed
+def check_analysis_commands(jsat_bin: str, env: dict[str, str], tmp: Path,
+                            repo: Path) -> Check:
+    """blast-radius / contract-check / security-review — the three commands
+    `ci-setup` generates, exercised the way the generated workflow calls them.
+
+    Includes the git-range form of --diff, which is what the template emits
+    and which used to be forwarded as diff *text*: the tool found no files,
+    reported zero impact and exited 0, so the CI step was green whatever the
+    change contained.
+    """
+    facts = scratch_facts()
+    problems: list[str] = []
+
+    # Self-contained: blast radius resolves changed files against the graph,
+    # so this needs its own index rather than depending on the `index` suite
+    # having run first (`--suite cli` alone would otherwise report zero
+    # impact and look like the git-range bug).
+    idx = run_cli(jsat_bin, ["index", str(repo), "--force"], env, timeout=240)
+    if idx.returncode != 0:
+        return Check("cli_analysis_commands", "cli", FAIL,
+                     "could not index the fixture repo for the analysis checks",
+                     detail=f"rc={idx.returncode} {idx.stderr[-300:]}")
+
+    # A git range, as the generated workflow passes it.
+    out_md = tmp / "blast.md"
+    br = run_cli(jsat_bin, ["blast-radius", "--diff",
+                            f"{facts['old_ref']}...{facts['new_ref']}",
+                            "--output", str(out_md), "--repo", str(repo)],
+                 env, cwd=str(repo), timeout=180)
+    if br.returncode != 0:
+        problems.append(f"blast-radius --diff <range> rc={br.returncode} "
+                        f"{br.stderr[:120]}")
+    elif "impacted: 0" in br.stdout:
+        problems.append("blast-radius --diff <range> found nothing on a diff "
+                        "that changes indexed code — the range is probably "
+                        "being treated as literal diff text")
+    elif not out_md.exists():
+        problems.append("blast-radius --output wrote no report")
+
+    # A bad range must fail loudly rather than report an empty result.
+    bad = run_cli(jsat_bin, ["blast-radius", "--diff", "no-such-ref...HEAD",
+                             "--repo", str(repo)], env, cwd=str(repo),
+                  timeout=120)
+    if bad.returncode == 0:
+        problems.append("an unresolvable --diff range exited 0")
+
+    # A symbol target.
+    sym = run_cli(jsat_bin, ["blast-radius", facts["tested_function"],
+                             "--repo", str(repo)], env, cwd=str(repo),
+                  timeout=180)
+    if sym.returncode != 0:
+        problems.append(f"blast-radius <symbol> rc={sym.returncode}")
+
+    # contract-check across the fixture's two real refs; v1→v2 is breaking,
+    # so the default --fail-on-breaking must make it exit non-zero.
+    cc = run_cli(jsat_bin, ["contract-check", "--base", str(facts["old_ref"]),
+                            "--head", str(facts["new_ref"]), "--repo", str(repo)],
+                 env, cwd=str(repo), timeout=180)
+    if cc.returncode == 0:
+        problems.append("contract-check exited 0 on a breaking API change "
+                        "despite --fail-on-breaking being the default")
+    if "breaking" not in (cc.stdout + cc.stderr).lower():
+        problems.append("contract-check output does not mention breaking changes")
+
+    # security-review, including the SARIF the CI step uploads.
+    sarif = tmp / "security.sarif"
+    sr = run_cli(jsat_bin, ["security-review", str(repo), "--severity", "low",
+                            "--sarif", str(sarif), "--no-deps",
+                            "--repo", str(repo)],
+                 env, cwd=str(repo), timeout=300)
+    if sr.returncode != 0:
+        problems.append(f"security-review rc={sr.returncode} {sr.stderr[:120]}")
+    elif not sarif.exists():
+        problems.append("--sarif wrote no file")
+    else:
+        try:
+            doc = json.loads(sarif.read_text())
+            if doc.get("version") != "2.1.0":
+                problems.append(f"SARIF version is {doc.get('version')!r}")
+            results = doc["runs"][0]["results"]
+            if not results:
+                problems.append("SARIF has no results despite the planted secret")
+            elif not results[0]["locations"][0]["physicalLocation"][
+                    "artifactLocation"]["uri"]:
+                problems.append("SARIF result has no artifact URI")
+        except Exception as e:
+            problems.append(f"SARIF is not valid: {type(e).__name__}: {e}")
+
+    if problems:
+        return Check("cli_analysis_commands", "cli", FAIL,
+                     f"{len(problems)} problem(s) in the CI analysis commands",
+                     detail="; ".join(problems))
+    return Check("cli_analysis_commands", "cli", PASS,
+                 "blast-radius (range, bad range, symbol), contract-check "
+                 "(exits non-zero on breaking) and security-review (valid "
+                 "SARIF 2.1.0) all behave as the generated CI expects")
+
+
 def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
         env: dict[str, str], *, allow_llm: bool) -> None:
     exercised: set[str] = set()
@@ -539,6 +660,8 @@ def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
     report.add(check_knowledge_ingest(jsat_bin, env, repo))
     exercised.add("knowledge-ingest")
     report.add(check_skills(jsat_bin, env, repo)); exercised.add("skills")
+    report.add(check_analysis_commands(jsat_bin, env, tmp, repo))
+    exercised |= {"blast-radius", "contract-check", "security-review"}
 
     for command, target in LAUNCHER_MATRIX.items():
         report.add(check_launcher(jsat_bin, env, tmp, repo, command, target))

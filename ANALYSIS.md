@@ -640,7 +640,7 @@ then `architecture.md` (the deepest), `getting-started.md`,
 
 ## 18. Verified findings
 
-Sixteen defects found by running the real artifact; all fixed in 0.4.17. Ordered by severity.
+Twenty-eight defects found by running the real artifact and then reviewing the fixes; all fixed in 0.4.17. Ordered by severity.
 Full detail in `CHANGELOG.md`.
 
 | # | Finding | Why it mattered |
@@ -649,6 +649,10 @@ Full detail in `CHANGELOG.md`.
 | 2 | `jsat import` restored nothing usable; via MCP it then broke **every subsequent call** with "closed database" | The graph file was replaced under a live connection |
 | 2b | A **profile preset overrode explicit config** — a Neo4j container running for anything else made `detect_system` pick `team`, replacing `graph.backend: sqlite` with `neo4j`, and indexing failed | Anyone with Neo4j on :7687 got a broken JSAT, regardless of what they configured |
 | 2c | `cache.backend: redis` crashed on `None.startswith` when no `redis_uri` was set | The documented default was never applied |
+| 2d | The **`anthropic` provider was broken for every caller** — it sent `temperature`, removed from the Messages API and dropped from the 1.x SDK, so every call raised `TypeError` regardless of the key; it also indexed `content[0]`, which is a thinking block on current models | `ai.provider: anthropic` could not complete a single request |
+| 2e | The **MCP shim never pinned its paths**, so `export_index` zipped no database and `import_index` restored into the editor's cwd — both reporting success | Same silent-empty-archive class, via the other surface |
+| 2f | `blast-radius --diff <git range>` was forwarded as diff *text* → zero changed files, zero impact, exit 0 | The `ci-setup` step was green by construction |
+| 2g | The **capacity guard counted upserts as growth** | `index --force` failed on any repo above ~half the cap |
 | 3 | `get_data_flow` and `get_consumers` **never worked** — both called `graph.edges()`, which no backend implemented, with a `# type: ignore` silencing the warning | Two advertised MCP tools always returned an error |
 | 4 | `security_scan_file` gave a **false all-clear for any file** — `rglob` on a file path yields nothing | Worst possible failure mode for a security tool |
 | 5 | MCP file arguments resolved against the server's cwd, not `--repo`; `validate_migration` raised ENOENT while `security_scan_file`, `list_secrets` and `get_test_gaps` silently scanned nothing | Agents pass repo-relative paths, which is what the graph stores |
@@ -721,7 +725,7 @@ signs of someone who has been bitten and fixed the root cause rather than the
 symptom. `AGENTS.md` is candid about debt in a way most projects are not.
 
 The weakness is uniform and diagnosable: **the surfaces were tested by
-construction, not by use.** Every one of the sixteen findings above is a case
+construction, not by use.** Almost every one of the findings above is a case
 of code that type-checks, passes 709 unit tests, reads correctly, and does not
 work when actually invoked — a method that exists nowhere behind a
 `type: ignore`, an `rglob` on a file path, a WAL that had not been checkpointed,

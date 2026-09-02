@@ -36,9 +36,25 @@ API_PROVIDERS = {
 PROMPT = "Reply with exactly one word: pong"
 
 
+def _cfg_for(provider: str, model: str | None = None):
+    """A full JSATConfig selecting `provider`.
+
+    `get_ai_provider` reads `cfg.ai.provider`, so it needs the whole config.
+    Handing it a bare AIConfig silently produced a NoOpProvider, which made
+    these checks pass for the wrong reason — NoOpProvider raises AIError, so
+    an assertion of "raises a typed error" was satisfied without the real
+    provider ever being built.
+    """
+    from jsat._models import AIConfig, JSATConfig
+    cfg = JSATConfig()
+    cfg.ai = AIConfig(provider=provider, model=model)  # type: ignore[arg-type]
+    return cfg
+
+
 def _known_providers() -> set[str]:
     """Every provider string get_ai_provider() branches on."""
     import inspect
+
     from jsat import _ai
     src = inspect.getsource(_ai.get_ai_provider)
     import re
@@ -80,9 +96,8 @@ def check_cli_provider_completion(provider: str, binary: str, tmp: Path,
                      f"{binary} is installed but a real completion costs tokens; "
                      "skipped without --llm")
     from jsat._ai import get_ai_provider
-    from jsat._models import AIConfig
     try:
-        p = get_ai_provider(AIConfig(provider=provider))  # type: ignore[arg-type]
+        p = get_ai_provider(_cfg_for(provider))
     except Exception as e:
         return Check(f"provider_{provider}", "ai_provider", FAIL,
                      f"could not construct {provider}: {type(e).__name__}: {e}")
@@ -113,11 +128,9 @@ def check_api_provider_error_path(provider: str, key_env: str) -> Check:
                      f"{key_env} IS set, so the missing-credential path cannot "
                      "be exercised here")
     from jsat._ai import get_ai_provider
-    from jsat._exceptions import AIError, JSATError
-    from jsat._models import AIConfig
+    from jsat._exceptions import JSATError
     try:
-        p = get_ai_provider(AIConfig(provider=provider,  # type: ignore[arg-type]
-                                     model="some-model"))
+        p = get_ai_provider(_cfg_for(provider, model="some-model"))
     except JSATError as e:
         return Check(f"provider_{provider}_error_path", "ai_provider", PASS,
                      f"constructing {provider} without {key_env} raised a typed "
@@ -164,9 +177,8 @@ def check_ollama_provider(allow_llm: bool) -> Check:
         return Check("provider_ollama", "ai_provider", UNAVAILABLE,
                      "ollama has models but completion is skipped without --llm")
     from jsat._ai import get_ai_provider
-    from jsat._models import AIConfig
     name = models[0]["name"]
-    p = get_ai_provider(AIConfig(provider="ollama", model=name))
+    p = get_ai_provider(_cfg_for("ollama", model=name))
     try:
         out = p.complete(PROMPT)
     except Exception as e:
@@ -181,8 +193,7 @@ def check_ollama_provider(allow_llm: bool) -> Check:
 def check_none_provider() -> Check:
     from jsat._ai import get_ai_provider
     from jsat._exceptions import AIError
-    from jsat._models import AIConfig
-    p = get_ai_provider(AIConfig(provider="none"))
+    p = get_ai_provider(_cfg_for("none"))
     if p.is_available():
         return Check("provider_none", "ai_provider", FAIL,
                      "the `none` provider reports itself available")

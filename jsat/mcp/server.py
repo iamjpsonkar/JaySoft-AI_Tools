@@ -153,13 +153,24 @@ def _format_timeout_text(result: dict) -> str:
 
 
 # ── Role definitions ──────────────────────────────────────────────────────────
-# viewer  : read-only tools (query, get_*, list_*, knowledge_query, health, status)
-# developer: + blast_radius_*, security, incident, review, migration
-# admin   : all tools including index writes and import
+# viewer   : reads an existing index and answers questions about it. May ask
+#            the configured AI (query, knowledge_query, short) and may do
+#            local computation, but never mutates the index, writes a file, or
+#            changes configuration.
+# developer: + everything that scans the tree, rebuilds or exports the index,
+#            spends tokens on generation, or records knowledge.
+# admin    : unrestricted. Only `import_index` is admin-exclusive — it
+#            replaces the entire graph database.
 _ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
-    # Read-only: answers questions about an already-built graph, or does
-    # pure local computation. Nothing here mutates state, writes a file, or
-    # calls out to the network.
+    # Reads an existing graph or does local computation. Some entries here
+    # (query, knowledge_query, short) call the configured AI — that is
+    # inherent to answering a question and was already true of `query`. What
+    # none of them do is mutate the index, write a file, or change config.
+    #
+    # `ithinking_execute` is deliberately NOT here: its handler runs the same
+    # implementation as `ithinking_plan`, which is developer-gated, so
+    # granting one and not the other let a viewer reach a developer
+    # capability by calling the other name.
     "viewer": frozenset({
         "query", "health", "get_index_status", "get_jsat_version",
         "get_function", "get_class", "get_data_flow",
@@ -170,7 +181,7 @@ _ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "lookup_index_md",
         "blast_radius_file", "blast_radius_topic", "trace_data_flow",
         "token_count", "token_compress", "token_budget",
-        "ithinking_execute", "ithinking_token_estimate",
+        "ithinking_token_estimate",
         "prompt_diff", "prompt_optimize",
         "short",
     }),
@@ -2511,7 +2522,8 @@ def _run_test_gaps(js: object, args: dict) -> str:
     return "\n".join(lines)
 
 
-def _get_dependency_cves_impl(js: object, path: str, cvss_min: float) -> dict:
+def _get_dependency_cves_impl(js: object, path: str,
+                              cvss_min: float) -> dict[str, Any]:
     """Look up CVEs for the pinned dependencies under `path`.
 
     This used to return `{"status": "not_implemented", "message": "planned for
@@ -2526,21 +2538,39 @@ def _get_dependency_cves_impl(js: object, path: str, cvss_min: float) -> dict:
     log = structlog.get_logger(__name__)
     log.info("get_dependency_cves", path=path, cvss_min=cvss_min)
     try:
+        from jsat._models import CVEFinding  # noqa: F811
         from jsat.tools.security import SecurityTool
         tool = SecurityTool(graph=js._get_graph(), cfg=js._cfg)  # type: ignore[attr-defined]
-        cves = tool._check_cves(Path(path), log)
-        matching = [c for c in cves if (getattr(c, "cvss", 0.0) or 0.0) >= cvss_min]
+        cves: list[CVEFinding] = tool._check_cves(Path(path), log)
+
+        def _row(c: CVEFinding) -> dict[str, Any]:
+            return {"package": c.package, "version": c.version,
+                    "cve_id": c.cve_id, "cvss": c.cvss, "severity": c.severity,
+                    "fix_version": c.fix_version,
+                    "description": c.description}
+
+        # Many OSV/GHSA records carry no CVSS_V3 entry, so _check_cves scores
+        # them 0.0. Filtering on the default cvss_min=7.0 therefore hid real
+        # advisories and reported count=0 — a false all-clear from a CVE
+        # tool. Unscored advisories are surfaced separately instead of being
+        # silently dropped.
+        above = [c for c in cves if (getattr(c, "cvss", 0.0) or 0.0) >= cvss_min]
+        unscored = [c for c in cves if not (getattr(c, "cvss", 0.0) or 0.0)]
+        below = [c for c in cves
+                 if c not in above and c not in unscored]
         return {
             "cvss_min": cvss_min,
-            "packages_with_cves": len({getattr(c, "package", "?") for c in matching}),
-            "count": len(matching),
+            "count": len(above),
+            "packages_with_cves": len({getattr(c, "package", "?") for c in above}),
             "scanned_total": len(cves),
-            "cves": [
-                {"package": c.package, "version": c.version, "cve_id": c.cve_id,
-                 "cvss": c.cvss, "severity": c.severity,
-                 "fix_version": c.fix_version, "description": c.description}
-                for c in matching
-            ],
+            "cves": [_row(c) for c in above],
+            "unscored_count": len(unscored),
+            "unscored_note": (
+                f"{len(unscored)} advisory(ies) have no CVSS score in the "
+                "OSV record and are NOT included in `count`; review them."
+            ) if unscored else "",
+            "unscored_cves": [_row(c) for c in unscored],
+            "below_threshold_count": len(below),
         }
     except Exception as e:
         log.error("get_dependency_cves_error", error=str(e))

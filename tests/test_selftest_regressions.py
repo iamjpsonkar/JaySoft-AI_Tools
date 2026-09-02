@@ -134,7 +134,8 @@ def test_secret_scan_of_a_single_file_finds_the_secret(tmp_path):
     tool = SecurityTool(graph=None, cfg=JSATConfig())
     report = tool.run(path=target, severity_threshold="low", include_deps=False)
     assert report.secrets_found >= 1
-    assert any(fake_key not in str(f) for f in report.findings)  # value not echoed
+    # every finding must omit the secret value, not merely one of them
+    assert all(fake_key not in str(f) for f in report.findings)
 
 
 def test_directory_security_scan_still_works(tmp_path):
@@ -250,22 +251,39 @@ def test_every_tool_is_reachable_by_a_named_role():
 # ── the CI template must only call commands that exist ──────────────────────
 
 def test_ci_setup_template_only_calls_real_commands(tmp_path):
+    """Run as a subprocess in a temp cwd: `ci-setup` writes into the CURRENT
+    directory, and an in-process CliRunner dropped a real
+    .github/workflows/jsat.yml into this checkout."""
+    import os
     import re
+    import shutil
+    import subprocess
+    import sys
 
-    from typer.testing import CliRunner
+    jsat_bin = Path(sys.executable).parent / "jsat"
+    if not jsat_bin.exists():
+        jsat_bin_str = shutil.which("jsat")
+        if not jsat_bin_str:
+            pytest.skip("no jsat console script to drive")
+        jsat_bin = Path(jsat_bin_str)
 
-    from jsat._cli_common import app
+    env = {**os.environ, "HOME": str(tmp_path),
+           "JSAT_DATA_DIR": str(tmp_path / "data"),
+           "JSAT_IMPROVE_DIR": str(tmp_path / "improve")}
+    subprocess.run([str(jsat_bin), "ci-setup"], cwd=str(tmp_path),
+                   env=env, capture_output=True, text=True, timeout=120)
 
-    runner = CliRunner()
-    result = runner.invoke(app, ["ci-setup"], env={"HOME": str(tmp_path)})
-    generated = list(tmp_path.rglob("*.yml")) + list(Path.cwd().glob(".github/workflows/jsat.yml"))
-    text = "\n".join(p.read_text() for p in generated if p.exists()) or result.output
+    generated = list(tmp_path.rglob("*.yml")) + list(tmp_path.rglob("*.yaml"))
+    text = "\n".join(p.read_text() for p in generated)
     if not text.strip():
         pytest.skip("ci-setup produced no inspectable workflow here")
+
+    helped = subprocess.run([str(jsat_bin), "--help"], env=env,
+                            capture_output=True, text=True, timeout=120).stdout
     called = set(re.findall(r"jsat\s+([a-z][a-z0-9-]*)", text))
-    help_out = runner.invoke(app, ["--help"]).output
-    for name in called:
-        assert name in help_out, f"generated CI calls `jsat {name}`, which does not exist"
+    for name in sorted(called):
+        assert name in helped, (
+            f"generated CI calls `jsat {name}`, which does not exist")
 
 
 # ── the CVE tool reported "not implemented" for a working capability ────────
@@ -487,3 +505,384 @@ def test_redis_cache_backend_without_a_uri_does_not_crash():
         return
     assert cache is not None
     assert _DEFAULT_REDIS_URI == "redis://localhost:6379"
+
+
+# ── the AI provider factory silently degraded on a wrong-typed config ──────
+
+def _full_cfg(provider: str, model: str | None = None):
+    from jsat._models import AIConfig, JSATConfig
+    cfg = JSATConfig()
+    cfg.ai = AIConfig(provider=provider, model=model)
+    return cfg
+
+
+def test_get_ai_provider_rejects_a_bare_ai_config():
+    """It reads `cfg.ai.provider`, so a bare AIConfig found no `ai` attribute,
+    fell through to "none", and handed back a NoOpProvider — AI looked
+    "not configured" with a correct config in place."""
+    from jsat._ai import get_ai_provider
+    from jsat._models import AIConfig
+
+    with pytest.raises(TypeError, match="JSATConfig"):
+        get_ai_provider(AIConfig(provider="ollama"))
+
+
+def test_get_ai_provider_builds_the_named_provider():
+    from jsat._ai import get_ai_provider
+
+    p = get_ai_provider(_full_cfg("none"))
+    assert p.provider_name == "none"
+
+
+# ── the anthropic provider was broken for every caller ─────────────────────
+
+class _StubAnthropicSDK:
+    """The SDK exception surface `AnthropicProvider.complete` catches.
+
+    A stub rather than the real package so these tests run on a core-only
+    install — `anthropic` is an optional extra and CI installs no extras, so
+    importing it here would fail the suite for a dependency JSAT treats as
+    optional. Distinct classes, so each `except` clause is distinguishable.
+    """
+    __version__ = "1.3.0-stub"
+
+    class RateLimitError(Exception): ...
+    class AuthenticationError(Exception): ...
+    class APITimeoutError(Exception): ...
+    class APIConnectionError(Exception): ...
+    class APIStatusError(Exception): ...
+
+
+def _fake_anthropic_provider():
+    """A stand-in carrying just the attributes AnthropicProvider.complete uses.
+
+    Deliberately not `MagicMock(spec=AnthropicProvider)` — spec'd mocks reject
+    assignment to names that are not class attributes, and these are all
+    instance attributes set in __init__.
+    """
+    from unittest.mock import MagicMock
+
+    class Fake:
+        pass
+
+    p = Fake()
+    p._client = MagicMock()
+    p._model = "claude-opus-5"
+    p._log = MagicMock()
+    p._anthropic = _StubAnthropicSDK
+    return p
+
+
+
+
+def test_anthropic_does_not_send_temperature():
+    """Sampling parameters were removed from the Messages API on the current
+    models, and the 1.x SDK dropped the keyword — passing it raised
+    `TypeError: unexpected keyword argument 'temperature'` on every call.
+
+    Source-level, so it holds without the optional SDK installed.
+    """
+    import inspect
+
+    from jsat._ai import anthropic as jsat_anthropic
+
+    src = inspect.getsource(jsat_anthropic.AnthropicProvider.complete)
+    create_call = src.split("messages.create(", 1)[1].split(")", 1)[0]
+    assert "temperature" not in create_call, (
+        "temperature must not be sent to messages.create — it returns 400 on "
+        "current models and the 1.x SDK rejects the keyword"
+    )
+
+
+def test_anthropic_extracts_text_past_non_text_blocks():
+    """content[] holds mixed blocks and thinking is on by default on current
+    models, so indexing content[0] hit a thinking block and raised
+    AttributeError instead of returning the answer."""
+    from unittest.mock import MagicMock
+
+    from jsat._ai.anthropic import AnthropicProvider
+
+    thinking = MagicMock()
+    thinking.type = "thinking"
+    del thinking.text                      # a thinking block has no .text
+    answer = MagicMock()
+    answer.type = "text"
+    answer.text = "the real answer"
+
+    resp = MagicMock()
+    resp.content = [thinking, answer]
+
+    provider = _fake_anthropic_provider()
+    provider._client.messages.create.return_value = resp
+
+    text = AnthropicProvider.complete(provider, "hi")
+    assert text == "the real answer"
+
+
+def test_anthropic_missing_credentials_raises_a_typed_error():
+    """The SDK raises a bare TypeError ("Could not resolve authentication
+    method") before any HTTP call, so `except AuthenticationError` never saw
+    it and an untyped error escaped to callers trying to degrade."""
+
+    from jsat._ai.anthropic import AnthropicProvider
+    from jsat._exceptions import AIAuthError
+
+    provider = _fake_anthropic_provider()
+    provider._client.messages.create.side_effect = TypeError(
+        "Could not resolve authentication method. Expected one of api_key, "
+        "auth_token, or credentials to be set."
+    )
+
+    with pytest.raises(AIAuthError):
+        AnthropicProvider.complete(provider, "hi")
+
+
+def test_anthropic_bad_parameter_raises_a_typed_error():
+
+    from jsat._ai.anthropic import AnthropicProvider
+    from jsat._exceptions import AIProviderError
+
+    provider = _fake_anthropic_provider()
+    provider._client.messages.create.side_effect = TypeError(
+        "Messages.create() got an unexpected keyword argument 'top_k'"
+    )
+
+    with pytest.raises(AIProviderError, match="rejected a request parameter"):
+        AnthropicProvider.complete(provider, "hi")
+
+
+# ── openai_compat had no error translation at all ──────────────────────────
+
+@pytest.mark.parametrize(
+    ("exc_name", "expected"),
+    [
+        ("APIConnectionError", "AIProviderError"),
+        ("APITimeoutError", "AITimeoutError"),
+        ("RateLimitError", "AIRateLimitError"),
+        ("AuthenticationError", "AIAuthError"),
+    ],
+)
+def test_openai_compat_translates_sdk_errors(exc_name, expected):
+    from jsat._ai.openai_compat import _as_jsat_error
+
+    exc = type(exc_name, (Exception,), {})("boom")
+    translated = _as_jsat_error(exc, "http://localhost:1234/v1")
+    assert type(translated).__name__ == expected
+
+
+def test_openai_compat_translates_an_http_status():
+    from jsat._ai.openai_compat import _as_jsat_error
+
+    class Resp:
+        status_code = 429
+
+    exc = RuntimeError("too many")
+    exc.response = Resp()
+    assert type(_as_jsat_error(exc, "http://x/v1")).__name__ == "AIRateLimitError"
+
+
+def test_every_error_from_openai_compat_is_a_jsat_error():
+    from jsat._ai.openai_compat import _as_jsat_error
+    from jsat._exceptions import JSATError
+
+    for exc in (ValueError("x"), KeyError("y"), OSError("z")):
+        assert isinstance(_as_jsat_error(exc, "http://x/v1"), JSATError)
+
+
+# ── the MCP shim never pinned its paths ────────────────────────────────────
+
+def test_pin_paths_resolves_relative_jsat_paths(tmp_path, monkeypatch):
+    from jsat._config import pin_paths_to_repo
+    from jsat._models import JSATConfig
+
+    monkeypatch.setenv("JSAT_DATA_DIR", str(tmp_path / "data"))
+    pinned = pin_paths_to_repo(JSATConfig(), tmp_path)
+    assert Path(pinned.graph.path).is_absolute()
+    assert str(tmp_path / "data") in pinned.graph.path
+    assert Path(pinned.cache.disk_path).is_absolute()
+
+
+def test_mcp_shim_cfg_agrees_with_its_graph_path(tmp_path, monkeypatch):
+    """`_get_graph()` used the resolved data dir while `cfg.graph.path` stayed
+    relative, so export/import targeted a different file than the one being
+    queried — relative to the MCP server's cwd, i.e. the editor's directory."""
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "app.py").write_text("def a():\n    return 1\n")
+    data = tmp_path / "data"
+
+    probe = (
+        "import json, pathlib;"
+        "from jsat._config import load_config, pin_paths_to_repo, jsat_data_dir;"
+        f"repo=pathlib.Path({str(repo)!r});"
+        "cfg=pin_paths_to_repo(load_config(repo=repo), repo);"
+        "print(json.dumps({'cfg': cfg.graph.path,"
+        " 'data': str(jsat_data_dir(repo)/'graph'/'graph.db')}))"
+    )
+    out = subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True, text=True, timeout=120,
+        env={"JSAT_DATA_DIR": str(data), "PATH": "/usr/bin:/bin",
+             "HOME": str(tmp_path)},
+    )
+    payload = json.loads(out.stdout.strip().splitlines()[-1])
+    assert payload["cfg"] == payload["data"], (
+        "the pinned cfg.graph.path must be the same file _get_graph() opens")
+
+
+# ── path pinning defeated the explicit-config preservation ─────────────────
+
+def test_preset_can_still_set_a_nested_field():
+    """`_pin_paths_to_repo` rebuilds nested models with model_copy, which
+    marks their fields explicitly-set. Pinning before auto_configure made
+    embeddings.vector_store look user-specified for everyone, so no preset
+    could set it."""
+    from jsat._config import auto_configure
+    from jsat._models import JSATConfig
+
+    out = auto_configure(JSATConfig(), _all_services_up())
+    assert out.embeddings.vector_store.backend == "qdrant"
+
+
+def test_pinning_runs_after_auto_configure_in_init():
+    import inspect
+
+    from jsat._core import JSAT
+
+    src = inspect.getsource(JSAT.__init__)
+    assert src.index("auto_configure(") < src.index("_pin_paths_to_repo("), (
+        "pinning must come after auto_configure, or model_fields_set is "
+        "polluted before the preset merge reads it"
+    )
+
+
+# ── the capacity guard counted upserts as growth ───────────────────────────
+
+@pytest.mark.parametrize("factory", [SQLiteGraph, LightGraph])
+def test_reinserting_existing_nodes_is_not_growth(tmp_path, factory):
+    """bulk_add_nodes uses INSERT OR REPLACE, so re-inserting known ids
+    replaces rows. Counting the whole batch as growth made `index --force`
+    fail on any repo above roughly half the configured cap."""
+    cfg = GraphConfig(path=str(tmp_path / "g.db"), max_nodes=100, max_edges=100)
+    g = factory(cfg)
+    try:
+        nodes = [{"id": f"n{i}", "label": "File", "properties": {}}
+                 for i in range(80)]
+        g.bulk_add_nodes(nodes)
+        g.bulk_add_nodes(nodes)          # must not raise
+        assert g.node_count() == 80
+        with pytest.raises(GraphCapacityError):
+            g.bulk_add_nodes([{"id": f"m{i}", "label": "File", "properties": {}}
+                              for i in range(30)])
+    finally:
+        g.close()
+
+
+@pytest.mark.parametrize("factory", [SQLiteGraph, LightGraph])
+def test_reinserting_existing_edges_is_not_growth(tmp_path, factory):
+    cfg = GraphConfig(path=str(tmp_path / "g.db"), max_nodes=1000, max_edges=60)
+    g = factory(cfg)
+    try:
+        edges = [{"source": "a", "target": f"b{i}", "type": "CALLS",
+                  "properties": {}} for i in range(50)]
+        g.bulk_add_edges(edges)
+        g.bulk_add_edges(edges)          # must not raise
+        assert g.edge_count() == 50
+    finally:
+        g.close()
+
+
+# ── the redis fallback branch was unreachable ─────────────────────────────
+
+def test_redis_cache_falls_back_instead_of_raising(monkeypatch):
+    """RedisCache converts a missing package into ProfileError, which is not
+    an ImportError — so `except ImportError` caught nothing and a `team`
+    profile without jsat[team] aborted instead of degrading."""
+    from jsat import _cache
+    from jsat._exceptions import ProfileError
+    from jsat._models import CacheConfig, JSATConfig
+
+    def boom(*_a, **_kw):
+        raise ProfileError("Redis requires jsat[team]")
+
+    monkeypatch.setattr("jsat._cache.redis.RedisCache", boom, raising=False)
+    cfg = JSATConfig()
+    cfg.cache = CacheConfig(backend="redis")
+    cache = _cache.get_cache(cfg)
+    assert type(cache).__name__ == "MemoryCache"
+
+
+# ── viewer reached a developer capability under another name ───────────────
+
+def test_viewer_cannot_reach_ithinking_execute():
+    """Its handler runs the same implementation as `ithinking_plan`, which is
+    developer-gated, so granting one and not the other was an escalation."""
+    from jsat.mcp.server import _ROLE_PERMISSIONS, _allowed
+
+    assert not _allowed("viewer", "ithinking_execute")
+    assert _allowed("developer", "ithinking_execute")
+    assert "ithinking_plan" not in _ROLE_PERMISSIONS["viewer"]
+
+
+# ── a single file with an unscannable suffix reported a false all-clear ────
+
+@pytest.mark.parametrize("suffix", [".java", ".rb", ".rs", ".tsx", ".yml", ".tf"])
+def test_secret_scan_covers_the_languages_the_indexer_indexes(tmp_path, suffix):
+    from jsat._models import JSATConfig
+    from jsat.tools.security import SecurityTool
+
+    target = tmp_path / f"conf{suffix}"
+    fake_key = "AKIA" + "EXAMPLE" + "0NOTREAL" + "9"
+    target.write_text(f'key = "{fake_key}"\n')
+    report = SecurityTool(graph=None, cfg=JSATConfig()).run(
+        path=target, severity_threshold="low", include_deps=False)
+    assert report.secrets_found >= 1, f"{suffix} was not scanned"
+
+
+# ── the CVE tool dropped unscored advisories ──────────────────────────────
+
+def test_unscored_cves_are_reported_not_filtered_away(tmp_path):
+    """OSV records frequently carry no CVSS_V3 entry, so _check_cves scores
+    them 0.0 — the default cvss_min=7.0 then hid them and the tool reported
+    count=0, a false all-clear."""
+    from unittest.mock import patch
+
+    from jsat._models import CVEFinding, JSATConfig
+    from jsat.mcp.server import _get_dependency_cves_impl
+
+    unscored = CVEFinding(package="requests", version="2.19.1",
+                          cve_id="GHSA-xxxx", cvss=0.0, severity="low",
+                          fix_version="2.32.0", description="no cvss in osv")
+
+    class FakeJSAT:
+        _repo = tmp_path
+        _cfg = JSATConfig()
+
+        def _get_graph(self):
+            return None
+
+    with patch("jsat.tools.security.SecurityTool._check_cves",
+               return_value=[unscored]):
+        out = _get_dependency_cves_impl(FakeJSAT(), str(tmp_path), 7.0)
+    assert out["count"] == 0
+    assert out["unscored_count"] == 1
+    assert out["unscored_cves"][0]["cve_id"] == "GHSA-xxxx"
+    assert "unscored_note" in out and out["unscored_note"]
+
+
+# ── export anchored artifacts by guessing at graph.path's shape ────────────
+
+def test_export_artifact_root_comes_from_the_data_dir(tmp_path, monkeypatch):
+    """Deriving it as graph.path.parent.parent broke for any graph.path that
+    is not exactly <data_dir>/graph/graph.db, widening the zip-slip
+    containment boundary to the directory holding every repo's store."""
+    import inspect
+
+    from jsat.tools.export import ExportTool
+
+    src = inspect.getsource(ExportTool.restore)
+    assert "jsat_data_dir" in src
+    assert "resolve().parent.parent" not in src

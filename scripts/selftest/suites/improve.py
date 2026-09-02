@@ -19,8 +19,6 @@ import getpass
 import hashlib
 import json
 import os
-import subprocess
-import sys
 from pathlib import Path
 
 from ..core import FAIL, PASS, UNAVAILABLE, Check, Report, run_cli, timed

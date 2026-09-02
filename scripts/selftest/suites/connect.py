@@ -14,11 +14,10 @@ paths that simply are not the user's.
 from __future__ import annotations
 
 import json
-import os
 import re
 from pathlib import Path
 
-from ..core import FAIL, PASS, UNAVAILABLE, Check, Report, run_cli, timed
+from ..core import FAIL, PASS, Check, Report, run_cli, timed
 
 # tool -> (config path relative to HOME, format, connect flags, disconnect flags)
 #

@@ -482,6 +482,61 @@ def best_available_ai_provider(sys_profile: SystemProfile | None = None) -> str:
     return "none"
 
 
+def pin_paths_to_repo(cfg: JSATConfig, repo: Path) -> JSATConfig:
+    """Resolve all relative ``.jsat/*`` paths to the JSAT data directory.
+
+    By default the data dir is ``~/.jsat/<hash12>/`` (global, outside the repo)
+    so these files never appear in git; it falls back to ``{repo}/.jsat/`` when
+    that already exists. See ``jsat_data_dir`` for the full resolution order.
+
+    Module-level rather than a JSAT method because `_MinimalJSAT` (the MCP
+    server's lightweight shim in `_cli_setup.py`) needs the identical
+    treatment. It previously pinned nothing, so its `_get_graph()` hardcoded
+    the data-dir path while `cfg.graph.path` stayed relative — and every tool
+    reading `cfg.graph.path` (export, import) silently targeted
+    `<cwd>/.jsat/graph/graph.db`, which for an MCP server is the editor's
+    working directory, not the repo.
+
+    Must run AFTER `auto_configure`: it rebuilds nested models with
+    `model_copy`, which marks their fields as explicitly-set, and
+    `auto_configure` reads `model_fields_set` to decide what the user chose.
+    Pinning first made `embeddings.vector_store` look user-specified for
+    everybody, so no preset could ever set it.
+    """
+    data_dir = jsat_data_dir(repo)
+
+    def _abs(value: str) -> str:
+        path = Path(value)
+        if path.is_absolute():
+            return value
+        # Strip the leading ".jsat/" sentinel and root the rest under data_dir.
+        parts = path.parts
+        if parts and parts[0] == ".jsat":
+            remainder = Path(*parts[1:]) if len(parts) > 1 else Path()
+            return str(data_dir / remainder) if remainder.parts else str(data_dir)
+        # Non-.jsat relative paths (e.g. skills/) stay relative to the repo.
+        return str(repo / path)
+
+    return cfg.model_copy(update={
+        "graph": cfg.graph.model_copy(update={"path": _abs(cfg.graph.path)}),
+        "embeddings": cfg.embeddings.model_copy(update={
+            "vector_store": cfg.embeddings.vector_store.model_copy(update={
+                "path": _abs(cfg.embeddings.vector_store.path),
+            }),
+        }),
+        "cache": cfg.cache.model_copy(update={
+            "disk_path": _abs(cfg.cache.disk_path),
+        }),
+        "skills": cfg.skills.model_copy(update={"dir": _abs(cfg.skills.dir)}),
+        "privacy": cfg.privacy.model_copy(update={
+            "audit_log_path": _abs(cfg.privacy.audit_log_path),
+        }),
+        "prompt": cfg.prompt.model_copy(update={
+            "history_path": _abs(cfg.prompt.history_path),
+        }),
+    })
+
+
 def auto_configure(cfg: JSATConfig, sys_profile: SystemProfile) -> JSATConfig:
     """Apply auto-selection matrix. Returns new JSATConfig; original unchanged."""
     import structlog

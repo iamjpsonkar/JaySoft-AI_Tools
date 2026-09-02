@@ -187,19 +187,50 @@ def check_internet() -> Check:
                  "no outbound internet — CVE lookups and PyPI checks are skipped")
 
 
-@timed
-def check_no_state_leak() -> Check:
-    """The harness must never write to the user's real ~/.jsat.
+def snapshot_home_jsat() -> dict[str, float]:
+    """Fingerprint ~/.jsat so a later comparison can prove nothing was written.
 
-    Recorded as a check so the report itself carries the evidence that the
-    run was isolated.
+    Returns {relative path: mtime}. Empty dict when the directory is absent.
     """
-    home_jsat = Path.home() / ".jsat"
-    before = sorted(p.name for p in home_jsat.iterdir()) if home_jsat.exists() else []
+    root = Path.home() / ".jsat"
+    if not root.is_dir():
+        return {}
+    out: dict[str, float] = {}
+    for p in root.rglob("*"):
+        try:
+            if p.is_file():
+                out[str(p.relative_to(root))] = p.stat().st_mtime
+        except OSError:
+            continue
+    return out
+
+
+@timed
+def check_no_state_leak(before: dict[str, float]) -> Check:
+    """Compare ~/.jsat against the snapshot taken before the run.
+
+    This used to snapshot the directory and then return PASS unconditionally,
+    so the one check whose job is "the harness must never touch the user's
+    real state" could not fail — and it was in fact being violated by the
+    in-process SDK suite.
+    """
+    after = snapshot_home_jsat()
+    added = sorted(set(after) - set(before))
+    changed = sorted(k for k in set(after) & set(before)
+                     if after[k] != before[k])
+    removed = sorted(set(before) - set(after))
+    if added or changed or removed:
+        return Check("state_isolation", "environment", FAIL,
+                     f"the harness wrote to the user's real ~/.jsat "
+                     f"({len(added)} added, {len(changed)} modified, "
+                     f"{len(removed)} removed)",
+                     detail=f"added={added[:8]} changed={changed[:8]} "
+                            f"removed={removed[:8]}",
+                     remediation="redirect JSAT_DATA_DIR/JSAT_IMPROVE_DIR/"
+                                 "JSAT_SESSIONS_DIR in the offending suite")
     return Check("state_isolation", "environment", PASS,
-                 "harness runs with JSAT_DATA_DIR/IMPROVE_DIR/SESSIONS_DIR "
-                 "redirected to a temp dir",
-                 detail=f"~/.jsat currently contains: {before or '(absent)'}")
+                 f"~/.jsat is byte-for-byte unchanged across the run "
+                 f"({len(before)} file(s) fingerprinted)")
 
 
 def run(report: Report, jsat_bin: str | None) -> None:
@@ -207,7 +238,6 @@ def run(report: Report, jsat_bin: str | None) -> None:
     if jsat_bin:
         report.add(check_editable_checkout())
     report.add(check_version_consistency())
-    report.add(check_no_state_leak())
 
     for cli in ("claude", "codex", "opencode", "bob", "git", "entr", "semgrep"):
         report.add(check_binary_on_path(cli))

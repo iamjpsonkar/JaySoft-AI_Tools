@@ -29,6 +29,66 @@ rather than an error.
   MCP tool — which previously left the long-lived server holding a handle to a
   replaced database, failing every subsequent call with "Cannot operate on a
   closed database".
+- **The `anthropic` provider was broken for every caller.** It sent
+  `temperature`, which was removed from the Messages API on the current models
+  (Opus 5, Opus 4.7/4.8, Sonnet 5, Fable 5/5.1 all return 400) and dropped
+  from the 1.x SDK — so every call raised
+  `TypeError: Messages.create() got an unexpected keyword argument
+  'temperature'`, regardless of the key. It also read `resp.content[0].text`,
+  which raises `AttributeError` when the first block is a thinking block
+  (thinking is on by default on current models); text blocks are now selected
+  by type. And because the SDK reports missing credentials as a bare
+  `TypeError` before any HTTP call, `except AuthenticationError` never caught
+  it — a missing key now surfaces as `AIAuthError`.
+- **`openai_compat` had no error translation at all**, so a bad key or an
+  unreachable `base_url` raised a raw `openai.APIConnectionError` straight
+  through to callers that catch jsat's `AIError` family to degrade.
+- **`get_ai_provider` silently degraded on a wrong-typed config.** It reads
+  `cfg.ai.provider`; handed a bare `AIConfig` it found no `ai` attribute, fell
+  through to `"none"` and returned a `NoOpProvider` — AI appeared
+  "not configured" with a correct config in place. Now a `TypeError` naming
+  the mistake.
+- **The MCP server shim never pinned its paths.** `_MinimalJSAT._get_graph()`
+  used the resolved data dir while `cfg.graph.path` stayed relative, so
+  `export_index` zipped no database and `import_index` restored into
+  `<cwd>/.jsat/` — the editor's working directory — while still reporting
+  success. The pinning logic is now shared (`_config.pin_paths_to_repo`).
+- **Path pinning defeated the fix above.** It rebuilds nested models with
+  `model_copy`, which marks their fields explicitly-set, and it ran *before*
+  `auto_configure` — so `embeddings.vector_store` looked user-specified for
+  everybody and no preset could set it. Pinning now runs after.
+- **The capacity guard counted upserts as growth.** Both bulk writers use
+  `INSERT OR REPLACE`, so re-inserting known ids replaces rows; counting the
+  whole batch made `jsat index --force` fail on any repo above roughly half
+  the configured cap. Only genuinely new ids count now.
+- **`cache.backend: redis` aborted instead of degrading.** `RedisCache`
+  converts a missing package into `ProfileError`, which is not an
+  `ImportError`, so the fallback branch was unreachable — a `team` profile
+  with a Redis detected but `jsat[team]` absent failed outright.
+- **`viewer` could reach a developer-gated capability.** `ithinking_execute`
+  runs the same implementation as the developer-only `ithinking_plan`, so
+  granting one and not the other was an escalation by another name.
+- **`security_scan_file` still gave a false all-clear** for any suffix outside
+  a seven-entry allowlist — including `.java`, `.rb`, `.rs`, `.tsx`, `.yml`
+  and `.tf`, i.e. most of the languages this same release started indexing.
+  The list now covers them and an unscannable file is logged rather than
+  reported clean.
+- **`get_dependency_cves` dropped unscored advisories.** OSV records often
+  carry no CVSS entry, so `_check_cves` scores them `0.0` and the default
+  `cvss_min=7.0` hid them — the tool reported `count: 0` while
+  `scanned_total` showed them. They are now surfaced separately.
+- **`blast-radius --diff <git range>` silently found nothing.** A range was
+  forwarded as diff *text*, which parses to zero changed files, so the step
+  `ci-setup` generates reported no impact and exited 0 whatever the change
+  contained. Ranges are resolved with `git diff`, and an unresolvable one
+  exits non-zero.
+- **`export`/`import` anchored artifacts by guessing at `graph.path`'s shape**
+  (`parent.parent`), which for any custom `graph.path` widened the zip-slip
+  containment boundary to the directory holding every repo's store. Both now
+  use `jsat_data_dir`.
+- **`password` was threaded through import and documented** while nothing
+  encrypts or decrypts; passing one now raises `NotImplementedError` instead
+  of silently doing nothing.
 - **A profile preset overrode explicitly configured values.** With a Neo4j
   container running for some unrelated project, `detect_system` picked the
   `team` profile and `auto_configure` replaced an explicit

@@ -12,7 +12,7 @@ cannot grow an untested entry point.
 """
 from __future__ import annotations
 
-import inspect
+import contextlib
 import os
 from pathlib import Path
 
@@ -278,6 +278,7 @@ def check_sdk_switch_ai(repo: Path) -> Check:
                  f"{after!r})")
 
 
+@timed
 def check_noop_provider_contract(repo: Path) -> Check:
     """The documented gotcha: is_available() is False but complete() RAISES.
 
@@ -347,6 +348,67 @@ def check_sdk_prompt(repo: Path, allow_llm: bool) -> Check:
 
 
 @timed
+def check_sdk_import_archive(repo: Path, tmp: Path) -> Check:
+    """import_archive on a LIVE instance whose graph is already open.
+
+    That is the shape that used to fail: restore replaces the database file,
+    and without re-creating the client the caller read the file it had opened
+    (empty, or closed) rather than the restored one.
+    """
+    from jsat import JSAT
+    js = JSAT(repo=str(repo))
+    js.index(force=True)
+    expected = js.index_status["nodes"]
+    archive = tmp / "sdk-import.jsat.zip"
+    js.export(output=archive)
+
+    fresh = JSAT(repo=str(repo))
+    fresh._get_graph()                     # open it FIRST
+    before = fresh.index_status["nodes"]
+    fresh.import_archive(archive)
+    after = fresh.index_status["nodes"]
+    if after != expected:
+        return Check("sdk_import_archive", "sdk", FAIL,
+                     f"import_archive left {after} nodes, expected {expected} "
+                     f"(had {before} before)",
+                     remediation="the graph client must be re-created after "
+                                 "the database file is replaced")
+
+    # And the unimplemented password must not silently do nothing.
+    try:
+        fresh.import_archive(archive, password="x")
+    except NotImplementedError:
+        pass
+    except Exception as e:
+        return Check("sdk_import_archive", "sdk", FAIL,
+                     f"a password raised {type(e).__name__}, expected "
+                     "NotImplementedError")
+    else:
+        return Check("sdk_import_archive", "sdk", FAIL,
+                     "a password was accepted although nothing decrypts it")
+    return Check("sdk_import_archive", "sdk", PASS,
+                 f"import_archive restored all {after} nodes into a live "
+                 "instance and rejects the unimplemented password")
+
+
+@timed
+def check_sdk_reload_graph(repo: Path) -> Check:
+    from jsat import JSAT
+    js = JSAT(repo=str(repo))
+    first = js._get_graph()
+    js.reload_graph()
+    if js._graph is not None:
+        return Check("sdk_reload_graph", "sdk", FAIL,
+                     "reload_graph did not drop the cached client")
+    if js._get_graph() is first:
+        return Check("sdk_reload_graph", "sdk", FAIL,
+                     "reload_graph returned the same client object")
+    return Check("sdk_reload_graph", "sdk", PASS,
+                 "reload_graph released the cached client and the next access "
+                 "reconnected")
+
+
+@timed
 def check_sdk_coverage(exercised: set[str]) -> Check:
     methods = set(_public_methods())
     accounted = exercised | set(SKIP_METHODS) | LLM_METHODS
@@ -361,7 +423,50 @@ def check_sdk_coverage(exercised: set[str]) -> Check:
                  "explicitly accounted for")
 
 
+@contextlib.contextmanager
+def _isolated(tmp: Path):
+    """Redirect JSAT's state env vars for the duration of the suite.
+
+    This suite is the only one that runs JSAT IN-PROCESS, so it reads
+    `os.environ` directly — `core.isolated_env` builds a dict for
+    subprocesses and does not mutate the environment. Without this, a plain
+    `./scripts/jsat-selftest.sh` indexed the fixture repo into the user's real
+    `~/.jsat/<hash>/` and picked up their real config (so a configured
+    `graph.backend: neo4j` with no Neo4j running failed every check here for
+    reasons that have nothing to do with the SDK).
+    """
+    keys = {
+        "JSAT_DATA_DIR": str(tmp / "sdk-data"),
+        "JSAT_IMPROVE_DIR": str(tmp / "sdk-improve"),
+        "JSAT_SESSIONS_DIR": str(tmp / "sdk-sessions"),
+        "JSAT_CONFIG": str(tmp / "sdk-config.yaml"),
+    }
+    # A minimal config, so the user's real one cannot steer these checks.
+    Path(keys["JSAT_CONFIG"]).write_text(
+        "version: '1'\n"
+        "graph:\n  backend: sqlite\n"
+        "embeddings:\n  provider: none\n"
+        "cache:\n  backend: memory\n"
+    )
+    prior = {k: os.environ.get(k) for k in keys}
+    os.environ.update(keys)
+    try:
+        yield
+    finally:
+        for k, v in prior.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 def run(report: Report, repo: Path, tmp: Path, *, allow_llm: bool) -> None:
+    with _isolated(tmp):
+        _run_checks(report, repo, tmp, allow_llm=allow_llm)
+
+
+def _run_checks(report: Report, repo: Path, tmp: Path, *,
+                allow_llm: bool) -> None:
     exercised: set[str] = set()
     report.add(check_exports_importable())
     report.add(check_sdk_index_and_status(repo, tmp))
@@ -371,6 +476,9 @@ def run(report: Report, repo: Path, tmp: Path, *, allow_llm: bool) -> None:
     report.add(check_sdk_security_review(repo)); exercised.add("security_review")
     report.add(check_sdk_incident(repo)); exercised.add("investigate_incident")
     report.add(check_sdk_export(repo, tmp)); exercised.add("export")
+    report.add(check_sdk_import_archive(repo, tmp))
+    exercised.add("import_archive")
+    report.add(check_sdk_reload_graph(repo)); exercised.add("reload_graph")
     report.add(check_sdk_token_helpers(repo))
     exercised |= {"token_count", "token_budget", "token_compress"}
     report.add(check_sdk_doctor_and_ai(repo))

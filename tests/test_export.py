@@ -24,7 +24,18 @@ class NoOpGraph:
 
 
 @pytest.fixture
-def tool():
+def data_dir(tmp_path, monkeypatch):
+    """Isolated JSAT data dir. `restore` anchors artifacts here (via
+    jsat_data_dir), not to `./.jsat` relative to the process cwd — the old
+    behaviour scattered them wherever the caller happened to be, which for an
+    MCP server is the editor's working directory."""
+    d = tmp_path / "jsat-data"
+    monkeypatch.setenv("JSAT_DATA_DIR", str(d))
+    return d
+
+
+@pytest.fixture
+def tool(data_dir):
     return ExportTool(graph=NoOpGraph(), cfg=JSATConfig(), ai=None)
 
 
@@ -40,8 +51,9 @@ def _make_archive(path: Path, manifest: dict, artifact_entries: dict[str, bytes]
 
 
 @pytest.mark.ci
-def test_zip_slip_relative_traversal_rejected(tool, tmp_path, monkeypatch):
-    """A crafted entry using ../../ must not write outside .jsat/."""
+def test_zip_slip_relative_traversal_rejected(tool, tmp_path, data_dir,
+                                              monkeypatch):
+    """A crafted entry using ../../ must not write outside the data dir."""
     monkeypatch.chdir(tmp_path)
     from jsat import __version__ as JSAT_VERSION
 
@@ -61,8 +73,9 @@ def test_zip_slip_relative_traversal_rejected(tool, tmp_path, monkeypatch):
 
 
 @pytest.mark.ci
-def test_zip_slip_absolute_path_rejected(tool, tmp_path, monkeypatch):
-    """A crafted entry using an absolute path must not write outside .jsat/."""
+def test_zip_slip_absolute_path_rejected(tool, tmp_path, data_dir,
+                                        monkeypatch):
+    """A crafted entry using an absolute path must not write outside the data dir."""
     monkeypatch.chdir(tmp_path)
     from jsat import __version__ as JSAT_VERSION
 
@@ -80,8 +93,10 @@ def test_zip_slip_absolute_path_rejected(tool, tmp_path, monkeypatch):
 
 
 @pytest.mark.ci
-def test_legitimate_artifact_still_restored(tool, tmp_path, monkeypatch):
-    """A well-formed archive with a normal artifacts/ entry must still restore correctly."""
+def test_legitimate_artifact_still_restored(tool, tmp_path, data_dir,
+                                           monkeypatch):
+    """A well-formed archive with a normal artifacts/ entry must still restore
+    correctly — into the resolved data dir."""
     monkeypatch.chdir(tmp_path)
     from jsat import __version__ as JSAT_VERSION
 
@@ -93,6 +108,10 @@ def test_legitimate_artifact_still_restored(tool, tmp_path, monkeypatch):
 
     tool.restore(archive)
 
-    restored = tmp_path / ".jsat" / "INDEX.md"
-    assert restored.exists()
+    restored = data_dir / "INDEX.md"
+    assert restored.exists(), (
+        f"artifact not restored to the data dir; "
+        f"data_dir contains {list(data_dir.rglob('*')) if data_dir.exists() else 'nothing'}")
     assert restored.read_bytes() == b"# hello"
+    # And nothing landed in a cwd-relative .jsat/.
+    assert not (tmp_path / ".jsat" / "INDEX.md").exists()

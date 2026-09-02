@@ -8,9 +8,44 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 from jsat._ai import AIProvider
+from jsat._exceptions import (
+    AIAuthError,
+    AIProviderError,
+    AIRateLimitError,
+    AITimeoutError,
+)
 
 if TYPE_CHECKING:
     from jsat._models import JSATConfig
+
+
+def _as_jsat_error(exc: Exception, base_url: str) -> Exception:
+    """Translate an SDK or HTTP failure into jsat's typed AI error family.
+
+    OpenAI-compatible endpoints are arbitrary third-party servers, so the
+    failure could come from the `openai` SDK, from httpx, or from a JSON body
+    that does not match the schema. Whatever the source, the caller needs one
+    of jsat's types to decide whether to retry, re-auth, or degrade.
+    """
+    name = type(exc).__name__
+    status = getattr(getattr(exc, "response", None), "status_code", None) or 0
+    if status in (401, 403) or "Authentication" in name or "PermissionDenied" in name:
+        return AIAuthError(provider="openai_compat")
+    if status == 429 or "RateLimit" in name:
+        return AIRateLimitError("OpenAI-compatible endpoint rate limit",
+                                provider="openai_compat")
+    if "Timeout" in name:
+        return AITimeoutError("OpenAI-compatible endpoint timed out",
+                              provider="openai_compat", timeout_seconds=120)
+    if "Connection" in name:
+        return AIProviderError(
+            f"Cannot reach the OpenAI-compatible endpoint at {base_url}: {exc}",
+            provider="openai_compat", status_code=0,
+        )
+    return AIProviderError(
+        f"OpenAI-compatible endpoint error ({name}): {exc}",
+        provider="openai_compat", status_code=status,
+    )
 
 
 class OpenAICompatProvider(AIProvider):
@@ -49,25 +84,32 @@ class OpenAICompatProvider(AIProvider):
 
         model = require_explicit_model("openai_compat", self._model)
         t0 = time.monotonic()
-        if self._client is not None:
-            resp = self._client.chat.completions.create(
-                model=model, max_tokens=max_tokens, temperature=temperature,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            text = resp.choices[0].message.content or ""
-        else:
-
-            import httpx
-            resp_h = httpx.post(
-                f"{self._base_url}/chat/completions",
-                json={"model": model, "max_tokens": max_tokens,
-                      "temperature": temperature,
-                      "messages": [{"role": "user", "content": prompt}]},
-                headers={"Authorization": f"Bearer {self._api_key}"},
-                timeout=120.0,
-            )
-            resp_h.raise_for_status()
-            text = resp_h.json()["choices"][0]["message"]["content"]
+        # Both paths below are wrapped: this provider previously had no error
+        # translation at all, so a bad key or an unreachable base_url raised a
+        # raw `openai.APIConnectionError`/`httpx.HTTPStatusError` straight
+        # through. Callers catch jsat's AIError family to degrade, so an
+        # untranslated exception crashes them instead.
+        try:
+            if self._client is not None:
+                resp = self._client.chat.completions.create(
+                    model=model, max_tokens=max_tokens, temperature=temperature,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                text = resp.choices[0].message.content or ""
+            else:
+                import httpx
+                resp_h = httpx.post(
+                    f"{self._base_url}/chat/completions",
+                    json={"model": model, "max_tokens": max_tokens,
+                          "temperature": temperature,
+                          "messages": [{"role": "user", "content": prompt}]},
+                    headers={"Authorization": f"Bearer {self._api_key}"},
+                    timeout=120.0,
+                )
+                resp_h.raise_for_status()
+                text = resp_h.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            raise _as_jsat_error(e, self._base_url) from e
 
         elapsed = round((time.monotonic() - t0) * 1000)
         self._log.info("openai_compat_complete_done", response_len=len(text), duration_ms=elapsed)

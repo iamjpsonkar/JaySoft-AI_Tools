@@ -393,7 +393,7 @@ js = JSAT.from_import(archive, password=None)
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `archive` | `str \| Path` | (required) | Path to `.jsat.zip` archive |
-| `password` | `str \| None` | `None` | Decryption password if encrypted |
+| `password` | `str \| None` | `None` | Reserved. Encrypted archives are not implemented — `export()` does not encrypt, so passing a value raises `NotImplementedError` rather than silently doing nothing. |
 
 ```python
 from jsat import JSAT
@@ -417,7 +417,7 @@ js.import_archive(archive, password=None)
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `archive` | `str \| Path` | (required) | Path to `.jsat.zip` archive |
-| `password` | `str \| None` | `None` | Decryption password if encrypted |
+| `password` | `str \| None` | `None` | Reserved. Encrypted archives are not implemented — `export()` does not encrypt, so passing a value raises `NotImplementedError` rather than silently doing nothing. |
 
 ```python
 js = JSAT(repo=".")

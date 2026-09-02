@@ -90,6 +90,40 @@ def _sarif_document(findings: list[Any], repo: Path) -> dict[str, Any]:
     }
 
 
+def _resolve_diff(value: str, repo: Path) -> str:
+    """Turn a --diff argument into unified diff text.
+
+    Accepts three shapes because all three are in active use: a path to a
+    diff file, a git range, and literal diff text. The git-range case is the
+    one the `ci-setup` template emits (`origin/main...HEAD`), and it used to
+    be forwarded verbatim as diff *text* — `BlastRadiusTool` only parses
+    `--- a/` / `+++ b/` lines, so it found no files, reported zero impact and
+    exited 0. The generated CI step was green by construction.
+    """
+    candidate = Path(value)
+    if candidate.is_file():
+        return candidate.read_text(encoding="utf-8", errors="replace")
+    if value.lstrip().startswith(("diff --git", "--- ", "+++ ", "@@")):
+        return value
+    # Anything else is treated as a git revision range.
+    import subprocess
+    try:
+        proc = subprocess.run(
+            ["git", "diff", "--unified=0", value],
+            cwd=str(repo), capture_output=True, text=True, timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as e:
+        err.print(f"[bold red]Could not run `git diff {value}`:[/] {e}")
+        raise typer.Exit(2) from e
+    if proc.returncode != 0:
+        err.print(
+            f"[bold red]`git diff {value}` failed:[/] "
+            f"{proc.stderr.strip()[:300]}"
+        )
+        raise typer.Exit(2)
+    return proc.stdout
+
+
 # ── blast-radius ──────────────────────────────────────────────────────────────
 
 @app.command("blast-radius", rich_help_panel="⚡  Tools")
@@ -121,9 +155,14 @@ def cmd_blast_radius(
     js = _jsat(repo=repo)
     diff_text = diff
     if diff:
-        candidate = Path(diff)
-        if candidate.is_file():
-            diff_text = candidate.read_text(encoding="utf-8", errors="replace")
+        diff_text = _resolve_diff(diff, Path(repo))
+        if not diff_text.strip():
+            err.print(
+                f"[bold red]--diff {diff!r} produced no diff.[/] "
+                "Pass a git range (origin/main...HEAD), a path to a unified "
+                "diff file, or diff text on stdin."
+            )
+            raise typer.Exit(2)
 
     try:
         report = js.blast_radius(target=target or "", diff=diff_text,

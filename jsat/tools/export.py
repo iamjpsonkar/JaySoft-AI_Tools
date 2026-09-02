@@ -112,6 +112,14 @@ class ExportTool(BaseTool):
 
     def restore(self, archive: Path, password: str | None = None,
                 migrate: bool = False) -> None:
+        # Encryption is not implemented: export() writes no encrypted archive
+        # and nothing here decrypts one. Accepting a password and ignoring it
+        # would look like it worked.
+        if password is not None:
+            raise NotImplementedError(
+                "Encrypted archives are not supported yet — export() does not "
+                "encrypt, so `password` has nothing to decrypt. Omit it."
+            )
         import structlog
 
         from jsat._exceptions import ImportCorrupted, ImportVersionMismatch
@@ -177,11 +185,15 @@ class ExportTool(BaseTool):
                 # Restore artifacts — guard against zip-slip path traversal:
                 # a crafted entry (e.g. "artifacts/../../.ssh/authorized_keys" or an
                 # absolute path) must not be allowed to write outside .jsat/.
-                # Anchor artifacts to the CONFIGURED data dir, not to
-                # ./.jsat relative to whatever cwd the caller happened to be
-                # in — with JSAT_DATA_DIR set (or the hashed global store in
-                # use) the old path wrote them somewhere nothing reads.
-                dest_root = Path(self._cfg.graph.path).resolve().parent.parent
+                # Anchor artifacts to the data dir as jsat_data_dir resolves
+                # it, not to ./.jsat relative to whatever cwd the caller was
+                # in (which wrote them where nothing reads), and not by
+                # walking up from graph.path — that is a free-form setting, so
+                # `graph.path: .jsat/graph.db` would put the extraction root
+                # one level too high and widen the zip-slip boundary to the
+                # directory holding every repo's store.
+                from jsat._config import jsat_data_dir
+                dest_root = jsat_data_dir(Path(self._cfg.project_root)).resolve()
                 for name in zf.namelist():
                     if name.startswith("artifacts/"):
                         target = self._safe_extract_target(

@@ -18,7 +18,16 @@ from jsat.tools import BaseTool
 
 __all__ = ["SecurityTool", "_SECRET_PATTERNS", "_entropy"]
 
-_SCAN_EXTS = frozenset({".py", ".js", ".ts", ".go", ".yaml", ".env", ".json"})
+# Text formats worth scanning for secrets. Kept in step with the languages
+# the indexer parses, plus the config formats credentials actually live in —
+# a suffix missing here means a single-file scan reports a clean bill of
+# health without reading the file at all.
+_SCAN_EXTS = frozenset({
+    ".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".java", ".rb", ".rs",
+    ".yaml", ".yml", ".env", ".json", ".toml", ".ini", ".cfg", ".conf",
+    ".properties", ".sh", ".bash", ".zsh", ".tf", ".tfvars", ".xml",
+    ".gradle", ".txt", ".md",
+})
 _SEVERITY_ORDER = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 _SEMGREP_MAP = {"ERROR": "critical", "WARNING": "high", "INFO": "medium"}
 
@@ -158,7 +167,18 @@ class SecurityTool(BaseTool):
         # worst possible failure mode for a secret scanner, and exactly what
         # the security_scan_file MCP tool passes in. Handle both shapes.
         if path.is_file():
-            all_files = [path] if path.suffix in _SCAN_EXTS else []
+            if path.suffix in _SCAN_EXTS:
+                all_files = [path]
+            else:
+                # Say so. Returning an empty list here reads to the caller as
+                # "scanned, nothing found" for a file that was never opened.
+                all_files = []
+                log.warning(
+                    "security_file_suffix_not_scanned",
+                    file=path.name, suffix=path.suffix or "(none)",
+                    detail=("Not a scannable text format; no secret scan was "
+                            "performed on this file."),
+                )
         else:
             all_files = [f for f in path.rglob("*")
                          if f.is_file() and f.suffix in _SCAN_EXTS]

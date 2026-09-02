@@ -547,12 +547,12 @@ def check_depth_cap(jsat_bin: str, repo: Path, env: dict[str, str]) -> Check:
     a depth. The real guard is therefore exercised in-process against the
     real thread-local and the real response builder.
     """
+    from jsat._call_context import _call_ctx  # noqa: PLC0415
     from jsat.mcp.server import (  # noqa: PLC0415
         _MAX_CALL_DEPTH,
         _budget_depth,
         _depth_exceeded_response,
     )
-    from jsat._call_context import _call_ctx  # noqa: PLC0415
 
     prior = getattr(_call_ctx, "depth", 0)
     try:

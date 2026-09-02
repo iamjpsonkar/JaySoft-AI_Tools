@@ -14,6 +14,12 @@ from typing import Any
 from jsat._graph import GraphClient
 
 
+def _edge_id(source: str, target: str, type_: str) -> str:
+    """The stable primary key for an edge. Single definition, because the
+    capacity guard has to derive the same id the writer will insert."""
+    return hashlib.sha256(f"{source}→{target}→{type_}".encode()).hexdigest()[:16]
+
+
 class LightGraph(GraphClient):
     """SQLite graph using only stdlib sqlite3. Identical interface to SQLiteGraph."""
 
@@ -152,40 +158,75 @@ class LightGraph(GraphClient):
             results.append(rec)
         return results
 
-    def _enforce_capacity(self, adding_nodes: int = 0, adding_edges: int = 0) -> None:
-        """Raise GraphCapacityError before a bulk insert would exceed a cap."""
+    _CAP_ID_CHUNK = 900   # stay under SQLITE_MAX_VARIABLE_NUMBER
+
+    def _count_existing(self, table: str, ids: list[str]) -> int:
+        """How many of `ids` are already rows in `table`."""
+        found = 0
+        for start in range(0, len(ids), self._CAP_ID_CHUNK):
+            chunk = ids[start:start + self._CAP_ID_CHUNK]
+            placeholders = ",".join("?" * len(chunk))
+            row = self._conn.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE id IN ({placeholders})",  # noqa: S608
+                tuple(chunk),
+            ).fetchone()
+            found += row[0]
+        return found
+
+    def _enforce_capacity(self, node_ids: list[str] | None = None,
+                          edge_ids: list[str] | None = None) -> None:
+        """Raise GraphCapacityError before a bulk insert would exceed a cap.
+
+        Counts only ids that are NOT already present. Both bulk writers use
+        `INSERT OR REPLACE`, so re-inserting an existing id replaces a row
+        rather than adding one — counting the whole batch as growth made
+        `jsat index --force` fail on any repo larger than about half the cap,
+        even though the graph would not have grown at all.
+        """
         from jsat._exceptions import GraphCapacityError
-        if self._max_nodes and adding_nodes:
-            current = self.node_count()
-            if current + adding_nodes > self._max_nodes:
-                raise GraphCapacityError(
-                    f"Adding {adding_nodes} node(s) would exceed graph.max_nodes "
-                    f"({self._max_nodes}); the graph already holds {current}.",
-                    current_nodes=current, max_nodes=self._max_nodes,
-                )
-        if self._max_edges and adding_edges:
-            current_e = self.edge_count()
-            if current_e + adding_edges > self._max_edges:
-                raise GraphCapacityError(
-                    f"Adding {adding_edges} edge(s) would exceed graph.max_edges "
-                    f"({self._max_edges}); the graph already holds {current_e}.",
-                    current_nodes=self.node_count(), max_nodes=self._max_nodes,
-                    current_edges=current_e, max_edges=self._max_edges,
-                )
+        if self._max_nodes and node_ids:
+            unique = list(dict.fromkeys(node_ids))
+            new = len(unique) - self._count_existing("nodes", unique)
+            if new > 0:
+                current = self.node_count()
+                if current + new > self._max_nodes:
+                    raise GraphCapacityError(
+                        f"Adding {new} new node(s) would exceed "
+                        f"graph.max_nodes ({self._max_nodes}); the graph "
+                        f"already holds {current}.",
+                        current_nodes=current, max_nodes=self._max_nodes,
+                    )
+        if self._max_edges and edge_ids:
+            unique_e = list(dict.fromkeys(edge_ids))
+            new_e = len(unique_e) - self._count_existing("edges", unique_e)
+            if new_e > 0:
+                current_e = self.edge_count()
+                if current_e + new_e > self._max_edges:
+                    raise GraphCapacityError(
+                        f"Adding {new_e} new edge(s) would exceed "
+                        f"graph.max_edges ({self._max_edges}); the graph "
+                        f"already holds {current_e}.",
+                        current_nodes=self.node_count(),
+                        max_nodes=self._max_nodes,
+                        current_edges=current_e, max_edges=self._max_edges,
+                    )
 
     def bulk_add_nodes(self, nodes: list[dict[str, Any]]) -> None:
-        self._enforce_capacity(adding_nodes=len(nodes))
+        self._enforce_capacity(
+            node_ids=[str(n["id"]) for n in nodes])
         self._conn.executemany(
             "INSERT OR REPLACE INTO nodes (id, label, properties) VALUES (?,?,?)",
             [(n["id"], n["label"], json.dumps(n.get("properties", {}))) for n in nodes],
         )
 
     def bulk_add_edges(self, edges: list[dict[str, Any]]) -> None:
-        self._enforce_capacity(adding_edges=len(edges))
+        self._enforce_capacity(
+            edge_ids=[_edge_id(e["source"], e["target"], e["type"])
+                      for e in edges])
         rows = []
         for e in edges:
             src, tgt, typ = e["source"], e["target"], e["type"]
-            eid = hashlib.sha256(f"{src}→{tgt}→{typ}".encode()).hexdigest()[:16]
+            eid = _edge_id(src, tgt, typ)
             rows.append((eid, typ, src, tgt, json.dumps(e.get("properties", {}))))
         self._conn.executemany(
             "INSERT OR REPLACE INTO edges (id, type, source_id, target_id, properties) "
