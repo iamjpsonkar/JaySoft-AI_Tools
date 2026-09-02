@@ -16,11 +16,11 @@ jsat ollama --tool codex                 # interactive selector
 Choose an exact local or cloud model when needed:
 
 ```bash
-ollama pull qwen3.5
-jsat ollama --tool codex -m qwen3.5
+ollama pull qwen2.5:0.5b      # or any tag from `ollama list`
+jsat ollama --tool codex -m qwen2.5:0.5b
 
 ollama signin
-jsat ollama --tool codex -m gemma4:31b-cloud
+jsat ollama --tool codex -m <model>-cloud
 ```
 
 The chosen model belongs to the launched process and does not change JSAT's direct provider.
@@ -41,7 +41,7 @@ model routing independently.
 ## Managed lifecycle
 
 ```bash
-jsat start codex --via ollama --model qwen3.5
+jsat start codex --via ollama --model qwen2.5:0.5b
 jsat ps
 jsat restart codex
 jsat stop codex

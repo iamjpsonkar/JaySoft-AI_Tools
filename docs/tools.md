@@ -465,7 +465,7 @@ Dispatches a diff to multiple AI models simultaneously using `ThreadPoolExecutor
 review:
   models:
     - {provider: claude_cli, model: claude-sonnet-4-6}
-    - {provider: ollama, model: qwen2.5-coder:7b}
+    - {provider: ollama, model: qwen2.5:0.5b}
   parallel_timeout_seconds: 90
   min_confidence: medium
 ```

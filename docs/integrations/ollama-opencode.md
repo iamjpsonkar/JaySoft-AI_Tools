@@ -26,10 +26,10 @@ ollama
 
 ```bash
 jsat ollama --tool opencode                 # interactive local/cloud selector
-ollama pull qwen3.5
-jsat ollama --tool opencode -m qwen3.5      # exact local model
+ollama pull qwen2.5:0.5b      # or any tag from `ollama list`
+jsat ollama --tool opencode -m qwen2.5:0.5b      # exact local model
 ollama signin
-jsat ollama --tool opencode -m gemma4:31b-cloud
+jsat ollama --tool opencode -m <model>-cloud
 ```
 
 The selected model is injected into only the launched OpenCode process. It does not persist as
@@ -38,7 +38,7 @@ JSAT's direct AI provider and does not require another pull. A cloud model is au
 
 ### Remember a model for this tool
 
-`jsat connect ollama tool=opencode --model gemma4:31b-cloud` saves that model as OpenCode's
+`jsat connect ollama tool=opencode --model <model>-cloud` saves that model as OpenCode's
 default for this launch route. A later bare `jsat ollama --tool opencode` (or the shorthand
 `jsat ollama opencode`) reuses it automatically instead of showing Ollama's interactive
 selector — pass `-m`/`--model` explicitly to override it for a single launch.
@@ -60,7 +60,7 @@ proves it can execute.
 ## Managed lifecycle
 
 ```bash
-jsat start opencode --via ollama --model qwen3.5
+jsat start opencode --via ollama --model qwen2.5:0.5b
 jsat ps
 jsat restart opencode
 jsat stop opencode

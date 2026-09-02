@@ -35,7 +35,7 @@ JSAT(
 js = JSAT(repo=".")
 
 # Explicit AI provider
-js = JSAT(repo=".", ai_provider="ollama", model="phi3:mini")
+js = JSAT(repo=".", ai_provider="ollama", model="qwen2.5:0.5b")
 
 # Verbose logging for debugging
 js = JSAT(repo=".", log_level="DEBUG")
@@ -483,7 +483,7 @@ Supported aliases:
 | `lmstudio` | `openai_compat` | Explicit model required |
 
 ```python
-js.switch_ai("ollama", model="phi3:mini")
+js.switch_ai("ollama", model="qwen2.5:0.5b")
 js.switch_ai("anthropic", model="<model>")
 js.switch_ai("gemini", model="<model>")
 js.switch_ai("custom", model="<model>", base_url="http://my-server:8080/v1")

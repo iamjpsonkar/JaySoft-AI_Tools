@@ -65,8 +65,8 @@ different: it resumes an interrupted JSAT workflow such as `crack` or `magic`.
 
 - If `$jsat` is missing, rerun `jsat connect codex`, then restart Codex completely.
 - If MCP is missing, inspect `~/.codex/config.toml` and run `jsat doctor`.
-- If an error shows `model: llama3.2` with `provider: openai`, the model/provider pair is
-  misrouted. Select `codex-cli` for native Codex or `ollama` for `llama3.2`; do not combine
+- If an error shows an Ollama tag with `provider: openai`, the model/provider pair is
+  misrouted. Select `codex_cli` for native Codex or `ollama` for an Ollama tag; do not combine
   an Ollama model name with the OpenAI provider.
 - If Codex is not installed, use an [Ollama-launched client](ollama-codex.md) or install Codex.
 

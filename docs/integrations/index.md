@@ -48,10 +48,10 @@ that matches the process you intend to run.
     JSAT talks directly to a model served by Ollama. No coding-client harness is involved.
 
     ```bash
-    ollama pull qwen3.5
-    jsat ai use ollama --model qwen3.5
+    ollama pull qwen2.5:0.5b
+    jsat ai use ollama --model qwen2.5:0.5b
     jsat ai test
-    jsat ollama --model qwen3.5
+    jsat ollama --model qwen2.5:0.5b
     ```
 
     [Complete direct Ollama guide](ollama-local.md)
@@ -119,4 +119,4 @@ jsat resume
 ```
 
 Interactive clients open in separate terminals. To keep routes isolated, name one client and
-one route, for example `jsat start claude --via ollama --model qwen3.5`.
+one route, for example `jsat start claude --via ollama --model qwen2.5:0.5b`.

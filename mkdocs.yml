@@ -80,6 +80,7 @@ nav:
       - Tools: tools.md
       - Python SDK: sdk.md
       - Configuration: configuration.md
+      - Self-test: self-test.md
       - Publishing: publishing.md
 
 extra:

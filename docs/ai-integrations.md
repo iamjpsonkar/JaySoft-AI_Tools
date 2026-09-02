@@ -73,7 +73,7 @@ Each launcher auto-connects JSAT if not already wired and opens the tool with 69
 ```bash
 jsat start                           # Claude + Codex + OpenCode, one terminal each
 jsat start opencode --via ollama     # one client, Ollama selector
-jsat start --model gemma4:31b-cloud # all three through one Ollama model
+jsat start --model <model>-cloud   # all three through one Ollama model
 jsat ps
 jsat restart                         # Claude + Codex + OpenCode
 jsat stop                            # every running managed client
@@ -105,9 +105,9 @@ the separate command for interrupted JSAT skills such as `magic` and `crack`.
 jsat index .
 jsat connect ollama tool=opencode           # configure only OpenCode
 jsat ollama --tool opencode                  # choose local or cloud interactively
-jsat ollama --tool opencode -m qwen3.5       # local
+jsat ollama --tool opencode -m qwen2.5:0.5b    # local
 ollama signin
-jsat ollama --tool opencode -m gemma4:31b-cloud  # cloud
+jsat ollama --tool opencode -m <model>-cloud     # cloud
 ```
 
 The launcher writes JSAT's MCP entry to `~/.config/opencode/opencode.json` before

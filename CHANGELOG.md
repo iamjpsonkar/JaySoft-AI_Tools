@@ -177,6 +177,42 @@ rather than an error.
   nothing imported and that had drifted to under 70% of the real registry,
   while reading like ground truth.
 
+### Documentation
+
+- **The Ollama documentation is rewritten.** `docs/ai-providers.md` and
+  `docs/integrations/ollama-local.md` now lead with the distinction between the
+  two routes that combine JSAT and Ollama — the direct provider (JSAT owns the
+  model) versus a launched coding tool (Ollama owns it, and JSAT deliberately
+  inherits that choice rather than forwarding a model across providers) —
+  because conflating them is the most common source of confusion. Both pages
+  now cover the failure mode that actually bites: `ollama serve` answering on
+  :11434 says nothing about whether a *model* is pulled, and a daemon with zero
+  models reports as present while being unable to complete a request. Added
+  the `-cloud` suffix rules, the RAM/timeout interaction, SDK usage, which
+  tools need a model at all, and a symptom→cause→fix troubleshooting table.
+  Documented that the `[local]` extra is optional: the provider works on a bare
+  `pip install jsat` through an HTTP fallback.
+- **Corrected two false claims about the profile presets.** The README and
+  `docs/configuration.md` said `solo` uses `llama3.2` and `raspberry-pi` uses
+  `phi3:mini`; every preset in fact sets `model: None`, because JSAT ships no
+  model catalogue and never guesses one.
+- **Model names in examples are now ones this release verified** end to end
+  (`qwen2.5:0.5b`), or explicit `<model>` placeholders with a pointer to
+  `ollama list`, rather than tags that could not be confirmed to exist.
+- **The documented default language list matches the code again** — all seven,
+  not the three that silently skipped TypeScript, Java, Ruby and Rust files.
+- Added `docs/self-test.md` (and a nav entry) covering the suites, the three
+  coverage gates, why only third-party binaries are ever substituted, and how
+  to read a report.
+- Documented `jsat blast-radius`, `jsat contract-check` and
+  `jsat security-review` in the CLI reference, and `import_archive` /
+  `reload_graph` in the SDK reference.
+- **`docs/architecture.md` re-measured at 0.4.17.** Snapshot counts refreshed,
+  and the risk table updated: the entries for the parallel skill registries,
+  dangling clusters, the dead tool catalogue and the unenforced graph caps are
+  resolved, while the claims that `index_status` returns `commit=None` and that
+  `lightgraph` is never constructed were simply inaccurate and are removed.
+
 ### Added
 
 - **The self-test is now a real self-test** (`scripts/selftest/`, run via
