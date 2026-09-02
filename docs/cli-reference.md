@@ -133,10 +133,10 @@ jsat ollama [OPTIONS]
 
 ```bash
 jsat ollama
-jsat ollama --model phi3:mini
+jsat ollama --model qwen2.5:0.5b
 jsat ollama --tool opencode                 # auto-connect JSAT, then choose a model
-jsat ollama --tool opencode --model qwen3.5 # explicit local model
-jsat ollama --tool opencode --model gemma4:31b-cloud  # Ollama Cloud
+jsat ollama --tool opencode --model qwen2.5:0.5b # explicit local model
+jsat ollama --tool opencode --model <model>-cloud   # Ollama Cloud
 ```
 
 OpenCode does not need to be installed separately; `ollama launch opencode` handles it.
@@ -353,6 +353,88 @@ jsat version
 
 ---
 
+### `jsat blast-radius`
+
+Trace the downstream impact of a change. Offline — no AI provider needed.
+
+```bash
+jsat blast-radius process_payment                       # a symbol
+jsat blast-radius --diff origin/main...HEAD             # a git range
+jsat blast-radius --diff /tmp/change.patch              # a diff file
+jsat blast-radius --diff origin/main...HEAD --output blast-radius.md
+jsat blast-radius src/payments/service.py --max-depth 3 --json
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `target` (positional) | — | Symbol, file, or node id. Omit when using `--diff`. |
+| `--diff`, `-d` | — | A git range (`origin/main...HEAD`), a path to a unified diff file, or diff text |
+| `--max-depth` | `5` | Traversal depth |
+| `--output`, `-o` | — | Write a Markdown report (table + Mermaid graph) |
+| `--fail-on-breaking` | off | Exit non-zero when any breaking impact is found |
+| `--json` | off | Emit JSON to stdout |
+
+A `--diff` value that is neither a file nor diff text is resolved with
+`git diff`. An unresolvable range exits `2` rather than silently reporting no
+impact.
+
+---
+
+### `jsat contract-check`
+
+Compare API contracts (OpenAPI / AsyncAPI) between two git refs. Offline.
+
+```bash
+jsat contract-check --base origin/main
+jsat contract-check --base v1 --head v2
+jsat contract-check --base v1 --head v2 --json
+jsat contract-check --base origin/main --no-fail-on-breaking   # report only
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--base`, `-b` | `origin/main` | Base ref to compare from |
+| `--head` | `HEAD` | Head ref to compare to |
+| `--fail-on-breaking` / `--no-fail-on-breaking` | **on** | Exit non-zero when a breaking change is detected |
+| `--json` | off | Emit JSON to stdout |
+
+Detects removed endpoints and paths, newly required fields (including
+multi-line YAML `required:` lists), and reports a compatibility score of
+`100·e^(-0.15 · breaking_count)`.
+
+---
+
+### `jsat security-review`
+
+OWASP scan, secret detection, and a live dependency CVE lookup against
+osv.dev. Offline apart from the CVE lookup.
+
+```bash
+jsat security-review .
+jsat security-review . --sarif security.sarif            # for CI upload
+jsat security-review src/config.py --severity low        # a single file
+jsat security-review . --no-deps --fail-on-critical
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `path` (positional) | `.` | File **or** directory to scan |
+| `--severity`, `-s` | `medium` | Minimum severity: `critical`/`high`/`medium`/`low` |
+| `--sarif` | — | Write a SARIF 2.1.0 report (GitHub code scanning, GitLab SAST) |
+| `--no-deps` | off | Skip the dependency CVE lookup |
+| `--fail-on-critical` | off | Exit non-zero if any critical finding is present |
+| `--json` | off | Emit JSON to stdout |
+
+Three independent sources are merged under one severity threshold: Semgrep
+(`p/owasp-top-ten`, `p/secrets` — a no-op if Semgrep is absent), regex plus
+Shannon-entropy secret detection, and CVE lookups for parsed requirements.
+Secret **values** are never printed or stored.
+
+Passing a single file scans that file — a suffix outside the scannable set is
+logged rather than reported clean.
+
+---
+
 ### `jsat crack`
 
 Run a multi-agent war room on a complex engineering decision. Six agents run in
@@ -521,7 +603,7 @@ jsat ai use PROVIDER [OPTIONS]
 ```bash
 # Per-repo (writes .jsat/config.yaml)
 jsat ai models ollama
-jsat ai use ollama --model phi3:mini
+jsat ai use ollama --model qwen2.5:0.5b
 jsat ai use anthropic --model <model>
 jsat ai use anthropic --model claude-haiku-4-5-20251001
 jsat ai use openai --model gpt-4o-mini
@@ -1119,7 +1201,7 @@ jsat tokens [TEXT] [OPTIONS]
 |----------------|---------|-------------|
 | `TEXT` | — | Inline text to analyze |
 | `--file`, `-f` | — | Read from file instead |
-| `--model`, `-m` | — | Model for budget check: `claude-cli`, `gpt-4o`, `llama3.2`, etc. |
+| `--model`, `-m` | — | Model for the budget check, e.g. `claude-opus-5`, `gpt-4o`, or an Ollama tag |
 | `--compress`, `-c` | false | Apply compression strategies and print savings |
 | `--strip-comments` | false | Also remove code comment lines |
 | `--no-dedup` | false | Skip semantic deduplication |

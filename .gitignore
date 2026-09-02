@@ -42,3 +42,5 @@ node_modules/
 *.key
 .env.local
 jsat-selftest-report-*
+jsat-selftest-report.json
+jsat-selftest-report.md

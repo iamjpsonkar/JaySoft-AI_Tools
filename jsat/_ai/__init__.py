@@ -77,7 +77,19 @@ def get_ai_provider(cfg: Any) -> AIProvider:
     import structlog
     log = structlog.get_logger(__name__)
 
-    provider_name: str = getattr(getattr(cfg, "ai", None), "provider", "none") or "none"
+    # Requires the FULL JSATConfig, not a bare AIConfig — the provider name
+    # is read from `cfg.ai.provider`. Handed an AIConfig by mistake, this
+    # used to find no `ai` attribute, fall through to "none", and hand back a
+    # NoOpProvider: AI then appeared to be "not configured" with a correct
+    # config in place, and every caller degraded silently. Say so instead.
+    ai_section = getattr(cfg, "ai", None)
+    if ai_section is None:
+        raise TypeError(
+            f"get_ai_provider() expects a JSATConfig with an `ai` section, got "
+            f"{type(cfg).__name__}. Pass the full config "
+            f"(e.g. JSATConfig(ai=AIConfig(...))), not the AIConfig alone."
+        )
+    provider_name: str = getattr(ai_section, "provider", "none") or "none"
     log.info("ai_provider_factory", provider=provider_name)
 
     if provider_name == "none":

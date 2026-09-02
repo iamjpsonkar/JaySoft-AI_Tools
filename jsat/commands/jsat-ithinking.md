@@ -134,7 +134,7 @@ against any hard-stop patterns (irreversible/destructive operations). Concretely
 jsat__ithinking_token_estimate returns a token/complexity estimate for the task.
 This number is only useful if you act on it:
   - If the estimate is large relative to the current session's remaining context
-    (cross-check with jsat__token_budget or jsat__tokens --model if you need the
+    (cross-check with jsat__token_budget or jsat__token_count if you need the
     session's actual headroom), say so explicitly and suggest splitting the task
     into smaller pieces BEFORE starting, rather than discovering the overrun
     mid-task.

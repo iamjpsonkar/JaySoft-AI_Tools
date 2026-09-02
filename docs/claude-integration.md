@@ -167,7 +167,7 @@ Two flags work on **every** `/jsat` command — strip them from `$ARGUMENTS` bef
 
 ### Big skills: session files and auto-execute
 
-`magic`, `crack`, `sprint`, and `prompt` write session files to `~/.jsat/sessions/` and execute their recommendations automatically after synthesis. Pass `--continue` to resume any interrupted session. See [Session Files & Auto-Execute](../README.md#session-files--auto-execute) for details.
+`magic`, `crack`, `sprint`, and `prompt` write session files to `~/.jsat/sessions/` and execute their recommendations automatically after synthesis. Pass `--continue` to resume any interrupted session. See [Session Files & Auto-Execute](https://github.com/iamjpsonkar/JaySoft-AI_Tools#-session-files--auto-execute) for details.
 
 ### `/jsat-prompt-diff`
 

@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# jsat-selftest.sh — run the full, no-mocking self-test of the installed jsat.
+# jsat-selftest.sh — run the no-mocking self-test of the installed jsat.
 #
 # Thin wrapper: picks a Python that actually has jsat installed (same
-# discovery logic as local_test.sh) and execs scripts/jsat_selftest.py with
-# whatever args you pass through.
+# discovery logic as local_test.sh) and execs the self-test with whatever
+# args you pass through.
 #
 # Usage:
-#   ./scripts/jsat-selftest.sh              # full run
-#   ./scripts/jsat-selftest.sh --quick      # skip the heavy --all pytest pass
-#   ./scripts/jsat-selftest.sh --full       # also run local_test.sh --all
-#   ./scripts/jsat-selftest.sh --out /tmp/x # custom report path prefix
+#   ./scripts/jsat-selftest.sh                     # everything available, no LLM cost
+#   ./scripts/jsat-selftest.sh --ci-safe           # no docker, no LLM, no external services
+#   ./scripts/jsat-selftest.sh --llm               # also make real AI provider calls
+#   ./scripts/jsat-selftest.sh --live-agent        # also drive a real headless claude agent
+#   ./scripts/jsat-selftest.sh --suite mcp,cli     # just these suites
+#   ./scripts/jsat-selftest.sh --list-suites
+#   ./scripts/jsat-selftest.sh --full              # pytest with no marker filter
+#   ./scripts/jsat-selftest.sh --out /tmp/report   # custom report path prefix
 
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

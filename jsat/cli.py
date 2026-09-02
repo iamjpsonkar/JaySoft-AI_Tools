@@ -7,6 +7,7 @@ them together so `jsat` resolves to the right Typer app.
 from __future__ import annotations
 
 import jsat._cli_ai  # noqa: F401  — registers ai subcommands
+import jsat._cli_analysis  # noqa: F401  — registers blast-radius/contract-check/security-review
 import jsat._cli_connect  # noqa: F401  — registers connect subcommands
 import jsat._cli_improve  # noqa: F401  — registers the improve command
 import jsat._cli_index  # noqa: F401  — registers index/graph commands

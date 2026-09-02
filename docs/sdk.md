@@ -35,7 +35,7 @@ JSAT(
 js = JSAT(repo=".")
 
 # Explicit AI provider
-js = JSAT(repo=".", ai_provider="ollama", model="phi3:mini")
+js = JSAT(repo=".", ai_provider="ollama", model="qwen2.5:0.5b")
 
 # Verbose logging for debugging
 js = JSAT(repo=".", log_level="DEBUG")
@@ -393,7 +393,7 @@ js = JSAT.from_import(archive, password=None)
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `archive` | `str \| Path` | (required) | Path to `.jsat.zip` archive |
-| `password` | `str \| None` | `None` | Decryption password if encrypted |
+| `password` | `str \| None` | `None` | Reserved. Encrypted archives are not implemented — `export()` does not encrypt, so passing a value raises `NotImplementedError` rather than silently doing nothing. |
 
 ```python
 from jsat import JSAT
@@ -402,6 +402,49 @@ js = JSAT.from_import("team-index.jsat.zip")
 print(js.index_status)
 # {'nodes': 1842, 'edges': 4391, 'commit': 'a3f91cc', 'is_fresh': True}
 ```
+
+---
+
+### `import_archive`
+
+Restore an exported archive into an **existing** instance. Use this when you
+already hold a `JSAT` object; use `JSAT.from_import` to build a new one.
+
+```python
+js.import_archive(archive, password=None)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `archive` | `str \| Path` | (required) | Path to `.jsat.zip` archive |
+| `password` | `str \| None` | `None` | Reserved. Encrypted archives are not implemented — `export()` does not encrypt, so passing a value raises `NotImplementedError` rather than silently doing nothing. |
+
+```python
+js = JSAT(repo=".")
+js.index()                              # local work
+js.import_archive("team-index.jsat.zip")  # replace with the shared index
+print(js.index_status["nodes"])
+```
+
+Restoring replaces the graph database file wholesale, so the open connection
+is released and re-created for you. Read the graph through the same instance
+afterwards — it reconnects on next access.
+
+---
+
+### `reload_graph`
+
+Drop the cached graph client so the next access reconnects.
+
+```python
+js.reload_graph()
+```
+
+Needed only if something outside JSAT replaces the database file underneath a
+live instance — for example another process running `jsat import`. The open
+connection (and, in WAL mode, its `-wal`/`-shm` sidecars) describes the old
+file, so reads through it would return pre-replacement contents.
+`import_archive` already does this for you.
 
 ---
 
@@ -440,7 +483,7 @@ Supported aliases:
 | `lmstudio` | `openai_compat` | Explicit model required |
 
 ```python
-js.switch_ai("ollama", model="phi3:mini")
+js.switch_ai("ollama", model="qwen2.5:0.5b")
 js.switch_ai("anthropic", model="<model>")
 js.switch_ai("gemini", model="<model>")
 js.switch_ai("custom", model="<model>", base_url="http://my-server:8080/v1")

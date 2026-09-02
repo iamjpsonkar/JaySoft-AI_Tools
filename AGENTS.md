@@ -4,8 +4,8 @@ Everything an AI agent needs to make a correct change to JSAT itself. Read this
 before touching the code. It is written for you, not for end users — the README
 describes what JSAT *does*; this describes how it is *built*.
 
-**Verify before you trust.** Facts here were reviewed at JSAT 0.4.12
-(2026-08-19). Counts drift. Re-derive anything load-bearing with `jsat index .`
+**Verify before you trust.** Facts here were reviewed at JSAT 0.4.17
+(2026-09-02). Counts drift. Re-derive anything load-bearing with `jsat index .`
 and the MCP tools rather than quoting this file back at the user.
 
 ---
@@ -19,13 +19,14 @@ then exposes that graph through three surfaces that share one core: a **CLI**
 any AI tool can call. Everything else — blast radius, security review, incident
 investigation, test gaps — is a query over that graph plus, optionally, an LLM.
 
-| | 0.4.12 |
+| | 0.4.17 |
 |---|---|
-| Python modules | 85 |
-| CLI commands (top level) | 33 |
-| MCP tools | 69 (`len(MCPServer._build_registry(...))`) |
-| Slash commands (`jsat/commands/*.md`) | 41 |
-| CI-safe pytest result | 499 passed / 9 skipped / 32 deselected across 26 files |
+| Python modules | 90 |
+| CLI commands (top level) | 38 |
+| MCP tools | 69 (`len(MCPServer(js)._registry)`) |
+| Slash commands (`jsat/commands/jsat-*.md`) | 47 (46 + help) |
+| CI-safe pytest result | 735 passed / 11 skipped / 34 deselected |
+| Self-test result | `./scripts/jsat-selftest.sh` — ~230 checks across 12 suites |
 | Graph of this repo | Run `jsat index .` and `jsat status` before relying on counts |
 
 ---
@@ -182,13 +183,38 @@ shell, and `jsat ai use`.
   (tmp_path fixtures). Never let a test touch `~/.jsat/`.
 - Follow `tests/test_mcp_server.py` for style: small builders, `MagicMock` for JSAT.
 
-**No-mocking black-box check**: `./scripts/jsat-selftest.sh` runs the real installed
-`jsat` binary end-to-end (real CLI calls, real scratch-repo index, real MCP stdio
-JSON-RPC handshake/tool-call). `--live-agent` additionally drives a real headless
-`claude -p` agent through jsat's real `--mcp-config` and a curated `/jsat` skill set
-— costs real API tokens, opt-in only. Writes a JSON+Markdown report any AI agent can
-read to triage failures. Any missing external dependency (Ollama, Neo4j, Qdrant, a
-CLI, an API key) is reported `unavailable`, never a false failure.
+**No-mocking black-box check**: `./scripts/jsat-selftest.sh` exercises the real
+installed artifact — real CLI subprocesses, a real multi-language scratch repo with
+real git history, the real MCP server over real stdio JSON-RPC, real connector files
+on disk, and the built wheel installed into a clean virtualenv. Suites live in
+`scripts/selftest/suites/`; `--list-suites` shows them, `--suite mcp,cli` runs a
+subset, `--ci-safe` restricts to what needs no docker/LLM/services.
+
+```bash
+./scripts/jsat-selftest.sh                 # everything available here, no LLM cost
+./scripts/jsat-selftest.sh --ci-safe       # no docker, no LLM, no external services
+./scripts/jsat-selftest.sh --llm           # also make real AI provider calls
+./scripts/jsat-selftest.sh --live-agent    # also drive a real headless claude agent
+```
+
+Three things about it matter when you extend JSAT:
+
+- **Coverage gates.** A new MCP tool, a new CLI command, or a new public SDK
+  method makes the suite RED until it is actually exercised
+  (`mcp_coverage_complete`, `cli_coverage_complete`, `sdk_coverage_complete`).
+  That is deliberate — add the case in the same change.
+- **Only third-party binaries are ever substituted.** Launcher and lifecycle
+  checks put a recorder stub on `PATH` in place of `claude`/`codex`/… and then
+  assert against the real argv and the real generated `--mcp-config`, because
+  "did we invoke claude correctly" cannot be observed without a TTY otherwise.
+  No JSAT code is stubbed anywhere.
+- **`unavailable` is not `fail`.** A missing dependency (Ollama, docker, an API
+  key, a CLI) is reported as `unavailable` with a remediation, never as a
+  failure and never silently skipped. Assertions must be tight enough that a
+  broken tool cannot pass as an empty result — several real bugs hid behind
+  `predicate=lambda p: p is not None`.
+
+Writes a JSON + Markdown report for an AI agent to triage.
 
 ---
 
@@ -255,18 +281,44 @@ publishes to PyPI, which is effectively permanent.
 
 ---
 
-## 9. Known debt (reviewed at 0.4.12)
+## 9. Known debt (reviewed at 0.4.17)
 
-- `mcp/tools.py` — a 47-entry `MCP_TOOLS` list nothing imports. Dead.
-- `skills/` — YAML skill registry; only `source.type == "script"` actually executes,
-  and `clusters.py` references skills that do not exist.
-- `_cli_skills_data.py` (~1,500 lines) and `mcp/server.py` (`_handle` complexity 52,
-  `cmd_disconnect` 49) are the biggest cohesion problems. Run `/jsat cohesion`.
-- `jsat ci-setup` generates a workflow calling `jsat blast-radius`,
-  `jsat contract-check`, `jsat security-review` — **none of which exist as CLI
-  commands**. Fix the template or add the commands.
-- Two parallel skill registries (`jsat/commands/*.md` and `_JSAT_SKILLS`) that must be
-  kept in sync by hand.
+Everything in the 0.4.12 list has been resolved — see CHANGELOG 0.4.17. What
+remains:
+
+- **`mypy` is declared strict and is not enforced.** `pyproject.toml` sets
+  `[tool.mypy] strict = true`, but `jsat/` has ~377 errors across 58 files and
+  `ci.yml` runs only `ruff`. The self-test ratchets the count so it cannot
+  grow (`MYPY_BASELINE` in `scripts/selftest/suites/packaging.py`) and reports
+  the declaration/reality gap as a separate finding. Decide one way or the
+  other: add mypy to CI and pay it down, or scope the config to what actually
+  holds.
+- **`_MinimalJSAT` (`_cli_setup.py`) is a second JSAT-shaped object.** The MCP
+  server deliberately avoids a full `JSAT()` init for startup latency, so this
+  shim re-implements a subset of the surface by hand. Every method added to
+  `JSAT` that an MCP tool calls must be mirrored here — `import_archive` was
+  missed exactly this way. A shared mixin would remove the class of bug.
+- **`Service` / `Endpoint` / `Table` / `Topic` nodes are still not persisted.**
+  The indexer never creates them; `mcp/server.py` infers services and
+  endpoints heuristically at request time
+  (`_infer_services_from_files`, `_infer_endpoints_from_functions`). So the MCP
+  surface reports services while the SDK and `jsat query` see none on the same
+  repo. Moving the inference into the indexer would make all three surfaces
+  agree.
+- **`skills/` (the YAML manifest registry) is still dormant.** `registry.run()`
+  executes only `source.type == "script"` and JSAT ships no manifests, so
+  `run_cluster` reports "not installed" for every step. The clusters are now
+  correct as documented *orderings* (they name real commands); they are not an
+  execution engine.
+- **Embeddings and vector stores are implemented but unwired**, and now say so
+  at the schema and in the docs. All retrieval is keyword/substring/Jaccard
+  based. Wiring them is a feature, not a bug fix.
+- **`graph.backend: neo4j` is partial by design.** Indexing, traversal, `edges()`
+  and blast radius work; anything going through `query()` needs SQLite,
+  because every tool call site emits SQLite SQL. It warns at construction.
+- `mcp/server.py` remains the biggest cohesion problem (`_handle` is ~450
+  lines juggling auth, RBAC, budgets, dashboards, metrics and error shaping).
+  Run `/jsat cohesion`.
 
 ---
 

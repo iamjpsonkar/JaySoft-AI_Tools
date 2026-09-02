@@ -125,7 +125,7 @@ JSAT auto-detects available providers at startup and picks the best one in prior
 3. **OpenAI Codex CLI** — detected via `which codex`; no API key after Codex sign-in
 4. **Anthropic API** — if `ANTHROPIC_API_KEY` is set and `jsat[anthropic]` is installed
 5. **OpenAI** — if `OPENAI_API_KEY` is set and `jsat[openai]` is installed
-6. **Ollama** — if `ollama serve` is running at `localhost:11434`
+6. **Ollama** — if `ollama serve` is running at `localhost:11434` *and at least one model is pulled* (a running daemon with zero models cannot complete a request — check `ollama list` first)
 7. **LM Studio** — if an OpenAI-compatible server is running at `localhost:1234`
 8. **No AI** — tools that don't need AI (indexing, blast radius, export) still work
 
@@ -139,7 +139,7 @@ jsat ai status        # shows all providers, which is active, and switch command
 
 ```bash
 jsat ai models ollama                     # discover registered local/cloud models
-jsat ai use ollama --model qwen2.5-coder:7b
+jsat ai use ollama --model qwen2.5:0.5b    # exact tag; see `ollama list`
 jsat ai use anthropic --model <model>     # needs ANTHROPIC_API_KEY
 jsat ai use openai --model gpt-4o-mini    # needs OPENAI_API_KEY
 jsat ai use claude_cli                    # Claude chooses its configured/default model
@@ -283,7 +283,7 @@ jsat connect codex                        # OpenAI Codex CLI — global MCP + $j
 jsat connect opencode                     # OpenCode — MCP + /jsat commands
 jsat connect ollama                       # Claude + Codex + OpenCode Ollama integrations
 jsat connect ollama tool=opencode         # only OpenCode (also accepts --tool opencode)
-jsat connect ollama opencode --model gemma4:31b-cloud  # + remember this model for `jsat ollama opencode`
+jsat connect ollama opencode --model <model>  # + remember this model for `jsat ollama opencode`
 jsat connect bob --global                 # Bob Shell — all sessions
 
 # If Ollama manages OpenCode, connect once and use Ollama's normal menu:
@@ -656,10 +656,10 @@ Three compression levels:
 | full | *(default)* | ~55% | Fragments + no explanatory preamble |
 | ultra | `--ultra` | ~70% | One bullet per fact, ≤8 words each |
 
-```bash
-jsat smart "what does the payment service do?"
-jsat smart --ultra "what does process_refund return?"
-jsat smart --lite "explain the checkout flow"
+```
+/jsat smart what does the payment service do?
+/jsat smart --ultra what does process_refund return?
+/jsat smart --lite explain the checkout flow
 ```
 
 Use as a fast fallback when `/jsat query` times out on large contexts.
@@ -1010,6 +1010,10 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat index . --force` | Full re-index — ignore incremental manifest |
 | `jsat index . --watch` | Re-index on file change (requires `brew install entr`) |
 | `jsat index . --languages python,go` | Index specific languages only |
+| `jsat blast-radius <target>` | Trace downstream impact of a change (offline) |
+| `jsat blast-radius --diff origin/main...HEAD` | Impact of a git range; `--output` writes Markdown |
+| `jsat contract-check --base origin/main` | API contract compatibility between two refs; exits non-zero on breaking changes |
+| `jsat security-review . --sarif security.sarif` | OWASP + secrets + dependency CVEs, with SARIF for CI |
 | `jsat shell` | Start the interactive JSAT REPL |
 | `jsat claude` | Open Claude Code with JSAT MCP tools loaded |
 | `jsat codex [CODEX_ARGS...]` | Open Codex CLI with JSAT pre-loaded; forwards args such as `resume <session-id>` |
@@ -1055,7 +1059,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat init --global` | Generate `~/.jsat/config.yaml` — applies to all projects |
 | `jsat init --profile team` | Team profile (Neo4j, Qdrant, Redis, Claude API) |
 | `jsat init --profile ci` | CI profile (SQLite, no AI, JSON logs) |
-| `jsat init --profile raspberry-pi` | Low-RAM profile (SQLite, phi3:mini, batch size 8) |
+| `jsat init --profile raspberry-pi` | Low-RAM profile (SQLite, Ollama, batch size 8, 100 KB file cap) |
 
 ### AI provider management
 
@@ -1064,7 +1068,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat ai status` | Show all providers: available, active, free/paid |
 | `jsat ai use <provider>` | Configure a provider and write to `.jsat/config.yaml` |
 | `jsat ai use <provider> --global` | Configure provider globally in `~/.jsat/config.yaml` |
-| `jsat ai use ollama --model phi3:mini` | Use a specific Ollama model |
+| `jsat ai use ollama --model qwen2.5:0.5b` | Use a specific Ollama model (exact tag) |
 | `jsat ai test` | Send a test prompt and verify the provider works |
 | `jsat ai models` | List models available from the configured provider |
 
@@ -1184,7 +1188,7 @@ budget = js.token_budget(my_context, "claude-cli")
 print(f"{budget['budget_pct']:.2f}% of context used ({budget['status']})")
 
 # Switch AI provider mid-session
-js.switch_ai("ollama", model="qwen2.5-coder:7b")
+js.switch_ai("ollama", model="qwen2.5:0.5b")
 js.switch_ai("anthropic", model="<model>")
 js.switch_ai("gpt", model="gpt-4o-mini")
 
@@ -1235,7 +1239,7 @@ Tool 9 dispatches the diff to all configured models in parallel, collects findin
 review:
   models:
     - {provider: claude_cli, model: claude-sonnet-4-6}
-    - {provider: ollama, model: qwen2.5-coder:7b}
+    - {provider: ollama, model: qwen2.5:0.5b}
   parallel_timeout_seconds: 90
   min_confidence: medium
 ```
@@ -1327,7 +1331,7 @@ embeddings:
 
 ai:
   provider: ollama         # also: anthropic, openai, openai_compat, claude_cli, opencode_cli, bob_cli, codex_cli, none
-  model: llama3.2
+  model: qwen2.5:0.5b
   base_url: null           # for openai_compat (LM Studio, Gemini, etc.)
 
 cache:
@@ -1355,10 +1359,10 @@ improve:
 
 | Profile | Graph | AI | Cache | Use case |
 |---|---|---|---|---|
-| `solo` | SQLite | Ollama / llama3.2 | Memory | Individual developer, no external services |
+| `solo` | SQLite | Ollama *(no model preselected)* | Memory | Individual developer, no external services |
 | `team` | Neo4j | Claude API | Redis | Shared graph, team-wide knowledge base |
 | `ci` | SQLite | None | Memory | GitHub Actions, no API keys, JSON logs |
-| `raspberry-pi` | SQLite | Ollama / phi3:mini | Disk | Low-RAM devices, batch size 8 |
+| `raspberry-pi` | SQLite | Ollama *(no model preselected)* | Disk | Low-RAM devices, batch size 8 |
 
 ### Config search order
 
@@ -1377,14 +1381,25 @@ JSAT finds its config file by checking these locations in order (first found win
 
 ## Supported Languages
 
-| Language | Parser | Notes |
+All seven are in the default `indexer.languages` list, so installing the
+grammar is all it takes — no config change. A language whose optional grammar
+is absent contributes no nodes for those files rather than failing the index.
+
+| Language | Parser | Grammar ships with |
 |---|---|---|
-| Python | tree-sitter-python | Core (always available) |
-| JavaScript / TypeScript | tree-sitter-javascript | Core |
-| Go | tree-sitter-go | Core |
-| Java | tree-sitter-java | Requires `jsat[standard]` |
-| Ruby | tree-sitter-ruby | Requires `jsat[standard]` |
-| Rust | tree-sitter-rust | Requires `jsat[standard]` |
+| Python | tree-sitter-python | core |
+| JavaScript / JSX | tree-sitter-javascript | core |
+| TypeScript / TSX | tree-sitter-javascript | core |
+| Go | tree-sitter-go | core |
+| Java | tree-sitter-java | `jsat[standard]` |
+| Ruby | tree-sitter-ruby | `jsat[standard]` |
+| Rust | tree-sitter-rust | `jsat[standard]` |
+
+Extracted per language: functions (parameters with types and defaults, return
+type, decorators/annotations, first doc line, cyclomatic complexity), classes
+(bases, interfaces, method count), and `CALLS` / `IMPORTS` / `INHERITS` /
+`IMPLEMENTS` / `RAISES` edges. Files over `indexer.max_file_size_kb`
+(default 500 KB) are skipped.
 
 ---
 

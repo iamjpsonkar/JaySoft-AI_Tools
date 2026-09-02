@@ -29,21 +29,21 @@ jsat ollama --tool claude
 Exact local model:
 
 ```bash
-ollama pull qwen3.5
-jsat ollama --tool claude --model qwen3.5
+ollama pull qwen2.5:0.5b      # or any tag from `ollama list`
+jsat ollama --tool claude --model qwen2.5:0.5b
 ```
 
 Exact cloud model:
 
 ```bash
 ollama signin
-jsat ollama --tool claude --model gemma4:31b-cloud
+jsat ollama --tool claude --model <model>-cloud
 ```
 
 Use `--yes` with `--model` to skip Ollama's selector. Arguments after `--` go to Claude:
 
 ```bash
-jsat ollama --tool claude -m gemma4:31b-cloud --yes -- -p "summarize this repo"
+jsat ollama --tool claude -m <model>-cloud --yes -- -p "summarize this repo"
 ```
 
 The chosen model applies to this launched Claude process. It does not overwrite
@@ -66,7 +66,7 @@ Ollama-selected model. Both checks are required: one proves MCP, the other prove
 ## Managed lifecycle
 
 ```bash
-jsat start claude --via ollama --model qwen3.5
+jsat start claude --via ollama --model qwen2.5:0.5b
 jsat ps
 jsat restart claude
 jsat stop claude
@@ -83,7 +83,7 @@ want only this route.
 - If `/jsat` exists but MCP calls fail, reconnect and fully restart the launched Claude process.
 - If Ollama reports a missing local model, pull the exact model/tag shown in the command.
 - If a cloud model fails, run `ollama signin`; do not replace it with an unrelated local model.
-- If errors mention the OpenAI provider with an Ollama model such as `llama3.2`, routing is
+- If errors mention the OpenAI provider with an Ollama model such as `qwen2.5:0.5b`, routing is
   mixed. Launch through this command or configure `jsat ai use ollama`, depending on which
   execution path you intended.
 

@@ -153,17 +153,37 @@ def _format_timeout_text(result: dict) -> str:
 
 
 # ── Role definitions ──────────────────────────────────────────────────────────
-# viewer  : read-only tools (query, get_*, list_*, knowledge_query, health, status)
-# developer: + blast_radius_*, security, incident, review, migration
-# admin   : all tools including index writes and import
+# viewer   : reads an existing index and answers questions about it. May ask
+#            the configured AI (query, knowledge_query, short) and may do
+#            local computation, but never mutates the index, writes a file, or
+#            changes configuration.
+# developer: + everything that scans the tree, rebuilds or exports the index,
+#            spends tokens on generation, or records knowledge.
+# admin    : unrestricted. Only `import_index` is admin-exclusive — it
+#            replaces the entire graph database.
 _ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
+    # Reads an existing graph or does local computation. Some entries here
+    # (query, knowledge_query, short) call the configured AI — that is
+    # inherent to answering a question and was already true of `query`. What
+    # none of them do is mutate the index, write a file, or change config.
+    #
+    # `ithinking_execute` is deliberately NOT here: its handler runs the same
+    # implementation as `ithinking_plan`, which is developer-gated, so
+    # granting one and not the other let a viewer reach a developer
+    # capability by calling the other name.
     "viewer": frozenset({
         "query", "health", "get_index_status", "get_jsat_version",
         "get_function", "get_class", "get_data_flow",
         "list_services", "list_endpoints", "list_tables",
-        "trace_call_chain", "get_consumers",
+        "trace_call_chain", "get_consumers", "get_consumers_of_endpoint",
         "knowledge_query", "knowledge_search", "knowledge_list",
         "get_metrics", "improve_status",
+        "lookup_index_md",
+        "blast_radius_file", "blast_radius_topic", "trace_data_flow",
+        "token_count", "token_compress", "token_budget",
+        "ithinking_token_estimate",
+        "prompt_diff", "prompt_optimize",
+        "short",
     }),
     "developer": frozenset({
         # inherits viewer
@@ -182,11 +202,53 @@ _ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "get_behavioral_coverage", "list_untested_paths", "get_test_gaps",
         "submit_for_review", "get_review_findings", "get_high_confidence_bugs",
         "suggest_zero_downtime", "validate_migration",
+        "estimate_lock_duration",
         "knowledge_add", "knowledge_flag_stale",
         "ithinking_plan", "ithinking_reflect", "ithinking_audit_assumptions",
+        # everything viewer can do
+        "get_consumers_of_endpoint", "lookup_index_md",
+        "blast_radius_file", "blast_radius_topic", "trace_data_flow",
+        "token_count", "token_compress", "token_budget",
+        "ithinking_execute", "ithinking_token_estimate",
+        "prompt_diff", "prompt_optimize", "short",
+        # developer extras: writes files, re-reads the tree, spends tokens
+        "index_repo", "create_index_md", "export_index",
+        "security_scan_file", "get_dependency_cves",
+        "generate_unit_test", "generate_integration_test",
+        "generate_contract_test",
+        "crack", "prompt_rewrite", "prompt_multi_agent",
     }),
+    # NOTE: `import_index` is deliberately admin-only. It replaces the whole
+    # graph database wholesale, so it is the one tool here that can destroy
+    # an existing index rather than add to or read from it.
     "admin": frozenset(),  # empty = unrestricted, resolved below
 }
+
+
+def _repo_path(js: object, value: str | None, default: str = ".") -> str:
+    """Resolve a caller-supplied filesystem path against the indexed repo.
+
+    An AI client passes the paths it can see, which are the repo-relative
+    ones stored in the graph (e.g. "svc_payments/config.py"). The MCP server,
+    however, inherits its cwd from whatever launched it — usually the editor's
+    working directory, not the repo — so treating those as cwd-relative was
+    wrong in a dangerous way: `validate_migration` raised ENOENT, while
+    `security_scan_file` and `get_test_gaps` scanned nothing and reported a
+    confident all-clear. Absolute paths are passed through untouched.
+
+    This applies only to arguments that hit the filesystem. Arguments matched
+    against graph node ids (get_function's `file`, blast_radius_file's
+    `path`) must stay relative, because that is the form the ids are in.
+    """
+    from pathlib import Path
+    raw = value if value not in (None, "") else default
+    candidate = Path(str(raw)).expanduser()
+    if candidate.is_absolute():
+        return str(candidate)
+    repo = getattr(js, "_repo", None)
+    if repo is None:
+        return str(candidate)
+    return str((Path(repo) / candidate).resolve())
 
 
 def _allowed(role: str, tool: str) -> bool:
@@ -761,7 +823,8 @@ class MCPServer:
                     "incremental": {"type": "boolean"},
                     "branch": {"type": "string"}}},
                 "handler": lambda a: _ser(js.index(  # type: ignore[attr-defined]
-                    path=a.get("path"), force=a.get("force", False))),
+                    path=_repo_path(js, a.get("path")),
+                    force=a.get("force", False))),
             },
             "get_index_status": {
                 "description": "Return graph index statistics (node/edge counts, freshness).",
@@ -781,7 +844,7 @@ class MCPServer:
                     "max_files": {"type": "integer", "default": 500,
                                   "description": "Max files to include (default 500)"}}},
                 "handler": lambda a: _create_index_md_impl(
-                    js, a.get("path", "."), a.get("max_files", 500),
+                    js, _repo_path(js, a.get("path")), a.get("max_files", 500),
                     _notify=a.get("_notify"),
                 ),
             },
@@ -999,7 +1062,7 @@ class MCPServer:
                         "enum": ["critical", "high", "medium", "low"],
                         "default": "medium"}}},
                 "handler": lambda a: _ser(js.security_review(  # type: ignore[attr-defined]
-                    path=a.get("path", "."),
+                    path=_repo_path(js, a.get("path")),
                     severity_threshold=a.get("severity_threshold", "medium"))),
             },
             "list_secrets": {
@@ -1011,7 +1074,8 @@ class MCPServer:
                     "path": {"type": "string",
                              "description": "Directory to scan (default: repo root)"}}},
                 "handler": lambda a: _ser(js.security_review(  # type: ignore[attr-defined]
-                    path=a.get("path", "."), severity_threshold="low")),
+                    path=_repo_path(js, a.get("path")),
+                    severity_threshold="low")),
             },
 
             # ── Incident ──────────────────────────────────────────────────
@@ -1099,7 +1163,7 @@ class MCPServer:
                 ),
                 "schema": {"type": "object", "required": ["file"],
                            "properties": {"file": {"type": "string"}}},
-                "handler": lambda a: _run_migration(js, a["file"]),
+                "handler": lambda a: _run_migration(js, _repo_path(js, a["file"])),
             },
             "suggest_zero_downtime": {
                 "description": (
@@ -1276,7 +1340,8 @@ class MCPServer:
                                           "severity": {"type": "string", "default": "medium"}}},
                 "handler": lambda a: _ser(
                     js.security_review(  # type: ignore[attr-defined]
-                        path=a["file"], severity_threshold=a.get("severity", "medium"))),
+                        path=_repo_path(js, a["file"]),
+                        severity_threshold=a.get("severity", "medium"))),
             },
             "get_auth_coverage": {
                 "description": (
@@ -1287,16 +1352,17 @@ class MCPServer:
             },
             "get_dependency_cves": {
                 "description": (
-                    "List dependency CVEs above a CVSS threshold "
-                    "(osv.dev integration planned for v0.3)."
+                    "List dependency CVEs at or above a CVSS threshold, "
+                    "looked up live against osv.dev."
                 ),
                 "schema": {"type": "object",
-                           "properties": {"cvss_min": {"type": "number", "default": 7.0}}},
-                "handler": lambda a: _ser({
-                    "status": "not_implemented",
-                    "tool": "get_dependency_cves",
-                    "message": "CVE scanning planned for v0.3. Use jsat__security_review for now.",
-                    "alternative": "jsat__security_review"}),
+                           "properties": {
+                               "cvss_min": {"type": "number", "default": 7.0},
+                               "path": {"type": "string",
+                                        "description": "Directory to scan "
+                                                       "(default: repo root)"}}},
+                "handler": lambda a: _ser(_get_dependency_cves_impl(
+                    js, _repo_path(js, a.get("path")), a.get("cvss_min", 7.0))),
             },
             "trace_data_flow": {
                 "description": "Trace user input through the codebase to find injection risks.",
@@ -2069,7 +2135,7 @@ def _get_data_flow_impl(js: object, service: str | None) -> list[dict]:
     _DATA_EDGE_TYPES = frozenset({"READS_FROM", "WRITES_TO", "PRODUCES", "CONSUMES"})
     try:
         g = js._get_graph()  # type: ignore[attr-defined]
-        edges = g.edges(edge_types=list(_DATA_EDGE_TYPES))  # type: ignore[attr-defined]
+        edges = g.edges(edge_types=list(_DATA_EDGE_TYPES))
         if service:
             edges = [e for e in edges
                      if service.lower() in str(e.get("source", "")).lower()
@@ -2161,7 +2227,7 @@ def _get_consumers_impl(js: object, target: str, max_consumers: int = 200) -> li
     try:
         g = js._get_graph()  # type: ignore[attr-defined]
         _budget_checkpoint("get_consumers: fetching edges from graph")
-        edges = g.edges(edge_types=list(_CONSUMER_EDGE_TYPES))  # type: ignore[attr-defined]
+        edges = g.edges(edge_types=list(_CONSUMER_EDGE_TYPES))
         # Pre-cap before Python-side filter to bound memory on large graphs
         edges = edges[: max_consumers * 5]
         consumers: list[dict] = []
@@ -2421,9 +2487,11 @@ def _import_index_impl(js: object, archive: str) -> dict:
     log = structlog.get_logger(__name__)
     log.info("import_index", archive=archive)
     try:
-        from jsat.tools.export import ExportTool
-        tool = ExportTool(graph=js._get_graph(), cfg=js._cfg)  # type: ignore[attr-defined]
-        tool.restore(Path(archive))
+        # Goes through JSAT.import_archive, which releases and re-creates the
+        # graph client around the file replacement. Calling ExportTool.restore
+        # directly here left this long-lived server holding a handle to the
+        # replaced database, so every subsequent tool call failed.
+        js.import_archive(Path(archive))  # type: ignore[attr-defined]
         log.info("import_index_done", archive=archive)
         return {"status": "ok", "archive": archive,
                 "message": "Index restored successfully"}
@@ -2439,8 +2507,9 @@ def _run_test_gaps(js: object, args: dict) -> str:
 
     from jsat.tools.test_helper import TestHelperTool
     tool = TestHelperTool(graph=js._get_graph(), cfg=js._cfg)  # type: ignore[attr-defined]
-    r = tool.run(path=Path(args["path"]) if "path" in args else None,
-                 service=args.get("service"))
+    # Resolve against the repo, not the server's cwd — see _repo_path.
+    scan_path = Path(_repo_path(js, args["path"])) if "path" in args else None
+    r = tool.run(path=scan_path, service=args.get("service"))
     lines = [
         f"Coverage: {r.coverage_pct:.1f}%",
         f"Untested functions: {len(r.untested_functions)}",
@@ -2451,6 +2520,61 @@ def _run_test_gaps(js: object, args: dict) -> str:
         lines.append("\nTop untested:")
         lines.extend(f"  - {fn}" for fn in r.untested_functions[:10])
     return "\n".join(lines)
+
+
+def _get_dependency_cves_impl(js: object, path: str,
+                              cvss_min: float) -> dict[str, Any]:
+    """Look up CVEs for the pinned dependencies under `path`.
+
+    This used to return `{"status": "not_implemented", "message": "planned for
+    v0.3"}` while the capability was already shipping and working — the same
+    osv.dev lookup that `security_review` performs. It now calls that lookup
+    directly, so the tool reports what JSAT can actually see instead of
+    sending the agent away.
+    """
+    from pathlib import Path
+
+    import structlog
+    log = structlog.get_logger(__name__)
+    log.info("get_dependency_cves", path=path, cvss_min=cvss_min)
+    try:
+        from jsat._models import CVEFinding  # noqa: F811
+        from jsat.tools.security import SecurityTool
+        tool = SecurityTool(graph=js._get_graph(), cfg=js._cfg)  # type: ignore[attr-defined]
+        cves: list[CVEFinding] = tool._check_cves(Path(path), log)
+
+        def _row(c: CVEFinding) -> dict[str, Any]:
+            return {"package": c.package, "version": c.version,
+                    "cve_id": c.cve_id, "cvss": c.cvss, "severity": c.severity,
+                    "fix_version": c.fix_version,
+                    "description": c.description}
+
+        # Many OSV/GHSA records carry no CVSS_V3 entry, so _check_cves scores
+        # them 0.0. Filtering on the default cvss_min=7.0 therefore hid real
+        # advisories and reported count=0 — a false all-clear from a CVE
+        # tool. Unscored advisories are surfaced separately instead of being
+        # silently dropped.
+        above = [c for c in cves if (getattr(c, "cvss", 0.0) or 0.0) >= cvss_min]
+        unscored = [c for c in cves if not (getattr(c, "cvss", 0.0) or 0.0)]
+        below = [c for c in cves
+                 if c not in above and c not in unscored]
+        return {
+            "cvss_min": cvss_min,
+            "count": len(above),
+            "packages_with_cves": len({getattr(c, "package", "?") for c in above}),
+            "scanned_total": len(cves),
+            "cves": [_row(c) for c in above],
+            "unscored_count": len(unscored),
+            "unscored_note": (
+                f"{len(unscored)} advisory(ies) have no CVSS score in the "
+                "OSV record and are NOT included in `count`; review them."
+            ) if unscored else "",
+            "unscored_cves": [_row(c) for c in unscored],
+            "below_threshold_count": len(below),
+        }
+    except Exception as e:
+        log.error("get_dependency_cves_error", error=str(e))
+        return {"error": str(e)}
 
 
 def _run_migration(js: object, file_path: str) -> str:

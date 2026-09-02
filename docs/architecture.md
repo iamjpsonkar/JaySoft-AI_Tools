@@ -6,16 +6,19 @@ description.
 
 ## Verified snapshot
 
+Measured at 0.4.17.
+
 | Measure | Current value |
 |---|---:|
 | Python modules under `jsat/` | 90 |
-| Python source lines under `jsat/` | 26,914 |
-| Top-level CLI commands | 33 |
+| Python source lines under `jsat/` | 27,613 |
+| Top-level CLI commands | 41 |
 | MCP tools | 69 |
 | Shipped slash-command documents | 47 |
-| Self-index graph | 1,950 nodes / 9,004 edges |
-| Graph nodes | 1,635 functions, 185 classes, 122 files, 8 knowledge nodes |
-| CI-safe pytest run | 611 passed / 9 skipped / 34 deselected |
+| Self-index graph | 2,530 nodes / 12,008 edges |
+| Graph nodes | 2,087 functions, 220 classes, 158 files, 65 knowledge nodes |
+| CI-safe pytest run | 804 passed / 11 skipped |
+| No-mocking self-test | ~250 checks across 12 suites |
 
 The current repository is a **layered modular monolith**. The CLI, SDK, shell, and MCP server
 are adapters around one `JSAT` facade. The facade lazily selects graph and AI adapters, while
@@ -297,9 +300,14 @@ flowchart LR
     AI -->|no| DEG[Explicit AI-unavailable result]
 ```
 
-The main `QueryTool` currently uses lexical matching over graph properties. Embedding and cache
-adapter packages exist, but the query path does not instantiate them. They are architectural
-extension points rather than active dependencies in this flow.
+The main `QueryTool` uses lexical matching over graph properties. The embedding
+and vector-store adapter packages exist and are unit-tested, but nothing in the
+indexing or query path instantiates them — they are architectural extension
+points, not active dependencies. Since 0.4.17 the config schema and
+`docs/configuration.md` state this explicitly, so those settings no longer
+read as live semantic retrieval. Cache lookups key on an exact
+`(query, context_hash)` pair; the inert `cache.similarity_threshold`, which the
+docs had described as cosine matching, was removed.
 
 ### The `/jsat` skill dispatcher: input correction, learning, and the internet exception
 
@@ -503,20 +511,31 @@ deprecation warnings from `datetime.utcnow()` in the generated `INDEX.md` path. 
 |---|---|---|
 | High | `mcp/server.py` is 2,881 lines and `_handle` has measured complexity 52 | Registry, transport, auth, budgets, dashboards, metrics, and serialization change together |
 | High | The MCP “hard timeout” is `Future.result(timeout=...)` over a worker thread; `shutdown(wait=False)` cannot terminate code already running | The client receives a timeout response, but the underlying operation may continue using resources or mutating state |
-| High | `_cli_skills_data.py` and command Markdown are parallel hand-maintained registries | A new or renamed slash command can silently diverge across clients |
-| High | `JSAT.index_status` returns `commit=None` and `is_fresh=True` whenever graph access works | Health reports graph availability, not actual Git/index freshness |
-| Medium | `GraphConfig` accepts `lightgraph`, but `JSAT._get_graph()` selects Neo4j or `SQLiteGraph`; it never constructs `LightGraph` | The advertised configuration value does not select its named backend through the SDK facade |
-| Medium | Embedding and cache backends are implemented but not wired into the main query flow | Config implies semantic retrieval/caching that `QueryTool` currently does not use |
-| Medium | Neo4j `bulk_add_nodes` and `bulk_add_edges` loop item-by-item; symbol resolution is skipped for non-SQLite backends | Team indexing can be slower and may preserve unresolved call/import targets |
-| Medium | YAML skill clusters reference skills that may not exist; non-script dispatch mostly returns instructions | This registry is secondary to shipped command Markdown and is only partially executable |
-| Medium | Current docs still contain 0.4.12 examples while package metadata is 0.4.14 | Operators can mistake documentation snapshots for runtime truth |
-| Low | The local test doctor reports two stale/shadowing installations | Console-script behavior may differ by environment even while source-root tests are green |
-| Low | Generated index timestamps call deprecated `datetime.utcnow()` | Python deprecation warnings add noise and will eventually require a code change |
+| High | `Service` / `Endpoint` / `Table` / `Topic` nodes are never persisted by the indexer; `mcp/server.py` infers services and endpoints heuristically per request | The MCP surface reports services while the SDK and `jsat query` see none on the same repo — the three surfaces disagree about what the graph contains |
+| Medium | `mypy` is declared `strict = true` in `pyproject.toml` but not run by CI; ~373 errors remain | The declaration is not enforced. The self-test ratchets the count so it cannot grow and reports the gap as its own finding |
+| Medium | `_MinimalJSAT` in `_cli_setup.py` is a second, hand-maintained JSAT-shaped object | Any method an MCP tool calls must be mirrored there; `import_archive` was missed exactly this way |
+| Medium | Embedding and vector-store backends are implemented but have no call sites | Retrieval is entirely lexical. Now marked `NOT YET WIRED IN` at the schema and in the docs, so config no longer implies otherwise |
+| Medium | `graph.backend: neo4j` is partial by design — every tool that issues a graph query emits SQLite SQL, which the Neo4j backend rejects | Indexing, traversal and blast radius work; `query`/`feature`/`get_test_gaps` do not. It now warns at construction naming what degrades |
+| Medium | Neo4j `bulk_add_nodes` / `bulk_add_edges` loop item-by-item; symbol resolution is skipped for non-SQLite backends | Team indexing is slower and may preserve unresolved call/import targets |
+| Medium | `crack.py` and `orchestrator.py` are near-duplicate multi-agent engines with large inline prompts and no shared code | Two places to change for one behaviour |
+| Low | The YAML skill registry (`skills/`) executes only `source.type == "script"`, and no manifests ship | Clusters are correct as documented *orderings* of real commands, not an execution engine |
+| Low | Token accounting is a chars-per-token heuristic (±12% claimed), chosen over a `tiktoken` dependency | Every budget decision is approximate by design |
+| Low | A moved or renamed checkout silently orphans its index | The global store is keyed by a hash of the absolute repo path |
+| Low | Generated index timestamps call deprecated `datetime.utcnow()` | Deprecation warnings add noise and will eventually require a change |
 
-The largest cohesion hotspots after `mcp/server.py` are `_cli_skills_data.py` (1,694 lines),
-`_cli_connect.py` (1,291), `tools/shell.py` (1,188), and `tools/prompt_optimizer.py` (902).
-Measured function hotspots include `cmd_disconnect` (complexity 61), `MCPServer._handle` (52),
-and `cmd_ai_use` (36).
+Resolved in 0.4.17: the parallel slash-command registries (`_JSAT_SKILLS` is
+now derived from `jsat/commands/*.md`), the dangling skill clusters, the dead
+second tool catalogue (`mcp/tools.py`, deleted), and the unenforced graph
+capacity caps. `JSAT.index_status` returns a real commit and computes
+freshness against git HEAD; `GraphConfig`'s `lightgraph` value does select
+`LightGraph` through the facade — both earlier entries were inaccurate.
+
+The largest cohesion hotspots after `mcp/server.py` are `_cli_connect.py`
+(~1,290 lines), `tools/shell.py` (~1,190), and `tools/prompt_optimizer.py`
+(~900). `_cli_skills_data.py` dropped from 1,694 to ~690 lines in 0.4.17 when
+the duplicated skill registry became a derivation. Measured function hotspots
+include `cmd_disconnect` (complexity 61), `MCPServer._handle` (52), and
+`cmd_ai_use` (36).
 
 ## 15. Recommended evolution
 

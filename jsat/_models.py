@@ -40,6 +40,7 @@ class GraphConfig(BaseModel):
 
 
 class VectorStoreConfig(BaseModel):
+    """Vector-store settings. NOT YET WIRED IN — see EmbeddingsConfig."""
     backend: Literal["sqlite-vss", "qdrant", "pgvector"] = "sqlite-vss"
     path: str = ".jsat/vectors/"
     remote_uri: str | None = None
@@ -48,6 +49,12 @@ class VectorStoreConfig(BaseModel):
 
 
 class EmbeddingsConfig(BaseModel):
+    """Embedding settings.
+
+    NOT YET WIRED IN: nothing in indexing or querying calls an embedder, so
+    these values are validated and stored but do not affect results. See
+    docs/configuration.md.
+    """
     provider: Literal["local", "openai", "huggingface", "none"] = "local"
     model: str = "nomic-embed-code"
     api_key_env: str = "OPENAI_API_KEY"
@@ -78,14 +85,21 @@ class CacheConfig(BaseModel):
     enabled: bool = True
     backend: Literal["memory", "disk", "redis"] = "memory"
     redis_uri: str | None = None
-    similarity_threshold: float = 0.95
     ttl_seconds: int = 3600
     max_memory_mb: int = 512
     disk_path: str = ".jsat/cache/"
 
 
 class IndexerConfig(BaseModel):
-    languages: list[str] = Field(default_factory=lambda: ["python", "javascript", "go"])
+    # Every language a parser exists for. A language whose optional tree-sitter
+    # grammar is not installed degrades to zero nodes for those files (see
+    # tools/indexer._parse_file) rather than failing the index, so listing them
+    # all here is safe on a core-only install. Defaulting to a subset silently
+    # dropped .ts/.java/.rb/.rs files even when their grammar WAS installed,
+    # which contradicted the documented language support.
+    languages: list[str] = Field(default_factory=lambda: [
+        "python", "javascript", "typescript", "go", "java", "ruby", "rust",
+    ])
     exclude_patterns: list[str] = Field(default_factory=lambda: [
         ".git", ".claude", "node_modules", "__pycache__", ".venv", "vendor", "dist", "build",
     ])

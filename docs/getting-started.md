@@ -35,7 +35,13 @@ This guide walks from zero to a working JSAT session in five steps.
     pip install jsat[standard]
     ```
 
-    Adds Semgrep for security scanning, OpenAPI validation, and parsers for Java, Ruby, and Rust.
+    Adds Semgrep for security scanning, OpenAPI validation, and
+    tree-sitter grammars for Java, Ruby, and Rust. Those languages are
+    in the default `indexer.languages` list, so installing this extra
+    is all it takes for their files to be indexed — no config change
+    needed. (Before 0.4.17 the default list covered only Python,
+    JavaScript and Go, so those files were silently skipped even with
+    the grammars installed.)
 
 === "Team (Neo4j + Redis)"
 
@@ -182,7 +188,7 @@ jsat index . --languages python,go
 
     ```bash
     ollama serve          # in a separate terminal
-    ollama pull llama3.2  # first time only
+    ollama pull qwen2.5:0.5b  # first time only; `ollama list` to confirm
     jsat ollama
     ```
 

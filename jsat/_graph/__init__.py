@@ -73,6 +73,44 @@ class GraphClient(ABC):
         """
         ...
 
+    def checkpoint(self) -> None:
+        """Flush pending writes into the primary on-disk database.
+
+        Matters for any caller that copies the database file rather than
+        querying through this client. The SQLite backends run in WAL mode, so
+        freshly committed rows live in a `-wal` sidecar until a checkpoint
+        moves them across; copying the main file before that yields a file
+        that is valid, readable and missing the data. Backends with no
+        file-level representation may leave this as a no-op.
+        """
+        return None
+
+    def edges(
+        self,
+        edge_types: list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return edges as dicts with keys: source, target, type, properties.
+
+        Optionally filtered to ``edge_types``. Concrete backends override this
+        with a single indexed query; the fallback here walks nodes so a
+        backend that only implements the abstract primitives still works.
+        """
+        wanted = set(edge_types) if edge_types else None
+        out: list[dict[str, Any]] = []
+        for row in self.query("MATCH (n) RETURN n"):
+            node_id = row.get("id") if isinstance(row, dict) else None
+            if not node_id:
+                continue
+            for edge_type, target_id, props in self.outgoing_edges(str(node_id)):
+                if wanted is not None and edge_type not in wanted:
+                    continue
+                out.append({"source": node_id, "target": target_id,
+                            "type": edge_type, "properties": props})
+                if limit is not None and len(out) >= limit:
+                    return out
+        return out
+
     @abstractmethod
     def node_count(self) -> int: ...
 

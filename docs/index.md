@@ -83,7 +83,7 @@ JSAT detects your environment on first run and selects the right backends automa
 | Team server (Neo4j + Qdrant + Redis) | Neo4j | text-embedding-3-small | Redis |
 | Apple M-series / ARM | SQLite | nomic-embed-code via Metal | disk |
 | CI environment | SQLite | none (skipped) | memory |
-| Raspberry Pi (< 4 GB RAM) | SQLite | nomic-embed-code (phi3:mini) | disk |
+| Raspberry Pi (< 4 GB RAM) | SQLite | nomic-embed-code | disk |
 
 ## Supported AI Providers
 
