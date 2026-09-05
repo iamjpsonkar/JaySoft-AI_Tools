@@ -205,7 +205,7 @@ jsat connect github [TOOL] [OPTIONS]
 
 | Argument / Flag | Default | Description |
 |---|---|---|
-| `TOOL` | `claude` | `claude`, `cursor`, `codex`, `bob`, `windsurf`, `gemini` |
+| `TOOL` | `claude` | `claude`, `cursor`, `codex`, `opencode`, `bob`, `windsurf`, `gemini` |
 | `--scope` / `-s` | `project` | `project` (this repo) or `global` (all projects) |
 | `--global` / `-g` | false | Shorthand for `--scope global` |
 | `--remote` | false | Use GitHub's hosted endpoint instead of the local Docker image |

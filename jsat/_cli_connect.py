@@ -729,14 +729,15 @@ _MCP_CONFIG_PATHS: dict[str, tuple[str, str]] = {
     "bob":      (".bob/settings.json",     ".bob/settings.json"),
     "windsurf": (".codeium/windsurf/mcp_config.json", ".codeium/windsurf/mcp_config.json"),
     "gemini":   (".gemini/settings.json",  ".gemini/settings.json"),
+    "opencode": (".opencode/opencode.json", ".config/opencode/opencode.json"),
 }
 
 
 @connect_app.command("github")
 def cmd_connect_github(
     tool: str = typer.Argument(
-        "claude", help="AI tool to wire GitHub into: claude | cursor | codex | bob "
-                       "| windsurf | gemini",
+        "claude", help="AI tool to wire GitHub into: claude | cursor | codex | opencode "
+                       "| bob | windsurf | gemini",
     ),
     scope: str = typer.Option(
         "project", "--scope", "-s", help="'project' (this repo) | 'global' (all projects)",
@@ -799,11 +800,14 @@ def cmd_connect_github(
         raise typer.Exit(1)
 
     effective_scope = "global" if global_ else scope
-    project_rel, global_rel = _MCP_CONFIG_PATHS[tool_key]
     if tool_key == "codex":
         effective_scope = "global"
         config_path = _codex_jsat_config_path()
+    elif tool_key == "opencode":
+        # XDG-config-aware, matching `jsat connect opencode`'s scopes.
+        config_path = _opencode_config_path(effective_scope, str(Path(repo).resolve()))
     else:
+        project_rel, global_rel = _MCP_CONFIG_PATHS[tool_key]
         config_path = (
             Path.home() / global_rel if effective_scope == "global"
             else Path(repo).resolve() / project_rel
@@ -858,6 +862,38 @@ def cmd_connect_github(
             )
         settings = {}
         has_jsat = _has_toml_mcp_server(config_path, "jsat")
+    elif tool_key == "opencode":
+        # OpenCode uses the `mcp` key with typed local/remote entries (the same
+        # shape `jsat connect opencode` writes for the jsat server).
+        settings = _read_json_or_abort(config_path)
+        settings.setdefault("mcp", {})
+        already = "github" in settings["mcp"]
+        if remote:
+            settings["mcp"]["github"] = {"type": "remote", "url": _GITHUB_MCP_REMOTE}
+        else:
+            if token_env == "GITHUB_PERSONAL_ACCESS_TOKEN":
+                # docker -e copies the var from the parent process environment —
+                # only the NAME appears here, never the value, exactly like the
+                # JSON-tool path.
+                command = [
+                    "docker", "run", "-i", "--rm",
+                    "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+                    _GITHUB_MCP_IMAGE,
+                ]
+            else:
+                # docker cannot rename the env var it copies. Shim through sh so
+                # a custom NAME reaches the container (same as the Codex path).
+                command = [
+                    "sh", "-c",
+                    "exec docker run -i --rm "
+                    f"-e GITHUB_PERSONAL_ACCESS_TOKEN=\"${{{token_env}}}\" "
+                    f"{_GITHUB_MCP_IMAGE}",
+                ]
+            settings["mcp"]["github"] = {
+                "type": "local", "command": command, "enabled": True,
+            }
+        _write_json(config_path, settings)
+        has_jsat = "jsat" in settings["mcp"]
     else:
         settings = _read_json_or_abort(config_path)
         settings.setdefault("mcpServers", {})

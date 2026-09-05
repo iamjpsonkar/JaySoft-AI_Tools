@@ -6,6 +6,7 @@ environment variable NAME is written, for the MCP client to expand at run time.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -110,6 +111,101 @@ def test_supports_codex_with_global_toml(monkeypatch, tmp_path):
     assert "[mcp_servers.github]" in raw
     assert "ghcr.io/github/github-mcp-server" in raw
     assert not (tmp_path / ".codex").exists()
+
+
+def _opencode_config(repo: Path) -> dict:
+    return json.loads((repo / ".opencode" / "opencode.json").read_text())
+
+
+@pytest.mark.ci
+def test_supports_opencode_project_scope_local_docker(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "ghp_supersecrettokenvalue123")
+
+    result = runner.invoke(app, ["connect", "github", "opencode", "--repo", str(tmp_path)])
+    assert result.exit_code == 0
+
+    cfg = _opencode_config(tmp_path)
+    entry = cfg["mcp"]["github"]
+    assert entry["type"] == "local"
+    assert entry["command"][0] == "docker"
+    assert "ghcr.io/github/github-mcp-server" in entry["command"]
+    # The token VALUE must never reach disk — only the env var name.
+    raw = (tmp_path / ".opencode" / "opencode.json").read_text()
+    assert "ghp_supersecrettokenvalue123" not in raw
+
+
+@pytest.mark.ci
+def test_supports_opencode_remote_no_docker(tmp_path):
+    result = runner.invoke(app, [
+        "connect", "github", "opencode", "--repo", str(tmp_path), "--remote",
+    ])
+    assert result.exit_code == 0
+
+    entry = _opencode_config(tmp_path)["mcp"]["github"]
+    assert entry["type"] == "remote"
+    assert entry["url"].startswith("https://api.githubcopilot.com")
+    assert "command" not in entry
+
+
+@pytest.mark.ci
+def test_supports_opencode_global_scope_uses_xdg_config_home(tmp_path, monkeypatch):
+    xdg = tmp_path / "xdg"
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+
+    result = runner.invoke(app, [
+        "connect", "github", "opencode", "--repo", str(tmp_path), "--global",
+    ])
+    assert result.exit_code == 0
+
+    cfg_path = xdg / "opencode" / "opencode.json"
+    assert cfg_path.exists()
+    assert "github" in json.loads(cfg_path.read_text())["mcp"]
+    assert not (tmp_path / ".opencode").exists()
+
+
+@pytest.mark.ci
+def test_supports_opencode_custom_token_env_wrapped_in_sh(tmp_path):
+    result = runner.invoke(app, [
+        "connect", "github", "opencode", "--repo", str(tmp_path),
+        "--token-env", "MY_GH_TOKEN",
+    ])
+    assert result.exit_code == 0
+
+    entry = _opencode_config(tmp_path)["mcp"]["github"]
+    assert entry["command"][0] == "sh"
+    assert "MY_GH_TOKEN" in entry["command"][-1]
+
+
+@pytest.mark.ci
+def test_opencode_preserves_existing_jsat_entry(tmp_path):
+    cfg_path = tmp_path / ".opencode" / "opencode.json"
+    cfg_path.parent.mkdir(parents=True)
+    cfg_path.write_text(json.dumps({
+        "mcp": {"jsat": {"type": "local", "command": ["jsat", "mcp-server"]}},
+    }))
+
+    runner.invoke(app, ["connect", "github", "opencode", "--repo", str(tmp_path)])
+    cfg = _opencode_config(tmp_path)
+
+    assert cfg["mcp"]["jsat"]["command"] == ["jsat", "mcp-server"]
+    assert "github" in cfg["mcp"]
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("malicious", [
+    'X"; touch pwned #',
+    "FOO$(touch pwned)",
+    "FOO`touch pwned`",
+    "FOO; touch pwned",
+    "FOO && touch pwned",
+])
+def test_malicious_token_env_rejected_for_opencode_too(malicious, tmp_path):
+    result = runner.invoke(app, [
+        "connect", "github", "opencode", "--repo", str(tmp_path),
+        "--token-env", malicious,
+    ])
+    assert result.exit_code != 0
+    assert not (tmp_path / ".opencode").exists()
 
 
 @pytest.mark.ci

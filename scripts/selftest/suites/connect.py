@@ -344,6 +344,64 @@ def check_github_token_env_injection_guard(jsat_bin: str, tmp: Path,
                  "a shell-injection attempt via --token-env was refused")
 
 
+@timed
+def check_connect_github_opencode(jsat_bin: str, tmp: Path,
+                                  env: dict[str, str]) -> Check:
+    """`jsat connect github opencode` must write the GitHub MCP server into
+    OpenCode's `mcp` key (local docker entry, or remote url), while preserving
+    the token VALUE off disk — exactly the guarantees the claude/codex github
+    paths provide."""
+    home = tmp / "connect-home-gho"
+    home.mkdir(parents=True, exist_ok=True)
+    repo = tmp / "gho-repo"
+    repo.mkdir(parents=True, exist_ok=True)
+    env_gh = {**env, "HOME": str(home),
+              "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_sentinel_secret_value_999"}
+
+    r = run_cli(jsat_bin, ["connect", "github", "opencode", "--repo", str(repo)],
+                env_gh, cwd=str(repo), timeout=90)
+    cfg_path = repo / ".opencode" / "opencode.json"
+    if r.returncode != 0 or not cfg_path.exists():
+        return Check("connect_github_opencode", "connect", FAIL,
+                     "jsat connect github opencode did not write the config",
+                     detail=f"rc={r.returncode}: {r.stdout[-300:]}")
+    raw = cfg_path.read_text()
+    if "ghp_sentinel_secret_value_999" in raw:
+        return Check("connect_github_opencode", "connect", FAIL,
+                     "the token VALUE was written to disk",
+                     detail=raw[:400],
+                     remediation="only the env-var NAME belongs in the config")
+    cfg = json.loads(raw)
+    entry = cfg.get("mcp", {}).get("github")
+    if entry is None:
+        return Check("connect_github_opencode", "connect", FAIL,
+                     "github entry missing under opencode's `mcp` key",
+                     detail=", ".join(sorted(cfg.get("mcp", {}))) or "none")
+    if entry.get("type") != "local" or "docker" not in entry.get("command", []) \
+            or "ghcr.io/github/github-mcp-server" not in entry.get("command", []):
+        return Check("connect_github_opencode", "connect", FAIL,
+                     "default should be a local docker entry",
+                     detail=str(entry)[:400])
+
+    r2 = run_cli(jsat_bin, ["connect", "github", "opencode", "--repo", str(repo),
+                            "--remote"], env_gh, cwd=str(repo), timeout=90)
+    if r2.returncode != 0:
+        return Check("connect_github_opencode", "connect", FAIL,
+                     "--remote failed",
+                     detail=f"rc={r2.returncode}: {r2.stdout[-300:]}")
+    entry = json.loads(cfg_path.read_text())["mcp"]["github"]
+    if entry.get("type") != "remote" or "url" not in entry \
+            or not entry["url"].startswith("https://"):
+        return Check("connect_github_opencode", "connect", FAIL,
+                     "--remote should write a type=remote url entry",
+                     detail=str(entry)[:400])
+
+    return Check("connect_github_opencode", "connect", PASS,
+                 "connect github opencode wrote the local docker entry and the "
+                 "remote url under opencode's `mcp` key, keeping the token "
+                 "value off disk")
+
+
 def run(report: Report, jsat_bin: str, tmp: Path, env: dict[str, str]) -> None:
     report.add(check_connect_list(jsat_bin, env))
     for tool, (rel, kind, cflags, dflags) in CONNECT_TARGETS.items():
@@ -353,4 +411,5 @@ def run(report: Report, jsat_bin: str, tmp: Path, env: dict[str, str]) -> None:
     report.add(check_connect_claude_installs_skills(jsat_bin, tmp, env))
     report.add(check_connect_opencode_roundtrip(jsat_bin, tmp, env))
     report.add(check_connect_bob_roundtrip(jsat_bin, tmp, env))
+    report.add(check_connect_github_opencode(jsat_bin, tmp, env))
     report.add(check_github_token_env_injection_guard(jsat_bin, tmp, env))

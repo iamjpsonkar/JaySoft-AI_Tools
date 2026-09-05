@@ -42,7 +42,8 @@ _CONFIDENCE_ORDER: dict[str, int] = {"high": 3, "medium": 2, "low": 1}
 
 # Provider strings that map to known classes
 _KNOWN_PROVIDERS = frozenset(
-    {"claude_cli", "codex_cli", "anthropic", "openai", "openai_compat", "ollama"}
+    {"claude_cli", "codex_cli", "opencode_cli", "anthropic", "openai",
+     "openai_compat", "ollama"}
 )
 
 
@@ -57,6 +58,8 @@ def _make_provider(entry: dict[str, Any], cfg: Any) -> AIProvider | None:
         {"provider": "ollama",    "model": "llama3.2"}
         {"provider": "openai",    "model": "gpt-4o"}
         {"provider": "claude_cli","model": "claude-sonnet-4-6"}
+        {"provider": "codex_cli",   "model": "gpt-5-codex"}
+        {"provider": "opencode_cli","model": "default"}
         {"provider": "openai_compat", "model": "local-model",
          "base_url": "http://localhost:1234/v1"}
 
@@ -107,6 +110,10 @@ def _make_provider(entry: dict[str, Any], cfg: Any) -> AIProvider | None:
         if provider_key == "codex_cli":
             from jsat._ai.codex_cli import CodexCliProvider
             return CodexCliProvider(patched_cfg)
+
+        if provider_key == "opencode_cli":
+            from jsat._ai.opencode_cli import OpenCodeCliProvider
+            return OpenCodeCliProvider(patched_cfg)
 
         if provider_key == "anthropic":
             from jsat._ai.anthropic import AnthropicProvider  # type: ignore[import]

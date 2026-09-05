@@ -38,6 +38,28 @@ All notable changes to JSAT.
   self-test went from 162 → 170 passed (0 failed, still byte-identical
   `~/.jsat` state isolation).
 
+### OpenCode parity — what claude/codex had that opencode did not
+
+- **`jsat connect github opencode`** now works, closing the last connector gap.
+  `connect github` accepted `claude | cursor | codex | bob | windsurf | gemini`
+  but not opencode. It now writes GitHub's MCP server into OpenCode's `mcp` key
+  as a typed entry (local `docker run` by default, `type: remote` + url for
+  `--remote`), honours `--token-env` (custom names are shimmed through `sh`,
+  same as Codex), and — like every other path — only ever writes the env-var
+  NAME, never the token value. Scope is XDG-aware via `jsat connect opencode`'s
+  own helpers.
+- **`jsat review` can now use `opencode_cli` as a reviewer model.** The provider
+  factory accepted `claude_cli` and `codex_cli` but silently dropped
+  `opencode_cli` as an "unknown provider"; collected findings came back without
+  OpenCode. `jsat/_ai/opencode_cli.py::OpenCodeCliProvider` is now wired into
+  `_make_provider` and the known-provider set.
+- Tests and self-tests back both: `test_connect_github.py` gained project/global
+  scope, docker, remote, custom `--token-env`, jsat-preservation and injection-
+  guard coverage for opencode; a new `tests/test_review_providers.py` proves the
+  three CLI providers construct; the self-test gained `connect_github_opencode`,
+  a real round-trip asserting the local docker entry, the remote url and that
+  the token value never reaches disk. ci-safe now 171 passed / 0 failed.
+
 ## [0.4.19] — 2026-09-05
 
 ### Added
