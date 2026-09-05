@@ -48,7 +48,7 @@ _COMMANDS: dict[str, str] = {
 
 _PROVIDERS = [
     "claude", "anthropic", "haiku", "opus",
-    "gpt", "openai", "gpt4", "gpt4mini", "chatgpt", "codex",
+    "gpt", "openai", "gpt4", "gpt4mini", "chatgpt", "codex", "opencode",
     "ollama", "llama", "phi",
     "gemini", "gemini-pro",
     "lmstudio", "lm-studio",
@@ -325,6 +325,7 @@ class JSATShell:
         Native AI tool launchers (open with JSAT pre-loaded):
           switch claude-cli  → Claude Code + JSAT MCP tools
           switch codex       → OpenAI Codex CLI
+          switch opencode    → OpenCode CLI
           switch gemini      → Google Gemini CLI
           switch cursor      → Cursor IDE (opens in background)
           switch windsurf    → Windsurf IDE (opens in background)
@@ -340,6 +341,7 @@ class JSATShell:
                 "  [cyan]switch claude-cli[/]   ← Claude Code + JSAT MCP tools\n"
                 "  [cyan]switch bob[/]          ← Bob Shell + JSAT MCP tools\n"
                 "  [cyan]switch codex[/]        ← OpenAI Codex CLI\n"
+                "  [cyan]switch opencode[/]     ← OpenCode CLI\n"
                 "  [cyan]switch gemini[/]       ← Google Gemini CLI\n"
                 "  [cyan]switch cursor[/]       ← Cursor IDE\n"
                 "  [cyan]switch windsurf[/]     ← Windsurf IDE\n"
@@ -365,8 +367,8 @@ class JSATShell:
                                        resume=resume_id, continue_session=cont)
             return
 
-        if provider in ("codex",):
-            self._launch_cli_tool("codex")
+        if provider in ("codex", "opencode"):
+            self._launch_cli_tool(provider)
             return
 
 
@@ -674,7 +676,7 @@ class JSATShell:
             f"  Provider: [cyan]{self._js._cfg.ai.provider}[/]\n"
             f"  Model:    [cyan]{self._js._cfg.ai.model}[/]\n"
             "  Switch:   [dim]switch claude-cli | switch bob | switch codex | "
-            "switch gemini | switch cursor | switch gpt[/dim]"
+            "switch opencode | switch gemini | switch cursor | switch gpt[/dim]"
         )
 
     # ── AI chat (the main feature) ────────────────────────────────────────────

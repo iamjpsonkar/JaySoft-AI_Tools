@@ -362,6 +362,11 @@ def _tool_install_hint(tool: str) -> str:
             "Linux":   "npm install -g @ibm/bob-shell",
             "Windows": "npm install -g @ibm/bob-shell",
         },
+        "opencode": {
+            "Darwin":  "npm install -g opencode-ai",
+            "Linux":   "npm install -g opencode-ai",
+            "Windows": "npm install -g opencode-ai",
+        },
     }
     tool_hints = hints.get(tool, {})
     return tool_hints.get(system, tool_hints.get("Darwin", f"install {tool}"))

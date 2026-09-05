@@ -2,6 +2,42 @@
 
 All notable changes to JSAT.
 
+## [0.4.20] — 2026-09-05
+
+### Added
+
+- **`switch opencode` in the JSAT shell.** The shell already listed OpenCode
+  among its "native CLI tools" upstream in the docs, but `switch opencode`
+  actually fell through to the "switch gpt" error path. It now launches the
+  real `opencode` binary with JSAT pre-loaded, mirroring `switch codex`.
+  `_tool_install_hint` gained an explicit opencode hint
+  (`npm install -g opencode-ai`).
+
+### Testing
+
+- The self-test now really exercises eight previously "accounted for"
+  surfaces instead of checking their `--help`:
+  - `jsat shell`, `jsat gpt`, `jsat ollama --model` run the real REPL through
+    its piped (non-TTY) stdin mode (`cli_shell`, `cli_gpt`, `cli_ollama`).
+  - `jsat ollama --tool` delegates to a stubbed `ollama` CLI with the exact
+    `launch` argument contract, and refuses cleanly with install guidance
+    when `ollama` is absent (`cli_ollama_tool`, `cli_ollama_missing`).
+  - `jsat restart` and `jsat resume` each track, stop, and re-track a real
+    background process through the shared runtime record
+    (`cli_lifecycle_restart_resume`).
+  - `jsat session list/show/resume/rm/prune` round-trip a real file in the
+    documented on-disk format (`cli_session_roundtrip`).
+  - `jsat skills list`/`skills run` execute a real YAML manifest with a script
+    source, and fail cleanly on an unknown skill (`cli_skills_run`).
+- New connector round-trips: `connect opencode` and `connect bob` at project
+  scope, proving the jsat MCP entry, the `/jsat*` command files, and an
+  unrelated user key each survive connect and disconnect
+  (`connect_opencode`, `connect_bob`).
+- The `cli_coverage_complete` gate now allows only `bob` as "inherently
+  interactive"; all other launchers/REPLs are genuinely exercised. ci-safe
+  self-test went from 162 → 170 passed (0 failed, still byte-identical
+  `~/.jsat` state isolation).
+
 ## [0.4.19] — 2026-09-05
 
 ### Added

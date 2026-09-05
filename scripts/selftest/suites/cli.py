@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -33,17 +34,21 @@ from ..core import (
     Check,
     Report,
     make_config_capturing_recorder,
+    make_recorder,
     read_recordings,
     run_cli,
     timed,
 )
 from ..fixtures import scratch_facts
 
-# Commands that are inherently interactive (they open a REPL or attach to a
-# TTY) and so are verified via --help plus their side effects rather than by
-# running them bare.
-INTERACTIVE = {"shell", "bob", "gpt", "ollama", "cursor", "windsurf", "zed",
-               "gemini", "claude", "codex", "opencode"}
+# Commands that are inherently interactive (they exec an unattached REPL or a
+# GUI tool and the only honest substitution is not feasible) and so are
+# verified via --help plus their side effects rather than by running them bare.
+# Everything else that used to hide here — shell, gpt, ollama, claude, codex,
+# opencode, cursor, windsurf, zed, gemini — now has a REAL exercised check:
+# the REPL trio runs through jsat's own piped (non-TTY) stdin mode, and the
+# launchers run through a PATH recorder stub.
+INTERACTIVE = {"bob"}
 
 # Commands verified by a dedicated check elsewhere in the harness.
 COVERED_ELSEWHERE = {
@@ -547,6 +552,115 @@ def check_pid_reuse_guard(tmp: Path) -> Check:
 
 
 @timed
+def check_lifecycle_restart_resume(jsat_bin: str, env: dict[str, str], tmp: Path,
+                                   repo: Path) -> Check:
+    """restart and resume against the real runtime record.
+
+    `jsat start` runs in the foreground, so each stage is driven as a
+    background process here, and the same sleeping recorder stub stands in for
+    claude throughout. The record file in JSAT_RUNTIME_DIR is what makes
+    `restart` and `resume` know the previous `via`, so all three stages share
+    one runtime dir — exactly the real usage.
+    """
+    stub_dir = tmp / "stub-lifecycle-rr"
+    stub_dir.mkdir(parents=True, exist_ok=True)
+    log = stub_dir / "argv.jsonl"
+    stub = stub_dir / "claude"
+    stub.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, os, sys, pathlib, time\n"
+        f"pathlib.Path({str(log)!r}).open('a').write("
+        "json.dumps({'argv': sys.argv, 'pid': os.getpid()}) + '\\n')\n"
+        "time.sleep(600)\n"
+    )
+    stub.chmod(0o755)
+    home = tmp / "lifecycle-rr-home"
+    home.mkdir(parents=True, exist_ok=True)
+    runtime = tmp / "lifecycle-rr-runtime"
+    scoped = {**env,
+              "PATH": f"{stub_dir}{os.pathsep}{env.get('PATH', '')}",
+              "HOME": str(home),
+              "JSAT_RUNTIME_DIR": str(runtime)}
+
+    held: list[subprocess.Popen[str]] = []
+
+    def wait_for(n: int, proc: subprocess.Popen[str]) -> list[dict]:
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            recs = read_recordings(log)
+            if len(recs) >= n:
+                return recs
+            if proc.poll() is not None:
+                out, err = proc.communicate(timeout=10)
+                raise AssertionError(
+                    f"jsat exited (rc={proc.returncode}) before {n} invocation(s)\n"
+                    f"out={out[-400:]} err={err[-400:]}"
+                )
+            time.sleep(0.5)
+        raise AssertionError(f"never saw {n} stub invocation(s)")
+
+    def gone(pid: int) -> bool:
+        for _ in range(40):
+            if not Path(f"/proc/{pid}").exists():
+                return True
+            time.sleep(0.25)
+        return False
+
+    def stop() -> tuple[int, str]:
+        s = run_cli(jsat_bin, ["stop", "claude"], scoped, cwd=str(repo), timeout=90)
+        return s.returncode, (s.stdout + s.stderr)[:200]
+
+    try:
+        pids: list[int] = []
+        argv_by_stage: list[list[str]] = []
+
+        for stage in ("start", "restart", "resume"):
+            proc = subprocess.Popen(
+                [jsat_bin, stage, "claude", "--repo", str(repo)],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                env=scoped, cwd=str(repo),
+            )
+            held.append(proc)
+            recs = wait_for(len(pids) + 1, proc)
+            pids.append(recs[-1].get("pid"))
+            argv_by_stage.append(recs[-1].get("argv", []))
+            rc, text = stop()
+            if rc != 0:
+                return Check("cli_lifecycle_restart_resume", "cli_lifecycle",
+                             FAIL, f"{stage}: jsat stop rc={rc}",
+                             detail=text)
+            if not gone(pids[-1]):
+                return Check("cli_lifecycle_restart_resume", "cli_lifecycle",
+                             FAIL, f"{stage}: the tracked pid {pids[-1]} "
+                                   "survived `jsat stop`")
+
+        problems = []
+        if len(pids) != 3:
+            problems.append(f"expected 3 invocations, saw {len(pids)}")
+        if pids[0] == pids[1]:
+            problems.append("restart reused the pre-stop pid")
+        if argv_by_stage[1] != [str(stub)]:
+            problems.append(f"restart passed unexpected argv: {argv_by_stage[1]!r}")
+        if not argv_by_stage[2] or "-continue" not in argv_by_stage[2][-1]:
+            problems.append("resume did not pass claude's --continue flag")
+        if problems:
+            return Check("cli_lifecycle_restart_resume", "cli_lifecycle", FAIL,
+                         "; ".join(problems),
+                         detail=f"pids={pids} argv={argv_by_stage}")
+        return Check("cli_lifecycle_restart_resume", "cli_lifecycle", PASS,
+                     "start→stop→restart→stop→resume→stop all tracked a fresh "
+                     "real process from the shared runtime record")
+    finally:
+        for proc in held:
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+
+
+@timed
 def check_analysis_commands(jsat_bin: str, env: dict[str, str], tmp: Path,
                             repo: Path) -> Check:
     """blast-radius / contract-check / security-review — the three commands
@@ -645,6 +759,237 @@ def check_analysis_commands(jsat_bin: str, env: dict[str, str], tmp: Path,
                  "SARIF 2.1.0) all behave as the generated CI expects")
 
 
+# ── The REPL trio: shell, gpt, ollama, driven through piped stdin ─────────
+#
+# JSATShell.run() reads line-by-line from stdin when stdin is not a TTY, so
+# these commands — which normally open an interactive prompt — can be
+# exercised for real without a pty. The index they read was just rebuilt by
+# check_analysis_commands ("Nodes:" in the output is the proof the command
+# really dispatched, not the Typer help table).
+
+@timed
+def check_shell_piped(jsat_bin: str, env: dict[str, str], repo: Path) -> Check:
+    r = run_cli(jsat_bin, ["shell", "--repo", str(repo)], env, cwd=str(repo),
+                timeout=90, stdin_text="help\nstatus\nquit\nexit\n")
+    if r.returncode == 0 and "Nodes:" in r.stdout and "blast-radius" in r.stdout:
+        return Check("cli_shell", "cli", PASS,
+                     "jsat shell executed real commands over piped stdin",
+                     detail=r.stdout.strip()[:400])
+    return Check("cli_shell", "cli", FAIL,
+                 "jsat shell did not dispatch commands in piped (non-TTY) mode",
+                 detail=f"rc={r.returncode} out={r.stdout[:300]} "
+                        f"err={r.stderr[:300]}",
+                 remediation="fall back to the piped loop in "
+                             "jsat/tools/shell.py::JSATShell.run")
+
+
+@timed
+def check_gpt_shell(jsat_bin: str, env: dict[str, str], repo: Path) -> Check:
+    """jsat gpt without an API key must still start the JSAT shell rather than
+    hang on a prompt or fail loudly — that is the documented degrade path."""
+    no_key = {k: v for k, v in env.items() if not k.startswith("OPENAI_")}
+    r = run_cli(jsat_bin, ["gpt", "--repo", str(repo)], no_key, cwd=str(repo),
+                timeout=90, stdin_text="status\nquit\nexit\n")
+    if r.returncode == 0 and "Nodes:" in r.stdout:
+        return Check("cli_gpt", "cli", PASS,
+                     "jsat gpt started the JSAT shell without an API key",
+                     detail=r.stdout.strip()[:300])
+    return Check("cli_gpt", "cli", FAIL,
+                 "jsat gpt failed to degrade to the JSAT shell without a key",
+                 detail=f"rc={r.returncode} out={r.stdout[:300]} "
+                        f"err={r.stderr[:300]}")
+
+
+@timed
+def check_ollama_direct_model(jsat_bin: str, env: dict[str, str],
+                              repo: Path) -> Check:
+    """jsat ollama --model <m> opens the shell with that model selected — the
+    direct path that needs no `ollama` binary and no network."""
+    r = run_cli(jsat_bin, ["ollama", "-m", "selftest-model", "--repo", str(repo)],
+                env, cwd=str(repo), timeout=90,
+                stdin_text="status\nquit\nexit\n")
+    if r.returncode == 0 and "Nodes:" in r.stdout:
+        return Check("cli_ollama", "cli", PASS,
+                     "jsat ollama --model launched the shell with the model selected",
+                     detail=r.stdout.strip()[:300])
+    return Check("cli_ollama", "cli", FAIL,
+                 "jsat ollama --model did not reach the JSAT shell",
+                 detail=f"rc={r.returncode} out={r.stdout[:300]} "
+                        f"err={r.stderr[:300]}")
+
+
+@timed
+def check_ollama_tool_delegation(jsat_bin: str, env: dict[str, str], tmp: Path,
+                                 repo: Path) -> Check:
+    """jsat ollama --tool <t> -m <m> --yes must delegate to the REAL ollama CLI
+    with a `launch` command that matches Ollama's documented contract."""
+    stub_dir = tmp / "stub-ollama"
+    stub_dir.mkdir(parents=True, exist_ok=True)
+    log = stub_dir / "argv.jsonl"
+    stub = stub_dir / "ollama"
+    make_recorder(stub, log)
+    scoped = {**env, "PATH": f"{stub_dir}{os.pathsep}{env.get('PATH', '')}",
+              "HOME": str(tmp / "ollama-delegation-home")}
+    r = run_cli(jsat_bin, ["ollama", "--tool", "claude", "-m", "selftest-model",
+                           "--yes", "--repo", str(repo)],
+                scoped, cwd=str(repo), timeout=120)
+    recs = read_recordings(log)
+    if not recs:
+        return Check("cli_ollama_tool", "cli", FAIL,
+                     "jsat ollama --tool never invoked the ollama CLI",
+                     detail=f"rc={r.returncode} out={r.stdout[-400:]} "
+                            f"err={r.stderr[-400:]}")
+    argv = recs[0]["argv"]
+    wanted = ["launch", "claude", "--model", "selftest-model", "--yes"]
+    if argv[1:] != wanted:
+        return Check("cli_ollama_tool", "cli", FAIL,
+                     "jsat ollama --tool built the wrong ollama launch command",
+                     detail=f"argv={argv[1:]!r} wanted={wanted!r}",
+                     remediation="check build_ollama_launch_args in "
+                                 "jsat/_ollama.py against Ollama's launch contract")
+    return Check("cli_ollama_tool", "cli", PASS,
+                 "jsat ollama --tool delegated to `ollama launch` with the "
+                 "expected model flags")
+
+
+@timed
+def check_ollama_missing_binary(jsat_bin: str, env: dict[str, str],
+                                tmp: Path) -> Check:
+    """With no `ollama` on PATH, a --tool invocations must refuse cleanly with
+    install guidance — exit 1 and a hint, never a raw traceback."""
+    no_ollama = [d for d in env.get("PATH", "").split(os.pathsep)
+                 if d and not Path(d).joinpath("ollama").exists()]
+    filtered = os.pathsep.join(no_ollama) or "/usr/bin:/bin"
+    scoped = {**env, "PATH": filtered, "HOME": str(tmp / "ollama-missing-home")}
+    if shutil.which("ollama", path=filtered):
+        return Check("cli_ollama_missing", "cli", UNAVAILABLE,
+                     "a real `ollama` binary could not be hidden from PATH, so "
+                     "the absent-binary path cannot be forced here")
+    r = run_cli(jsat_bin, ["ollama", "--tool", "claude", "-m", "selftest-model",
+                           "--yes"], scoped, cwd=str(tmp), timeout=60)
+    text = r.stdout + r.stderr
+    if r.returncode != 0 and "ollama not found in PATH" in text:
+        return Check("cli_ollama_missing", "cli", PASS,
+                     "jsat ollama --tool refused cleanly when ollama is absent",
+                     detail=text.strip()[-300:])
+    return Check("cli_ollama_missing", "cli", FAIL,
+                 "expected exit 1 + 'ollama not found in PATH' guidance",
+                 detail=f"rc={r.returncode} {text[:400]}")
+
+
+@timed
+def check_session_roundtrip(jsat_bin: str, env: dict[str, str],
+                            tmp: Path) -> Check:
+    """session list/show/resume/rm/prune against a REAL file in the documented
+    on-disk format (frontmatter + ## Steps + ## Findings), under its own
+    sessions dir so no other suite's artifacts interfere."""
+    root = tmp / "sessions-roundtrip"
+    root.mkdir(parents=True, exist_ok=True)
+    scoped = {**env, "JSAT_SESSIONS_DIR": str(root)}
+
+    def session(skill: str, task: str, status: str, steps: str,
+                created: str, mtime: float) -> Path:
+        p = root / f"{skill}-{created}.md"
+        p.write_text(
+            f"---\nskill: {skill}\ntask: {task}\ncreated: 2026-09-05T09:00:00Z\n"
+            f"status: {status}\n---\n\n## Steps\n{steps}\n\n## Findings\n"
+            f"**f1:** a finding\n"
+        )
+        os.utime(p, (mtime, mtime))
+        return p
+
+    file1 = session("magic", "fix retry logic", "in_progress",
+                    "- [x] status (finding: 1307 nodes)\n- [ ] blast-radius",
+                    "20260905-1000", 1_700_000_000.0)
+    lst = run_cli(jsat_bin, ["session", "list"], scoped, cwd=str(tmp), timeout=60)
+    if file1.name not in lst.stdout or "magic" not in lst.stdout:
+        return Check("cli_session_roundtrip", "cli", FAIL,
+                     "session list did not show the file just written",
+                     detail=lst.stdout[-400:] + lst.stderr[-200:])
+    show = run_cli(jsat_bin, ["session", "show", file1.name], scoped,
+                   cwd=str(tmp), timeout=60)
+    if "blast-radius" not in show.stdout:
+        return Check("cli_session_roundtrip", "cli", FAIL,
+                     "session show did not render the pending step",
+                     detail=show.stdout[-400:])
+    resume = run_cli(jsat_bin, ["session", "resume", file1.name], scoped,
+                     cwd=str(tmp), timeout=60)
+    if "Next step: blast-radius" not in resume.stdout:
+        return Check("cli_session_roundtrip", "cli", FAIL,
+                     "session resume did not point at the first incomplete step",
+                     detail=resume.stdout[-400:])
+    rm = run_cli(jsat_bin, ["session", "rm", file1.name], scoped,
+                 cwd=str(tmp), timeout=60)
+    if file1.exists():
+        return Check("cli_session_roundtrip", "cli", FAIL,
+                     "session rm left the file on disk",
+                     detail=rm.stdout[-300:] + rm.stderr[-300:])
+
+    # prune --keep 1 must delete the OLD, COMPLETED session and retain the
+    # newest in_progress one.
+    completed_old = session("crack", "db schema", "completed",
+                            "- [x] a", "20260905-0900", 1_000_000_000.0)
+    inprog_new = session("magic", "second task", "in_progress",
+                         "- [ ] b", "20260905-1100", 2_000_000_000.0)
+    prune = run_cli(jsat_bin, ["session", "prune", "--keep", "1"], scoped,
+                    cwd=str(tmp), timeout=60)
+    problems = []
+    if completed_old.exists():
+        problems.append("prune --keep 1 left the old completed session behind")
+    if not inprog_new.exists():
+        problems.append("prune --keep 1 deleted the newest in_progress session")
+    if prune.returncode != 0:
+        problems.append(f"session prune rc={prune.returncode}")
+    if problems:
+        return Check("cli_session_roundtrip", "cli", FAIL, "; ".join(problems),
+                     detail=f"files={sorted(p.name for p in root.glob('*.md'))}")
+    return Check("cli_session_roundtrip", "cli", PASS,
+                 "session list/show/resume/rm/prune round-tripped a real "
+                 "documented-format session file")
+
+
+@timed
+def check_skills_run(jsat_bin: str, env: dict[str, str], tmp: Path) -> Check:
+    """skills list + run against a REAL YAML manifest with a script source —
+    exercising the dormant skills registry's only executed path."""
+    skills_fx = tmp / "skills-fixture"
+    skills_fx.mkdir(parents=True, exist_ok=True)
+    script = skills_fx / "run.sh"
+    script.write_text("#!/bin/sh\necho fixture-skill-ran\n")
+    script.chmod(0o755)
+    (skills_fx / "fixture.yaml").write_text(
+        f"name: fixture-skill\nversion: 0.1.0\n"
+        f"description: a selftest script skill\n"
+        f"source:\n  type: script\n  path: {script}\n"
+    )
+    cfg = tmp / "jsat-selftest-config.yaml"
+    cfg.write_text(f"version: '1'\nskills:\n  dir: {skills_fx}\n")
+    scoped = {**env, "JSAT_CONFIG": str(cfg)}
+
+    lst = run_cli(jsat_bin, ["skills", "list"], scoped, cwd=str(tmp), timeout=60)
+    if "fixture-skill" not in lst.stdout or "script" not in lst.stdout:
+        return Check("cli_skills_run", "cli", FAIL,
+                     "skills list did not show the fixture manifest",
+                     detail=lst.stdout[-400:] + lst.stderr[-200:])
+    ran = run_cli(jsat_bin, ["skills", "run", "fixture-skill"], scoped,
+                  cwd=str(tmp), timeout=90)
+    if "fixture-skill-ran" not in ran.stdout:
+        return Check("cli_skills_run", "cli", FAIL,
+                     "skills run did not execute the script source",
+                     detail=f"rc={ran.returncode} out={ran.stdout[:400]} "
+                            f"err={ran.stderr[:400]}")
+    missing = run_cli(jsat_bin, ["skills", "run", "does-not-exist"], scoped,
+                      cwd=str(tmp), timeout=60)
+    if missing.returncode == 0 or "failed" not in (missing.stdout + missing.stderr).lower():
+        return Check("cli_skills_run", "cli", FAIL,
+                     "skills run on an unknown skill did not fail cleanly",
+                     detail=f"rc={missing.returncode} "
+                            f"{missing.stdout[:300]}{missing.stderr[:300]}")
+    return Check("cli_skills_run", "cli", PASS,
+                 "skills list showed the manifest, run executed its script, "
+                 "and an unknown skill failed gracefully")
+
+
 def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
         env: dict[str, str], *, allow_llm: bool) -> None:
     exercised: set[str] = set()
@@ -664,6 +1009,19 @@ def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
     report.add(check_analysis_commands(jsat_bin, env, tmp, repo))
     exercised |= {"blast-radius", "contract-check", "security-review"}
 
+    # The piped-REPL trio reads the graph index check_analysis_commands just
+    # rebuilt, so it must stay after it.
+    report.add(check_shell_piped(jsat_bin, env, repo)); exercised.add("shell")
+    report.add(check_gpt_shell(jsat_bin, env, repo)); exercised.add("gpt")
+    report.add(check_ollama_direct_model(jsat_bin, env, repo))
+    exercised.add("ollama")
+    report.add(check_ollama_tool_delegation(jsat_bin, env, tmp, repo))
+    report.add(check_ollama_missing_binary(jsat_bin, env, tmp))
+    report.add(check_session_roundtrip(jsat_bin, env, tmp))
+    exercised.add("session")
+    report.add(check_skills_run(jsat_bin, env, tmp))
+    exercised.add("skills")
+
     for command, target in LAUNCHER_MATRIX.items():
         report.add(check_launcher(jsat_bin, env, tmp, repo, command, target))
         exercised.add(command)
@@ -671,14 +1029,8 @@ def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
     report.add(check_lifecycle_start_ps_stop(jsat_bin, env, tmp, repo))
     exercised |= {"start", "stop", "ps"}
     report.add(check_pid_reuse_guard(tmp))
-    for c in ("restart", "resume"):
-        r = run_cli(jsat_bin, [c, "--help"], env, timeout=45)
-        report.add(Check(f"cli_{c}_help", "cli_lifecycle",
-                         PASS if r.returncode == 0 else FAIL,
-                         f"jsat {c} --help "
-                         f"{'ran' if r.returncode == 0 else 'failed'}",
-                         detail=r.stderr[:200]))
-        exercised.add(c)
+    report.add(check_lifecycle_restart_resume(jsat_bin, env, tmp, repo))
+    exercised |= {"restart", "resume"}
 
     # LLM-backed CLI tools: real provider calls, so gated.
     for cmd, args in (("short", ["short", "what does validate_amount do?"]),

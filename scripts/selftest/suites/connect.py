@@ -181,6 +181,136 @@ def check_connect_claude_installs_skills(jsat_bin: str, tmp: Path,
 
 
 @timed
+def check_connect_opencode_roundtrip(jsat_bin: str, tmp: Path,
+                                     env: dict[str, str]) -> Check:
+    """OpenCode is project-scoped by default: `.opencode/opencode.json`,
+    `/jsat` + `/jsat-help` commands, and AGENTS.md guidance — and all of it
+    must be removable again by `jsat disconnect opencode`."""
+    home = tmp / "connect-home-opencode"
+    home.mkdir(parents=True, exist_ok=True)
+    project = tmp / "connect-proj-opencode"
+    project.mkdir(parents=True, exist_ok=True)
+    cfg = project / ".opencode" / "opencode.json"
+    _seed(cfg, "json")
+    scoped = {**env, "HOME": str(home)}
+
+    conn = run_cli(jsat_bin, ["connect", "opencode"], scoped,
+                   cwd=str(project), timeout=180)
+    problems: list[str] = []
+    if not cfg.exists():
+        return Check("connect_opencode", "connect", FAIL,
+                     "jsat connect opencode did not write .opencode/opencode.json",
+                     detail=f"rc={conn.returncode} out={conn.stdout[-300:]}")
+    try:
+        data = json.loads(cfg.read_text())
+    except json.JSONDecodeError as e:
+        return Check("connect_opencode", "connect", FAIL,
+                     "jsat connect opencode left invalid JSON", detail=str(e))
+    if "jsat" not in data.get("mcp", {}):
+        problems.append("no jsat entry under the opencode `mcp` key")
+    if FOREIGN_VALUE not in cfg.read_text():
+        problems.append("connect clobbered a pre-existing opencode setting")
+    commands = project / ".opencode" / "commands"
+    for name in ("jsat.md", "jsat-help.md"):
+        if not (commands / name).exists():
+            problems.append(f"{name} was not installed")
+    if not (project / "AGENTS.md").exists():
+        problems.append("AGENTS.md guidance was not written at project scope")
+    if problems:
+        return Check("connect_opencode", "connect", FAIL, "; ".join(problems),
+                     detail=cfg.read_text()[:400])
+
+    disc = run_cli(jsat_bin, ["disconnect", "opencode"], scoped,
+                   cwd=str(project), timeout=120)
+    if not cfg.exists():
+        return Check("connect_opencode", "connect", FAIL,
+                     "disconnect deleted the user's opencode config outright")
+    after = cfg.read_text()
+    after_data = json.loads(after)
+    leftovers = [p.name for p in commands.glob("jsat*.md")] \
+        if commands.exists() else []
+    problems = []
+    if "jsat" in after_data.get("mcp", {}):
+        problems.append("jsat entry survived disconnect")
+    if FOREIGN_VALUE not in after:
+        problems.append("disconnect removed the unrelated opencode setting")
+    if leftovers:
+        problems.append(f"disconnect left command file(s): {leftovers[:5]}")
+    if problems:
+        return Check("connect_opencode", "connect", FAIL,
+                     "disconnect opencode: " + "; ".join(problems),
+                     detail=after[:400])
+    return Check("connect_opencode", "connect", PASS,
+                 "opencode connect→disconnect round-tripped cleanly: jsat mcp "
+                 "entry, /jsat+/-help commands and an unrelated setting all "
+                 "survived as expected")
+
+
+@timed
+def check_connect_bob_roundtrip(jsat_bin: str, tmp: Path,
+                                env: dict[str, str]) -> Check:
+    """Bob Shell is project-scoped by default: `.bob/settings.json` MCP entry,
+    `/jsat-*` slash commands, and BOB.md guidance."""
+    home = tmp / "connect-home-bob"
+    home.mkdir(parents=True, exist_ok=True)
+    project = tmp / "connect-proj-bob"
+    project.mkdir(parents=True, exist_ok=True)
+    cfg = project / ".bob" / "settings.json"
+    _seed(cfg, "json")
+    scoped = {**env, "HOME": str(home)}
+
+    conn = run_cli(jsat_bin, ["connect", "bob"], scoped,
+                   cwd=str(project), timeout=180)
+    problems: list[str] = []
+    if not cfg.exists():
+        return Check("connect_bob", "connect", FAIL,
+                     "jsat connect bob did not write .bob/settings.json",
+                     detail=f"rc={conn.returncode} out={conn.stdout[-300:]}")
+    try:
+        data = json.loads(cfg.read_text())
+    except json.JSONDecodeError as e:
+        return Check("connect_bob", "connect", FAIL,
+                     "jsat connect bob left invalid JSON", detail=str(e))
+    if "jsat" not in data.get("mcpServers", {}):
+        problems.append("no jsat entry under the bob mcpServers key")
+    if FOREIGN_VALUE not in cfg.read_text():
+        problems.append("connect clobbered a pre-existing bob setting")
+    commands = project / ".bob" / "commands"
+    if not list(commands.glob("jsat-*.md")):
+        problems.append("no /jsat-* slash commands installed")
+    if not (project / "BOB.md").exists():
+        problems.append("BOB.md guidance was not written")
+    if problems:
+        return Check("connect_bob", "connect", FAIL, "; ".join(problems),
+                     detail=cfg.read_text()[:400])
+
+    disc = run_cli(jsat_bin, ["disconnect", "bob"], scoped,
+                   cwd=str(project), timeout=120)
+    if not cfg.exists():
+        return Check("connect_bob", "connect", FAIL,
+                     "disconnect deleted the user's bob config outright")
+    after = cfg.read_text()
+    after_data = json.loads(after)
+    leftovers = [p.name for p in commands.glob("jsat-*.md")] \
+        if commands.exists() else []
+    problems = []
+    if "jsat" in after_data.get("mcpServers", {}):
+        problems.append("jsat entry survived disconnect")
+    if FOREIGN_VALUE not in after:
+        problems.append("disconnect removed the unrelated bob setting")
+    if leftovers:
+        problems.append(f"disconnect left command file(s): {leftovers[:5]}")
+    if problems:
+        return Check("connect_bob", "connect", FAIL,
+                     "disconnect bob: " + "; ".join(problems),
+                     detail=after[:400])
+    return Check("connect_bob", "connect", PASS,
+                 "bob connect→disconnect round-tripped cleanly: jsat mcp "
+                 "entry, /jsat-* commands and an unrelated setting all "
+                 "survived as expected")
+
+
+@timed
 def check_github_token_env_injection_guard(jsat_bin: str, tmp: Path,
                                             env: dict[str, str]) -> Check:
     """`connect github --token-env` is interpolated into a shell string, so a
@@ -221,4 +351,6 @@ def run(report: Report, jsat_bin: str, tmp: Path, env: dict[str, str]) -> None:
                                            cflags, dflags, tmp, env))
     report.add(check_malformed_config_not_clobbered(jsat_bin, tmp, env))
     report.add(check_connect_claude_installs_skills(jsat_bin, tmp, env))
+    report.add(check_connect_opencode_roundtrip(jsat_bin, tmp, env))
+    report.add(check_connect_bob_roundtrip(jsat_bin, tmp, env))
     report.add(check_github_token_env_injection_guard(jsat_bin, tmp, env))
