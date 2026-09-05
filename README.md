@@ -49,6 +49,7 @@ jsat index .
 jsat claude      # Claude Code
 jsat codex       # OpenAI Codex CLI
 jsat codex resume <session-id>
+jsat opencode    # OpenCode (project scope)
 jsat cursor      # Cursor IDE
 jsat windsurf    # Windsurf
 jsat gemini      # Google Gemini CLI
@@ -1018,6 +1019,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat shell` | Start the interactive JSAT REPL |
 | `jsat claude` | Open Claude Code with JSAT MCP tools loaded |
 | `jsat codex [CODEX_ARGS...]` | Open Codex CLI with JSAT pre-loaded; forwards args such as `resume <session-id>` |
+| `jsat opencode [OPENCODE_ARGS...]` | Open OpenCode with JSAT pre-loaded (project scope); forwards args such as `resume <session-id>` |
 | `jsat cursor` | Open Cursor IDE with JSAT pre-loaded |
 | `jsat windsurf` | Open Windsurf with JSAT pre-loaded |
 | `jsat gemini` | Open Gemini CLI with JSAT pre-loaded |

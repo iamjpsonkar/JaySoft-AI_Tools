@@ -58,6 +58,7 @@ jsat index .
 # 2. Open your AI tool with JSAT pre-loaded
 jsat claude      # Claude Code
 jsat codex       # OpenAI Codex CLI
+jsat opencode    # OpenCode (native, project scope)
 jsat ollama --tool opencode  # OpenCode through Ollama; auto-connects JSAT
 jsat cursor      # Cursor IDE
 jsat windsurf    # Windsurf
@@ -193,6 +194,34 @@ switch codex    → launch Codex CLI session
 ```
 
 **Install Codex:** `curl -fsSL https://chatgpt.com/codex/install.sh | sh`
+
+---
+
+### OpenCode
+
+```bash
+jsat opencode                             # open with JSAT pre-loaded (project scope)
+jsat opencode --repo /path/to/repo         # launch OpenCode in a specific repo
+jsat opencode resume <session-id>          # resume an existing OpenCode session
+jsat connect opencode --global             # machine-wide MCP instead of per-repo
+```
+
+**What gets installed (project scope):**
+- `.opencode/opencode.json` — MCP server config, pinned to the repo via `--repo`
+- `.opencode/commands/jsat.md` + `jsat-help.md` — `/jsat` slash commands
+- `AGENTS.md` — marked JSAT guidance block (opencode reads it automatically)
+
+`jsat opencode` auto-connects JSAT at project scope on first use, then runs the
+real OpenCode binary from the repo directory so it picks up `.opencode/`.
+Any extra arguments after `jsat opencode` are forwarded to the real OpenCode CLI.
+
+**In the JSAT shell:**
+```
+switch opencode    → launch OpenCode session
+```
+
+**Install OpenCode:** `npm install -g opencode-ai` — or use `jsat ollama --tool opencode`
+when Ollama manages the install.
 
 ---
 

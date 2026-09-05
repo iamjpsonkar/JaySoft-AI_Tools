@@ -59,6 +59,7 @@ def cmd_shell(
     Or launch directly from the command line:
       jsat claude      → Claude Code with JSAT tools
       jsat codex       → Codex CLI with JSAT tools
+      jsat opencode    → OpenCode with JSAT tools
       jsat cursor      → Cursor IDE with JSAT tools
       jsat windsurf    → Windsurf IDE with JSAT tools
       jsat gemini      → Gemini CLI with JSAT tools
@@ -526,6 +527,31 @@ def cmd_codex(
     Install Codex: curl -fsSL https://chatgpt.com/codex/install.sh | sh
     """
     _launch_tool("codex", "codex", repo, extra_args=list(ctx.args))
+
+
+@app.command(
+    "opencode",
+    rich_help_panel="🤖  AI Launchers",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def cmd_opencode(
+    ctx: typer.Context,
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository root"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Open OpenCode with JSAT tools pre-configured.
+
+    \b
+    Auto-connects JSAT (project scope) if not already done, then launches:
+      opencode        (reads .opencode/opencode.json automatically)
+
+    \b
+    JSAT MCP tools are available to OpenCode immediately. No project files are
+    generated beyond the .opencode/ wiring; OpenCode runs in the repo directory
+    passed with --repo.
+    Install OpenCode: npm install -g opencode-ai
+    """
+    _launch_tool("opencode", "opencode", repo, extra_args=list(ctx.args))
 
 
 @app.command("cursor", rich_help_panel="🤖  AI Launchers")

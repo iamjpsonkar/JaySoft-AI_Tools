@@ -43,7 +43,7 @@ from ..fixtures import scratch_facts
 # TTY) and so are verified via --help plus their side effects rather than by
 # running them bare.
 INTERACTIVE = {"shell", "bob", "gpt", "ollama", "cursor", "windsurf", "zed",
-               "gemini", "claude", "codex"}
+               "gemini", "claude", "codex", "opencode"}
 
 # Commands verified by a dedicated check elsewhere in the harness.
 COVERED_ELSEWHERE = {
@@ -325,6 +325,7 @@ LAUNCHER_MATRIX = {
     # command -> the binary it is expected to exec
     "claude": "claude",
     "codex": "codex",
+    "opencode": "opencode",
     "cursor": "cursor",
     "windsurf": "windsurf",
     "zed": "zed",

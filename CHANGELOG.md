@@ -2,6 +2,17 @@
 
 All notable changes to JSAT.
 
+## [0.4.19] — 2026-09-05
+
+### Added
+
+- **`jsat opencode` launcher**, mirroring `jsat claude` / `jsat codex`: it auto-connects
+  JSAT at project scope (`.opencode/` wiring) and then runs the real OpenCode binary from
+  the repo directory, forwarding extra arguments (e.g. `jsat opencode resume <session-id>`).
+  This was the documented launcher that never existed — `jsat opencode` previously failed
+  with "No such command". Covered by the self-test's launcher matrix
+  (`cli_launch_opencode`, recorder stub on PATH for the `opencode` binary).
+
 ## [0.4.18] — 2026-09-05
 
 ### Added
