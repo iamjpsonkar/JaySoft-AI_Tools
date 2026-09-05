@@ -4355,11 +4355,51 @@ routes it to the skill. Direct MCP tools such as <code>jsat__query</code>,
 JSAT, so Codex commands such as <code>resume &lt;session-id&gt;</code> keep working.</p>
 <hr />
 <h3 id="jsat-connect-opencode"><code>jsat connect opencode</code><a class="headerlink" href="#jsat-connect-opencode" title="Permanent link">&para;</a></h3>
-<p>Wire JSAT into OpenCode's global MCP config and install the <code>/jsat</code> and <code>/jsat-help</code>
-commands in <code>~/.config/opencode/commands/</code>. A directly installed OpenCode and
-<code>ollama launch opencode</code> use the same files.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode<span class="w"> </span><span class="o">[</span>--show<span class="o">]</span><span class="w"> </span><span class="o">[</span>--no-commands<span class="o">]</span>
+<p>Wire JSAT into OpenCode's MCP config and install the <code>/jsat</code> and <code>/jsat-help</code>
+commands. By default this writes to the current repo (<code>.opencode/opencode.json</code> +
+<code>.opencode/commands/</code> and an <code>AGENTS.md</code> guidance block), mirroring <code>jsat connect
+claude</code>; pass <code>--global</code> for the machine-wide <code>~/.config/opencode/</code> config. A
+directly installed OpenCode and <code>ollama launch opencode</code> use the same files.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode
+<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode<span class="w"> </span>--global
+<a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode<span class="w"> </span>--repo<span class="w"> </span>/path/to/project<span class="w"> </span>--no-commands<span class="w"> </span>--no-agents-md
 </code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--global</code>, <code>-g</code></td>
+<td>false</td>
+<td>Write <code>~/.config/opencode/opencode.json</code> instead of <code>&lt;repo&gt;/.opencode/</code></td>
+</tr>
+<tr>
+<td><code>--repo</code>, <code>-r</code></td>
+<td><code>.</code></td>
+<td>Project to pin the MCP command to (project scope only)</td>
+</tr>
+<tr>
+<td><code>--install-commands</code></td>
+<td>true</td>
+<td>Install the <code>/jsat</code> and <code>/jsat-help</code> slash commands</td>
+</tr>
+<tr>
+<td><code>--agents-md</code></td>
+<td>true</td>
+<td>Write the JSAT guidance block into the repo's <code>AGENTS.md</code> (project only)</td>
+</tr>
+<tr>
+<td><code>--show</code></td>
+<td>false</td>
+<td>Print the generated config</td>
+</tr>
+</tbody>
+</table>
 <h3 id="jsat-connect-ollama"><code>jsat connect ollama</code><a class="headerlink" href="#jsat-connect-ollama" title="Permanent link">&para;</a></h3>
 <p>Configure JSAT in clients that Ollama can launch. With no selector, this configures
 all clients JSAT currently supports: Claude, Codex, and OpenCode.</p>

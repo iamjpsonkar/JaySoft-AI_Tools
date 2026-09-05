@@ -3320,8 +3320,9 @@ provider.</p>
 <p>Native OpenCode can provide JSAT's LLM calls through its configured provider and
 model. The adapter uses <code>opencode run</code> and disables JSAT MCP only in that nested
 call, preventing recursive self-invocation.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>opencode<span class="w">              </span><span class="c1"># optional for non-MCP JSAT commands</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode<span class="w">               </span><span class="c1"># wires this repo (.opencode/) … </span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode<span class="w"> </span>--global<span class="w">      </span><span class="c1"># … or every project (~/.config/opencode/opencode.json)</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>opencode<span class="w">                </span><span class="c1"># optional for non-MCP JSAT commands</span>
 </code></pre></div>
 <p>When OpenCode itself was started by Ollama, JSAT does not start a nested OpenCode
 provider. It reads Ollama's inherited inline configuration and sends requests to the
@@ -3562,7 +3563,8 @@ installed separately. To configure without launching:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>ollama<span class="w"> </span><span class="nv">tool</span><span class="o">=</span>opencode
 <a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>ollama<span class="w">                             </span><span class="c1"># choose OpenCode → sign in → choose a model</span>
 </code></pre></div>
-<p><code>jsat connect opencode</code> writes the same OpenCode MCP config. Bare
+<p><code>jsat connect opencode</code> writes the same OpenCode MCP config — by default in the
+current repo's <code>.opencode/</code>, or machine-wide with <code>--global</code>. Bare
 <code>jsat connect ollama</code> configures Claude, Codex and OpenCode together. Ollama
 owns the installation, the sign-in prompt and the model selector; JSAT inherits
 that selection for its own MCP tools, so no second <code>ollama pull</code> is needed and

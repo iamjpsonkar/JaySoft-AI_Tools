@@ -1647,39 +1647,57 @@ model. It remains separate from an OpenCode copy installed or launched internall
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode
 </code></pre></div>
-<p>JSAT writes <code>~/.config/opencode/opencode.json</code> and installs <code>/jsat</code> plus <code>/jsat-help</code> under
-<code>~/.config/opencode/commands/</code>.</p>
+<p>By default JSAT wires JSAT into <strong>just this repo</strong>, mirroring <code>jsat connect claude</code>:</p>
+<ul>
+<li><code>.opencode/opencode.json</code> — OpenCode's MCP config, with JSAT pinned to this repo
+  via <code>--repo</code>, so every OpenCode session in this checkout starts the same JSAT graph</li>
+<li><code>.opencode/commands/</code> — the <code>/jsat</code> and <code>/jsat-help</code> slash commands</li>
+<li><code>AGENTS.md</code> — JSAT tool guidance (OpenCode loads AGENTS.md from the project root
+  automatically, the same way Claude Code loads CLAUDE.md)</li>
+</ul>
+<p>For a one-time, all-projects setup, pass <code>--global</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>jsat<span class="w"> </span>connect<span class="w"> </span>opencode<span class="w"> </span>--global<span class="w">   </span><span class="c1"># ~/.config/opencode/opencode.json (+ ~/.config/opencode/commands/)</span>
+</code></pre></div>
+<p>Global installs are not repo-pinned (<code>--repo</code> is omitted): OpenCode starts JSAT in
+whichever workspace is active, and nothing is written into the project.</p>
+<p>After connecting, restart OpenCode — it reads config once at startup and does not
+hot-reload it.</p>
 <h2 id="start-and-select-a-model">Start and select a model<a class="headerlink" href="#start-and-select-a-model" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>opencode<span class="w"> </span>--via<span class="w"> </span>native<span class="w"> </span>--repo<span class="w"> </span>.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jsat<span class="w"> </span>start<span class="w"> </span>opencode<span class="w"> </span>--via<span class="w"> </span>native<span class="w"> </span>--repo<span class="w"> </span>.
 </code></pre></div>
 <p>Choose the provider/model inside OpenCode. To let JSAT's own LLM-backed tools call that native
 OpenCode configuration too:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>opencode
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>jsat<span class="w"> </span>ai<span class="w"> </span>use<span class="w"> </span>opencode
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jsat<span class="w"> </span>ai<span class="w"> </span><span class="nb">test</span>
 </code></pre></div>
+<p><code>jsat opencode</code> and <code>jsat ollama --tool opencode</code> auto-connect JSAT to the repo's
+<code>.opencode/</code> wiring on the way in, so a fresh checkout gets MCP + slash commands
+without a manual <code>jsat connect opencode</code>.</p>
 <h2 id="use-verify-and-manage">Use, verify, and manage<a class="headerlink" href="#use-verify-and-manage" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>/jsat status
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>/jsat query what calls the payment adapter?
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>/jsat-help
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>/jsat status
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>/jsat query what calls the payment adapter?
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>/jsat-help
 </code></pre></div>
 <p>Ask OpenCode to call <code>jsat__get_index_status</code> to verify MCP, then manage the process with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>jsat<span class="w"> </span>ps
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>jsat<span class="w"> </span>restart<span class="w"> </span>opencode
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>jsat<span class="w"> </span>stop<span class="w"> </span>opencode
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>jsat<span class="w"> </span>resume<span class="w"> </span>opencode
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>jsat<span class="w"> </span>resume<span class="w"> </span>opencode<span class="w"> </span>--session<span class="w"> </span>SESSION_ID
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>jsat<span class="w"> </span>ps
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>jsat<span class="w"> </span>restart<span class="w"> </span>opencode
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>jsat<span class="w"> </span>stop<span class="w"> </span>opencode
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>jsat<span class="w"> </span>resume<span class="w"> </span>opencode
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>jsat<span class="w"> </span>resume<span class="w"> </span>opencode<span class="w"> </span>--session<span class="w"> </span>SESSION_ID
 </code></pre></div>
 <p>If <code>--via auto</code> cannot find a PATH-visible OpenCode but does find Ollama, JSAT chooses the
 Ollama route. Use <code>--via native</code> when you need to prove this route is isolated.</p>
 <h2 id="troubleshooting-and-removal">Troubleshooting and removal<a class="headerlink" href="#troubleshooting-and-removal" title="Permanent link">&para;</a></h2>
 <ul>
 <li>If <code>/jsat</code> is absent, rerun <code>jsat connect opencode</code> and restart OpenCode.</li>
-<li>If the command exists but MCP does not, inspect <code>~/.config/opencode/opencode.json</code> and run
-  <code>jsat doctor</code>.</li>
+<li>If the command exists but MCP does not, inspect the config that applies to your session
+  (<code>.opencode/opencode.json</code> in the repo, or <code>~/.config/opencode/opencode.json</code> for a
+  global install) and run <code>jsat doctor</code>.</li>
 <li>If OpenCode exists only because Ollama installed it internally, use
   <a href="../ollama-opencode/">OpenCode through Ollama</a>, not this route.</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>opencode
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>opencode<span class="w">                  </span><span class="c1"># removes this repo's .opencode/ wiring + AGENTS.md block</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>opencode<span class="w"> </span>--scope<span class="w"> </span>global<span class="w">   </span><span class="c1"># removes the ~/.config/opencode wiring</span>
 </code></pre></div>
 
 

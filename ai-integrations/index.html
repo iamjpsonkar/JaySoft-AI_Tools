@@ -2158,12 +2158,13 @@ the separate command for interrupted JSAT skills such as <code>magic</code> and 
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>ollama<span class="w"> </span>signin
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>jsat<span class="w"> </span>ollama<span class="w"> </span>--tool<span class="w"> </span>opencode<span class="w"> </span>-m<span class="w"> </span>&lt;model&gt;-cloud<span class="w">     </span><span class="c1"># cloud</span>
 </code></pre></div>
-<p>The launcher writes JSAT's MCP entry to <code>~/.config/opencode/opencode.json</code> before
-running <code>ollama launch opencode</code>. It also installs <code>/jsat</code> and <code>/jsat-help</code> under
-<code>~/.config/opencode/commands/</code>. Ollama's inline model configuration is deep-merged
-with that file. A standalone OpenCode installation is not required. For configuration
-without launch, run <code>jsat connect opencode</code>, then run bare <code>ollama</code> and choose
-OpenCode → sign in if prompted → choose a model.</p>
+<p>The launcher writes JSAT's MCP entry to the repo's <code>.opencode/opencode.json</code> (pinned to
+that repo) before running <code>ollama launch opencode</code>. It also installs <code>/jsat</code> and
+<code>/jsat-help</code> under <code>.opencode/commands/</code>. Ollama's inline model configuration is
+deep-merged with that file. A standalone OpenCode installation is not required. For
+configuration without launch, run <code>jsat connect opencode</code>, then run bare <code>ollama</code> and
+choose OpenCode → sign in if prompted → choose a model. Pass <code>--global</code> to <code>jsat
+connect opencode</code> to target <code>~/.config/opencode/</code> instead of a project.</p>
 <p><code>jsat connect ollama</code> configures every Ollama-launched client JSAT currently
 supports: Claude, Codex, and OpenCode. Use <code>--tool opencode</code>, <code>opencode</code>, or
 <code>tool=opencode</code> to configure only one. JSAT does not configure unknown menu entries
@@ -2328,7 +2329,7 @@ query and then answers it (use <code>--optimize-only</code> to just see the rewr
 <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w">                   </span><span class="c1"># Claude project scope</span>
 <a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>claude<span class="w"> </span>--scope<span class="w"> </span>all<span class="w">       </span><span class="c1"># Claude everywhere</span>
 <a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>codex<span class="w">                    </span><span class="c1"># Codex</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>opencode<span class="w">                 </span><span class="c1"># OpenCode global MCP entry</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>opencode<span class="w">                 </span><span class="c1"># OpenCode project scope (.opencode/)</span>
 <a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>cursor<span class="w">                   </span><span class="c1"># Cursor (global + project)</span>
 <a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span>windsurf<span class="w">                 </span><span class="c1"># Windsurf</span>
 <a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>jsat<span class="w"> </span>disconnect<span class="w"> </span><span class="k">continue</span><span class="w">                 </span><span class="c1"># Continue (removes commands too)</span>
