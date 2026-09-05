@@ -2,7 +2,19 @@
 
 All notable changes to JSAT.
 
-## [Unreleased]
+## [0.4.18] — 2026-09-05
+
+### Added
+
+- **`jsat connect opencode` now supports project scope, mirroring `jsat connect claude`.**
+  The default writes `.opencode/opencode.json` (with the MCP command pinned to the repo via
+  `--repo`), `.opencode/commands/`, and a `<!-- jsat-start -->` guidance block in the repo's
+  `AGENTS.md`, and persists the `opencode_cli` provider to the repo's `.jsat/config.yaml`.
+  `--global`/`--scope global` targets `~/.config/opencode/` as before but skips repo pinning
+  and the AGENTS.md block. `jsat ollama --tool opencode` and `jsat start opencode` auto-connect
+  at project scope, and `jsat disconnect opencode` removes the project wiring (default scope
+  `project`) or the global wiring (`--scope global|all`) — including stripping the guidance
+  block from AGENTS.md.
 
 ## [0.4.17] — 2026-09-02
 

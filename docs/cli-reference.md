@@ -763,13 +763,25 @@ JSAT, so Codex commands such as `resume <session-id>` keep working.
 
 ### `jsat connect opencode`
 
-Wire JSAT into OpenCode's global MCP config and install the `/jsat` and `/jsat-help`
-commands in `~/.config/opencode/commands/`. A directly installed OpenCode and
-`ollama launch opencode` use the same files.
+Wire JSAT into OpenCode's MCP config and install the `/jsat` and `/jsat-help`
+commands. By default this writes to the current repo (`.opencode/opencode.json` +
+`.opencode/commands/` and an `AGENTS.md` guidance block), mirroring `jsat connect
+claude`; pass `--global` for the machine-wide `~/.config/opencode/` config. A
+directly installed OpenCode and `ollama launch opencode` use the same files.
 
 ```bash
-jsat connect opencode [--show] [--no-commands]
+jsat connect opencode
+jsat connect opencode --global
+jsat connect opencode --repo /path/to/project --no-commands --no-agents-md
 ```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--global`, `-g` | false | Write `~/.config/opencode/opencode.json` instead of `<repo>/.opencode/` |
+| `--repo`, `-r` | `.` | Project to pin the MCP command to (project scope only) |
+| `--install-commands` | true | Install the `/jsat` and `/jsat-help` slash commands |
+| `--agents-md` | true | Write the JSAT guidance block into the repo's `AGENTS.md` (project only) |
+| `--show` | false | Print the generated config |
 
 ### `jsat connect ollama`
 

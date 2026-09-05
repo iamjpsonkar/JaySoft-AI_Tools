@@ -217,8 +217,9 @@ model. The adapter uses `opencode run` and disables JSAT MCP only in that nested
 call, preventing recursive self-invocation.
 
 ```bash
-jsat connect opencode
-jsat ai use opencode              # optional for non-MCP JSAT commands
+jsat connect opencode               # wires this repo (.opencode/) … 
+jsat connect opencode --global      # … or every project (~/.config/opencode/opencode.json)
+jsat ai use opencode                # optional for non-MCP JSAT commands
 ```
 
 When OpenCode itself was started by Ollama, JSAT does not start a nested OpenCode
@@ -573,7 +574,8 @@ jsat connect ollama tool=opencode
 ollama                             # choose OpenCode → sign in → choose a model
 ```
 
-`jsat connect opencode` writes the same OpenCode MCP config. Bare
+`jsat connect opencode` writes the same OpenCode MCP config — by default in the
+current repo's `.opencode/`, or machine-wide with `--global`. Bare
 `jsat connect ollama` configures Claude, Codex and OpenCode together. Ollama
 owns the installation, the sign-in prompt and the model selector; JSAT inherits
 that selection for its own MCP tools, so no second `ollama pull` is needed and

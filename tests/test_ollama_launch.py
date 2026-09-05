@@ -117,8 +117,7 @@ def test_jsat_ollama_tool_restore_forwards_flag(monkeypatch, tmp_path) -> None:
 def test_jsat_ollama_tool_launches_in_repo(monkeypatch, tmp_path) -> None:
     import shutil
 
-    config = tmp_path / "home" / ".config" / "opencode" / "opencode.json"
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "home" / ".config"))
+    config = tmp_path / ".opencode" / "opencode.json"
     looked_up: list[str] = []
 
     def fake_which(name: str) -> str | None:
@@ -172,7 +171,7 @@ def test_jsat_ollama_repairs_existing_opencode_provider_marker(monkeypatch, tmp_
     import json
     import shutil
 
-    config = tmp_path / "xdg" / "opencode" / "opencode.json"
+    config = tmp_path / ".opencode" / "opencode.json"
     config.parent.mkdir(parents=True)
     config.write_text(json.dumps({
         "mcp": {"jsat": {
@@ -182,7 +181,6 @@ def test_jsat_ollama_repairs_existing_opencode_provider_marker(monkeypatch, tmp_
             "environment": {"JSAT_MCP_ALLOW_INSECURE": "1"},
         }}
     }), encoding="utf-8")
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     monkeypatch.setattr(shutil, "which", lambda name: f"/fake/bin/{name}")
     monkeypatch.setattr(
         subprocess,
@@ -190,7 +188,9 @@ def test_jsat_ollama_repairs_existing_opencode_provider_marker(monkeypatch, tmp_
         lambda cmd, **kwargs: subprocess.CompletedProcess(cmd, 0),
     )
 
-    result = runner.invoke(app, ["ollama", "--tool", "opencode", "--model", "qwen3:8b"])
+    result = runner.invoke(
+        app, ["ollama", "--repo", str(tmp_path), "--tool", "opencode", "--model", "qwen3:8b"]
+    )
 
     assert result.exit_code == 0
     entry = json.loads(config.read_text(encoding="utf-8"))["mcp"]["jsat"]
@@ -388,10 +388,43 @@ def test_connect_opencode_needs_no_opencode_binary(monkeypatch, tmp_path) -> Non
     import json
     import shutil
 
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    import yaml
+
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(shutil, "which", lambda name: None)
 
     result = runner.invoke(app, ["connect", "opencode"])
+
+    assert result.exit_code == 0
+    # Default is project scope, mirroring `jsat connect claude`: the wiring lives
+    # in .opencode/ so it travels with the checkout and is removed with it.
+    config = tmp_path / ".opencode" / "opencode.json"
+    data = json.loads(config.read_text(encoding="utf-8"))
+    entry = data["mcp"]["jsat"]
+    assert entry["type"] == "local"
+    assert entry["command"][-2:] == ["--repo", str(tmp_path.resolve())]
+    assert entry["enabled"] is True
+    assert entry["environment"]["JSAT_AI_PROVIDER"] == "opencode_cli"
+    commands = tmp_path / ".opencode" / "commands"
+    assert "/jsat <command>" in (commands / "jsat.md").read_text(encoding="utf-8")
+    assert (commands / "jsat-help.md").exists()
+    # opencode reads AGENTS.md from the project root automatically, so JSAT
+    # guidance lands there (parity with CLAUDE.md for Claude Code) …
+    assert "jsat-start" in (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    # … and the provider preference is persisted into the repo's own config.
+    cfg = yaml.safe_load((tmp_path / ".jsat" / "config.yaml").read_text())
+    assert cfg["ai"]["provider"] == "opencode_cli"
+
+
+@pytest.mark.ci
+def test_connect_opencode_global_scope(monkeypatch, tmp_path) -> None:
+    import json
+    import shutil
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+
+    result = runner.invoke(app, ["connect", "opencode", "--global"])
 
     assert result.exit_code == 0
     config = tmp_path / "xdg" / "opencode" / "opencode.json"
@@ -401,7 +434,8 @@ def test_connect_opencode_needs_no_opencode_binary(monkeypatch, tmp_path) -> Non
     assert entry["command"][-1] == "mcp-server"
     assert "--repo" not in entry["command"]
     assert entry["enabled"] is True
-    assert entry["environment"]["JSAT_AI_PROVIDER"] == "opencode_cli"
+    # Global scope must NOT write a per-repo AGENTS.md guidance block.
+    assert not (tmp_path / "AGENTS.md").exists()
     commands = config.parent / "commands"
     assert "/jsat <command>" in (commands / "jsat.md").read_text(encoding="utf-8")
     assert (commands / "jsat-help.md").exists()
@@ -411,7 +445,7 @@ def test_connect_opencode_needs_no_opencode_binary(monkeypatch, tmp_path) -> Non
 def test_connect_opencode_can_skip_slash_commands(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
 
-    result = runner.invoke(app, ["connect", "opencode", "--no-commands"])
+    result = runner.invoke(app, ["connect", "opencode", "--global", "--no-commands"])
 
     assert result.exit_code == 0
     base = tmp_path / "xdg" / "opencode"
@@ -431,8 +465,8 @@ def test_connect_opencode_preserves_settings_and_is_idempotent(monkeypatch, tmp_
     )
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
 
-    first = runner.invoke(app, ["connect", "opencode"])
-    second = runner.invoke(app, ["connect", "opencode"])
+    first = runner.invoke(app, ["connect", "opencode", "--global"])
+    second = runner.invoke(app, ["connect", "opencode", "--global"])
 
     assert first.exit_code == 0
     assert second.exit_code == 0
@@ -451,7 +485,7 @@ def test_connect_opencode_does_not_overwrite_invalid_config(monkeypatch, tmp_pat
     config.write_text(original, encoding="utf-8")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
 
-    result = runner.invoke(app, ["connect", "opencode"])
+    result = runner.invoke(app, ["connect", "opencode", "--global"])
 
     assert result.exit_code == 1
     assert "left it unchanged" in result.output
@@ -474,6 +508,38 @@ def test_disconnect_opencode_removes_only_jsat(monkeypatch, tmp_path) -> None:
     (commands / "jsat-help.md").write_text("JSAT help", encoding="utf-8")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
 
+    result = runner.invoke(app, ["disconnect", "opencode", "--scope", "global"])
+
+    assert result.exit_code == 0
+    data = json.loads(config.read_text(encoding="utf-8"))
+    assert "jsat" not in data["mcp"]
+    assert "other" in data["mcp"]
+    assert not (commands / "jsat.md").exists()
+    assert not (commands / "jsat-help.md").exists()
+
+
+@pytest.mark.ci
+def test_disconnect_opencode_project_scope_and_agents_md(monkeypatch, tmp_path) -> None:
+    import json
+
+    config = tmp_path / ".opencode" / "opencode.json"
+    config.parent.mkdir(parents=True)
+    config.write_text(
+        json.dumps({"mcp": {"jsat": {"type": "local"}, "other": {"type": "remote"}}}),
+        encoding="utf-8",
+    )
+    commands = config.parent / "commands"
+    commands.mkdir()
+    (commands / "jsat.md").write_text("JSAT dispatcher", encoding="utf-8")
+    (commands / "jsat-help.md").write_text("JSAT help", encoding="utf-8")
+    agents_md = tmp_path / "AGENTS.md"
+    agents_md.write_text(
+        "# Project rules\nmy own content\n\n"
+        "<!-- jsat-start -->\nJSAT guidance\n<!-- jsat-end -->\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
     result = runner.invoke(app, ["disconnect", "opencode"])
 
     assert result.exit_code == 0
@@ -482,6 +548,10 @@ def test_disconnect_opencode_removes_only_jsat(monkeypatch, tmp_path) -> None:
     assert "other" in data["mcp"]
     assert not (commands / "jsat.md").exists()
     assert not (commands / "jsat-help.md").exists()
+    # The JSAT guidance block is stripped from AGENTS.md, not the whole file.
+    leftover = agents_md.read_text(encoding="utf-8")
+    assert "jsat-start" not in leftover
+    assert "my own content" in leftover
 
 
 @pytest.mark.ci

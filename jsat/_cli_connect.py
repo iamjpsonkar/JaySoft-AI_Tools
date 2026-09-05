@@ -239,27 +239,46 @@ def _connect_mcp_tool(
     console.print(f"[bold yellow]→ {restart_msg}[/] to activate JSAT tools.\n")
 
 
-def _opencode_config_path() -> Path:
-    """Return OpenCode's global JSON config path, respecting XDG_CONFIG_HOME."""
+def _opencode_config_path(scope: str = "project", repo: str | Path | None = None) -> Path:
+    """Return OpenCode's JSON config path for a scope.
+
+    Global respects XDG_CONFIG_HOME and lives alongside the user's other tool
+    configs. Project scope writes ``.opencode/opencode.json`` in the repo —
+    opencode's own config loader walks up from the cwd to the worktree root and
+    picks up that file, so the wiring travels with the checkout like .claude/.
+    """
     import os
 
-    xdg_config = os.environ.get("XDG_CONFIG_HOME")
-    base = Path(xdg_config).expanduser() if xdg_config else Path.home() / ".config"
-    return base / "opencode" / "opencode.json"
+    if scope == "global":
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        base = Path(xdg_config).expanduser() if xdg_config else Path.home() / ".config"
+        return base / "opencode" / "opencode.json"
+    base = Path(repo).expanduser() if repo is not None else Path.cwd()
+    return base.resolve() / ".opencode" / "opencode.json"
 
 
-def _opencode_commands_dir() -> Path:
-    """Return OpenCode's global custom-command directory."""
-    return _opencode_config_path().parent / "commands"
+def _opencode_commands_dir(scope: str = "project", repo: str | Path | None = None) -> Path:
+    """Return OpenCode's custom-command directory for a scope."""
+    return _opencode_config_path(scope, repo).parent / "commands"
 
 
-def _install_opencode_commands() -> Path:
-    """Install JSAT's /jsat dispatcher in OpenCode's global command registry."""
-    return _write_jsat_dispatcher("global", commands_dir=_opencode_commands_dir())
+def _install_opencode_commands(scope: str = "project", repo: str | Path | None = None) -> Path:
+    """Install JSAT's /jsat dispatcher in OpenCode's command registry for a scope."""
+    return _write_jsat_dispatcher("global", commands_dir=_opencode_commands_dir(scope, repo))
 
 
-def _connect_opencode_mcp(config_path: Path, binary: str) -> bool:
-    """Upsert JSAT using OpenCode's native local-MCP configuration shape."""
+def _connect_opencode_mcp(
+    config_path: Path, binary: str, repo_path: str | None = None
+) -> bool:
+    """Upsert JSAT using OpenCode's native local-MCP configuration shape.
+
+    With ``repo_path`` (project scope) JSAT is pinned to that repo with
+    ``--repo`` and the provider preference is persisted in the repo's own
+    ``.jsat/config.yaml``, so the wiring is portable and removable with the
+    checkout — exactly like ``jsat connect claude``. Without it (global scope)
+    opencode starts JSAT in whatever workspace is active and the preference
+    lands in ``~/.jsat/config.yaml``.
+    """
     import json
 
     if config_path.exists():
@@ -274,10 +293,12 @@ def _connect_opencode_mcp(config_path: Path, binary: str) -> bool:
     settings.setdefault("$schema", "https://opencode.ai/config.json")
     settings.setdefault("mcp", {})
     already = "jsat" in settings["mcp"]
+    command = [binary, "mcp-server"]
+    if repo_path:
+        command += ["--repo", repo_path]
     settings["mcp"]["jsat"] = {
         "type": "local",
-        # No --repo pin: OpenCode starts local MCP servers in the active workspace.
-        "command": [binary, "mcp-server"],
+        "command": command,
         "enabled": True,
         "environment": {
             "JSAT_AI_PROVIDER": "opencode_cli",
@@ -285,54 +306,99 @@ def _connect_opencode_mcp(config_path: Path, binary: str) -> bool:
         },
     }
     _write_json(config_path, settings)
-    # OpenCode starts local MCP servers in whatever workspace is active, not a
-    # fixed repo pinned at connect time — persist to the global config, which
-    # load_config() falls back to when no repo-local one exists.
-    _persist_ai_provider_if_default(Path.home() / ".jsat" / "config.yaml", "opencode_cli")
+    # Persist the provider choice to the config file that the entry point (CLI,
+    # MCP server, doctor) actually reads for this scope, unless the user already
+    # made an explicit choice (anything other than the untouched "ollama" default).
+    cfg_target = (
+        Path(repo_path) / ".jsat" / "config.yaml" if repo_path
+        else Path.home() / ".jsat" / "config.yaml"
+    )
+    _persist_ai_provider_if_default(cfg_target, "opencode_cli")
     return already
 
 
 @connect_app.command("opencode")
 def cmd_connect_opencode(
-    show: bool = typer.Option(False, "--show", help="Print the config that was written"),
+    scope: str = typer.Option(
+        "project",
+        "--scope", "-s",
+        help="'project' → .opencode/opencode.json  |  'global' → ~/.config/opencode/opencode.json",
+    ),
+    global_: bool = typer.Option(
+        False, "--global", "-g",
+        help="Shorthand for --scope global — installs into ~/.config/opencode/opencode.json "
+             "for all OpenCode projects",
+    ),
+    repo: str = typer.Option(".", "--repo", "-r",
+                              help="Repo path passed to mcp-server (default: current dir)"),
     install_commands: bool = typer.Option(
         True,
         "--install-commands/--no-commands",
         help="Also install /jsat and /jsat-help in OpenCode",
     ),
+    write_agents_md: bool = typer.Option(
+        True, "--agents-md/--no-agents-md",
+        help="Also write JSAT guidance into AGENTS.md (project scope only) so "
+             "opencode reaches for JSAT without being asked",
+    ),
+    show: bool = typer.Option(False, "--show", help="Print the config that was written"),
 ) -> None:
     """Wire JSAT MCP and slash commands into OpenCode.
 
     \b
+    Project level (just this repo):
+        jsat connect opencode
+
+    \b
+    Global (all OpenCode projects, one-time setup):
+        jsat connect opencode --global
+
+    \b
     OpenCode does not need to be installed separately:
-      jsat connect opencode
       jsat ollama --tool opencode
 
     The global config is deep-merged with Ollama's temporary model configuration.
     """
     import json
 
-    config_path = _opencode_config_path()
+    effective_scope = "global" if global_ else scope
+    repo_path = str(Path(repo).resolve())
+    config_path = _opencode_config_path(effective_scope, repo_path)
     binary = _jsat_binary()
     try:
-        already = _connect_opencode_mcp(config_path, binary)
+        already = _connect_opencode_mcp(
+            config_path,
+            binary,
+            repo_path=repo_path if effective_scope == "project" else None,
+        )
     except ValueError as exc:
         err.print(f"[red]{exc}[/]")
         raise typer.Exit(1) from exc
     action = "Updated" if already else "Added"
+    label = "project" if effective_scope == "project" else "global"
     console.print(
-        f"\n[green]✓[/] {action} JSAT MCP server in [bold]OpenCode[/]\n"
+        f"\n[green]✓[/] {action} JSAT MCP server in [bold]OpenCode[/] ({label})\n"
         f"  Binary : [cyan]{binary}[/]\n"
+        f"  Repo   : [cyan]{repo_path}[/]\n"
         f"  Config : [cyan]{config_path}[/]\n"
     )
     if show:
         entry = _read_json_or_abort(config_path)["mcp"]["jsat"]
         console.print_json(json.dumps({"mcp": {"jsat": entry}}, indent=2))
     if install_commands:
-        commands_dir = _install_opencode_commands()
+        commands_dir = _install_opencode_commands(effective_scope, repo_path)
         console.print(
             f"[green]✓[/] Installed [cyan]/jsat[/] and [cyan]/jsat-help[/] "
             f"in [bold]{commands_dir}[/]\n"
+        )
+    # opencode loads AGENTS.md from the project root automatically — this is what
+    # makes it reach for JSAT unprompted, mirroring CLAUDE.md for Claude Code.
+    if write_agents_md and effective_scope == "project":
+        agents_md = Path(repo_path) / "AGENTS.md"
+        _write_instructions_file(agents_md)
+        _print_instructions_written(
+            agents_md, "OpenCode",
+            "opencode reads AGENTS.md from the project root automatically.",
         )
     console.print(
         "[bold yellow]→ Start OpenCode[/] directly or with "
@@ -1286,7 +1352,8 @@ _CONNECT_LOCATIONS: list[tuple[str, Path, str]] = [
     ("Claude Code (global)",  Path.home() / ".claude" / "settings.json", "mcpServers"),
     ("Cursor",                Path.home() / ".cursor" / "mcp.json",      "mcpServers"),
     ("Codex",                 Path.home() / ".codex" / "config.toml",    "mcpServers"),
-    ("OpenCode",              _opencode_config_path(),                     "mcp"),
+    ("OpenCode (project)", Path.cwd() / ".opencode" / "opencode.json", "mcp"),
+    ("OpenCode (global)",  _opencode_config_path("global"),             "mcp"),
     ("Windsurf",              Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),  # noqa: E501
     ("Gemini CLI",            Path.home() / ".gemini" / "settings.json", "mcpServers"),
     ("Bob Shell (project)",   Path.cwd() / ".bob" / "settings.json",     "mcpServers"),

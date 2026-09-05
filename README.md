@@ -280,7 +280,8 @@ The dashboard runs on `localhost:7432` (override with `JSAT_DASHBOARD_PORT`), se
 # Recommended: one-time global setup (works in every project)
 jsat connect claude --global               # Claude Code — all sessions
 jsat connect codex                        # OpenAI Codex CLI — global MCP + $jsat skill
-jsat connect opencode                     # OpenCode — MCP + /jsat commands
+jsat connect opencode                     # OpenCode — MCP + /jsat commands (project scope)
+jsat connect opencode --global            # OpenCode — all projects (recommended one-time)
 jsat connect ollama                       # Claude + Codex + OpenCode Ollama integrations
 jsat connect ollama tool=opencode         # only OpenCode (also accepts --tool opencode)
 jsat connect ollama opencode --model <model>  # + remember this model for `jsat ollama opencode`
@@ -1081,7 +1082,8 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
 | `jsat connect codex` | Wire JSAT into OpenAI Codex CLI via `~/.codex/config.toml` + `~/.codex/skills/jsat/SKILL.md` |
 | `jsat connect codex --global` | Compatibility alias; writes the same global Codex MCP and skill files |
-| `jsat connect opencode` | Wire JSAT into OpenCode globally and install `/jsat` + `/jsat-help`; also works with `ollama launch` |
+| `jsat connect opencode` | Wire JSAT into OpenCode for this repo (`.opencode/opencode.json` + `/jsat` commands + AGENTS.md block) |
+| `jsat connect opencode --global` | Wire JSAT into OpenCode globally (`~/.config/opencode/opencode.json` + `/jsat` + `/jsat-help`); also works with `ollama launch` |
 | `jsat connect ollama [TOOL]` | Wire JSAT into every supported Ollama-launched client, or one of `claude`, `codex`, `opencode` |
 | `jsat connect ollama TOOL --model MODEL` | Also remember `MODEL` as `TOOL`'s default for `jsat ollama --tool TOOL` (single TOOL only) |
 | `jsat connect bob` | Wire JSAT into Bob Shell (project scope) |

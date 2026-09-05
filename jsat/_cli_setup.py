@@ -159,21 +159,37 @@ def cmd_disconnect(
 
     # ── opencode ─────────────────────────────────────────────────────────────
     if tool_lower in ("opencode", "ollama", "all"):
-        from jsat._cli_connect import _opencode_commands_dir, _opencode_config_path
-
-        removed_any |= _remove_from_standard(
-            "OpenCode", _opencode_config_path(), key="mcp"
+        from jsat._cli_connect import (
+            _opencode_commands_dir,
+            _opencode_config_path,
         )
-        if not keep_skills:
-            for command_name in ("jsat.md", "jsat-help.md"):
-                command_file = _opencode_commands_dir() / command_name
-                if command_file.exists():
-                    command_file.unlink()
-                    console.print(
-                        f"[green]✓[/] Removed OpenCode command [bold]/{command_file.stem}[/] "
-                        f"({command_file})"
-                    )
-                    removed_any = True
+
+        # `jsat disconnect ollama` cleans up the one-time global integration
+        # only; `jsat disconnect opencode` defaults to the per-repo wiring
+        # (project scope), matching `jsat connect opencode`'s default.
+        if tool_lower == "ollama":
+            oc_scopes = ["global"]
+        else:
+            oc_scopes = ["project", "global"] if scope == "all" else [scope]
+        for oc_scope in oc_scopes:
+            repo_ref = Path.cwd() if oc_scope == "project" else None
+            removed_any |= _remove_from_standard(
+                "OpenCode", _opencode_config_path(oc_scope, repo_ref), key="mcp"
+            )
+            if not keep_skills:
+                for command_name in ("jsat.md", "jsat-help.md"):
+                    command_file = _opencode_commands_dir(oc_scope, repo_ref) / command_name
+                    if command_file.exists():
+                        command_file.unlink()
+                        console.print(
+                            f"[green]✓[/] Removed OpenCode command [bold]/{command_file.stem}[/] "
+                            f"({command_file})"
+                        )
+                        removed_any = True
+            if not keep_skills and oc_scope == "project":
+                # Symmetric with `jsat connect opencode --agents-md`: strip only
+                # the marked block, leaving any of the user's own AGENTS.md content.
+                _remove_jsat_block(Path.cwd() / "AGENTS.md")
 
     # ── cursor ────────────────────────────────────────────────────────────────
     if tool_lower in ("cursor", "all"):

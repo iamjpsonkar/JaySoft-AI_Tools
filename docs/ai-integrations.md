@@ -110,12 +110,13 @@ ollama signin
 jsat ollama --tool opencode -m <model>-cloud     # cloud
 ```
 
-The launcher writes JSAT's MCP entry to `~/.config/opencode/opencode.json` before
-running `ollama launch opencode`. It also installs `/jsat` and `/jsat-help` under
-`~/.config/opencode/commands/`. Ollama's inline model configuration is deep-merged
-with that file. A standalone OpenCode installation is not required. For configuration
-without launch, run `jsat connect opencode`, then run bare `ollama` and choose
-OpenCode → sign in if prompted → choose a model.
+The launcher writes JSAT's MCP entry to the repo's `.opencode/opencode.json` (pinned to
+that repo) before running `ollama launch opencode`. It also installs `/jsat` and
+`/jsat-help` under `.opencode/commands/`. Ollama's inline model configuration is
+deep-merged with that file. A standalone OpenCode installation is not required. For
+configuration without launch, run `jsat connect opencode`, then run bare `ollama` and
+choose OpenCode → sign in if prompted → choose a model. Pass `--global` to `jsat
+connect opencode` to target `~/.config/opencode/` instead of a project.
 
 `jsat connect ollama` configures every Ollama-launched client JSAT currently
 supports: Claude, Codex, and OpenCode. Use `--tool opencode`, `opencode`, or
@@ -364,7 +365,7 @@ switch anthropic <model> → Claude API in JSAT shell (needs ANTHROPIC_API_KEY)
 jsat disconnect claude                   # Claude project scope
 jsat disconnect claude --scope all       # Claude everywhere
 jsat disconnect codex                    # Codex
-jsat disconnect opencode                 # OpenCode global MCP entry
+jsat disconnect opencode                 # OpenCode project scope (.opencode/)
 jsat disconnect cursor                   # Cursor (global + project)
 jsat disconnect windsurf                 # Windsurf
 jsat disconnect continue                 # Continue (removes commands too)

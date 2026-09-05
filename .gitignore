@@ -5,6 +5,9 @@ prompt.md
 # Claude Code local session data
 .claude/
 
+# OpenCode local session data (opencode.json pins machine-specific absolute paths)
+.opencode/
+
 # Codex local session data
 .codex/
 

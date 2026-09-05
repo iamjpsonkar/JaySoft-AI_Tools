@@ -366,8 +366,9 @@ def _tool_install_hint(tool: str) -> str:
     return tool_hints.get(system, tool_hints.get("Darwin", f"install {tool}"))
 
 _TOOL_CONFIG_PATHS: dict[str, tuple[Path, str]] = {
-    "codex":    (Path.home() / ".codex" / "config.toml",         "mcpServers"),
-    "opencode": (Path.home() / ".config" / "opencode" / "opencode.json", "mcp"),
+    "codex":    (Path.home() / ".codex" / "config.toml",           "mcpServers"),
+    # opencode's path is scope-dependent; _is_connected/_auto_connect resolve it.
+    "opencode": (Path.cwd() / ".opencode" / "opencode.json",        "mcp"),
     "cursor":   (Path.home() / ".cursor" / "mcp.json",           "mcpServers"),
     "windsurf": (Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
     "gemini":   (Path.home() / ".gemini" / "settings.json",      "mcpServers"),
@@ -376,7 +377,7 @@ _TOOL_CONFIG_PATHS: dict[str, tuple[Path, str]] = {
 }
 
 
-def _is_connected(tool: str) -> bool:
+def _is_connected(tool: str, repo: str = ".") -> bool:
     """Return True if JSAT MCP config exists for this tool."""
     entry = _TOOL_CONFIG_PATHS.get(tool)
     if not entry:
@@ -385,9 +386,17 @@ def _is_connected(tool: str) -> bool:
     if tool == "opencode":
         from jsat._cli_connect import _opencode_commands_dir, _opencode_config_path
 
-        config_path = _opencode_config_path()
-        commands_ready = (_opencode_commands_dir() / "jsat.md").exists()
-        return "jsat" in _read_json(config_path).get(key, {}) and commands_ready
+        repo_abs = str(Path(repo).resolve())
+        # Both a project-scoped wiring (the new default, like `jsat connect claude`)
+        # and a legacy global one count as connected, so `jsat opencode` /
+        # `jsat ollama --tool opencode` in a fresh checkout do the right thing
+        # without double-installing in both places.
+        for scope in ("project", "global"):
+            config_path = _opencode_config_path(scope, repo_abs)
+            commands_ready = (_opencode_commands_dir(scope, repo_abs) / "jsat.md").exists()
+            if "jsat" in _read_json(config_path).get(key, {}) and commands_ready:
+                return True
+        return False
     if tool == "codex":
         from jsat._cli_connect import _has_current_codex_jsat_mcp
         skill_file = config_path.parent / "skills" / "jsat" / "SKILL.md"
@@ -399,7 +408,7 @@ def _auto_connect(tool: str, repo: str) -> None:
     """Silently connect JSAT to a tool if not already wired."""
     # OpenCode entries created by older JSAT versions need their provider marker
     # repaired, and slash-command files may have been removed independently.
-    if _is_connected(tool) and tool != "opencode":
+    if _is_connected(tool, repo) and tool != "opencode":
         return
     # Deferred imports to avoid circular imports with _cli_connect
     from jsat._cli_connect import (
@@ -416,7 +425,8 @@ def _auto_connect(tool: str, repo: str) -> None:
     repo_path = str(Path(repo).resolve())
     config_path, key = _TOOL_CONFIG_PATHS[tool]
     if tool == "opencode":
-        config_path = _opencode_config_path()
+        # opencode defaults to per-repo wiring — same as `jsat connect claude`.
+        config_path = _opencode_config_path("project", repo_path)
     if tool == "codex":
         _connect_codex_mcp(
             config_path,
@@ -426,11 +436,11 @@ def _auto_connect(tool: str, repo: str) -> None:
         _write_codex_skill(config_path.parent / "skills" / "jsat")
     elif tool == "opencode":
         try:
-            _connect_opencode_mcp(config_path, binary)
+            _connect_opencode_mcp(config_path, binary, repo_path=repo_path)
         except ValueError as exc:
             err.print(f"[red]{exc}[/]")
             raise typer.Exit(1) from exc
-        _install_opencode_commands()
+        _install_opencode_commands("project", repo_path)
     elif key == "context_servers":
         settings = _read_json(config_path)
         settings.setdefault("context_servers", {})
