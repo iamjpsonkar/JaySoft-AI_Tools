@@ -1468,6 +1468,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Running it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parallel-by-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parallel by default
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1593,6 +1610,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Running it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parallel-by-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parallel by default
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1677,11 +1711,27 @@ backend, behind a <code># type: ignore</code> that had silenced the warning.</p>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--live-agent<span class="w">     </span><span class="c1"># also drive a real headless `claude -p`</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--full<span class="w">           </span><span class="c1"># pytest with no marker filter</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--suite<span class="w"> </span>mcp,cli<span class="w">  </span><span class="c1"># just these suites</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--list-suites
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--out<span class="w"> </span>/tmp/report
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--jobs<span class="w"> </span><span class="m">8</span><span class="w">         </span><span class="c1"># up to 8 suites concurrently (default 4)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--sequential<span class="w">     </span><span class="c1"># one suite at a time, in-process</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--list-suites
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>./scripts/jsat-selftest.sh<span class="w"> </span>--out<span class="w"> </span>/tmp/report
 </code></pre></div>
 <p>It writes a JSON report and a Markdown companion, both structured for an AI
 agent to triage.</p>
+<h3 id="parallel-by-default">Parallel by default<a class="headerlink" href="#parallel-by-default" title="Permanent link">&para;</a></h3>
+<p>Suites run <strong>concurrently by default</strong>: each suite executes in its own
+subprocess with a private workspace (<code>tmp/ws-&lt;suite&gt;</code>; its own
+<code>JSAT_DATA_DIR</code> / <code>JSAT_SESSIONS_DIR</code> / <code>JSAT_IMPROVE_DIR</code> / <code>JSAT_RUNTIME_DIR</code>)
+under the shared tempdir. That isolation is what makes this safe — suites
+share only the read-only fixture repo and the parent's base environment, so the
+suites that mutate <code>os.environ</code> for their in-process SDK calls and the
+dashboard's fixed port are never in each other's way. The parent merges the
+per-suite reports in <code>SUITES</code> order, so the report is deterministic and the
+wall time is roughly <code>max(suite)</code> rather than <code>sum(suite)</code>. <code>--jobs N</code> bounds
+concurrency (default 4 — match your core count); <code>--sequential</code> restores the
+old in-process one-suite-at-a-time run, which is the mode to debug a suite in.
+The <code>environment</code> suite, the fixture-repo build and the final state-leak check
+always run on the parent, before and after the pool.</p>
 <h2 id="what-it-covers">What it covers<a class="headerlink" href="#what-it-covers" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1705,7 +1755,7 @@ agent to triage.</p>
 </tr>
 <tr>
 <td><code>mcp</code></td>
-<td><strong>All 69 MCP tools</strong> over real stdio JSON-RPC</td>
+<td><strong>All 70 MCP tools</strong> over real stdio JSON-RPC</td>
 </tr>
 <tr>
 <td><code>reliability</code></td>
@@ -1713,7 +1763,7 @@ agent to triage.</p>
 </tr>
 <tr>
 <td><code>cli</code></td>
-<td><strong>All 41 CLI commands</strong>, including a real process kill and SARIF output</td>
+<td><strong>All 45 CLI commands</strong>, including a real process kill and SARIF output</td>
 </tr>
 <tr>
 <td><code>connect</code></td>
