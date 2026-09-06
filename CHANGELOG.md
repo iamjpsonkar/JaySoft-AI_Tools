@@ -2,9 +2,21 @@
 
 All notable changes to JSAT.
 
-## [Unreleased] — 0.4.20 (not yet released; version held at 0.4.20)
+## [0.4.20] — 2026-09-06
 
 ### Added
+
+- **`jsat refresh`** — a "sync what changed" counterpart to `jsat connect`.
+  It checks the installed version against the latest on PyPI (offline-safe,
+  reports rather than crashes), then re-reads the bundled
+  `jsat/commands/jsat-*.md` files and updates every connected AI tool: new
+  skills are added, modified dispatchers/`SKILL.md`/Bob files are re-installed,
+  vanished ones are removed, and Continue's `customCommands` are re-merged
+  without touching user-owned commands. Tools that are not connected are
+  skipped. `--check-only` reports without writing, `--ai <tool>` scopes the
+  sync, and `--update` also runs `pip install --upgrade jsat` when a newer
+  version exists. Nothing is ever written into the installed package itself —
+  every diff is rendered against a throwaway copy of the command files.
 
 - **`switch opencode` in the JSAT shell.** The shell already listed OpenCode
   among its "native CLI tools" upstream in the docs, but `switch opencode`

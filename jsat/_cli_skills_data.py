@@ -300,12 +300,22 @@ def _generate_help_body(skill_files: list, frontmatter_desc, strip_frontmatter) 
     return "\n".join(lines)
 
 
-def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path:
+def _write_jsat_dispatcher(
+    scope: str,
+    commands_dir: Path | None = None,
+    source_dir: Path | None = None,
+) -> Path:
     """Write a single /jsat dispatcher sourced from the bundled jsat/commands/*.md files.
 
     Reads the actual skill files from jsat/commands/ so updates to those files are
     automatically reflected when 'jsat connect claude' is re-run.
+
+    ``source_dir`` overrides where the bundled skill files are read from.
+    ``jsat refresh`` passes a throwaway copy so rendering expected content never
+    touches the installed package; the default is the shipped command files.
     """
+    if source_dir is None:
+        source_dir = Path(__file__).parent / "commands"
     if commands_dir is None:
         if scope == "global":
             commands_dir = Path.home() / ".claude" / "commands"
@@ -319,8 +329,7 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
         old.unlink()
 
     # Locate the bundled skill files: jsat/commands/jsat-*.md
-    pkg_commands_dir = Path(__file__).parent / "commands"
-    skill_files = sorted(pkg_commands_dir.glob("jsat-*.md"))
+    skill_files = sorted(source_dir.glob("jsat-*.md"))
 
     def _frontmatter_desc(text: str) -> str:
         """Extract description: value from YAML frontmatter."""
@@ -346,7 +355,7 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
     # silently drifted from reality (it once documented deleted commands and
     # omitted new ones) — it is now a build artifact like jsat.md itself, so it
     # cannot go stale independently of the commands it describes.
-    (pkg_commands_dir / "jsat-help.md").write_text(
+    (source_dir / "jsat-help.md").write_text(
         _generate_help_body(skill_files, _frontmatter_desc, _strip_frontmatter),
         encoding="utf-8",
     )
@@ -503,7 +512,7 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
 
     # Also install jsat-help.md as a standalone command so /jsat-help <command>
     # works as a direct slash command (separate from the /jsat dispatcher).
-    help_src = pkg_commands_dir / "jsat-help.md"
+    help_src = source_dir / "jsat-help.md"
     if help_src.exists():
         (commands_dir / "jsat-help.md").write_text(
             help_src.read_text(encoding="utf-8"), encoding="utf-8"
@@ -512,20 +521,28 @@ def _write_jsat_dispatcher(scope: str, commands_dir: Path | None = None) -> Path
     return commands_dir
 
 
-def _write_codex_skill(skill_dir: Path | None = None) -> Path:
+def _write_codex_skill(
+    skill_dir: Path | None = None,
+    source_dir: Path | None = None,
+) -> Path:
     """Write one global Codex skill that dispatches JSAT's bundled commands.
 
     Codex does not use Claude's `.claude/commands/` slash-command directory. Keep
     the Codex integration project-clean by installing a single user-level skill
     under `~/.codex/skills/jsat/SKILL.md`.
+
+    ``source_dir`` overrides where the bundled skill files are read from; the
+    default is the shipped command files. ``jsat refresh`` passes a throwaway
+    copy so render-only inspection never touches the installed package.
     """
+    if source_dir is None:
+        source_dir = Path(__file__).parent / "commands"
     if skill_dir is None:
         skill_dir = Path.home() / ".codex" / "skills" / "jsat"
 
     skill_dir.mkdir(parents=True, exist_ok=True)
 
-    pkg_commands_dir = Path(__file__).parent / "commands"
-    skill_files = sorted(pkg_commands_dir.glob("jsat-*.md"))
+    skill_files = sorted(source_dir.glob("jsat-*.md"))
 
     def _frontmatter_desc(text: str) -> str:
         for line in text.splitlines():

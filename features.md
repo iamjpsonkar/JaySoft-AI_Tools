@@ -8,7 +8,7 @@ JSAT exposes one core (index → graph → queries) through **three surfaces**:
 
 | Surface | Count | Registry |
 |---|---|---|
-| CLI commands (top-level) | 42 | `jsat/_cli_*.py` |
+| CLI commands (top-level) | 43 | `jsat/_cli_*.py` |
 | MCP tools (any connected AI) | 69 | `jsat/mcp/server.py:_build_registry()` |
 | Slash commands / skills | 47 (46 + help) | `jsat/commands/jsat-*.md` |
 | AI tool integrations | 11 | `jsat/_cli_connect.py`, `jsat/_cli_launchers.py` |
@@ -135,6 +135,7 @@ for full text. `PATH` is the Typer command registration; heavy logic lives in
 |---|---|---|---|---|
 | 41 | `version` | — | `jsat/_cli_setup.py:287` | CLI |
 | 42 | `update` | `--pre` | `jsat/_cli_setup.py:744` | CLI (`pip install -U jsat`) |
+| 43 | `refresh` | `--ai` `--check-only` `--update` `--pre` `--no-skills` `--no-version` | `jsat/_cli_refresh.py:352` | CLI (version check + re-syncs skills to connected AIs) |
 
 ---
 

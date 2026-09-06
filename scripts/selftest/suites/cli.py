@@ -172,6 +172,28 @@ def check_status(jsat_bin: str, env: dict[str, str], repo: Path) -> Check:
 
 
 @timed
+def check_refresh(jsat_bin: str, env: dict[str, str], repo: Path) -> Check:
+    """`jsat refresh --check-only --no-version` must be read-only and list
+    every skill target. It is deliberately run against a real HOME: the point
+    is that the diff path works against whatever the user actually has wired,
+    and --check-only guarantees nothing is written."""
+    r = run_cli(jsat_bin, ["refresh", "--check-only", "--no-version"],
+                env, cwd=str(repo), timeout=90)
+    if r.returncode != 0:
+        return Check("cli_refresh", "cli", FAIL,
+                     "jsat refresh --check-only exited non-zero",
+                     detail=f"rc={r.returncode} stderr={r.stderr[:400]}")
+    for label in ("Claude Code", "Codex", "OpenCode", "Bob", "Continue.dev"):
+        if label not in r.stdout:
+            return Check("cli_refresh", "cli", FAIL,
+                         "jsat refresh did not report a skill target",
+                         detail=f"missing '{label}' in: {r.stdout[:800]}")
+    return Check("cli_refresh", "cli", PASS,
+                 "jsat refresh --check-only listed all skill targets, "
+                 "wrote nothing")
+
+
+@timed
 def check_init(jsat_bin: str, env: dict[str, str], tmp: Path) -> Check:
     work = tmp / "init-target"
     work.mkdir(exist_ok=True)
@@ -999,6 +1021,7 @@ def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
     report.add(check_every_command_has_help(jsat_bin, env))
     report.add(check_doctor(jsat_bin, env, str(tmp))); exercised.add("doctor")
     report.add(check_status(jsat_bin, env, repo))
+    report.add(check_refresh(jsat_bin, env, repo)); exercised.add("refresh")
     report.add(check_init(jsat_bin, env, tmp)); exercised.add("init")
     report.add(check_tokens(jsat_bin, env)); exercised.add("tokens")
     report.add(check_note_and_session(jsat_bin, env, repo))

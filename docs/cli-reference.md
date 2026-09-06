@@ -1274,6 +1274,35 @@ jsat update [--pre]
 |------|-------------|
 | `--pre` | Include pre-release versions |
 
+### `jsat refresh`
+
+Check for a newer JSAT version and re-sync the bundled skills into every
+connected AI tool. Reads `jsat/commands/jsat-*.md`, works out what each tool
+should have, diffs it against what's on disk, and updates only what changed —
+adding new skills, updating modified ones, removing vanished ones. Tools that
+are not connected are skipped; the installed package itself is never modified.
+
+```
+jsat refresh [OPTIONS]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--repo PATH` | `.` | Repo path for project-scope skill targets |
+| `--ai TOOL` | all | Only `claude`, `codex`, `opencode`, `bob` or `continue` |
+| `--check-only` | false | Report what would change, write nothing |
+| `--update` | false | Also `pip install --upgrade jsat` when newer |
+| `--pre` | false | With `--update`: allow pre-release versions |
+| `--no-skills` | false | Version check only; skip the skill sync |
+| `--no-version` | false | Skill sync only; skip the PyPI version check |
+
+```bash
+jsat refresh
+jsat refresh --check-only
+jsat refresh --ai codex
+jsat refresh --update
+```
+
 ### `jsat knowledge-ingest`
 
 Bulk-ingest markdown files (CLAUDE.md, ADRs, runbooks) into the knowledge base.
