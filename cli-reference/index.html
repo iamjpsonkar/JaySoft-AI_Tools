@@ -2045,6 +2045,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#jsat-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat refresh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#jsat-knowledge-ingest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3089,6 +3100,17 @@
     <span class="md-ellipsis">
       
         jsat update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsat-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        jsat refresh
       
     </span>
   </a>
@@ -5115,9 +5137,68 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="jsat-refresh"><code>jsat refresh</code><a class="headerlink" href="#jsat-refresh" title="Permanent link">&para;</a></h3>
+<p>Check for a newer JSAT version and re-sync the bundled skills into every
+connected AI tool. Reads <code>jsat/commands/jsat-*.md</code>, works out what each tool
+should have, diffs it against what's on disk, and updates only what changed —
+adding new skills, updating modified ones, removing vanished ones. Tools that
+are not connected are skipped; the installed package itself is never modified.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a>jsat refresh [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--repo PATH</code></td>
+<td><code>.</code></td>
+<td>Repo path for project-scope skill targets</td>
+</tr>
+<tr>
+<td><code>--ai TOOL</code></td>
+<td>all</td>
+<td>Only <code>claude</code>, <code>codex</code>, <code>opencode</code>, <code>bob</code> or <code>continue</code></td>
+</tr>
+<tr>
+<td><code>--check-only</code></td>
+<td>false</td>
+<td>Report what would change, write nothing</td>
+</tr>
+<tr>
+<td><code>--update</code></td>
+<td>false</td>
+<td>Also <code>pip install --upgrade jsat</code> when newer</td>
+</tr>
+<tr>
+<td><code>--pre</code></td>
+<td>false</td>
+<td>With <code>--update</code>: allow pre-release versions</td>
+</tr>
+<tr>
+<td><code>--no-skills</code></td>
+<td>false</td>
+<td>Version check only; skip the skill sync</td>
+</tr>
+<tr>
+<td><code>--no-version</code></td>
+<td>false</td>
+<td>Skill sync only; skip the PyPI version check</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a>jsat<span class="w"> </span>refresh
+<a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a>jsat<span class="w"> </span>refresh<span class="w"> </span>--check-only
+<a id="__codelineno-81-3" name="__codelineno-81-3" href="#__codelineno-81-3"></a>jsat<span class="w"> </span>refresh<span class="w"> </span>--ai<span class="w"> </span>codex
+<a id="__codelineno-81-4" name="__codelineno-81-4" href="#__codelineno-81-4"></a>jsat<span class="w"> </span>refresh<span class="w"> </span>--update
+</code></pre></div>
 <h3 id="jsat-knowledge-ingest"><code>jsat knowledge-ingest</code><a class="headerlink" href="#jsat-knowledge-ingest" title="Permanent link">&para;</a></h3>
 <p>Bulk-ingest markdown files (CLAUDE.md, ADRs, runbooks) into the knowledge base.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a>jsat knowledge-ingest PATH [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a>jsat knowledge-ingest PATH [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -5150,14 +5231,14 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>docs/<span class="w">             </span><span class="c1"># ingest all .md files</span>
-<a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>.<span class="w"> </span>--pattern<span class="w"> </span><span class="s2">"**/*.md"</span><span class="w"> </span>--dry-run
+<div class="highlight"><pre><span></span><code><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>docs/<span class="w">             </span><span class="c1"># ingest all .md files</span>
+<a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a>jsat<span class="w"> </span>knowledge-ingest<span class="w"> </span>.<span class="w"> </span>--pattern<span class="w"> </span><span class="s2">"**/*.md"</span><span class="w"> </span>--dry-run
 </code></pre></div>
 <hr />
 <h2 id="11-export-and-import">11. Export and Import<a class="headerlink" href="#11-export-and-import" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-export"><code>jsat export</code><a class="headerlink" href="#jsat-export" title="Permanent link">&para;</a></h3>
 <p>Export the current index to a portable zip archive.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a>jsat export OUTPUT [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a>jsat export OUTPUT [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -5180,13 +5261,13 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip
-<a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip<span class="w"> </span>--compress<span class="w"> </span><span class="m">9</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip
+<a id="__codelineno-85-2" name="__codelineno-85-2" href="#__codelineno-85-2"></a>jsat<span class="w"> </span><span class="nb">export</span><span class="w"> </span>backup.jsat.zip<span class="w"> </span>--compress<span class="w"> </span><span class="m">9</span>
 </code></pre></div>
 <hr />
 <h3 id="jsat-import"><code>jsat import</code><a class="headerlink" href="#jsat-import" title="Permanent link">&para;</a></h3>
 <p>Restore an index from an exported archive.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a>jsat import ARCHIVE [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a>jsat import ARCHIVE [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -5209,13 +5290,13 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a>jsat<span class="w"> </span>import<span class="w"> </span>backup.jsat.zip
+<div class="highlight"><pre><span></span><code><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a>jsat<span class="w"> </span>import<span class="w"> </span>backup.jsat.zip
 </code></pre></div>
 <hr />
 <h2 id="12-remove-command">12. Remove Command<a class="headerlink" href="#12-remove-command" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-remove"><code>jsat remove</code><a class="headerlink" href="#jsat-remove" title="Permanent link">&para;</a></h3>
 <p>Remove all JSAT artifacts from the current repository. Interactive confirmation by default.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a>jsat remove [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a>jsat remove [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -5249,20 +5330,20 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 <li><code>mcpServers.jsat</code> entry in <code>.claude/settings.json</code></li>
 </ul>
 <p>Does not touch your source code, git history, or other Claude configuration.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a>jsat<span class="w"> </span>remove
-<a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--yes<span class="w">              </span><span class="c1"># skip confirmation</span>
-<a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--keep-config<span class="w">      </span><span class="c1"># preserve config.yaml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a>jsat<span class="w"> </span>remove
+<a id="__codelineno-89-2" name="__codelineno-89-2" href="#__codelineno-89-2"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--yes<span class="w">              </span><span class="c1"># skip confirmation</span>
+<a id="__codelineno-89-3" name="__codelineno-89-3" href="#__codelineno-89-3"></a>jsat<span class="w"> </span>remove<span class="w"> </span>--keep-config<span class="w">      </span><span class="c1"># preserve config.yaml</span>
 </code></pre></div>
 <hr />
 <h2 id="13-skills-commands-jsat-skills">13. Skills Commands (<code>jsat skills</code>)<a class="headerlink" href="#13-skills-commands-jsat-skills" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-skills-list"><code>jsat skills list</code><a class="headerlink" href="#jsat-skills-list" title="Permanent link">&para;</a></h3>
 <p>List installed JSAT skills (YAML manifests in the skills directory).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>list
+<div class="highlight"><pre><span></span><code><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>list
 </code></pre></div>
 <hr />
 <h3 id="jsat-skills-run"><code>jsat skills run</code><a class="headerlink" href="#jsat-skills-run" title="Permanent link">&para;</a></h3>
 <p>Run a named skill.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a>jsat skills run NAME [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a>jsat skills run NAME [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -5282,14 +5363,14 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill
-<a id="__codelineno-90-2" name="__codelineno-90-2" href="#__codelineno-90-2"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill<span class="w"> </span>--args<span class="w"> </span><span class="nv">target</span><span class="o">=</span>src/api.py<span class="w"> </span>--args<span class="w"> </span><span class="nv">depth</span><span class="o">=</span><span class="m">3</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill
+<a id="__codelineno-92-2" name="__codelineno-92-2" href="#__codelineno-92-2"></a>jsat<span class="w"> </span>skills<span class="w"> </span>run<span class="w"> </span>my-skill<span class="w"> </span>--args<span class="w"> </span><span class="nv">target</span><span class="o">=</span>src/api.py<span class="w"> </span>--args<span class="w"> </span><span class="nv">depth</span><span class="o">=</span><span class="m">3</span>
 </code></pre></div>
 <hr />
 <h2 id="14-mcp-server-internal">14. MCP Server (Internal)<a class="headerlink" href="#14-mcp-server-internal" title="Permanent link">&para;</a></h2>
 <h3 id="jsat-mcp-server"><code>jsat mcp-server</code><a class="headerlink" href="#jsat-mcp-server" title="Permanent link">&para;</a></h3>
 <p>Start the JSAT MCP server on stdin/stdout. This is invoked automatically by Claude Code and Cursor when JSAT is connected. You do not normally run this directly.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a>jsat mcp-server [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a>jsat mcp-server [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -5313,7 +5394,7 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </tbody>
 </table>
 <p>If you need to test the MCP server manually:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a>jsat<span class="w"> </span>mcp-server<span class="w"> </span>--repo<span class="w"> </span>/path/to/project<span class="w"> </span>--verbose
+<div class="highlight"><pre><span></span><code><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a>jsat<span class="w"> </span>mcp-server<span class="w"> </span>--repo<span class="w"> </span>/path/to/project<span class="w"> </span>--verbose
 </code></pre></div>
 <p>The server speaks JSON-RPC 2.0 over stdin/stdout. It starts immediately and loads JSAT lazily to avoid startup timeout errors in Claude Code.</p>
 <hr />
@@ -5340,12 +5421,12 @@ each client's normal config rather than a separate Ollama MCP file.</p>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a>/jsat<span class="w"> </span>blast-radius<span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">120</span><span class="w"> </span>src/payment/
-<a id="__codelineno-93-2" name="__codelineno-93-2" href="#__codelineno-93-2"></a>/jsat<span class="w"> </span>crack<span class="w"> </span><span class="nv">dashboard</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>redesign<span class="w"> </span>the<span class="w"> </span>auth<span class="w"> </span>flow
-<a id="__codelineno-93-3" name="__codelineno-93-3" href="#__codelineno-93-3"></a><span class="c1"># → opens localhost:7432/jsat/dashboard/crack</span>
-<a id="__codelineno-93-4" name="__codelineno-93-4" href="#__codelineno-93-4"></a>
-<a id="__codelineno-93-5" name="__codelineno-93-5" href="#__codelineno-93-5"></a>/jsat<span class="w"> </span>magic<span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">180</span><span class="w"> </span><span class="nv">dashboard</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>auth<span class="w"> </span>flow
-<a id="__codelineno-93-6" name="__codelineno-93-6" href="#__codelineno-93-6"></a><span class="c1"># → opens localhost:7432/jsat/dashboard/magic</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-95-1" name="__codelineno-95-1" href="#__codelineno-95-1"></a>/jsat<span class="w"> </span>blast-radius<span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">120</span><span class="w"> </span>src/payment/
+<a id="__codelineno-95-2" name="__codelineno-95-2" href="#__codelineno-95-2"></a>/jsat<span class="w"> </span>crack<span class="w"> </span><span class="nv">dashboard</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>redesign<span class="w"> </span>the<span class="w"> </span>auth<span class="w"> </span>flow
+<a id="__codelineno-95-3" name="__codelineno-95-3" href="#__codelineno-95-3"></a><span class="c1"># → opens localhost:7432/jsat/dashboard/crack</span>
+<a id="__codelineno-95-4" name="__codelineno-95-4" href="#__codelineno-95-4"></a>
+<a id="__codelineno-95-5" name="__codelineno-95-5" href="#__codelineno-95-5"></a>/jsat<span class="w"> </span>magic<span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">180</span><span class="w"> </span><span class="nv">dashboard</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>investigate<span class="w"> </span>the<span class="w"> </span>auth<span class="w"> </span>flow
+<a id="__codelineno-95-6" name="__codelineno-95-6" href="#__codelineno-95-6"></a><span class="c1"># → opens localhost:7432/jsat/dashboard/magic</span>
 </code></pre></div>
 <hr />
 <h2 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
