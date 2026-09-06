@@ -1,6 +1,9 @@
 """jsat._cli_session — `jsat session` (resumable work) and `jsat note` (quick notes)."""
 from __future__ import annotations
 
+import subprocess
+from pathlib import Path
+
 import typer
 
 from ._cli_common import _jsat, app, console, err
@@ -102,6 +105,18 @@ def cmd_session_resume(
     name: str = typer.Argument("", help="Session filename or fragment (default: newest)"),
 ) -> None:
     """Show exactly where a session stopped, and how to continue it."""
+    _do_resume(name)
+
+
+@session_app.command("continue")
+def cmd_session_continue(
+    name: str = typer.Argument("", help="Session filename or fragment (default: newest)"),
+) -> None:
+    """Resume a saved session — alias for `resume`, with a CLI resume hint."""
+    _do_resume(name)
+
+
+def _do_resume(name: str) -> None:
     session = _resolve_session(name, status="in_progress")
     step = session.next_step
     if step is None:
@@ -116,9 +131,10 @@ def cmd_session_resume(
         console.print("\n[dim]Context carried forward:[/]")
         for line in session.findings[-5:]:
             console.print(f"  {line}")
-    console.print(
-        f"\nIn Claude Code run: [bold]/jsat {session.skill} --continue[/]"
-    )
+    if session.skill == "session":
+        console.print(f"\nResume later: [bold]jsat session continue {session.path.name}[/]")
+    else:
+        console.print(f"\nIn Claude Code run: [bold]/jsat {session.skill} --continue[/]")
 
 
 @session_app.command("rm")
@@ -141,6 +157,94 @@ def cmd_session_prune(
 
     removed = _sessions.prune(keep=keep, completed_only=not all_)
     console.print(f"[green]✓[/] Removed {removed} session file(s); kept the newest {keep}.")
+
+
+# ── save / continue — capture working context from anywhere ──────────────────
+
+
+@session_app.command("save")
+def cmd_session_save(
+    task: str = typer.Argument(..., help="What you are in the middle of"),
+    skill: str = typer.Option("session", "--skill", "-s",
+        help="Group under this label (default: 'session')"),
+    status: str = typer.Option("in_progress", "--status", "-S",
+        help="in_progress | completed | abandoned | proposed | rejected"),
+    step: list[str] = typer.Option(None, "--step", "-p",  # noqa: B008
+        help="A step to plan (repeatable; default: one 'Execute the task')"),
+    finding: list[str] = typer.Option(None, "--finding", "-f",  # noqa: B008
+        help="A finding / context note (repeatable)"),
+    no_context: bool = typer.Option(False, "--no-context",
+        help="Skip auto-capturing the repo/git context"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Save the current working context as a resumable session.
+
+    \b
+    jsat session save "add idempotency keys to payments" \\
+        --step "find all payment mutations" --step "check the retry path"
+    jsat session save "debug the checkout 500" --no-context
+
+    Unlike skill-run sessions this works from anywhere — no /jsat skill
+    involved. The file lands in ~/.jsat/sessions/ in the same format the
+    skills use, so `jsat session list/show/continue/prune` all read it, and
+    repo path + git branch/commit are captured as context unless --no-context.
+    """
+    from jsat import _sessions
+
+    status = status or "in_progress"
+    if status not in _sessions.SCHEMA_STATUSES:
+        err.print(
+            f"[red]Invalid status '[/]{status}[red]'[/] — expected one of: "
+            f"{', '.join(_sessions.SCHEMA_STATUSES)}"
+        )
+        raise typer.Exit(1)
+    task = task.strip()
+    if not task:
+        err.print("[red]A task description is required.[/]")
+        raise typer.Exit(1)
+
+    steps = list(step) if step else ["Execute the task"]
+    session = _sessions.create(skill=skill or "session", task=task, steps=steps)
+    if not no_context:
+        session.findings.extend(_context_findings(repo))
+    if finding:
+        session.findings.extend(
+            f"**note:** {f.strip()}" for f in finding if f.strip()
+        )
+    session.save()
+
+    console.print(f"[green]✓[/] Session saved: [bold]{session.path.name}[/]")
+    console.print(f"[dim]{session.skill}[/]: {session.task}")
+    console.print(
+        f"  {session.done_count}/{len(session.steps)} step(s) planned "
+        f"· status: {session.status}"
+    )
+    console.print(
+        f"Continue later: [bold]jsat session continue {session.path.name}[/]"
+    )
+
+
+def _context_findings(repo: str) -> list[str]:
+    """Best-effort ambient context — resolved repo path, then git branch + commit."""
+    root = Path(repo).expanduser().resolve()
+    findings = [f"**context:** repo={root}"]
+    try:
+        branch = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if branch.returncode == 0 and branch.stdout.strip():
+            line = f"**context:** branch={branch.stdout.strip()}"
+            sha = subprocess.run(
+                ["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if sha.returncode == 0 and sha.stdout.strip():
+                line += f" commit={sha.stdout.strip()}"
+            findings.append(line)
+    except Exception:
+        pass
+    return findings
 
 
 def _resolve_session(name: str, status: str | None = None):
