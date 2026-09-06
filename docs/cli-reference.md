@@ -290,6 +290,34 @@ jsat note search retry
 
 ---
 
+### `jsat plan`
+
+Approve and run *stored* MCP plans. Any AI tool can propose a call with
+`_mode=plan` — nothing executes, JSAT persists the proposal as a markdown
+session file in `JSAT_SESSIONS_DIR` — and this command lets a human inspect,
+approve, run, or discard it. See `jsat__execute_plan` for the MCP-side approval.
+
+```
+jsat plan list                  [--status <proposed|in_progress|completed|abandoned|rejected>]
+jsat plan show  <plan-id>
+jsat plan approve <plan-id>
+jsat plan run   <plan-id>       [--repo/-r PATH]
+jsat plan discard <plan-id>
+```
+
+```bash
+jsat plan list
+jsat plan show  plan-demo-backfill
+jsat plan approve plan-demo-backfill
+jsat plan run   plan-demo-backfill     # dispatches through the real MCP layer
+```
+
+Plan IDs are slug-ified descriptions (`plan-demo-backfill`). Running a completed
+plan is refused (`already completed`). Distinct from the pre-implementation
+`/jsat plan` AI skill, which reviews a task before any code is written.
+
+---
+
 ### `jsat improve`
 
 Diagnose problems JSAT hit in **itself** and draft a patch to JSAT's own source.
@@ -499,7 +527,7 @@ Session file written to `~/.jsat/sessions/prompt-<slug>-<ts>.md`; actions file a
 
 ### `/jsat magic` *(AI skill, not a `jsat` CLI subcommand — run inside a connected AI tool such as Claude Code or Codex)*
 
-AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 47,
+AI-orchestrated skill composer. Analyzes any task, selects the right skills from all 50,
 and runs them in the optimal order.
 
 ```bash

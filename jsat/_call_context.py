@@ -14,7 +14,28 @@ import threading
 #   call_id      str          — UUID hex[:8] for the current call (used for dashboard nesting)
 #   sub_deadline float | None — monotonic deadline for nested budgets
 #   depth        int          — call nesting depth
+#   mode         str          — "default" | "plan" | "beast" (see _planner)
 _call_ctx = threading.local()
+
+_MODE_DEFAULT = "default"
+_MODE_PLAN = "plan"
+_MODE_BEAST = "beast"
+MODES = (_MODE_DEFAULT, _MODE_PLAN, _MODE_BEAST)
+
+# How much deeper nested tool calls may go in beast mode, and how much bigger
+# every level's soft budget becomes. Kept here so tools that want to widen
+# their own defaults (e.g. blast_radius max_depth) share one source of truth.
+BEAST_DEPTH_LEEWAY = 5
+BEAST_BUDGET_MULTIPLIER = 5.0
+
+
+def call_mode() -> str:
+    """Current call's mode — 'default', 'plan' or 'beast'. No-op outside a call."""
+    return getattr(_call_ctx, "mode", _MODE_DEFAULT) or _MODE_DEFAULT
+
+
+def in_beast_mode() -> bool:
+    return call_mode() == _MODE_BEAST
 
 
 def checkpoint(label: str) -> None:

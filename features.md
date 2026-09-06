@@ -8,9 +8,9 @@ JSAT exposes one core (index → graph → queries) through **three surfaces**:
 
 | Surface | Count | Registry |
 |---|---|---|
-| CLI commands (top-level) | 43 | `jsat/_cli_*.py` |
-| MCP tools (any connected AI) | 69 | `jsat/mcp/server.py:_build_registry()` |
-| Slash commands / skills | 47 (46 + help) | `jsat/commands/jsat-*.md` |
+| CLI commands (top-level) | 44 | `jsat/_cli_*.py` |
+| MCP tools (any connected AI) | 70 | `jsat/mcp/server.py:_build_registry()` |
+| Slash commands / skills | 51 (50 + help) | `jsat/commands/jsat-*.md` |
 | AI tool integrations | 11 | `jsat/_cli_connect.py`, `jsat/_cli_launchers.py` |
 
 A feature usually appears on more than one surface. The four tables below are
@@ -84,69 +84,72 @@ for full text. `PATH` is the Typer command registration; heavy logic lives in
 | 9 | `knowledge-ingest [path]` | `--pattern/-p *.md`, `--category/-c general`, `--dry-run`, `--repo/-r` | `jsat/_cli_tools.py:411`<br>→ `tools/knowledge.py` | CLI · MCP: knowledge_add |
 | 10 | `session` | sub: `list` (`--skill/-s`, `--status in_progress\|completed\|abandoned`, `--limit/-n` 20)<br>· `show <name>`, `resume <name>` (newest by default), `rm <name>`, `prune` | `jsat/_cli_session.py:30,70,91,115,125`<br>→ `jsat/_sessions.py` | CLI (resumable skill sessions) |
 | 11 | `note` | sub: `add <text>` (`--category/-c note\|adr\|runbook\|pattern\|decision`)<br>· `list` (`--category`, `--limit/-n` 20), `search <q>` (`--limit/-n` 10)<br>· all `--repo/-r` | `jsat/_cli_session.py:166,188,201`<br>→ `tools/knowledge.py` | CLI<br>MCP: knowledge_add/list/search |
+| 12 | `plan` | sub: `list` (`--status`), `show <id>`, `approve <id>`<br>· `run <id>` (`--repo/-r`), `discard <id>`<br>· mode=plan proposals → approve here or via `jsat__execute_plan` | `jsat/_cli_session.py` (§ plan)<br>→ `jsat/_planner.py`, `jsat/_sessions.py` | CLI<br>MCP: execute_plan, `_mode` on every tool<br>· as a distinct concept from `/jsat-plan` (pre-implementation review skill) |
 
 ### 🔍 Graph & Index (`jsat/_cli_index.py`)
 
 | S.No | Command | Args | Path | Surface |
 |---|---|---|---|---|
-| 12 | `index [path]` | `--branch/-b`, `--force/-f`, `--languages/-l`<br>· `--incremental/--full`, `--watch/-w` | `jsat/_cli_index.py:34`<br>→ `tools/indexer.py`, `jsat/_parsers/` | CLI · MCP: index_repo, get_index_status<br>/jsat-index |
-| 13 | `doctor` | `--refresh`, `--json` | `jsat/_cli_index.py:103` | CLI · MCP: health, get_jsat_version |
-| 14 | `export <output>` | `--compress/-z 0-9` (6) | `jsat/_cli_index.py:219` | CLI · MCP: export_index |
-| 15 | `import <archive>` | `--migrate` | `jsat/_cli_index.py:244` | CLI · MCP: import_index |
-| 16 | `clean` | `--cache`, `--graph`, `--vectors`, `--history`, `--all/-a`, `--repo/-r` | `jsat/_cli_index.py:267` | CLI |
-| 17 | `remove` | `--yes/-y`, `--keep-config` | `jsat/_cli_index.py:324` | CLI |
+| 13 | `index [path]` | `--branch/-b`, `--force/-f`, `--languages/-l`<br>· `--incremental/--full`, `--watch/-w` | `jsat/_cli_index.py:34`<br>→ `tools/indexer.py`, `jsat/_parsers/` | CLI · MCP: index_repo, get_index_status<br>/jsat-index |
+| 14 | `doctor` | `--refresh`, `--json` | `jsat/_cli_index.py:103` | CLI · MCP: health, get_jsat_version |
+| 15 | `export <output>` | `--compress/-z 0-9` (6) | `jsat/_cli_index.py:219` | CLI · MCP: export_index |
+| 16 | `import <archive>` | `--migrate` | `jsat/_cli_index.py:244` | CLI · MCP: import_index |
+| 17 | `clean` | `--cache`, `--graph`, `--vectors`, `--history`, `--all/-a`, `--repo/-r` | `jsat/_cli_index.py:267` | CLI |
+| 18 | `remove` | `--yes/-y`, `--keep-config` | `jsat/_cli_index.py:324` | CLI |
 
 ### 🤖 AI Launchers (`jsat/_cli_launchers.py`)
 
 | S.No | Command | Args | Path | Surface |
 |---|---|---|---|---|
-| 18 | `shell` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:33`<br>→ `tools/shell.py` | CLI<br>`switch` → all §1 #4 targets |
-| 19 | `claude` | `--repo/-r`, `--verbose/-v`, `--resume <id>`, `--continue/-c` | `jsat/_cli_launchers.py:82` | CLI ≡ `connect claude` |
-| 20 | `bob` | `--repo/-r`, `--verbose/-v`, `--resume`, `--continue/-c`<br>· `--mode/-m plan\|code\|advanced\|ask` | `jsat/_cli_launchers.py:106` | CLI ≡ `connect bob` |
-| 21 | `gpt` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:131` | CLI (JSAT-shell, needs `OPENAI_API_KEY`) |
-| 22 | `ollama [TOOL\|MODEL]` | `--model/-m`, `--tool/-t`<br>· `--config`, `--restore`, `--yes/-y`, `--verbose/-v`, `--repo/-r` | `jsat/_cli_launchers.py:140`<br>→ `jsat/_ai/ollama.py` | CLI (§1 #5) |
-| 23 | `codex` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:512` | CLI ≡ `connect codex` |
-| 24 | `opencode` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:537` | CLI ≡ `connect opencode` |
-| 25 | `cursor` | `--repo/-r` | `jsat/_cli_launchers.py:562` | CLI ≡ `connect cursor` |
-| 26 | `windsurf` | `--repo/-r` | `jsat/_cli_launchers.py:576` | CLI ≡ `connect windsurf` |
-| 27 | `gemini` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:590` | CLI ≡ `connect gemini` |
-| 28 | `zed` | `--repo/-r` | `jsat/_cli_launchers.py:607` | CLI ≡ `connect zed` |
-| 29 | `start <tool>` | tool `claude\|codex\|opencode\|all`<br>· `--via auto\|native\|ollama`, `--model/-m`, `--repo/-r` | `jsat/_cli_lifecycle.py:191`<br>→ `jsat/_lifecycle.py` | CLI (managed) |
-| 30 | `stop [tool]` | tool or `all`, `--force` | `jsat/_cli_lifecycle.py:234` | CLI (managed) |
-| 31 | `restart [tool]` | `--via`, `--model/-m`, `--repo/-r`, `--force` | `jsat/_cli_lifecycle.py:276` | CLI (managed) |
-| 32 | `resume [tool]` | `--session/-s`, `--via`, `--model/-m`, `--repo/-r` | `jsat/_cli_lifecycle.py:338` | CLI (managed) |
-| 33 | `ps` | — | `jsat/_cli_lifecycle.py:385` | CLI (managed) |
+| 19 | `shell` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:33`<br>→ `tools/shell.py` | CLI<br>`switch` → all §1 #4 targets |
+| 20 | `claude` | `--repo/-r`, `--verbose/-v`, `--resume <id>`, `--continue/-c` | `jsat/_cli_launchers.py:82` | CLI ≡ `connect claude` |
+| 21 | `bob` | `--repo/-r`, `--verbose/-v`, `--resume`, `--continue/-c`<br>· `--mode/-m plan\|code\|advanced\|ask` | `jsat/_cli_launchers.py:106` | CLI ≡ `connect bob` |
+| 22 | `gpt` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:131` | CLI (JSAT-shell, needs `OPENAI_API_KEY`) |
+| 23 | `ollama [TOOL\|MODEL]` | `--model/-m`, `--tool/-t`<br>· `--config`, `--restore`, `--yes/-y`, `--verbose/-v`, `--repo/-r` | `jsat/_cli_launchers.py:140`<br>→ `jsat/_ai/ollama.py` | CLI (§1 #5) |
+| 24 | `codex` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:512` | CLI ≡ `connect codex` |
+| 25 | `opencode` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:537` | CLI ≡ `connect opencode` |
+| 26 | `cursor` | `--repo/-r` | `jsat/_cli_launchers.py:562` | CLI ≡ `connect cursor` |
+| 27 | `windsurf` | `--repo/-r` | `jsat/_cli_launchers.py:576` | CLI ≡ `connect windsurf` |
+| 28 | `gemini` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_launchers.py:590` | CLI ≡ `connect gemini` |
+| 29 | `zed` | `--repo/-r` | `jsat/_cli_launchers.py:607` | CLI ≡ `connect zed` |
+| 30 | `start <tool>` | tool `claude\|codex\|opencode\|all`<br>· `--via auto\|native\|ollama`, `--model/-m`, `--repo/-r` | `jsat/_cli_lifecycle.py:191`<br>→ `jsat/_lifecycle.py` | CLI (managed) |
+| 31 | `stop [tool]` | tool or `all`, `--force` | `jsat/_cli_lifecycle.py:234` | CLI (managed) |
+| 32 | `restart [tool]` | `--via`, `--model/-m`, `--repo/-r`, `--force` | `jsat/_cli_lifecycle.py:276` | CLI (managed) |
+| 33 | `resume [tool]` | `--session/-s`, `--via`, `--model/-m`, `--repo/-r` | `jsat/_cli_lifecycle.py:338` | CLI (managed) |
+| 34 | `ps` | — | `jsat/_cli_lifecycle.py:385` | CLI (managed) |
 
 ### 🔧 Setup & Config
 
 | S.No | Command | Args | Path | Surface |
 |---|---|---|---|---|
-| 34 | `disconnect <tool>` | tool, `--scope/-s project`<br>· `--keep-guidance/--keep-skills` | `jsat/_cli_setup.py:19` | CLI (§1 #3) |
-| 35 | `init` | `--profile/-p solo\|team\|ci\|raspberry-pi`, `--output/-o`, `--global/-g` | `jsat/_cli_setup.py:301` | CLI · config `jsat/_models.py` |
-| 36 | `ci-setup` | `--provider/-p github\|gitlab`, `--repo/-r` | `jsat/_cli_setup.py:386` | CLI (CI workflow install) |
-| 37 | `mcp-server` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_setup.py:504`<br>→ `jsat/mcp/server.py` | MCP stdio server (69 tools) |
-| 38 | `skills` | sub: `list`, `run <name>` | `jsat/_cli_setup.py:340,363`<br>→ `jsat/skills/` | CLI |
-| 39 | `connect <tool>` | sub: `claude` `opencode` `ollama` `cursor` `github`<br>· `codex` `windsurf` `continue` `zed` `gemini` `bob` `list` `remove`<br>· flags per §1 #2/#7 | `jsat/_cli_connect.py` (:70,320,465,683,736,<br>:1055,1150,1177,1237,1287,1312,1400,1466) | CLI |
-| 40 | `ai <sub>` | sub: `status`, `use <provider>`, `test`, `models`<br>· flags per §1 #9 | `jsat/_cli_ai.py:81,167,356,379` | CLI → provider config |
+| 35 | `disconnect <tool>` | tool, `--scope/-s project`<br>· `--keep-guidance/--keep-skills` | `jsat/_cli_setup.py:19` | CLI (§1 #3) |
+| 36 | `init` | `--profile/-p solo\|team\|ci\|raspberry-pi`, `--output/-o`, `--global/-g` | `jsat/_cli_setup.py:301` | CLI · config `jsat/_models.py` |
+| 37 | `ci-setup` | `--provider/-p github\|gitlab`, `--repo/-r` | `jsat/_cli_setup.py:386` | CLI (CI workflow install) |
+| 38 | `mcp-server` | `--repo/-r`, `--verbose/-v` | `jsat/_cli_setup.py:504`<br>→ `jsat/mcp/server.py` | MCP stdio server (69 tools) |
+| 39 | `skills` | sub: `list`, `run <name>` | `jsat/_cli_setup.py:340,363`<br>→ `jsat/skills/` | CLI |
+| 40 | `connect <tool>` | sub: `claude` `opencode` `ollama` `cursor` `github`<br>· `codex` `windsurf` `continue` `zed` `gemini` `bob` `list` `remove`<br>· flags per §1 #2/#7 | `jsat/_cli_connect.py` (:70,320,465,683,736,<br>:1055,1150,1177,1237,1287,1312,1400,1466) | CLI |
+| 41 | `ai <sub>` | sub: `status`, `use <provider>`, `test`, `models`<br>· flags per §1 #9 | `jsat/_cli_ai.py:81,167,356,379` | CLI → provider config |
 
 ### 📦 Package (`jsat/_cli_setup.py`)
 
 | S.No | Command | Args | Path | Surface |
 |---|---|---|---|---|
-| 41 | `version` | — | `jsat/_cli_setup.py:287` | CLI |
-| 42 | `update` | `--pre` | `jsat/_cli_setup.py:744` | CLI (`pip install -U jsat`) |
-| 43 | `refresh` | `--ai` `--check-only` `--update` `--pre` `--no-skills` `--no-version` | `jsat/_cli_refresh.py:352` | CLI (version check + re-syncs skills to connected AIs) |
+| 42 | `version` | — | `jsat/_cli_setup.py:287` | CLI |
+| 43 | `update` | `--pre` | `jsat/_cli_setup.py:744` | CLI (`pip install -U jsat`) |
+| 44 | `refresh` | `--ai` `--check-only` `--update` `--pre` `--no-skills` `--no-version` | `jsat/_cli_refresh.py:352` | CLI (version check + re-syncs skills to connected AIs) |
 
 ---
 
-## §3 MCP tools (69)
+## §3 MCP tools (70)
 
-Every tool in `_build_registry()`. `Args` = JSON-schema properties (the four
-injected `_dashboard`/`_budget`/`_dashboard_session` args are stripped before
-handlers run). `Path` = registry + the features module that owns the logic; tools
+Every tool in `_build_registry()`. `Args` = JSON-schema properties (the five
+injected `_dashboard`/`_budget`/`_dashboard_session`/`_mode` args are stripped
+before handlers run). `Path` = registry + the features module that owns the logic; tools
 whose logic is inline are marked `mcp/server.py`. Every connected AI — Claude,
 Codex, OpenCode, Bob, Gemini, Cursor, Windsurf, Zed, Ollama-launched tools —
-gets the identical 69-tool surface via MCP.
+gets the identical 70-tool surface via MCP. Universal execution mode: `_mode=plan`
+returns a stored proposal and executes nothing; `_mode=beast` scales the budget
+and streams ~5s progress heartbeats.
 
 ### Graph & index
 
@@ -251,35 +254,36 @@ gets the identical 69-tool surface via MCP.
 | 57 | `ithinking_audit_assumptions` | subtask | Assumption audit | `mcp/server.py` |
 | 58 | `ithinking_reflect` | task, result | Post-task reflection | `mcp/server.py` |
 | 59 | `ithinking_token_estimate` | task | Local vs LLM cost | `mcp/server.py` |
-| 60 | `short` | query, max_words, one_line | ≤50-word answer | `mcp/server.py:2985` |
+| 60 | `execute_plan` | plan_id, tool, args | Approve-and-run a stored `_mode=plan` proposal (or an inline tool+args) through the normal dispatcher | `mcp/server.py` → `jsat/_planner.py` |
+| 61 | `short` | query, max_words, one_line | ≤50-word answer | `mcp/server.py:2985` |
 
 ### Prompts & tokens
 
 | S.No | Tool | Args | Purpose | Path |
 |---|---|---|---|---|
-| 61 | `prompt_optimize` | query, ai_provider, format, cot, no_context, send | 7-stage pipeline | `mcp/server.py:2650` → `tools/prompt_optimizer.py` |
-| 62 | `prompt_rewrite` | query, ai_provider | 1 rewrite agent | `mcp/server.py:2710` |
-| 63 | `prompt_multi_agent` | query, ai_provider, n_agents | 3 parallel agents | `mcp/server.py` |
-| 64 | `prompt_diff` | query, ai_provider | Raw vs optimized | `mcp/server.py:2612` |
-| 65 | `token_count` | text, model | Offline estimate | `mcp/server.py:2836` → `tools/token_optimizer.py` |
-| 66 | `token_compress` | text, model, target_tokens, dedup, strip_comments | Offline compression | `mcp/server.py:2863` |
-| 67 | `token_budget` | text, model | Context-window headroom | `mcp/server.py:2896` |
+| 62 | `prompt_optimize` | query, ai_provider, format, cot, no_context, send | 7-stage pipeline | `mcp/server.py:2650` → `tools/prompt_optimizer.py` |
+| 63 | `prompt_rewrite` | query, ai_provider | 1 rewrite agent | `mcp/server.py:2710` |
+| 64 | `prompt_multi_agent` | query, ai_provider, n_agents | 3 parallel agents | `mcp/server.py` |
+| 65 | `prompt_diff` | query, ai_provider | Raw vs optimized | `mcp/server.py:2612` |
+| 66 | `token_count` | text, model | Offline estimate | `mcp/server.py:2836` → `tools/token_optimizer.py` |
+| 67 | `token_compress` | text, model, target_tokens, dedup, strip_comments | Offline compression | `mcp/server.py:2863` |
+| 68 | `token_budget` | text, model | Context-window headroom | `mcp/server.py:2896` |
 
 ### Self-improvement
 
 | S.No | Tool | Args | Purpose | Path |
 |---|---|---|---|---|
-| 68 | `improve_status` | — | Friction JSAT recorded in itself | `mcp/server.py:2915` → `jsat/_improve/` |
+| 69 | `improve_status` | — | Friction JSAT recorded in itself | `mcp/server.py:2915` → `jsat/_improve/` |
 
 ### Graph query (natural language)
 
 | S.No | Tool | Args | Purpose | Path |
 |---|---|---|---|---|
-| 69 | `query` | question, service | Answer from the graph | `mcp/server.py:2689` → `tools/query.py` |
+| 70 | `query` | question, service | Answer from the graph | `mcp/server.py:2689` → `tools/query.py` |
 
 ---
 
-## §4 Slash commands & skills (47)
+## §4 Slash commands & skills (51)
 
 Installed on `jsat connect`: Claude gets all `/jsat-*` in `.claude/commands/`,
 Bob all `/jsat-*` in `.bob/commands/`, OpenCode gets the `/jsat` + `/jsat-help`
@@ -301,42 +305,46 @@ not commands. Args are parsed from `$ARGUMENTS` inside each `.md` body.
 | 9 | `jsat-crack` | Multi-agent war room, artifacts carried forward | task | crack |
 | 10 | `jsat-dead-code` | No-caller functions/classes (graph inversion) | — | blast_radius / get_consumers |
 | 11 | `jsat-decide` | Decision journal, surfaced by context | `log/search <topic>` | knowledge, blast_radius |
-| 12 | `jsat-doctor` | Full system health check | — | health, get_jsat_version, index_status |
-| 13 | `jsat-find-class` | Find a class, service-scoped | name (`--service`) | get_class, list_services |
-| 14 | `jsat-find-function` | Find a function/method, service-scoped | name (`--service`) | get_function, list_services |
-| 15 | `jsat-improve` | Diagnose JSAT friction, draft patch | — | improve_status |
-| 16 | `jsat-incident` | Incident investigation | `$ARGUMENTS` subcommands | investigate_incident, hypotheses, runbook |
-| 17 | `jsat-index` | Build/refresh the graph | `$ARGUMENTS` flags | index_repo, get_index_status |
-| 18 | `jsat-internet` | Live-web facts grounded in this repo | query | jsat__* + web search (only net-enabled skill) |
-| 19 | `jsat-ithinking` | Meta-cognitive reasoning | `$ARGUMENTS` subcommands | ithinking_plan/audit/execute/reflect |
-| 20 | `jsat-knowledge` | Query/manage the KB | `$ARGUMENTS` subcommands | knowledge_query/add/search/list |
-| 21 | `jsat-lazy` | Reuse-first planning — 5-rung ladder | query | query, trace_call_chain |
-| 22 | `jsat-list-endpoints` | All endpoints, filterable | `--method/--auth/--service` | list_endpoints |
-| 23 | `jsat-list-services` | All services, language filter | `--language` | list_services |
-| 24 | `jsat-magic` | Orchestrator — picks/orders the right skills | task | dynamic skill sequence |
-| 25 | `jsat-merge` | Graph-aware merge + conflict resolution | source→target branches | blast_radius, get_test_gaps |
-| 26 | `jsat-migration` | Validate a migration file | file (`--rows`) | validate_migration |
-| 27 | `jsat-plan` | Pre-implementation planning gate | task | ithinking_plan, query, security |
-| 28 | `jsat-pr-describe` | PR description from review+contract+coverage | — | get_review_findings, api_diff |
-| 29 | `jsat-prompt` | Discuss→Plan→Execute→Verify→Synthesize | query | prompt_optimize |
-| 30 | `jsat-prompt-diff` | Raw vs optimized side by side | query | prompt_diff |
-| 31 | `jsat-prompt-rewrite` | Pipeline + parallel LLM agents | query | prompt_multi_agent |
-| 32 | `jsat-query` | Answer any codebase question | question (`--service`) | query |
-| 33 | `jsat-rebase` | Graph-aware rebase of current branch | target | blast_radius, git rebase |
-| 34 | `jsat-recent` | Recent changes, time/author filters | `--hours/--author` | get_recent_changes |
-| 35 | `jsat-review` | Multi-model code review | `$ARGUMENTS` flags | submit_for_review, review_findings |
-| 36 | `jsat-runbook` | Incident runbook for a service | service | generate_runbook |
-| 37 | `jsat-security` | OWASP/secret scan | `$ARGUMENTS` flags | security_review, list_secrets |
-| 38 | `jsat-service-health-check` | One service's readiness verdict | `<ServiceName>` (required) | list_services, auth_coverage, test_gaps, security, blast_radius |
-| 39 | `jsat-short` | Briefest correct answer (≤3 sentences) | `--one-line` | short |
-| 40 | `jsat-smart` | Terse compression mode | `--lite/--full/--ultra` | query + compress |
-| 41 | `jsat-sprint` | Seven-stage delivery workflow | `--stage <1-7>`, `--dry`, `--continue` | ithinking, query, blast_radius, test_gaps, review |
-| 42 | `jsat-status` | Index stats + health (+ AI-reachability) | — | get_index_status, health, version |
-| 43 | `jsat-test-gaps` | Uncovered paths + optional generation | `--generate/--integration/--contract/--untested/--service` | get_test_gaps, generate_*_test, list_untested_paths |
-| 44 | `jsat-tokens` | Count/compress/budget | `--compress/--model/--budget` | token_count/compress/budget |
-| 45 | `jsat-trace` | Point-to-point call chain | `<source> [<target>]`, `--upstream` | trace_call_chain, get_consumers, blast_radius |
-| 46 | `jsat-upgrade-impact` | What breaks if a dependency bumps | `<package>`, `--service/--to` | query, security_review, blast_radius |
-| 47 | `jsat-verify` | Live-verify the diff's affected behaviors | `<target>`, `--service/--claim` | blast_radius_diff, get_test_gaps, git/test-run |
+| 12 | `jsat-dependency` | Audit a dependency — CVEs, import sites, upgrade impact | `<package>`, `--scope/--cvss/--dry-run` | get_dependency_cves, get_consumers, blast_radius |
+| 13 | `jsat-doctor` | Full system health check | — | health, get_jsat_version, index_status |
+| 14 | `jsat-find-class` | Find a class, service-scoped | name (`--service`) | get_class, list_services |
+| 15 | `jsat-find-function` | Find a function/method, service-scoped | name (`--service`) | get_function, list_services |
+| 16 | `jsat-improve` | Diagnose JSAT friction, draft patch | — | improve_status |
+| 17 | `jsat-incident` | Incident investigation | `$ARGUMENTS` subcommands | investigate_incident, hypotheses, runbook |
+| 18 | `jsat-index` | Build/refresh the graph | `$ARGUMENTS` flags | index_repo, get_index_status |
+| 19 | `jsat-internet` | Live-web facts grounded in this repo | query | jsat__* + web search (only net-enabled skill) |
+| 20 | `jsat-ithinking` | Meta-cognitive reasoning | `$ARGUMENTS` subcommands | ithinking_plan/audit/execute/reflect |
+| 21 | `jsat-knowledge` | Query/manage the KB | `$ARGUMENTS` subcommands | knowledge_query/add/search/list |
+| 22 | `jsat-lazy` | Reuse-first planning — 5-rung ladder | query | query, trace_call_chain |
+| 23 | `jsat-list-endpoints` | All endpoints, filterable | `--method/--auth/--service` | list_endpoints |
+| 24 | `jsat-list-services` | All services, language filter | `--language` | list_services |
+| 25 | `jsat-magic` | Orchestrator — picks/orders the right skills | task | dynamic skill sequence |
+| 26 | `jsat-merge` | Graph-aware merge + conflict resolution | source→target branches | blast_radius, get_test_gaps |
+| 27 | `jsat-migration` | Validate a migration file | file (`--rows`) | validate_migration |
+| 28 | `jsat-performance` | Profile the hot paths that matter | `--service/--top/--dry-run` | query (complexity×fan-out), get_test_gaps, trace_call_chain |
+| 29 | `jsat-plan` | Pre-implementation planning gate | task | ithinking_plan, query, security |
+| 30 | `jsat-pr-describe` | PR description from review+contract+coverage | — | get_review_findings, api_diff |
+| 31 | `jsat-prompt` | Discuss→Plan→Execute→Verify→Synthesize | query | prompt_optimize |
+| 32 | `jsat-prompt-diff` | Raw vs optimized side by side | query | prompt_diff |
+| 33 | `jsat-prompt-rewrite` | Pipeline + parallel LLM agents | query | prompt_multi_agent |
+| 34 | `jsat-query` | Answer any codebase question | question (`--service`) | query |
+| 35 | `jsat-rebase` | Graph-aware rebase of current branch | target | blast_radius, git rebase |
+| 36 | `jsat-recent` | Recent changes, time/author filters | `--hours/--author` | get_recent_changes |
+| 37 | `jsat-refactor` | Blast-radius-first, behaviour-preserving staged refactor | `<file/symbol>`, `--service/--dry-run` | blast_radius, get_test_gaps, get_function |
+| 38 | `jsat-release` | Release plan + verification: contract diff, consumers, rollback | `<from-ref>`, `--to/--service` | get_api_diff, get_consumers, blast_radius, test_gaps |
+| 39 | `jsat-review` | Multi-model code review | `$ARGUMENTS` flags | submit_for_review, review_findings |
+| 40 | `jsat-runbook` | Incident runbook for a service | service | generate_runbook |
+| 41 | `jsat-security` | OWASP/secret scan | `$ARGUMENTS` flags | security_review, list_secrets |
+| 42 | `jsat-service-health-check` | One service's readiness verdict | `<ServiceName>` (required) | list_services, auth_coverage, test_gaps, security, blast_radius |
+| 43 | `jsat-short` | Briefest correct answer (≤3 sentences) | `--one-line` | short |
+| 44 | `jsat-smart` | Terse compression mode | `--lite/--full/--ultra` | query + compress |
+| 45 | `jsat-sprint` | Seven-stage delivery workflow | `--stage <1-7>`, `--dry`, `--continue` | ithinking, query, blast_radius, test_gaps, review |
+| 46 | `jsat-status` | Index stats + health (+ AI-reachability) | — | get_index_status, health, version |
+| 47 | `jsat-test-gaps` | Uncovered paths + optional generation | `--generate/--integration/--contract/--untested/--service` | get_test_gaps, generate_*_test, list_untested_paths |
+| 48 | `jsat-tokens` | Count/compress/budget | `--compress/--model/--budget` | token_count/compress/budget |
+| 49 | `jsat-trace` | Point-to-point call chain | `<source> [<target>]`, `--upstream` | trace_call_chain, get_consumers, blast_radius |
+| 50 | `jsat-upgrade-impact` | What breaks if a dependency bumps | `<package>`, `--service/--to` | query, security_review, blast_radius |
+| 51 | `jsat-verify` | Live-verify the diff's affected behaviors | `<target>`, `--service/--claim` | blast_radius_diff, get_test_gaps, git/test-run |
 
 The definition lives in one place per skill: `jsat/commands/jsat-<name>.md`
 (frontmatter `description:` + body). The registry that drives install +

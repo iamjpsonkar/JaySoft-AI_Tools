@@ -217,6 +217,9 @@ _ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "generate_unit_test", "generate_integration_test",
         "generate_contract_test",
         "crack", "prompt_rewrite", "prompt_multi_agent",
+        # executes stored/inline plans (plan creation via _mode='plan' is
+        # zero-execution and safe for any role; running one is not)
+        "execute_plan",
     }),
     # NOTE: `import_index` is deliberately admin-only. It replaces the whole
     # graph database wholesale, so it is the one tool here that can destroy
@@ -280,6 +283,19 @@ _UNIVERSAL_SCHEMA_PARAMS: dict = {
         "description": (
             "Override the soft timeout budget in seconds. "
             "Hard kill fires at 5× this value."
+        ),
+    },
+    "_mode": {
+        "type": "string",
+        "enum": ["default", "plan", "beast"],
+        "default": "default",
+        "description": (
+            "How this call is executed. 'plan': nothing runs — JSAT returns a "
+            "structured plan of the tool+args (and appends it to the plan "
+            "grouped by _dashboard_session, or a per-tool plan) for approval. "
+            "'beast': go as deep as it takes — budget is scaled up, depth cap "
+            "raised, and progress heartbeats are sent every ~5s while the call "
+            "runs. 'default': normal behaviour."
         ),
     },
 }
@@ -523,6 +539,36 @@ class MCPServer:
 
                 _dash_push = lambda etype, msg, **kw: _dash_push_fn(_call_id, etype, msg, **kw)  # noqa: E731
 
+            # ── Universal execution mode ─────────────────────────────────────
+            # _mode=plan  → intercept here, return a structured plan, execute NOTHING.
+            # _mode=beast → scale budget + depth, run a 5s progress heartbeat.
+            mode = str(args.pop("_mode", "default") or "default").strip().lower() or "default"
+            if mode not in ("default", "plan", "beast"):
+                return {"jsonrpc": "2.0", "id": id_,
+                        "error": {"code": -32602,
+                                  "message": f"Invalid _mode '{mode}': use default | plan | beast"}}
+            if mode == "plan":
+                if name not in self._registry:
+                    return {"jsonrpc": "2.0", "id": id_,
+                            "error": {"code": -32602, "message": f"Unknown tool: {name}"}}
+                try:
+                    from jsat import _planner
+                    plan = _planner.append_step(_dashboard_session_name or name, name, dict(args), budget)
+                except Exception as e:
+                    self._log.error("mcp_plan_error", name=name, error=str(e))
+                    return {"jsonrpc": "2.0", "id": id_,
+                            "error": {"code": -32603, "message": f"plan failed: {e}"}}
+                self._record_metric(name, 0.0)
+                self._log.info("mcp_tool_planned", name=name, plan=plan.get("plan_id"))
+                return {"jsonrpc": "2.0", "id": id_,
+                        "result": {"content": [{"type": "text",
+                                                "text": json.dumps(plan, default=str, indent=2)}]}}
+
+            _beast = mode == "beast"
+            if _beast:
+                budget = max(budget * 5.0, 300.0)
+                hard_limit = budget * 5
+
             t0 = time.monotonic()
             error_occurred = False
             _budget_notified = threading.Event()
@@ -580,14 +626,40 @@ class MCPServer:
                                 "against shared JSAT/graph state."
                             ),
                         )
-                future = pool.submit(self._call, name, args, _notify, _dash_push, _call_id)
+                future = pool.submit(self._call, name, args, _notify, _dash_push, _call_id, mode)
                 monitor = threading.Thread(
                     target=_monitor_budget, args=(future,), daemon=True, name=f"jsat-budget-{name}"
                 )
                 monitor.start()
+                if _beast:
+
+                    def _heartbeat(f: concurrent.futures.Future) -> None:
+                        """Lifeline: prove the call is alive every ~5s in beast mode."""
+                        while not f.done():
+                            time.sleep(5.0)
+                            if f.done():
+                                return
+                            events = getattr(_call_ctx, "events", None) or []
+                            label = events[-1] if events else "running"
+                            elapsed = round(time.monotonic() - t0)
+                            _notify(f"🐄 beast mode · {elapsed}s · step: {label}",
+                                    progress=min(elapsed, 95), total=100)
+                            if _dash_push is not None:
+                                _dash_push("heartbeat", f"beast · {label}")
+
+                    heartbeat = threading.Thread(
+                        target=_heartbeat, args=(future,), daemon=True,
+                        name=f"jsat-beast-{name}",
+                    )
+                    heartbeat.start()
                 try:
                     result = future.result(timeout=hard_limit)
                     elapsed = round(time.monotonic() - t0, 1)
+                    if _beast and isinstance(result, dict):
+                        result.setdefault("_beast", True)
+                        result.setdefault("elapsed_s", elapsed)
+                        result.setdefault("budget_s", budget)
+                        result.setdefault("tool", name)
                     if _budget_notified.is_set():
                         self._log.info(
                             "mcp_tool_slow_completed",
@@ -743,30 +815,50 @@ class MCPServer:
         return tools
 
     def _call(self, name: str, args: dict, _notify=None, _dashboard_push=None,
-              _call_id: str | None = None) -> Any:
+              _call_id: str | None = None, mode: str = "default") -> Any:
         if name not in self._registry:
             raise ValueError(f"Unknown tool: {name}")
-        # Track and enforce call nesting depth
+        from jsat._call_context import BEAST_BUDGET_MULTIPLIER, BEAST_DEPTH_LEEWAY, call_mode
+        beast = mode == "beast"
+        # Track and enforce call nesting depth (raised cap in beast mode)
         depth = getattr(_call_ctx, "depth", 0)
-        if depth >= _MAX_CALL_DEPTH:
-            self._log.warning("mcp_call_depth_exceeded", tool=name, depth=depth)
+        max_depth = _MAX_CALL_DEPTH + (BEAST_DEPTH_LEEWAY if beast else 0)
+        if depth >= max_depth:
+            self._log.warning("mcp_call_depth_exceeded", tool=name, depth=depth, mode=mode)
             return _depth_exceeded_response(name, depth)
+        prior_mode = call_mode()
         _call_ctx.depth = depth + 1
+        _call_ctx.mode = mode
         # Initialize thread-local budget context.
-        # Sub-operations inside this call get the budget for depth+1 from _DEPTH_BUDGETS.
+        # Sub-operations inside this call get the budget for depth+1 from _DEPTH_BUDGETS
+        # (×5 in beast mode so deep work has real room).
         _call_ctx.events = []
         _call_ctx.dashboard_push = _dashboard_push  # picked up by _budget_checkpoint
         if _call_id:
             _call_ctx.call_id = _call_id  # enables sub-tools to find their parent
         sub_level = min(depth + 1, len(_DEPTH_BUDGETS) - 1)
-        _call_ctx.sub_deadline = time.monotonic() + _DEPTH_BUDGETS[sub_level]
+        sub_budget = _DEPTH_BUDGETS[sub_level] * (BEAST_BUDGET_MULTIPLIER if beast else 1.0)
+        _call_ctx.sub_deadline = time.monotonic() + sub_budget
         try:
             # Inject _notify so handlers that support progress can call it
             if _notify is not None:
                 args = dict(args, _notify=_notify)
-            return self._registry[name]["handler"](args)
+            if beast:
+                # Handlers can widen their own defaults (e.g. blast_radius
+                # max_depth) by reading this injected arg.
+                args = dict(args, _mode="beast")
+            result = self._registry[name]["handler"](args)
+            if beast:
+                journey = list(getattr(_call_ctx, "events", None) or [])
+                if isinstance(result, dict):
+                    result.setdefault("_beast", True)
+                    result.setdefault("journey", journey)
+                else:
+                    result = {"_beast": True, "journey": journey, "payload": result}
+            return result
         finally:
             _call_ctx.depth = depth  # restore depth on return
+            _call_ctx.mode = prior_mode
             _call_ctx.dashboard_push = None
 
     # ── Registry ──────────────────────────────────────────────────────────────
@@ -1670,6 +1762,35 @@ class MCPServer:
                     },
                 },
                 "handler": lambda a: _ser(_short_impl(js, a)),
+            },
+            # ── Plan / approve ──────────────────────────────────────────────
+            "execute_plan": {
+                "description": (
+                    "Approve-and-run a plan previously created with _mode='plan' "
+                    "(nothing ran at plan time). Pass plan_id for a stored "
+                    "proposal, or tool + args to build and run an inline plan "
+                    "in one call. Executes every pending step with normal "
+                    "budgets/depth guards and returns per-step results."
+                ),
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "plan_id": {"type": "string",
+                                    "description": (
+                                        "Stored plan to execute — filename "
+                                        "fragment or full key (e.g. "
+                                        "'plan-backfill-staging')."
+                                    )},
+                        "tool": {"type": "string",
+                                 "description": (
+                                     "Inline approval: run this tool "
+                                     "(requires 'args')."
+                                 )},
+                        "args": {"type": "object",
+                                 "description": "Tool arguments for the inline approval."},
+                    },
+                },
+                "handler": lambda a: _ser(_execute_plan_impl(js, a, self)),
             },
         }
 
@@ -3006,6 +3127,53 @@ def _short_impl(js: object, args: dict) -> dict:
     except Exception as e:
         log.error("mcp_short_error", error=str(e))
         return {"error": str(e)}
+
+
+def _execute_plan_impl(js: object, args: dict, server: object) -> dict:
+    """MCP handler: approve-and-run a plan created by ``_mode='plan'`` probes.
+
+    ``plan_id`` names a stored proposal (filename fragment or full key).
+    If no stored plan matches but ``tool`` (+ ``args``) are supplied, one is
+    built inline — an on-the-fly approval. Each step executes through the same
+    server dispatch so budgets, depth caps, progress and RBAC still apply.
+    """
+    from jsat import _planner
+
+    plan_id = str(args.get("plan_id") or "").strip()
+    inline_tool = str(args.get("tool") or "").strip()
+    inline_args = args.get("args") or {}
+    if not isinstance(inline_args, dict):
+        inline_args = {}
+    notify = args.get("_notify", lambda *a, **kw: None)
+
+    session = _planner.load_plan(plan_id) if plan_id else None
+    if session is None:
+        if not inline_tool:
+            return {
+                "error": (
+                    f"no plan matches '{plan_id or '(none)'}' and no inline "
+                    "tool+args given. Create one with _mode='plan', or pass "
+                    "tool + args to approve inline."
+                ),
+                "plans": [s.path.name for s in _planner.list_plans()][:20],
+            }
+        key = f"{inline_tool}-inline"
+        _planner.append_step(key, inline_tool, dict(inline_args), 0.0)
+        session = _planner.load_plan(key)
+        if session is None:
+            return {"error": "failed to create inline plan"}
+
+    if session.status == "completed":
+        return {"plan_id": session.path.stem, "status": "already_completed"}
+
+    def step_cb(pos: int, total: int) -> None:
+        notify(f"executing plan step {pos}/{total}…", int(pos * 100 / total), total)
+
+    def dispatch(tool: str, tool_args: dict) -> Any:
+        # Re-enter the server dispatcher: nested budgets, depth cap, metrics.
+        return server._call(tool, dict(tool_args), _notify=notify)
+
+    return _planner.execute_plan(session, dispatch, step_callback=step_cb)
 
 
 def _generate_test_impl(js: object, test_type: str, target: str) -> dict:

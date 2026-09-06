@@ -257,6 +257,53 @@ def check_note_and_session(jsat_bin: str, env: dict[str, str],
 
 
 @timed
+def check_plan(jsat_bin: str, env: dict[str, str], repo: Path) -> Check:
+    """plan list/show/approve/run/discard over a real stored proposal.
+
+    A plan only exists once something drafts one with _mode='plan' (MCP), so
+    we seed it here through the real `_planner` writer into the same
+    JSAT_SESSIONS_DIR the CLI subprocesses see — the CLI then drives the real
+    approve→run→refuse lifecycle on a real file.
+    """
+    os.environ["JSAT_SESSIONS_DIR"] = env["JSAT_SESSIONS_DIR"]
+    from jsat import _planner  # noqa: PLC0415  — real writer, real format
+
+    seed = _planner.append_step("selftest-cli-plan", "get_jsat_version", {}, 0.0)
+    pid = seed["plan_id"]
+
+    lst = run_cli(jsat_bin, ["plan", "list"], env, cwd=str(repo), timeout=60)
+    show = run_cli(jsat_bin, ["plan", "show", pid], env, cwd=str(repo), timeout=60)
+    appr = run_cli(jsat_bin, ["plan", "approve", pid], env, cwd=str(repo), timeout=60)
+    run1 = run_cli(jsat_bin, ["plan", "run", pid], env, cwd=str(repo), timeout=180)
+    run2 = run_cli(jsat_bin, ["plan", "run", pid], env, cwd=str(repo), timeout=60)
+
+    throwaway = _planner.append_step("selftest-cli-discard", "get_index_status", {}, 0.0)
+    tpid = throwaway["plan_id"]
+    disc = run_cli(jsat_bin, ["plan", "discard", tpid], env, cwd=str(repo), timeout=60)
+
+    problems: list[str] = []
+    if lst.returncode or pid not in lst.stdout:
+        problems.append("plan list did not show the seeded plan")
+    if show.returncode or "get_jsat_version" not in show.stdout:
+        problems.append("plan show did not list the step")
+    if appr.returncode or "Approved" not in appr.stdout:
+        problems.append(f"plan approve failed rc={appr.returncode} {appr.stderr[:200]}")
+    if run1.returncode or "All 1 step(s)" not in run1.stdout:
+        problems.append(f"plan run rc={run1.returncode} {run1.stderr[:300]}")
+    if run2.returncode or "Already completed" not in run2.stdout:
+        problems.append("re-running a completed plan was not refused")
+    if disc.returncode or "Rejected" not in disc.stdout:
+        problems.append(f"plan discard rc={disc.returncode} {disc.stderr[:200]}")
+
+    if problems:
+        return Check("cli_plan", "cli", FAIL, "; ".join(problems),
+                     detail=f"list={lst.stdout[:250]} run1={run1.stdout[:250]}")
+    return Check("cli_plan", "cli", PASS,
+                 "plan list/show/approve/run/(rerun-refused)/discard all worked",
+                 detail=f"plan_id={pid} executed exactly once")
+
+
+@timed
 def check_knowledge_ingest(jsat_bin: str, env: dict[str, str],
                            repo: Path) -> Check:
     """The fixture repo ships a CLAUDE.md and an ADR for this to find."""
@@ -1026,6 +1073,7 @@ def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
     report.add(check_tokens(jsat_bin, env)); exercised.add("tokens")
     report.add(check_note_and_session(jsat_bin, env, repo))
     exercised |= {"note", "session"}
+    report.add(check_plan(jsat_bin, env, repo)); exercised.add("plan")
     report.add(check_knowledge_ingest(jsat_bin, env, repo))
     exercised.add("knowledge-ingest")
     report.add(check_skills(jsat_bin, env, repo)); exercised.add("skills")

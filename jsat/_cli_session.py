@@ -21,8 +21,17 @@ note_app = typer.Typer(
     ),
     rich_markup_mode="rich",
 )
+plan_app = typer.Typer(
+    help=(
+        "Propose-then-approve plans for any JSAT call.\n\n"
+        "An AI that passes mode=plan to an MCP tool gets a plan back and executes "
+        "nothing; approve it here (or via execute_plan) to run every step."
+    ),
+    rich_markup_mode="rich",
+)
 app.add_typer(session_app, name="session", rich_help_panel="⚡  Tools")
 app.add_typer(note_app, name="note", rich_help_panel="⚡  Tools")
+app.add_typer(plan_app, name="plan", rich_help_panel="⚡  Tools")
 
 
 # ── sessions ──────────────────────────────────────────────────────────────────
@@ -248,3 +257,163 @@ def _print_entries(entries: list, limit: int, empty_hint: str) -> None:
     console.print(table)
     if len(entries) > limit:
         console.print(f"[dim]…and {len(entries) - limit} more (use --limit).[/]")
+
+
+# ── plans (mode=plan proposals) ───────────────────────────────────────────────
+
+@plan_app.command("list")
+def cmd_plan_list(
+    status: str = typer.Option("", "--status",
+        help="proposed | in_progress | completed | rejected"),
+) -> None:
+    """List plans an AI drafted with mode=plan (nothing ran yet)."""
+    from rich import box
+    from rich.table import Table
+
+    from jsat import _planner
+
+    plans = _planner.list_plans()
+    if status:
+        plans = [p for p in plans if p.status == status]
+    if not plans:
+        console.print(
+            "[dim]No plans yet.[/] An AI drafts one when it calls an MCP tool "
+            "with mode=plan — zero execution until you approve."
+        )
+        return
+
+    table = Table(box=box.SIMPLE, title="JSAT plans")
+    for col in ("id", "steps", "status", "file"):
+        table.add_column(col)
+    colour = {"proposed": "yellow", "in_progress": "yellow",
+              "completed": "green", "rejected": "dim"}
+    for s in plans:
+        table.add_row(
+            s.path.stem,
+            f"{s.done_count}/{len(s.steps)}",
+            f"[{colour.get(s.status, 'dim')}]{s.status}[/]",
+            s.path.name,
+        )
+    console.print(table)
+    console.print(
+        "Approve + run: [bold]jsat plan run <id>[/]   Review: [bold]jsat plan show <id>[/]"
+    )
+
+
+@plan_app.command("show")
+def cmd_plan_show(
+    name: str = typer.Argument(..., help="Plan id (filename stem or fragment)"),
+) -> None:
+    """Show one plan — its steps, kinds, and current status."""
+    from jsat import _planner
+
+    session = _resolve_plan(name)
+    meta = {m["name"]: m for m in _planner._read_meta(session).get("steps", [])}
+
+    console.print(f"[bold]{session.path.stem}[/]  ({session.status})")
+    console.print(f"[dim]{session.task}[/]")
+    console.print(f"[dim]{session.path}[/]\n")
+
+    if session.status == "proposed":
+        console.print("[yellow]Nothing has been executed.[/]\n")
+
+    for i, step in enumerate(session.steps, start=1):
+        m = meta.get(step.name, {})
+        kind = m.get("kind", "")
+        mark = "[green]✓[/]" if step.done else "[dim]○[/]"
+        detail = f" [dim]{step.finding}[/]" if step.finding else ""
+        console.print(f"  {mark} {i}. {step.name}  ([dim]{kind}[/]){detail}")
+
+    if session.status == "proposed":
+        console.print(f"\nApprove + run: [bold]jsat plan run {session.path.stem}[/]")
+
+
+@plan_app.command("approve")
+def cmd_plan_approve(
+    name: str = typer.Argument(..., help="Plan id (filename stem or fragment)"),
+) -> None:
+    """Mark a proposed plan as approved (ready to run)."""
+    session = _resolve_plan(name)
+    if session.status == "completed":
+        console.print("[yellow]Already completed — nothing to approve.[/]")
+        raise typer.Exit(0)
+    session.status = "in_progress"
+    session.save()
+    console.print(f"[green]✓[/] Approved {session.path.stem}. Run it: [bold]jsat plan run "
+                  f"{session.path.stem}[/]")
+
+
+@plan_app.command("run")
+def cmd_plan_run(
+    name: str = typer.Argument(..., help="Plan id (filename stem or fragment)"),
+    repo: str = typer.Option(".", "--repo", "-r"),
+) -> None:
+    """Execute every pending step of an approved plan."""
+    from rich import box
+    from rich.table import Table
+
+    from jsat import _planner
+
+    session = _resolve_plan(name)
+    if session.status == "completed":
+        console.print("[yellow]Already completed.[/] See: [bold]jsat plan show "
+                      f"{session.path.stem}[/]")
+        raise typer.Exit(0)
+
+    js = _jsat(repo=repo)
+    server = _plan_server(js)
+
+    def dispatch(tool: str, tool_args: dict) -> object:
+        return server._call(tool, dict(tool_args))
+
+    def step_cb(pos: int, total: int) -> None:
+        console.print(f"  [dim]step {pos}/{total}…[/]")
+
+    console.print(f"[bold]Executing[/] {session.path.stem}\n")
+    outcome = _planner.execute_plan(session, dispatch, step_callback=step_cb)
+
+    table = Table(box=box.SIMPLE, title="Plan result")
+    for col in ("#", "tool", "kind", "ok", "result"):
+        table.add_column(col)
+    for r in outcome["results"]:
+        table.add_row(str(r["step"]), r["tool"], r["kind"],
+                      "[green]ok[/]" if r["ok"] else "[red]FAIL[/]",
+                      r["result"][:80])
+    console.print(table)
+    if outcome["errors"]:
+        console.print(f"[red]{outcome['errors']} step(s) failed[/] — recorded in the "
+                      "session findings. Fix and retry with: [bold]jsat plan run "
+                      f"{session.path.stem}[/]")
+    else:
+        console.print(f"[green]✓[/] All {outcome['steps_run']} step(s) executed.")
+
+
+@plan_app.command("discard")
+def cmd_plan_discard(
+    name: str = typer.Argument(..., help="Plan id (filename stem or fragment)"),
+) -> None:
+    """Reject a plan without executing it."""
+    session = _resolve_plan(name)
+    if session.status == "completed":
+        console.print("[yellow]Already completed — discard refused.[/]")
+        raise typer.Exit(0)
+    session.status = "rejected"
+    session.save()
+    console.print(f"[dim]-[/] Rejected {session.path.stem}.")
+
+
+def _resolve_plan(name: str):
+    from jsat import _planner
+
+    session = _planner.load_plan(name) if name else None
+    if session is not None:
+        return session
+    err.print(f"[red]No plan matching:[/] {name}")
+    raise typer.Exit(1)
+
+
+def _plan_server(js) -> object:
+    """A real MCPServer to dispatch plan steps through (budgets, depth, RBAC)."""
+    from jsat.mcp.server import MCPServer
+
+    return MCPServer(js)

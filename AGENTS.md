@@ -24,7 +24,7 @@ investigation, test gaps — is a query over that graph plus, optionally, an LLM
 | Python modules | 90 |
 | CLI commands (top level) | 38 |
 | MCP tools | 69 (`len(MCPServer(js)._registry)`) |
-| Slash commands (`jsat/commands/jsat-*.md`) | 47 (46 + help) |
+| Slash commands (`jsat/commands/jsat-*.md`) | 51 (50 + help) |
 | CI-safe pytest result | 735 passed / 11 skipped / 34 deselected |
 | Self-test result | `./scripts/jsat-selftest.sh` — ~230 checks across 12 suites |
 | Graph of this repo | Run `jsat index .` and `jsat status` before relying on counts |
@@ -66,7 +66,7 @@ jsat/
   tools/              the actual features: indexer, query, blast_radius, security,
                       incident, migration, contract, review, crack, knowledge,
                       improve, test_helper, token_optimizer, prompt_optimizer, …
-  commands/           41 jsat-*.md slash commands shipped inside the package
+  commands/           50 jsat-*.md slash commands shipped inside the package
 ```
 
 **Where things really live:** `tools/` holds logic, `_cli_*` holds argument parsing

@@ -229,6 +229,23 @@ Examples:
   /jsat decide search caching strategy
 ```
 
+### dependency
+Audit a dependency before adding or bumping it — known CVEs, who imports it, how critical those paths are, and what the upgrade touches.
+```
+/jsat dependency [flags] <args>
+
+Flags:
+  --scope         → audit every dependency in the manifest (default is one dependency at a time)
+  --cvss <min>    → only report CVEs at or above this score (default 7.0)
+  --dry-run       → report only; do not modify the manifest
+
+Examples:
+  /jsat-dependency requests --cvss 5
+    → everything about the requests dependency: imports, CVEs ≥5, upgrade impact
+  /jsat-dependency --scope
+    → the whole dependency manifest, highest-severity first
+```
+
 ### doctor
 Run a full JSAT system health check.
 ```
@@ -439,6 +456,24 @@ Examples:
     → jsat__validate_migration(path="db/migrations/0042_add_index.sql")
 ```
 
+### performance
+Profile the hot paths that matter — find the highest-traffic, highest-complexity functions, measure them, and fix the ones users actually wait on.
+```
+/jsat performance [flags] <args>
+
+Flags:
+  --service <name> → scope to one service (avoids timeout on large codebases)
+  --top <N>        → focus on the top N candidates (default 10)
+  --dry-run        → report candidates and a fix plan only; do not modify code
+  --dry-run mode. Never change a public signature inside a performance pass.
+
+Examples:
+  /jsat-performance --top 5 payments.py
+    → the 5 most-likely hot functions in payments.py, with a fix plan
+  /jsat-performance --service svc_users
+    → the hottest paths in the users service
+```
+
 ### plan
 Pre-implementation planning — six forcing questions + scope/architecture/security review before writing code.
 ```
@@ -556,6 +591,38 @@ Flags:
 Examples:
   /jsat-recent
     → jsat__get_recent_changes(target=".")   — see SCOPE WARNING below
+```
+
+### refactor
+Plan a refactor so nothing breaks — map the blast radius first, stage the work into behaviour-preserving steps, and only then write code.
+```
+/jsat refactor [flags] <args>
+
+Flags:
+  --service <name> → scope to one service (avoids timeout on large codebases)
+  --dry-run        → produce the plan only; do not edit any file
+
+Examples:
+  /jsat-refactor --dry-run payments.py
+    → structured, staged refactor plan for payments.py, no edits
+  /jsat-refactor "unify the two payment gateway abstractions"
+    → plan for the described change, but locate the symbols first
+```
+
+### release
+Plan and verify a release of this repository — diff the contract, check the blast radius, confirm nothing untested ships, and produce the release notes.
+```
+/jsat release [flags] <args>
+
+Flags:
+  --to <ref>      → target ref to release (default: HEAD)
+  --service <name>→ scope the analysis to one service
+
+Examples:
+  /jsat-release
+    → plan a release of HEAD against the last tag
+  /jsat-release v0.3.0 --to HEAD
+    → release v0.4.0 (or whatever you are shipping) against v0.3.0
 ```
 
 ### review
@@ -772,6 +839,7 @@ Examples:
 | `crack` | Multi-agent war room with artifact carry-forward — each agent builds on prior findings. |
 | `dead-code` | Find functions and classes with no callers in the codebase — a graph inversion of blast-radius, not a new capability. |
 | `decide` | Decision journal — log architectural decisions and surface them by file, topic, or blast-radius context. |
+| `dependency` | Audit a dependency before adding or bumping it — known CVEs, who imports it, how critical those paths are, and what the upgrade touches. |
 | `doctor` | Run a full JSAT system health check. |
 | `find-class` | Find a class in the indexed codebase. Supports service scoping. |
 | `find-function` | Find a function or method in the indexed codebase. Supports service scoping. |
@@ -788,6 +856,7 @@ Examples:
 | `magic` | AI-orchestrated skill composer — analyzes any task and dynamically selects, orders, and runs the optimal JSAT skills to complete it. |
 | `merge` | Merge a source branch into a target branch with graph-aware impact analysis, semantic conflict resolution, and post-merge verification. |
 | `migration` | Validate a database migration file for safety. Supports row count hints. |
+| `performance` | Profile the hot paths that matter — find the highest-traffic, highest-complexity functions, measure them, and fix the ones users actually wait on. |
 | `plan` | Pre-implementation planning — six forcing questions + scope/architecture/security review before writing code. |
 | `pr-describe` | Compose a ready-to-post PR description from review findings, contract diff, and test coverage — pure recombination, no new analysis. |
 | `prompt-diff` | Show what you typed vs what JSAT sent to the AI after optimization. |
@@ -796,6 +865,8 @@ Examples:
 | `query` | Answer a question about this codebase using JSAT's graph index. Supports service scoping. |
 | `rebase` | Rebase the current branch onto a target using the same graph-aware, semantic conflict resolution engine as /jsat merge. |
 | `recent` | Show recent changes in the codebase. Supports time range and author filters. |
+| `refactor` | Plan a refactor so nothing breaks — map the blast radius first, stage the work into behaviour-preserving steps, and only then write code. |
+| `release` | Plan and verify a release of this repository — diff the contract, check the blast radius, confirm nothing untested ships, and produce the release notes. |
 | `review` | Multi-model code review. Supports flags in $ARGUMENTS. |
 | `runbook` | Generate an incident runbook for a service or component. |
 | `security` | Run a security scan. Supports flags in $ARGUMENTS. |

@@ -33,7 +33,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-SCHEMA_STATUSES = ("in_progress", "completed", "abandoned")
+SCHEMA_STATUSES = ("proposed", "in_progress", "completed", "abandoned", "rejected")
 
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 _STEP_RE = re.compile(r"^- \[( |x)\] (.+)$", re.MULTILINE)

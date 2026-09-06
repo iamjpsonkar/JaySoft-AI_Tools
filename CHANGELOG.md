@@ -25,6 +25,32 @@ All notable changes to JSAT.
   `_tool_install_hint` gained an explicit opencode hint
   (`npm install -g opencode-ai`).
 
+### Plan & beast: propose first, then run
+
+- **`plan` / `beast` execution modes on every MCP tool.** Any tool call now
+  accepts `_mode` (universal arg, injected at `tools/list` time, stripped
+  before handlers run):
+  - `_mode="plan"` — *nothing executes.* JSAT validates the tool, persists a
+    proposal (`proposed` status) keyed by `_dashboard_session` or by tool name,
+    and returns the plan as the result. Approve later via the new
+    `jsat__execute_plan` MCP tool or `jsat plan run`.
+  - `_mode="beast"` — run as long as it takes: the soft budget scales to 5×
+    (floor 300 s), the call-depth cap and per-agent sub-budget multiply, and a
+    `🐄 beast mode` progress heartbeat fires every ~5 s. Results are tagged
+    `_beast`, `journey`, `elapsed_s`, `budget_s`.
+  Invalid modes are rejected as JSON-RPC `-32602`. Proposing (`_mode=plan`) is
+  zero-execution and safe for `viewer`; `execute_plan` is `developer`-only.
+  Plans round-trip as markdown session files in `JSAT_SESSIONS_DIR`.
+- **`jsat plan` CLI group** — `list` (`--status`) / `show <id>` / `approve`
+  / `run <id>` / `discard <id>`, driving the same stored plans; `run` dispatches
+  each approved step through the real MCP dispatcher (budgets, depth caps and
+  RBAC all apply). Distinct from the pre-implementation `/jsat-plan` review
+  skill.
+- **Four new slash commands** — `/jsat dependency` (CVE + import-site audit),
+  `/jsat performance` (graph-ranked hot-path profile), `/jsat refactor`
+  (blast-radius-first staged refactor), `/jsat release` (contract diff +
+  consumer + rollback verification). 50 skills + help = 51.
+
 ### Testing
 
 - The self-test now really exercises eight previously "accounted for"

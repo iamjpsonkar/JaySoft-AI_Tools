@@ -24,6 +24,7 @@ Response shapes (verified against the live server):
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -322,6 +323,14 @@ def build_cases(repo: Path, tmp: Path) -> dict[str, ToolCase]:
         "short": ToolCase(
             {"query": "what does validate_amount do?", "max_words": 20},
             llm=True, timeout=180, predicate=lambda p: p is not None),
+
+        # ── plan / approve (mode=plan proposals) ───────────────────────────
+        "execute_plan": ToolCase(
+            {"tool": "get_jsat_version", "args": {}},
+            predicate=lambda p: (isinstance(p, dict)
+                                 and p.get("status") == "completed"
+                                 and p.get("steps_run") == 1),
+            note="inline approval-path: build + run one step via _call"),
     }
 
 
@@ -515,6 +524,118 @@ def check_soft_budget_notification(jsat_bin: str, repo: Path,
                      detail=msg[:250])
 
 
+def _tool_payload(client, tool: str, arguments: dict,
+                  timeout: float = 60.0) -> dict | None:
+    """Call a tool and return the parsed text payload (not the JSON-RPC msg)."""
+    msg = client.tool(tool, arguments, timeout=timeout)
+    if not isinstance(msg, dict):
+        return None
+    try:
+        content = msg["result"]["content"]
+        return json.loads(content[0]["text"])
+    except Exception:
+        return None
+
+
+@timed
+def check_plan_modes(jsat_bin: str, repo: Path, env: dict[str, str]) -> Check:
+    """_mode=plan must plan without executing; _mode=beast must scale + tag.
+
+    Both are universal call-surface behaviours, so the real assertions run
+    over real stdio JSON-RPC against the real server process.
+    """
+    with MCPClient(jsat_bin, repo, env) as c:
+        c.handshake()
+
+        # plan: identical repeated probe → one proposal, still nothing executed
+        pid = None
+        expected = ("_mode", "nothing_executed", "status", "steps")
+        for _i in range(2):
+            r = _tool_payload(c, "get_jsat_version", {"_mode": "plan"}, timeout=30)
+            if not isinstance(r, dict) or not all(k in r for k in expected):
+                return Check("mcp_plan_mode", "mcp_reliability", FAIL,
+                             "a _mode=plan call did not return the structured plan",
+                             detail=f"response={json.dumps(r)[:300]}")
+            if r["nothing_executed"] is not True:
+                return Check("mcp_plan_mode", "mcp_reliability", FAIL,
+                             "_mode=plan claims something ran",
+                             detail=json.dumps(r)[:300])
+            if r["steps"][0].get("done"):
+                return Check("mcp_plan_mode", "mcp_reliability", FAIL,
+                             "a planned step is already marked done",
+                             detail=json.dumps(r)[:300])
+            pid = r["plan_id"]
+            time.sleep(1)  # ensure list ordering cannot mask a duplicate
+
+        # approve + run the stored proposal
+        out = _tool_payload(c, "execute_plan", {"plan_id": pid}, timeout=120)
+        if not isinstance(out, dict) or out.get("status") != "completed":
+            return Check("mcp_execute_plan", "mcp_reliability", FAIL,
+                         "approving a stored plan did not execute it cleanly",
+                         detail=f"response={json.dumps(out)[:300]}")
+        if not (isinstance(out.get("results"), list) and out["results"]):
+            return Check("mcp_execute_plan", "mcp_reliability", FAIL,
+                         "plan execution returned no per-step results",
+                         detail=json.dumps(out)[:300])
+
+        # one approved plan runs exactly once
+        again = _tool_payload(c, "execute_plan", {"plan_id": pid}, timeout=30)
+        if isinstance(again, dict) and again.get("status") == "already_completed":
+            return Check("mcp_plan_mode", "mcp_reliability", PASS,
+                         "plan mode plans without executing; execute_plan "
+                         "approve-and-runs a stored proposal exactly once",
+                         detail=f"plan_id={pid} steps_run={out['steps_run']}")
+        return Check("mcp_plan_mode", "mcp_reliability", FAIL,
+                     "a completed plan was approved again",
+                     detail=json.dumps(again)[:300])
+
+
+@timed
+def check_beast_mode(jsat_bin: str, repo: Path, env: dict[str, str]) -> Check:
+    """_mode=beast scales budget and tags the result without changing it."""
+    with MCPClient(jsat_bin, repo, env) as c:
+        c.handshake()
+        r = _tool_payload(c, "get_jsat_version", {"_mode": "beast"}, timeout=60)
+        if not isinstance(r, dict):
+            return Check("mcp_beast_mode", "mcp_reliability", FAIL,
+                         "a _mode=beast call returned a non-object",
+                         detail=json.dumps(r)[:300])
+        plain = _tool_payload(c, "get_jsat_version", {}, timeout=30)
+        if not isinstance(plain, dict):
+            return Check("mcp_beast_mode", "mcp_reliability", FAIL,
+                         "a default call returned a non-object",
+                         detail=json.dumps(plain)[:300])
+        if r.get("_beast") is not True:
+            return Check("mcp_beast_mode", "mcp_reliability", FAIL,
+                         "beast mode did not tag the result with _beast",
+                         detail=json.dumps(r)[:300])
+        # `get_jsat_version` returns a JSON string, so beast mode wraps it in a
+        # `payload` envelope; default mode returns the version keys directly.
+        # Unwrap the envelope so we compare the actual answer in both modes.
+        def version_of(obj: dict) -> object:
+            payload = obj.get("payload")
+            if isinstance(payload, str):
+                try:
+                    payload = json.loads(payload)
+                except Exception:
+                    return None
+            if isinstance(payload, dict):
+                return payload.get("version")
+            return obj.get("version")
+
+        beast_ver = version_of(r)
+        # same payload came back in both modes → scaling changed speed caps,
+        # not the answer.
+        if beast_ver != version_of(plain) or beast_ver is None:
+            return Check("mcp_beast_mode", "mcp_reliability", FAIL,
+                         "beast mode returned a different payload",
+                         detail=f"beast={json.dumps(r)[:250]} plain={json.dumps(plain)[:250]}")
+        return Check("mcp_beast_mode", "mcp_reliability", PASS,
+                     "beast mode scaled the call and tagged the result "
+                     "without changing the answer",
+                     detail=f"version={beast_ver} _beast={r.get('_beast')}")
+
+
 @timed
 def check_no_progress_without_token(jsat_bin: str, repo: Path,
                                     env: dict[str, str]) -> Check:
@@ -656,6 +777,8 @@ def run_reliability(report: Report, jsat_bin: str, repo: Path,
                     env: dict[str, str]) -> None:
     report.add(check_stdout_is_pure_jsonrpc(jsat_bin, repo, env))
     report.add(check_soft_budget_notification(jsat_bin, repo, env))
+    report.add(check_plan_modes(jsat_bin, repo, env))
+    report.add(check_beast_mode(jsat_bin, repo, env))
     report.add(check_no_progress_without_token(jsat_bin, repo, env))
     report.add(check_depth_cap(jsat_bin, repo, env))
     report.add(check_auth_rejects_bad_token(jsat_bin, repo, env))
