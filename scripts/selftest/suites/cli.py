@@ -1035,6 +1035,57 @@ def check_session_roundtrip(jsat_bin: str, env: dict[str, str],
 
 
 @timed
+def check_session_save_continue(jsat_bin: str, env: dict[str, str],
+                                tmp: Path) -> Check:
+    """`session save` captures a task from ANYWHERE (not a skill run) into the
+    documented format, and `session continue` resumes it — real subprocesses,
+    real files under their own sessions dir."""
+    root = tmp / "sessions-save"
+    root.mkdir(parents=True, exist_ok=True)
+    scoped = {**env, "JSAT_SESSIONS_DIR": str(root)}
+
+    save = run_cli(jsat_bin,
+                   ["session", "save", "fix the payment retry",
+                    "--step", "inspect the logs", "--step", "patch the handler",
+                    "--finding", "gateway is the slow path"],
+                   scoped, cwd=str(tmp), timeout=60)
+    files = sorted(root.glob("session-*.md"))
+    if save.returncode != 0 or not files:
+        return Check("cli_session_save", "cli", FAIL,
+                     "session save did not write a session file",
+                     detail=f"rc={save.returncode} files={[p.name for p in files]} "
+                            f"out={save.stdout[:300]} err={save.stderr[:300]}")
+
+    # `session list` renders a Rich table whose task column wraps to the
+    # console width, so a raw task substring can split across lines. Assert on
+    # what is layout-independent instead: the exact session filename appears
+    # verbatim in the "Resume the newest:" footer, and the progress cell is a
+    # short, never-truncated `done/total` string.
+    lst = run_cli(jsat_bin, ["session", "list"], scoped, cwd=str(tmp), timeout=60)
+    if files[0].name not in lst.stdout or "0/2" not in lst.stdout:
+        return Check("cli_session_save", "cli", FAIL,
+                     "session list did not surface the saved session",
+                     detail=lst.stdout[-400:])
+
+    cont = run_cli(jsat_bin, ["session", "continue", files[0].stem], scoped,
+                   cwd=str(tmp), timeout=60)
+    if "Next step: inspect the logs" not in cont.stdout:
+        return Check("cli_session_save", "cli", FAIL,
+                     "session continue did not point at the first step",
+                     detail=cont.stdout[-400:])
+
+    cont_newest = run_cli(jsat_bin, ["session", "continue"], scoped,
+                          cwd=str(tmp), timeout=60)
+    if "Next step:" not in cont_newest.stdout:
+        return Check("cli_session_save", "cli", FAIL,
+                     "session continue (no arg) did not resolve the newest session",
+                     detail=cont_newest.stdout[-400:])
+
+    return Check("cli_session_save", "cli", PASS,
+                 "session save/continue captured and resumed a task from anywhere")
+
+
+@timed
 def check_skills_run(jsat_bin: str, env: dict[str, str], tmp: Path) -> Check:
     """skills list + run against a REAL YAML manifest with a script source —
     exercising the dormant skills registry's only executed path."""
@@ -1107,6 +1158,7 @@ def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
     report.add(check_ollama_missing_binary(jsat_bin, env, tmp))
     report.add(check_session_roundtrip(jsat_bin, env, tmp))
     exercised.add("session")
+    report.add(check_session_save_continue(jsat_bin, env, tmp))
     report.add(check_skills_run(jsat_bin, env, tmp))
     exercised.add("skills")
 
