@@ -503,6 +503,20 @@ class MCPServer:
                 _TOOL_BUDGETS.get(name, _TOOL_BUDGETS["_default"])
             hard_limit = budget * 5  # last-resort kill; budget is notification-only
 
+            # Universal execution mode — popped and validated FIRST so the
+            # dashboard can tag the call and the beast budget can be scaled
+            # before the call is even registered.
+            # _mode=plan  → intercept below, return a structured plan, execute NOTHING.
+            # _mode=beast → scale budget + depth, run a 5s progress heartbeat.
+            mode = str(args.pop("_mode", "default") or "default").strip().lower() or "default"
+            if mode not in ("default", "plan", "beast"):
+                return {"jsonrpc": "2.0", "id": id_,
+                        "error": {"code": -32602,
+                                  "message": f"Invalid _mode '{mode}': use default | plan | beast"}}
+            if mode == "beast":
+                budget = max(budget * 5.0, 300.0)
+                hard_limit = budget * 5
+
             # dashboard=true → start a real-time browser dashboard for this call.
             # _dashboard_session=<name> groups all calls for a /jsat command into one tab.
             import uuid as _uuid
@@ -521,7 +535,9 @@ class MCPServer:
                 from jsat.mcp.dashboard import start_dashboard
                 dash_port = int(os.environ.get("JSAT_DASHBOARD_PORT", "7432"))
                 dash_url, _open_browser = start_dashboard(
-                    _dashboard_session_name, _call_id, name, _parent_call_id, dash_port
+                    _dashboard_session_name, _call_id, name, _parent_call_id, dash_port,
+                    budget_s=budget, mode=mode,
+                    args=json.dumps(args, default=str),
                 )
                 _notify(
                     f"📊 Dashboard: {dash_url}",
@@ -539,14 +555,7 @@ class MCPServer:
 
                 _dash_push = lambda etype, msg, **kw: _dash_push_fn(_call_id, etype, msg, **kw)  # noqa: E731
 
-            # ── Universal execution mode ─────────────────────────────────────
-            # _mode=plan  → intercept here, return a structured plan, execute NOTHING.
-            # _mode=beast → scale budget + depth, run a 5s progress heartbeat.
-            mode = str(args.pop("_mode", "default") or "default").strip().lower() or "default"
-            if mode not in ("default", "plan", "beast"):
-                return {"jsonrpc": "2.0", "id": id_,
-                        "error": {"code": -32602,
-                                  "message": f"Invalid _mode '{mode}': use default | plan | beast"}}
+            # ── Plan mode: propose first, run nothing ─────────────────────
             if mode == "plan":
                 if name not in self._registry:
                     return {"jsonrpc": "2.0", "id": id_,
@@ -565,9 +574,6 @@ class MCPServer:
                                                 "text": json.dumps(plan, default=str, indent=2)}]}}
 
             _beast = mode == "beast"
-            if _beast:
-                budget = max(budget * 5.0, 300.0)
-                hard_limit = budget * 5
 
             t0 = time.monotonic()
             error_occurred = False
@@ -671,9 +677,10 @@ class MCPServer:
                             result.setdefault("budget_s", budget)
                             result.setdefault("tool", name)
                     if _dash_push is not None:
+                        res_text = result if isinstance(result, str) else json.dumps(result, default=str)
                         _dash_push("result",
-                                   f"completed in {elapsed}s — {len(str(result))} chars",
-                                   tool=name)
+                                   f"completed in {elapsed}s — {len(res_text)} chars",
+                                   tool=name, payload=res_text, elapsed_s=elapsed)
                 except concurrent.futures.TimeoutError:
                     elapsed = round(time.monotonic() - t0, 1)
                     result = _hard_timeout_response(name, budget, hard_limit, elapsed)
@@ -699,7 +706,9 @@ class MCPServer:
                     except Exception:
                         pass
                     if _dash_push is not None:
-                        _dash_push("error", f"hard timeout after {elapsed}s", tool=name)
+                        _dash_push("error", f"hard timeout after {elapsed}s", tool=name,
+                                   payload=(result if isinstance(result, str)
+                                            else json.dumps(result, default=str)))
                 finally:
                     _budget_notified.set()  # signal monitor to stop polling
                 if isinstance(result, dict) and (
@@ -720,7 +729,7 @@ class MCPServer:
                 except Exception:
                     pass
                 if _dash_push is not None:
-                    _dash_push("error", str(e), tool=name)
+                    _dash_push("error", str(e), tool=name, payload=str(e))
                 return {"jsonrpc": "2.0", "id": id_,
                         "error": {"code": -32603, "message": str(e)}}
             finally:

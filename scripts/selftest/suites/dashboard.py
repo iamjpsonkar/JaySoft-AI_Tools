@@ -147,6 +147,83 @@ def check_dashboard_sse_events(jsat_bin: str, repo: Path,
 
 
 @timed
+def check_dashboard_new_endpoints(jsat_bin: str, repo: Path,
+                                  env: dict[str, str]) -> Check:
+    """The rebuilt dashboard's data/summary/stats endpoints must answer with JSON."""
+    if not _sockets_allowed():
+        return Check("dashboard_endpoints", "observability", UNAVAILABLE,
+                     "this environment forbids binding a local socket")
+    with MCPClient(jsat_bin, repo, env) as c:
+        c.handshake()
+        c.tool("security_review",
+               {"path": str(repo), "_dashboard": True,
+                "_dashboard_session": "epchk"}, timeout=180)
+        # Each check spawns its own MCP subprocess, so _dashboard=True above is
+        # what brings the server up; the call is done now, but the session is
+        # still alive and fetchable for a few seconds, so query immediately.
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if tcp_reachable("127.0.0.1", DASH_PORT, timeout=0.5):
+                break
+            time.sleep(0.5)
+        if not tcp_reachable("127.0.0.1", DASH_PORT, timeout=1.0):
+            return Check("dashboard_endpoints", "observability", FAIL,
+                         "the dashboard server did not come up for the "
+                         "endpoint check",
+                         remediation="check start_dashboard wiring in "
+                                     "jsat/mcp/server.py")
+        status, body = http_get(
+            f"http://127.0.0.1:{DASH_PORT}/jsat/dashboard/epchk/data", timeout=5)
+        if status != 200:
+            return Check("dashboard_endpoints", "observability", FAIL,
+                         f"/data returned status {status}",
+                         detail=body[:300])
+        data = json.loads(body)
+        if data.get("session", {}).get("session_name") != "epchk":
+            return Check("dashboard_endpoints", "observability", FAIL,
+                         "/data did not identify the requested session",
+                         detail=json.dumps(data)[:300])
+        calls = data.get("calls", {})
+        if not calls:
+            return Check("dashboard_endpoints", "observability", FAIL,
+                         "/data returned no calls for the finished call",
+                         detail=json.dumps(data)[:300])
+        sample = next(iter(calls.values()))
+        for key in ("budget_s", "mode", "args", "status"):
+            if key not in sample:
+                return Check("dashboard_endpoints", "observability", FAIL,
+                             f"call record is missing '{key}'",
+                             detail=json.dumps(sample)[:300])
+
+        status, body = http_get(
+            f"http://127.0.0.1:{DASH_PORT}/jsat/dashboard/summary", timeout=5)
+        if status != 200:
+            return Check("dashboard_endpoints", "observability", FAIL,
+                         f"/summary returned status {status}", detail=body[:300])
+        summary = json.loads(body)
+        for key in ("active", "recent", "stats"):
+            if key not in summary:
+                return Check("dashboard_endpoints", "observability", FAIL,
+                             f"/summary is missing '{key}'",
+                             detail=json.dumps(summary)[:300])
+
+        status, body = http_get(
+            f"http://127.0.0.1:{DASH_PORT}/jsat/dashboard/stats", timeout=5)
+        if status != 200:
+            return Check("dashboard_endpoints", "observability", FAIL,
+                         f"/stats returned status {status}", detail=body[:300])
+        stats = json.loads(body)
+        totals = stats.get("totals", {})
+        if totals.get("calls", 0) < 1:
+            return Check("dashboard_endpoints", "observability", FAIL,
+                         "/stats did not count the real security_review call",
+                         detail=json.dumps(stats)[:300])
+    return Check("dashboard_endpoints", "observability", PASS,
+                 "/data (session-scoped snapshot), /summary and /stats all "
+                 "answered for a real finished tool call")
+
+
+@timed
 def check_prometheus_metrics(jsat_bin: str, repo: Path,
                              env: dict[str, str]) -> Check:
     """With JSAT_METRICS_PORT set, /metrics must expose the tool counters."""
@@ -208,4 +285,5 @@ def check_prometheus_metrics(jsat_bin: str, repo: Path,
 def run(report: Report, jsat_bin: str, repo: Path, env: dict[str, str]) -> None:
     report.add(check_dashboard_serves(jsat_bin, repo, env))
     report.add(check_dashboard_sse_events(jsat_bin, repo, env))
+    report.add(check_dashboard_new_endpoints(jsat_bin, repo, env))
     report.add(check_prometheus_metrics(jsat_bin, repo, env))
