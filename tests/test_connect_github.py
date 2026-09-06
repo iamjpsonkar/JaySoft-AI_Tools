@@ -282,12 +282,19 @@ def test_rerun_is_idempotent(tmp_path):
 
 
 @pytest.mark.ci
-def test_guidance_block_documents_the_github_workflow():
-    """CLAUDE.md and friends must tell the AI how to pair JSAT with GitHub MCP."""
+def test_guidance_block_is_a_terse_pointer():
+    """The injected JSAT block must stay a small pointer, not a 90-line copy.
+
+    opencode loads AGENTS.md (and friends) into every conversation turn, so a
+    verbose block inflates every session's context. The full catalog and the
+    GitHub-pairing workflow live in the `/jsat` dispatcher and MCP tool list;
+    AGENTS.md just names the tools and points at the catalog.
+    """
     from jsat._cli_connect import _jsat_instructions_block
 
     block = _jsat_instructions_block()
-    assert "GitHub MCP" in block
-    assert "Search before filing" in block
-    # The privacy rule must be explicit, not implied.
-    assert "Never paste raw errors" in block
+    assert "jsat__*" in block
+    assert "/jsat" in block
+    assert "### Graph exploration" not in block
+    assert "GitHub MCP" not in block
+    assert len(block) < 200
