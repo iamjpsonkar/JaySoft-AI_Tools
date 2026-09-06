@@ -49,13 +49,13 @@ from selftest.core import (  # noqa: E402
 SUITES = [
     "environment", "catalog", "index", "mcp", "reliability", "cli",
     "connect", "sdk", "providers", "improve", "backends", "dashboard",
-    "packaging", "pytest", "live",
+    "ui", "packaging", "pytest", "live",
 ]
 
 # Suites that are safe and fast enough to run with no external services,
 # no docker and no LLM — the subset a CI job could adopt.
 CI_SAFE = ["environment", "catalog", "index", "mcp", "reliability", "cli",
-           "connect", "sdk", "improve", "dashboard"]
+           "connect", "sdk", "improve", "dashboard", "ui"]
 
 
 def _banner(text: str) -> None:
@@ -125,7 +125,7 @@ def main() -> int:
         # Every suite that needs real code to analyse. Keep in sync with the
         # `and repo` guards below, or a suite silently runs zero checks.
         NEEDS_FIXTURE = ("index", "mcp", "reliability", "cli", "sdk",
-                         "backends", "improve", "dashboard")
+                         "backends", "improve", "dashboard", "ui")
         if any(s in selected for s in NEEDS_FIXTURE):
             _banner("Fixture repo (real git repo, real multi-language sources)")
             from selftest.fixtures import build_scratch_repo  # noqa: PLC0415
@@ -192,6 +192,11 @@ def main() -> int:
             _banner("Dashboard (SSE) and Prometheus metrics")
             from selftest.suites import dashboard as dash_suite  # noqa: PLC0415
             dash_suite.run(report, jsat_bin, repo, env)
+
+        if "ui" in selected and repo:
+            _banner("Studio — `jsat ui` web surface + prompt router over HTTP")
+            from selftest.suites import ui as ui_suite  # noqa: PLC0415
+            ui_suite.run(report, jsat_bin, repo, env)
 
     if "packaging" in selected:
         _banner("Packaging — build, metadata, and a clean-venv install of the wheel")

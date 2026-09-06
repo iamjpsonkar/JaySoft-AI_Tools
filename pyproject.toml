@@ -92,8 +92,12 @@ openai = [
 ]
 ci = [
     "jsat[standard]",
+    "jsat[studio]",
     "pygithub>=2",
     "sarif-tools>=0.3",
+]
+studio = [
+    "textual>=0.80",
 ]
 all = [
     "jsat[local]",
@@ -101,6 +105,7 @@ all = [
     "jsat[anthropic]",
     "jsat[openai]",
     "jsat[ci]",
+    "jsat[studio]",
 ]
 dev = [
     "jsat[standard]",
@@ -140,6 +145,10 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "jsat/_cli_skills_data.py" = ["E501"]
 # Inline HTML/CSS/JS generation has unavoidable long lines
 "jsat/mcp/dashboard.py" = ["E501"]
+"jsat/mcp/_dashboard_app.py" = ["E501"]
+"jsat/ui/_app.py" = ["E501"]
+# A rule table of regex→tool pairs legitimately exceeds the line budget
+"jsat/ui/_intent.py" = ["E501"]
 # 2500-line file with many pre-existing long type annotations and strings
 "jsat/mcp/server.py" = ["E501"]
 

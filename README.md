@@ -17,7 +17,7 @@ Every AI session starts with the same problem: you spend the first ten minutes r
 
 JSAT works as a CLI, a Python SDK, and an MCP server that plugs into Claude Code, Codex, Cursor, Bob Shell, Gemini CLI, and other MCP-capable tools. If a supported local CLI is installed, JSAT can use it as the AI provider with no API key required. For hosted APIs and local servers — Anthropic API, OpenAI, Gemini, Ollama, LM Studio — one command switches the provider.
 
-Long-running tools stream **live progress notifications** to Claude Code — and with `dashboard=true` on any command, a real-time browser dashboard opens automatically showing every event as it happens.
+Long-running tools stream **live progress notifications** to Claude Code — and with `dashboard=true` on any command, a real-time browser dashboard opens automatically: a live waterfall timeline, full request/response panes, per-tool aggregate stats, and session history that you can replay or diff against any earlier run.
 
 ---
 
@@ -30,7 +30,7 @@ Long-running tools stream **live progress notifications** to Claude Code — and
 | **Universal flags** | `timeout=<N>` sets a soft budget on any call; `dashboard=true` opens a live browser dashboard |
 | **Smart budgets** | Over-budget → AI gets notified (call keeps running). Force-kill only at 5× the budget |
 | **Session files** | All major skills write resumable session files — `--continue` picks up where it left off |
-| **Zero-dep dashboard** | Stdlib-only SSE server streams every event to a dark-terminal browser view in real time |
+| **Zero-dep dashboard** | Stdlib-only SSE server — live waterfall timeline, request/response panes, aggregate stats, replayable session history in a dark-terminal browser view |
 | **Multi-provider** | Claude Code CLI, OpenCode CLI, Bob Shell CLI, Codex CLI, Anthropic API, OpenAI, Gemini, DeepSeek, Ollama, LM Studio — one command switches |
 | **SDK + CLI + MCP** | Use as a shell, Python SDK, or MCP server — same graph, same tools |
 
@@ -274,6 +274,28 @@ Add `dashboard=true` to any `/jsat` command and a real-time browser dashboard op
 For multi-tool sessions (magic, crack, sprint) the skill files automatically pass `_dashboard_session=<command>` in every tool call so all calls share one tab — no manual action needed.
 
 The dashboard runs on `localhost:7432` (override with `JSAT_DASHBOARD_PORT`), served by a pure stdlib SSE server — no extra dependencies.
+
+### 🎨 JSAT Studio
+
+A browser/TUI face for all of JSAT. `jsat ui` starts a zero-dependency browser app
+(**port 7433**, pure stdlib HTTP server) with a prompt bar, a command palette
+(Ctrl+P), and 17 screens covering every tool family — Overview, Ask, Graph, Blast,
+Security, Test Gaps, API Diff, Consumers, Data Flow, Incident, Review, Knowledge,
+Improve, Prompt Lab, Tools, Sessions, Plans. Type an intent in natural language
+(e.g. *"what breaks if I change token_compress?"*) and the offline intent router maps
+it to the right tool; every screen is also reachable from the palette.
+
+```bash
+jsat ui                                # start the web app, open the browser
+jsat ui --no-open                      # print the URL, don't open a browser
+jsat ui --tui                          # terminal UI instead (needs the `studio` extra)
+pip install 'jsat[studio]'             # optional: Textual for the TUI
+```
+
+The TUI degrades gracefully: without Textual it prints the install hint and exits 2.
+The HTTP API (`/api/status`, `/api/index`, `/api/nodes`, `/api/tools/<name>`,
+`/api/prompt`) is the same surface the app uses, so `curl` against `localhost:7433`
+works for scripting too.
 
 ### Connect
 
@@ -1044,6 +1066,8 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat prompt --diff <query>` | Show raw input vs optimized prompt side by side |
 | `jsat doctor` | System health check (graph, AI, services, connected tools) |
 | `jsat doctor --json` | Health check as raw JSON |
+| `jsat ui` | Start JSAT Studio — browser app on `localhost:7433` with a prompt bar and command palette |
+| `jsat ui --tui` | Terminal UI instead of the browser (needs `pip install 'jsat[studio]'`) |
 | `jsat session list` | List skill sessions with progress and status |
 | `jsat session resume` | Show where the newest session stopped and how to continue |
 | `jsat session prune --keep 20` | Delete old session files (unfinished kept) |

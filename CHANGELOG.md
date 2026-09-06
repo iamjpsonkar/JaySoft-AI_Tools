@@ -51,6 +51,63 @@ All notable changes to JSAT.
   (blast-radius-first staged refactor), `/jsat release` (contract diff +
   consumer + rollback verification). 50 skills + help = 51.
 
+### Dashboard rebuild (100×)
+
+- **Full rewrite of the dashboard engine and UI** — `jsat/mcp/dashboard.py` and
+  the new `jsat/mcp/_dashboard_app.py` replace the two-column session tree with
+  a real application: a **live waterfall/timeline** view (wall-clock bars, depth
+  nesting, virtualized rows, time-grid labels and a "now" cursor), an
+  indented **tree** view, and an **aggregate stats** view. All three share one
+  pipeline: session-scoped SSE + a JSON snapshot endpoint, deduped client-side
+  by a monotonic `seq`.
+- **Full request/response panes** — clicking a call opens a detail drawer with
+  the tool's serialized `args` excerpt, the result/error `payload`, budget,
+  mode, elapsed time, status and its full event log. Large payloads are
+  truncated (`_MAX_ARGS`, `_MAX_PAYLOAD`) with a visible marker.
+- **`_mode`/`_beast`/budget wired into the timeline** — each `_CallNode` records
+  `mode` (`default`/`plan`/`beast`) and `budget_s`; `start_dashboard(...)` from
+  the MCP server passes them through, and the lane highlights beast/plan calls.
+  Result bodies are pushed as truncatable `payload` events.
+- **Session history & replay** — finished sessions archive automatically to
+  `$JSAT_DATA_DIR/dashboard` (or `~/.jsat/dashboard`, oldest 50 pruned) and
+  appear in the landing page's recent list. `/jsat/dashboard/replay?file=…`
+  steps the app through the archived event timeline at 4×–100× with a
+  scrubber; `/jsat/dashboard/compare?a=…&b=…` overlays two archives and renders
+  per-call deltas in an aligned table.
+- **New endpoints** — `/jsat/dashboard/<slug>/data` (JSON snapshot),
+  `/jsat/dashboard/<slug>/events` (session-scoped SSE), `/jsat/dashboard/stats`
+  (per-tool aggregates across live + archived sessions), `/jsat/dashboard/
+  summary` (active/recent/global-stats feed for the landing page),
+  `/jsat/dashboard/archive` + `/archive/<file>`. Legacy SSE/`session/*` URLs
+  redirect. `ThreadingHTTPServer` now serves concurrent tabs.
+- **Keyboard & UX** — view switching (`1`/`2`/`3`), search (`/`), expand /
+  collapse all (`e`/`c`), drawer close (`Esc`), help overlay (`?`). Landing page
+  shows live sessions, recent archives, and global counters.
+
+### JSAT Studio — a browser/TUI face for all of JSAT
+
+- **`jsat ui`** starts **JSAT Studio**: a zero-dependency browser app on
+  `localhost:7433` (pure stdlib `ThreadingHTTPServer`) with a natural-language
+  prompt bar, a command palette (Ctrl+P), and 17 screens covering every tool
+  family — Overview, Ask, Graph, Blast, Security, Test Gaps, API Diff,
+  Consumers, Data Flow, Incident, Review, Knowledge, Improve, Prompt Lab,
+  Tools, Sessions, Plans. `jsat ui --no-open` prints the URL without launching
+  a browser.
+- **Offline intent router** (`jsat/ui/_intent.py`) — 33 regex rules map free
+  text like *"what breaks if I change token_compress?"* to the right tool
+  using the MCP registry's bare tool names; unknown intents fall back to
+  `query`. No LLM involved, so routing works with every provider (including
+  none).
+- **`jsat ui --tui`** — an optional terminal UI via the `studio` extra
+  (`pip install 'jsat[studio]'`). Without Textual it prints the install hint
+  and exits 2 instead of crashing.
+- **Reusable HTTP API** — `/api/status`, `/api/index`, `/api/nodes`,
+  `/api/tools/<name>`, `/api/prompt`, `/api/sessions`, `/api/plans` are the
+  same endpoints the browser app uses, so `curl localhost:7433/…` scripts too.
+- Self-test: new `ui` suite (**`ui_http`**, **`ui_prompt`**, **`ui_tui`**)
+  boots the real `jsat ui` server against a real indexed scratch repo and
+  drives it over real HTTP; the `cli` suite gains `cli_ui_help`.
+
 ### Testing
 
 - The self-test now really exercises eight previously "accounted for"
@@ -73,7 +130,7 @@ All notable changes to JSAT.
   (`connect_opencode`, `connect_bob`).
 - The `cli_coverage_complete` gate now allows only `bob` as "inherently
   interactive"; all other launchers/REPLs are genuinely exercised. ci-safe
-  self-test went from 162 → 170 passed (0 failed, still byte-identical
+  self-test went from 162 → 181 passed (0 failed, still byte-identical
   `~/.jsat` state isolation).
 
 ### OpenCode parity — what claude/codex had that opencode did not

@@ -118,6 +118,23 @@ def check_every_command_has_help(jsat_bin: str, env: dict[str, str]) -> Check:
 
 
 @timed
+def check_ui_helps(jsat_bin: str, env: dict[str, str]) -> Check:
+    """`jsat ui --help` parses and advertises both surfaces."""
+    r = run_cli(jsat_bin, ["ui", "--help"], env, timeout=45)
+    blob = f"{r.stdout}\n{r.stderr}"
+    if r.returncode != 0:
+        return Check("cli_ui_help", "cli", FAIL,
+                     f"jsat ui --help failed (rc={r.returncode})",
+                     detail=blob[:400])
+    if "--tui" not in blob or "--no-open" not in blob:
+        return Check("cli_ui_help", "cli", FAIL,
+                     "jsat ui --help is missing the --tui/--no-open flags",
+                     detail=blob[:400])
+    return Check("cli_ui_help", "cli", PASS,
+                 "jsat ui --help parses and advertises the web + tui surfaces")
+
+
+@timed
 def check_command_coverage(jsat_bin: str, env: dict[str, str],
                            exercised: set[str]) -> Check:
     """Coverage gate: a command Typer advertises but nothing here runs."""
@@ -1126,5 +1143,9 @@ def run(report: Report, jsat_bin: str, repo: Path, tmp: Path,
     report.add(check_remove_is_scoped(jsat_bin, env, tmp)); exercised.add("remove")
     report.add(check_clean_is_scoped(jsat_bin, env, tmp, repo))
     exercised.add("clean")
+
+    # The Studio command's real runtime behaviour (real HTTP server) is
+    # exercised by the `ui` suite; here we only prove the command exists.
+    report.add(check_ui_helps(jsat_bin, env)); exercised.add("ui")
 
     report.add(check_command_coverage(jsat_bin, env, exercised))

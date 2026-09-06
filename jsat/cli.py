@@ -18,6 +18,7 @@ import jsat._cli_session  # noqa: F401  — registers session/note commands
 import jsat._cli_setup  # noqa: F401  — registers setup/config commands
 import jsat._cli_skills_data  # noqa: F401  — registers _JSAT_SKILLS
 import jsat._cli_tools  # noqa: F401  — registers tool commands
+import jsat._cli_ui  # noqa: F401  — registers the studio command
 from jsat._cli_common import app  # noqa: F401
 
 
