@@ -2,6 +2,21 @@
 
 All notable changes to JSAT.
 
+## [0.4.23] — 2026-09-06
+
+### Changed
+
+- **The JSAT guidance block injected into AI-tool instruction files is now a
+  short pointer, not a ~90-line copy.** `jsat connect` writes it into
+  AGENTS.md / CLAUDE.md / .windsurfrules / GEMINI.md / Zed's `JSAT.md`, and
+  opencode loads AGENTS.md on every conversation turn — so a verbose block
+  inflated every session with a tool catalog, a "Reach for JSAT FIRST" table
+  and a GitHub-pairing workflow. It now emits
+  `` Use `jsat__*` tools. Catalog: `/jsat`. `` (~42 chars); the catalog,
+  usage rules and GitHub-pairing workflow live on demand in the `/jsat`
+  dispatcher and the MCP tool list. Existing instruction files are re-slimmed
+  by re-running `jsat connect <tool>` or `jsat refresh`.
+
 ## [0.4.22] — 2026-09-06
 
 ### Added
