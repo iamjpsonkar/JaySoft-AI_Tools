@@ -25,6 +25,8 @@ All notable changes to JSAT.
   `_tool_install_hint` gained an explicit opencode hint
   (`npm install -g opencode-ai`).
 
+## [0.4.21] — 2026-09-06
+
 ### Plan & beast: propose first, then run
 
 - **`plan` / `beast` execution modes on every MCP tool.** Any tool call now
@@ -110,6 +112,14 @@ All notable changes to JSAT.
 
 ### Testing
 
+- The dashboard suite now drives the real dashboard engine end-to-end, and the
+  new `ui` suite boots the real `jsat ui` server (real subprocess, real HTTP
+  against a real indexed scratch repo) with the `cli` suite covering
+  `cli_ui_help`. The ci-safe self-test is 181 passed / 0 failed, still with
+  byte-identical `~/.jsat` state isolation.
+
+### Testing
+
 - The self-test now really exercises eight previously "accounted for"
   surfaces instead of checking their `--help`:
   - `jsat shell`, `jsat gpt`, `jsat ollama --model` run the real REPL through
@@ -130,7 +140,7 @@ All notable changes to JSAT.
   (`connect_opencode`, `connect_bob`).
 - The `cli_coverage_complete` gate now allows only `bob` as "inherently
   interactive"; all other launchers/REPLs are genuinely exercised. ci-safe
-  self-test went from 162 → 181 passed (0 failed, still byte-identical
+  self-test went from 162 → 170 passed (0 failed, still byte-identical
   `~/.jsat` state isolation).
 
 ### OpenCode parity — what claude/codex had that opencode did not
