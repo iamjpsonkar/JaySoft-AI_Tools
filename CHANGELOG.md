@@ -2,6 +2,31 @@
 
 All notable changes to JSAT.
 
+## [0.4.22] — 2026-09-06
+
+### Added
+
+- **`jsat session save` / `jsat session continue`** — a session manager for
+  working context, not just skill runs. `jsat session save "<task>"
+  [--step …] [--finding …] [--skill …] [--no-context]` captures whatever you
+  are in the middle of into the same resumable session format the skills use
+  (`~/.jsat/sessions/<skill>-<slug>-<TS>.md`, same files `--continue` reads),
+  auto-recording the repo path and git branch/commit as context unless
+  `--no-context`. A plain `save` with no `--step` still gets one
+  "Execute the task" step so it is always resumable. `jsat session continue`
+  is a new alias for `resume` that prints a CLI resume hint for ad-hoc
+  sessions (skill runs keep the `/jsat <skill> --continue` hint).
+
+- **The self-test now runs suites in parallel by default.** Each suite runs in
+  its own subprocess with a private workspace (own `JSAT_DATA_DIR` /
+  `JSAT_SESSIONS_DIR` / `JSAT_IMPROVE_DIR` / `JSAT_RUNTIME_DIR`), so suites
+  that mutate `os.environ` for in-process SDK calls and the dashboard's fixed
+  port are isolated; the report is merged on the parent in `SUITES` order and
+  stays deterministic. `--jobs N` sets the concurrency (default 4) and
+  `--sequential` restores the old one-suite-at-a-time in-process run for
+  debugging. On a 4-core box `--ci-safe` went from ~5½ min to ~2¾ min with
+  identical results.
+
 ## [0.4.20] — 2026-09-06
 
 ### Added
