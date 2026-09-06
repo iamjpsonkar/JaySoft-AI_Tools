@@ -984,9 +984,10 @@ Every major skill (`magic`, `crack`, `sprint`, `prompt`) writes two files automa
 Tracks which steps completed. Inspect and resume sessions from the shell:
 
 ```bash
+jsat session save "debug the checkout 500" --step "reproduce" --step "trace the payment path"
 jsat session list                 # every session, newest first, with progress
 jsat session show                 # steps and findings of the newest session
-jsat session resume               # where it stopped + how to continue
+jsat session continue             # resume the newest in-progress session
 jsat session rm <fragment>        # delete one
 jsat session prune --keep 20      # tidy up (unfinished ones are kept)
 ```
@@ -994,6 +995,11 @@ jsat session prune --keep 20      # tidy up (unfinished ones are kept)
 The format is implemented in `jsat/_sessions.py`, so skills, `--continue`, and the
 CLI all read and write the same thing. Files stay plain markdown — tick a checkbox
 in your editor and JSAT honours it. Override the location with `JSAT_SESSIONS_DIR`.
+
+You don't need a running skill to start a session: `jsat session save "<task>"`
+captures whatever you are in the middle of from anywhere, auto-recording the
+repo path and git branch/commit as context (unless `--no-context`), so a later
+`jsat session continue` (or `/jsat <skill> --continue`) picks it straight back up.
 
 Inside an AI tool, pass `--continue` to pick up where a run left off:
 
@@ -1068,8 +1074,9 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat doctor --json` | Health check as raw JSON |
 | `jsat ui` | Start JSAT Studio — browser app on `localhost:7433` with a prompt bar and command palette |
 | `jsat ui --tui` | Terminal UI instead of the browser (needs `pip install 'jsat[studio]'`) |
+| `jsat session save "<task>"` | Capture current working context as a resumable session (from anywhere) |
 | `jsat session list` | List skill sessions with progress and status |
-| `jsat session resume` | Show where the newest session stopped and how to continue |
+| `jsat session continue` | Resume the newest in-progress session (alias for resume) |
 | `jsat session prune --keep 20` | Delete old session files (unfinished kept) |
 | `jsat note add "<text>"` | Save a note into the knowledge base |
 | `jsat note search <query>` | Search notes, ADRs, and runbooks |
@@ -1471,9 +1478,19 @@ Qdrant, a CLI, an API key) is reported as **unavailable**, never silently skippe
 never counted as a failure. Emits a JSON + Markdown report any AI agent can read to
 triage.
 
+Suites run **in parallel by default**: each suite gets its own subprocess and a
+private workspace (`JSAT_DATA_DIR` / sessions / improve / runtime all isolated),
+so suites that mutate `os.environ` for in-process SDK calls or bind a fixed
+port cannot interfere. The report is still deterministic (merged in suite
+order). On a 4-core box `--ci-safe` dropped from ~5½ min to ~2¾ min with
+identical results.
+
 ```bash
-./scripts/jsat-selftest.sh              # full run — free, ~15s
-./scripts/jsat-selftest.sh --quick      # skip local_test.sh --all
+./scripts/jsat-selftest.sh              # full run — suites in parallel (default 4 jobs)
+./scripts/jsat-selftest.sh --ci-safe    # no docker, no LLM, no external services
+./scripts/jsat-selftest.sh --jobs 8     # bump concurrency on big machines
+./scripts/jsat-selftest.sh --quick      # skip local_test.sh
+./scripts/jsat-selftest.sh --sequential # debug one suite: in-process, one at a time
 ./scripts/jsat-selftest.sh --live-agent # + a real headless claude agent driving jsat
                                          # claude's real MCP config and a curated set of
                                          # /jsat skills end-to-end — costs real API

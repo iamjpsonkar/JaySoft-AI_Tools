@@ -195,7 +195,23 @@ subset, `--ci-safe` restricts to what needs no docker/LLM/services.
 ./scripts/jsat-selftest.sh --ci-safe       # no docker, no LLM, no external services
 ./scripts/jsat-selftest.sh --llm           # also make real AI provider calls
 ./scripts/jsat-selftest.sh --live-agent    # also drive a real headless claude agent
+./scripts/jsat-selftest.sh --jobs 8        # up to 8 suites concurrently (default 4)
+./scripts/jsat-selftest.sh --sequential    # one suite at a time, in-process
 ```
+
+**Suites run in parallel by default.** Each suite executes in its own
+subprocess with a private workspace (`tmp/ws-<suite>`, hence its own
+`JSAT_DATA_DIR` / `JSAT_SESSIONS_DIR` / `JSAT_IMPROVE_DIR` / `JSAT_RUNTIME_DIR`)
+under the shared tempdir, and `__main__._run_jobs_parallel` merges the per-suite
+reports in `SUITES` order so the report is deterministic. This is what makes
+concurrency safe: suites share only the read-only fixture repo and the parent's
+base environment, so the suites that mutate global `os.environ` for in-process
+SDK calls (sdk, improve, index) and the dashboard's fixed port 7432 are all
+isolated. The `environment` suite, the fixture-repo build and the final
+`check_no_state_leak` always run on the parent. `--sequential` restores the old
+in-process one-suite-at-a-time run and is the mode to debug a suite in.
+When you add a suite, wire it into `_run_suite_inline`'s dispatch table (one
+entry covers both modes) and add it to `NEEDS_FIXTURE` if it indexes the repo.
 
 Three things about it matter when you extend JSAT:
 

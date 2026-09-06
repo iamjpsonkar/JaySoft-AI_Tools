@@ -21,12 +21,30 @@ backend, behind a `# type: ignore` that had silenced the warning.
 ./scripts/jsat-selftest.sh --live-agent     # also drive a real headless `claude -p`
 ./scripts/jsat-selftest.sh --full           # pytest with no marker filter
 ./scripts/jsat-selftest.sh --suite mcp,cli  # just these suites
+./scripts/jsat-selftest.sh --jobs 8         # up to 8 suites concurrently (default 4)
+./scripts/jsat-selftest.sh --sequential     # one suite at a time, in-process
 ./scripts/jsat-selftest.sh --list-suites
 ./scripts/jsat-selftest.sh --out /tmp/report
 ```
 
 It writes a JSON report and a Markdown companion, both structured for an AI
 agent to triage.
+
+### Parallel by default
+
+Suites run **concurrently by default**: each suite executes in its own
+subprocess with a private workspace (`tmp/ws-<suite>`; its own
+`JSAT_DATA_DIR` / `JSAT_SESSIONS_DIR` / `JSAT_IMPROVE_DIR` / `JSAT_RUNTIME_DIR`)
+under the shared tempdir. That isolation is what makes this safe — suites
+share only the read-only fixture repo and the parent's base environment, so the
+suites that mutate `os.environ` for their in-process SDK calls and the
+dashboard's fixed port are never in each other's way. The parent merges the
+per-suite reports in `SUITES` order, so the report is deterministic and the
+wall time is roughly `max(suite)` rather than `sum(suite)`. `--jobs N` bounds
+concurrency (default 4 — match your core count); `--sequential` restores the
+old in-process one-suite-at-a-time run, which is the mode to debug a suite in.
+The `environment` suite, the fixture-repo build and the final state-leak check
+always run on the parent, before and after the pool.
 
 ## What it covers
 
@@ -35,9 +53,9 @@ agent to triage.
 | `environment` | Real probes for every CLI, module, service and credential; verifies the binary serves this checkout rather than a stale copy |
 | `catalog` | Registries, docs and versions in sync — every slash command's `jsat__*` references resolve, every tool has a role, every documented CLI command exists |
 | `index` | All seven parsers against a real multi-language fixture, incremental skip/pickup, `INDEX.md`, export→import round trip, zip-slip guard |
-| `mcp` | **All 69 MCP tools** over real stdio JSON-RPC |
+| `mcp` | **All 70 MCP tools** over real stdio JSON-RPC |
 | `reliability` | Soft-budget progress notifications, the depth cap, bad-token rejection, RBAC scope |
-| `cli` | **All 41 CLI commands**, including a real process kill and SARIF output |
+| `cli` | **All 45 CLI commands**, including a real process kill and SARIF output |
 | `connect` | All seven connectors round-tripped against seeded configs |
 | `sdk` | Every public SDK method, in-process |
 | `providers` | All nine AI providers |
