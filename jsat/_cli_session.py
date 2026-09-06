@@ -116,8 +116,8 @@ def cmd_session_continue(
     _do_resume(name)
 
 
-def _do_resume(name: str) -> None:
-    session = _resolve_session(name, status="in_progress")
+def _do_resume(name: str, loaded=None) -> None:
+    session = loaded if loaded is not None else _resolve_session(name, status="in_progress")
     step = session.next_step
     if step is None:
         console.print("[green]✓[/] Nothing left to do — every step is complete.")
@@ -132,7 +132,8 @@ def _do_resume(name: str) -> None:
         for line in session.findings[-5:]:
             console.print(f"  {line}")
     if session.skill == "session":
-        console.print(f"\nResume later: [bold]jsat session continue {session.path.name}[/]")
+        target = session.name or session.path.name
+        console.print(f"\nResume later: [bold]jsat session load {target}[/]")
     else:
         console.print(f"\nIn Claude Code run: [bold]/jsat {session.skill} --continue[/]")
 
@@ -164,7 +165,9 @@ def cmd_session_prune(
 
 @session_app.command("save")
 def cmd_session_save(
-    task: str = typer.Argument(..., help="What you are in the middle of"),
+    name: str = typer.Argument(..., help="Short identifier to save under (e.g. 'payments')"),
+    task: str = typer.Option("", "--task", "-t",
+        help="What you are in the middle of (default: the identifier)"),
     skill: str = typer.Option("session", "--skill", "-s",
         help="Group under this label (default: 'session')"),
     status: str = typer.Option("in_progress", "--status", "-S",
@@ -177,17 +180,19 @@ def cmd_session_save(
         help="Skip auto-capturing the repo/git context"),
     repo: str = typer.Option(".", "--repo", "-r"),
 ) -> None:
-    """Save the current working context as a resumable session.
+    """Save the current working context as a resumable, named session.
 
     \b
-    jsat session save "add idempotency keys to payments" \\
-        --step "find all payment mutations" --step "check the retry path"
-    jsat session save "debug the checkout 500" --no-context
+    jsat session save payments --task "fix the payment retry" \\
+        --step "inspect the logs" --step "patch the handler"
+    jsat session save jsat --no-context
 
-    Unlike skill-run sessions this works from anywhere — no /jsat skill
-    involved. The file lands in ~/.jsat/sessions/ in the same format the
-    skills use, so `jsat session list/show/continue/prune` all read it, and
-    repo path + git branch/commit are captured as context unless --no-context.
+    The identifier is your handle — find it again any time with
+    `jsat session load <name>`. Unlike skill-run sessions this works from
+    anywhere — no /jsat skill involved. The file lands in ~/.jsat/sessions/ in
+    the same format the skills use, so session list/show/continue/prune all
+    read it, and repo path + git branch/commit are captured as context unless
+    --no-context.
     """
     from jsat import _sessions
 
@@ -198,13 +203,14 @@ def cmd_session_save(
             f"{', '.join(_sessions.SCHEMA_STATUSES)}"
         )
         raise typer.Exit(1)
-    task = task.strip()
-    if not task:
-        err.print("[red]A task description is required.[/]")
+    name = name.strip()
+    if not name:
+        err.print("[red]An identifier is required (e.g. jsat session save payments).[/]")
         raise typer.Exit(1)
+    task = task.strip() or name
 
     steps = list(step) if step else ["Execute the task"]
-    session = _sessions.create(skill=skill or "session", task=task, steps=steps)
+    session = _sessions.create(skill=skill or "session", task=task, steps=steps, name=name)
     if not no_context:
         session.findings.extend(_context_findings(repo))
     if finding:
@@ -220,8 +226,24 @@ def cmd_session_save(
         f"· status: {session.status}"
     )
     console.print(
-        f"Continue later: [bold]jsat session continue {session.path.name}[/]"
+        f"Load later: [bold]jsat session load {name}[/]   "
+        f"(resume: jsat session continue {session.path.name})"
     )
+
+
+@session_app.command("load")
+def cmd_session_load(
+    name: str = typer.Argument(..., help="The identifier you saved under (session save <name>)"),
+) -> None:
+    """Load a saved session by its identifier — where it stopped, and how to continue."""
+    from jsat import _sessions
+
+    session = _sessions.find_by_name(name)
+    if session is None:
+        err.print(f"[red]No saved session with identifier:[/] {name}")
+        err.print("[dim]Saved with: jsat session save <name>[/]")
+        raise typer.Exit(1)
+    _do_resume(session.path.name, loaded=session)
 
 
 def _context_findings(repo: str) -> list[str]:
@@ -248,13 +270,17 @@ def _context_findings(repo: str) -> list[str]:
 
 
 def _resolve_session(name: str, status: str | None = None):
-    """Find a session by filename fragment, else the newest (optionally filtered)."""
+    """Find a session by its saved identifier, else filename fragment, else newest."""
     from jsat import _sessions
 
     if name:
-        for session in _sessions.list_sessions(limit=500):
-            if name in session.path.name:
-                return session
+        found = _sessions.find_by_name(name, status=status)
+        if found is None:
+            for session in _sessions.list_sessions(limit=500):
+                if name in session.path.name:
+                    return session
+        if found is not None:
+            return found
         err.print(f"[red]No session matching:[/] {name}")
         raise typer.Exit(1)
 

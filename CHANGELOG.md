@@ -2,6 +2,19 @@
 
 All notable changes to JSAT.
 
+## [Unreleased]
+
+### Changed
+
+- **Saved sessions have an identifier, so you can find them deterministically.**
+  `jsat session save <name>` now takes a short identifier as its argument (the
+  task moves to `--task`, defaulting to the identifier), stores it in the file
+  frontmatter, and drives the filename slug. A new `jsat session load <name>`
+  retrieves the newest session saved under that identifier (case-insensitive),
+  and `resume`/`continue`/`show`/`rm` also accept it — no more matching on a
+  timestamped filename fragment. `jsat session save payments --task "fix the
+  payment retry"` then `jsat session load payments` just works.
+
 ## [0.4.23] — 2026-09-06
 
 ### Changed

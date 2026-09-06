@@ -22,6 +22,11 @@ The on-disk format is unchanged and stays human-editable:
     ## Findings
     **status:** 1307 nodes, 5668 edges
 
+Sessions saved with `jsat session save <name>` add a `name:` frontmatter line
+holding that identifier, so `jsat session load <name>` can find them without
+matching on the filename. Everything else is identical, and old files without
+`name:` load fine (identifier stays empty).
+
 stdlib-only, and every parse is tolerant: a hand-edited or partially written
 file still loads rather than raising.
 """
@@ -86,6 +91,7 @@ class Session:
     path: Path
     status: str = "in_progress"
     created: str = field(default_factory=_now_iso)
+    name: str = ""
     steps: list[Step] = field(default_factory=list)
     findings: list[str] = field(default_factory=list)
 
@@ -123,11 +129,13 @@ class Session:
     def render(self) -> str:
         steps = "\n".join(s.render() for s in self.steps) or "(no steps)"
         findings = "\n".join(self.findings) or "(populated as steps complete)"
+        name = f"name: {self.name}\n" if self.name else ""
         return (
             "---\n"
             f"skill: {self.skill}\n"
             f"task: {self.task}\n"
             f"created: {self.created}\n"
+            f"{name}"
             f"status: {self.status}\n"
             "---\n\n"
             "## Steps\n"
@@ -144,15 +152,37 @@ class Session:
         return self.path
 
 
-def create(skill: str, task: str, steps: list[str] | None = None) -> Session:
-    """Start a session file named ``<skill>-<slug>-<YYYYMMDD-HHMM>.md``."""
-    path = sessions_dir() / f"{skill}-{slugify(task)}-{_stamp()}.md"
+def create(
+    skill: str, task: str, steps: list[str] | None = None, name: str | None = None
+) -> Session:
+    """Start a session file named ``<skill>-<slug>-<YYYYMMDD-HHMM>.md``.
+
+    ``name`` pins a short identifier (``jsat session save <name>`` /
+    ``jsat session load <name>``). When given it drives the filename slug and is
+    stored in the frontmatter; otherwise the task does.
+    """
+    slug_base = name.strip() if name and name.strip() else task
+    path = sessions_dir() / f"{skill}-{slugify(slug_base)}-{_stamp()}.md"
     session = Session(
         skill=skill, task=task, path=path,
+        name=name.strip() if name else "",
         steps=[Step(name=s) for s in (steps or [])],
     )
     session.save()
     return session
+
+
+def find_by_name(name: str, status: str | None = None) -> Session | None:
+    """Newest session whose stored identifier matches ``name`` (case-insensitive)."""
+    needle = name.strip().lower()
+    if not needle:
+        return None
+    for session in list_sessions(limit=500):
+        if status and session.status != status:
+            continue
+        if session.name.strip().lower() == needle:
+            return session
+    return None
 
 
 def load(path: str | Path) -> Session | None:
@@ -191,6 +221,7 @@ def load(path: str | Path) -> Session | None:
         path=p,
         status=meta.get("status", "in_progress"),
         created=meta.get("created", ""),
+        name=meta.get("name", ""),
         steps=steps,
         findings=findings,
     )

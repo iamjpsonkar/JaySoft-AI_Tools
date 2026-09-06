@@ -1037,15 +1037,17 @@ def check_session_roundtrip(jsat_bin: str, env: dict[str, str],
 @timed
 def check_session_save_continue(jsat_bin: str, env: dict[str, str],
                                 tmp: Path) -> Check:
-    """`session save` captures a task from ANYWHERE (not a skill run) into the
-    documented format, and `session continue` resumes it — real subprocesses,
-    real files under their own sessions dir."""
+    """`session save <id>` captures a task from ANYWHERE (not a skill run) into the
+    documented format, `session load <id>` retrieves it by identifier and
+    `session continue` resumes it — real subprocesses, real files under their
+    own sessions dir."""
     root = tmp / "sessions-save"
     root.mkdir(parents=True, exist_ok=True)
     scoped = {**env, "JSAT_SESSIONS_DIR": str(root)}
 
     save = run_cli(jsat_bin,
-                   ["session", "save", "fix the payment retry",
+                   ["session", "save", "payment-retry",
+                    "--task", "fix the payment retry",
                     "--step", "inspect the logs", "--step", "patch the handler",
                     "--finding", "gateway is the slow path"],
                    scoped, cwd=str(tmp), timeout=60)
@@ -1081,8 +1083,16 @@ def check_session_save_continue(jsat_bin: str, env: dict[str, str],
                      "session continue (no arg) did not resolve the newest session",
                      detail=cont_newest.stdout[-400:])
 
+    # `session load` resolves by the identifier, not the filename.
+    load = run_cli(jsat_bin, ["session", "load", "payment-retry"], scoped,
+                   cwd=str(tmp), timeout=60)
+    if "Next step: inspect the logs" not in load.stdout:
+        return Check("cli_session_save", "cli", FAIL,
+                     "session load <id> did not resolve the named session",
+                     detail=load.stdout[-400:] + load.stderr[-200:])
+
     return Check("cli_session_save", "cli", PASS,
-                 "session save/continue captured and resumed a task from anywhere")
+                 "session save/load/continue captured and resumed a task from anywhere")
 
 
 @timed

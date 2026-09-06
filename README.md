@@ -984,9 +984,10 @@ Every major skill (`magic`, `crack`, `sprint`, `prompt`) writes two files automa
 Tracks which steps completed. Inspect and resume sessions from the shell:
 
 ```bash
-jsat session save "debug the checkout 500" --step "reproduce" --step "trace the payment path"
+jsat session save payments --task "fix the payment retry" --step "reproduce" --step "trace the payment path"
 jsat session list                 # every session, newest first, with progress
 jsat session show                 # steps and findings of the newest session
+jsat session load payments        # load a saved session by its identifier
 jsat session continue             # resume the newest in-progress session
 jsat session rm <fragment>        # delete one
 jsat session prune --keep 20      # tidy up (unfinished ones are kept)
@@ -996,10 +997,12 @@ The format is implemented in `jsat/_sessions.py`, so skills, `--continue`, and t
 CLI all read and write the same thing. Files stay plain markdown — tick a checkbox
 in your editor and JSAT honours it. Override the location with `JSAT_SESSIONS_DIR`.
 
-You don't need a running skill to start a session: `jsat session save "<task>"`
+You don't need a running skill to start a session: `jsat session save <identifier>`
 captures whatever you are in the middle of from anywhere, auto-recording the
-repo path and git branch/commit as context (unless `--no-context`), so a later
-`jsat session continue` (or `/jsat <skill> --continue`) picks it straight back up.
+repo path and git branch/commit as context (unless `--no-context`). The identifier
+is your handle — `jsat session load <identifier>` finds it again even days later,
+and `--task` describes it for the list view. A plain `jsat session continue`
+(or `/jsat <skill> --continue`) picks the newest one straight back up.
 
 Inside an AI tool, pass `--continue` to pick up where a run left off:
 
@@ -1074,8 +1077,9 @@ The skill recommends **and** acts — nothing falls through the cracks.
 | `jsat doctor --json` | Health check as raw JSON |
 | `jsat ui` | Start JSAT Studio — browser app on `localhost:7433` with a prompt bar and command palette |
 | `jsat ui --tui` | Terminal UI instead of the browser (needs `pip install 'jsat[studio]'`) |
-| `jsat session save "<task>"` | Capture current working context as a resumable session (from anywhere) |
+| `jsat session save <name> [--task <text>]` | Capture current working context under a named identifier (from anywhere) |
 | `jsat session list` | List skill sessions with progress and status |
+| `jsat session load <name>` | Load a saved session by its identifier |
 | `jsat session continue` | Resume the newest in-progress session (alias for resume) |
 | `jsat session prune --keep 20` | Delete old session files (unfinished kept) |
 | `jsat note add "<text>"` | Save a note into the knowledge base |

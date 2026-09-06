@@ -26,7 +26,8 @@ def _latest() -> _sessions.Session | None:
 @pytest.mark.ci
 def test_save_writes_a_resumable_session():
     r = runner.invoke(app, [
-        "session", "save", "harden the login flow",
+        "session", "save", "login-flow",
+        "--task", "harden the login flow",
         "--step", "audit token handling",
         "--finding", "tokens are 60s TTL",
     ])
@@ -36,6 +37,7 @@ def test_save_writes_a_resumable_session():
     assert len(sessions) == 1
     s = sessions[0]
     assert s.skill == "session"
+    assert s.name == "login-flow"
     assert s.task == "harden the login flow"
     assert s.status == "in_progress"
     assert [st.name for st in s.steps] == ["audit token handling"]
@@ -45,17 +47,19 @@ def test_save_writes_a_resumable_session():
 
 @pytest.mark.ci
 def test_save_without_steps_gets_one_default_step():
-    r = runner.invoke(app, ["session", "save", "just a thought"])
+    r = runner.invoke(app, ["session", "save", "just-a-thought"])
     assert r.exit_code == 0, r.output
     s = _latest()
     assert s is not None and len(s.steps) == 1
     assert s.next_step is not None
+    assert s.task == "just-a-thought"  # task defaults to the identifier
 
 
 @pytest.mark.ci
 def test_save_multiple_steps_keeps_their_order():
     r = runner.invoke(app, [
-        "session", "save", "ship the retry",
+        "session", "save", "retry-ship",
+        "--task", "ship the retry",
         "--step", "alpha", "--step", "beta", "--step", "gamma",
     ])
     assert r.exit_code == 0, r.output
@@ -71,7 +75,7 @@ def test_save_rejects_invalid_status():
 
 
 @pytest.mark.ci
-def test_save_rejects_blank_task():
+def test_save_rejects_blank_name():
     r = runner.invoke(app, ["session", "save", "   "])
     assert r.exit_code != 0
     assert _sessions.list_sessions() == []
@@ -80,7 +84,7 @@ def test_save_rejects_blank_task():
 @pytest.mark.ci
 def test_save_records_repo_context(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    r = runner.invoke(app, ["session", "save", "context capture", "--step", "x"])
+    r = runner.invoke(app, ["session", "save", "ctx-capture", "--step", "x"])
     assert r.exit_code == 0, r.output
     assert any("**context:** repo=" in f for f in _latest().findings)
 
@@ -88,7 +92,7 @@ def test_save_records_repo_context(tmp_path, monkeypatch):
 @pytest.mark.ci
 def test_save_no_context_skips_repo(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    r = runner.invoke(app, ["session", "save", "no ctx", "--no-context",
+    r = runner.invoke(app, ["session", "save", "no-ctx", "--no-context",
                             "--step", "x"])
     assert r.exit_code == 0, r.output
     assert not any("**context:**" in f for f in _latest().findings)
@@ -96,17 +100,44 @@ def test_save_no_context_skips_repo(tmp_path, monkeypatch):
 
 @pytest.mark.ci
 def test_save_honours_skill_grouping():
-    runner.invoke(app, ["session", "save", "a deploy thing", "--skill", "deploy"])
+    runner.invoke(app, ["session", "save", "deploy-a-thing", "--skill", "deploy"])
     s = _latest()
     assert s.skill == "deploy"
     assert s.path.name.startswith("deploy-")
+
+
+# ── load ──────────────────────────────────────────────────────────────────────
+
+@pytest.mark.ci
+def test_load_by_identifier_returns_the_named_session():
+    runner.invoke(app, ["session", "save", "payments",
+                        "--task", "fix the payment retry",
+                        "--step", "inspect the logs", "--step", "patch the handler"])
+    r = runner.invoke(app, ["session", "load", "payments"])
+    assert r.exit_code == 0, r.output
+    assert "Next step: inspect the logs" in r.output
+
+
+@pytest.mark.ci
+def test_load_is_case_insensitive():
+    runner.invoke(app, ["session", "save", "jsat"])
+    r = runner.invoke(app, ["session", "load", "JSAT"])
+    assert r.exit_code == 0, r.output
+    assert "Resuming" in r.output
+
+
+@pytest.mark.ci
+def test_load_unknown_identifier_fails():
+    r = runner.invoke(app, ["session", "load", "nope"])
+    assert r.exit_code != 0
+    assert "No saved session with identifier" in r.output
 
 
 # ── continue ──────────────────────────────────────────────────────────────────
 
 @pytest.mark.ci
 def test_continue_no_arg_resumes_newest_in_progress():
-    runner.invoke(app, ["session", "save", "first thing",
+    runner.invoke(app, ["session", "save", "first-thing",
                         "--step", "alpha", "--step", "beta"])
     r = runner.invoke(app, ["session", "continue"])
     assert r.exit_code == 0, r.output
@@ -115,7 +146,7 @@ def test_continue_no_arg_resumes_newest_in_progress():
 
 @pytest.mark.ci
 def test_continue_by_fragment_resolves_the_named_session():
-    runner.invoke(app, ["session", "save", "named work", "--step", "alpha"])
+    runner.invoke(app, ["session", "save", "named-work", "--step", "alpha"])
     s = _latest()
     r = runner.invoke(app, ["session", "continue", s.path.stem])
     assert r.exit_code == 0, r.output
@@ -123,8 +154,16 @@ def test_continue_by_fragment_resolves_the_named_session():
 
 
 @pytest.mark.ci
+def test_continue_by_identifier_resolves_the_named_session():
+    runner.invoke(app, ["session", "save", "id-work", "--step", "alpha"])
+    r = runner.invoke(app, ["session", "continue", "id-work"])
+    assert r.exit_code == 0, r.output
+    assert "Next step: alpha" in r.output
+
+
+@pytest.mark.ci
 def test_continue_reports_when_nothing_left():
-    runner.invoke(app, ["session", "save", "finish me", "--step", "done"])
+    runner.invoke(app, ["session", "save", "finish-me", "--step", "done"])
     s = _latest()
     s.complete_step("done")
     r = runner.invoke(app, ["session", "continue"])
