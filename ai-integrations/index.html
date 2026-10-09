@@ -2229,7 +2229,8 @@ because each client has a different MCP configuration format.</p>
 </code></pre></div>
 <p><strong>What gets installed:</strong>
 - <code>~/.codex/config.toml</code> — one <code>[mcp_servers.jsat]</code> entry
-- <code>~/.codex/skills/jsat/SKILL.md</code> — one Codex skill dispatcher for <code>$jsat</code></p>
+- <code>~/.codex/skills/jsat/SKILL.md</code> — one Codex skill dispatcher for <code>$jsat</code>, plus
+  <code>references/commands/*.md</code> and <code>references/help.md</code> loaded on demand</p>
 <p>JSAT does <strong>not</strong> generate <code>.codex/</code>, <code>AGENTS.md</code>, or <code>.agents/skills</code> inside the
 target repo for Codex. Run Codex from the repo you want to analyze, or use
 <code>jsat codex --repo /path/to/repo</code>; JSAT resolves that working directory at runtime.

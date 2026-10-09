@@ -1671,8 +1671,9 @@ authentication, the conversation, and model selection. JSAT adds its MCP server 
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>jsat<span class="w"> </span>index<span class="w"> </span>.
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>jsat<span class="w"> </span>connect<span class="w"> </span>codex
 </code></pre></div>
-<p>The connection writes <code>~/.codex/config.toml</code> and <code>~/.codex/skills/jsat/SKILL.md</code>. Restart a
-Codex process that was already open.</p>
+<p>The connection writes <code>~/.codex/config.toml</code> and the <code>~/.codex/skills/jsat/</code> skill (a small
+<code>SKILL.md</code> dispatcher plus <code>references/commands/*.md</code> and <code>references/help.md</code>, loaded on demand).
+Restart a Codex process that was already open.</p>
 <h2 id="start-and-select-a-model">Start and select a model<a class="headerlink" href="#start-and-select-a-model" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>jsat<span class="w"> </span>codex<span class="w"> </span>--repo<span class="w"> </span>.
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># equivalent managed route</span>

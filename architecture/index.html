@@ -2564,13 +2564,18 @@ ahead of and after the routed subcommand itself:</p>
   about JSAT's own tools misbehaving are written instead to a <code>jsat-improvement</code> backlog that
   <code>/jsat improve</code> reads later. Nothing is written when the invocation was routine — this module
   is best-effort and silent in the common case.</li>
-<li><strong><code>jsat-internet</code> — the one sanctioned exception.</strong> No <code>jsat__*</code> MCP tool reaches the live
+<li><strong><code>jsat-internet</code> — a sanctioned exception.</strong> No <code>jsat__*</code> MCP tool reaches the live
   internet, so every other skill is restricted to <code>jsat__*</code> tools only. <code>jsat-internet.md</code> is
   the deliberate carve-out: it calls native <code>WebSearch</code>/<code>WebFetch</code> directly for up-to-date facts
   (docs, released versions, CVEs), optionally grounding the external answer against this
   codebase via <code>jsat__query</code>. <code>jsat-magic.md</code> wires it in as an opt-in <strong>Layer W</strong> — never
   auto-selected for a pure-codebase task, added only when a task's own wording names external
   or current information, and dropped first if the composed skill sequence is over budget.</li>
+<li><strong><code>jsat-gcp-logs</code> — the second sanctioned exception.</strong> No <code>jsat__*</code> tool can read what a
+  deployed service logged, so <code>jsat-gcp-logs.md</code> may run read-only <code>gcloud</code> commands
+  (<code>auth list</code>, <code>projects list</code>, <code>logging logs list</code>, <code>logging read</code>) and nothing else through
+  Bash; locating log statements, reading the code at a log line and saving learnings still use
+  <code>jsat__*</code> tools. It is never selected by <code>jsat-magic</code>: it runs only when invoked directly.</li>
 </ul>
 <h3 id="auto-generated-help">Auto-generated help<a class="headerlink" href="#auto-generated-help" title="Permanent link">&para;</a></h3>
 <p><code>commands/jsat-help.md</code> used to be a hand-maintained document and had drifted stale — listing

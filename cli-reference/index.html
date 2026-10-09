@@ -4408,7 +4408,8 @@ skill files are picked up automatically on next <code>jsat connect claude</code>
 </code></pre></div>
 <p>Writes global Codex files:
 - <code>~/.codex/config.toml</code> — one <code>[mcp_servers.jsat]</code> table
-- <code>~/.codex/skills/jsat/SKILL.md</code> — one Codex skill dispatcher</p>
+- <code>~/.codex/skills/jsat/SKILL.md</code> — one Codex skill dispatcher, with per-command workflows in
+  <code>references/commands/*.md</code> and <code>references/help.md</code> (read on demand)</p>
 <p>No <code>.codex/</code>, <code>AGENTS.md</code>, or <code>.agents/skills</code> files are generated in the target
 repo. In Codex, use <code>$jsat magic TASK</code>, <code>$jsat query QUESTION</code>, or ask naturally.
 The dispatcher also treats <code>@jsat magic TASK</code> as the same JSAT request when Codex
