@@ -2,7 +2,7 @@
 
 All notable changes to JSAT.
 
-## [Unreleased]
+## [0.4.25] — 2026-10-09
 
 ### Added
 
