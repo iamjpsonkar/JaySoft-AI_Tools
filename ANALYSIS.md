@@ -453,7 +453,8 @@ then routes to the matching `### <command>` section. `jsat-help.md` is a
 generated index. Grouped by theme: exploration (10), impact/risk (6),
 security/quality (5), workflow orchestration (7), git (4), knowledge/decisions
 (4), prompt/token (5), ops/incident (2), meta (4 — including `internet`, the
-one command sanctioned to use `WebSearch`/`WebFetch` instead of `jsat__*`).
+one command sanctioned to use `WebSearch`/`WebFetch` instead of `jsat__*`; `gcp-logs` is the
+second exception, limited to read-only `gcloud` log queries).
 
 As of 0.4.17 the registry has **one** source of truth: `_JSAT_SKILLS` is
 derived from these files rather than duplicating them, which is what

@@ -1,10 +1,11 @@
 ---
-description: Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. The one sanctioned exception to JSAT's "jsat__* tools only" rule, since no jsat__* tool reaches the internet.
+description: Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. A sanctioned exception to JSAT's "jsat__* tools only" rule (the other is /jsat gcp-logs), since no jsat__* tool reaches the internet.
 ---
 
 SCOPE — read this before anything else: every other /jsat command is graph-native
 and forbidden from touching Bash/WebSearch/WebFetch (see each command's own
-CRITICAL line). This command is the deliberate exception: its entire purpose is
+CRITICAL line). This command is a deliberate exception (the only other is
+/jsat gcp-logs, scoped to read-only gcloud log queries): its entire purpose is
 external information no jsat__* tool can reach (jsat's graph indexes THIS
 codebase, not the internet). Do not generalize this exception — no other
 command's "no native tools" rule is relaxed by this file existing.

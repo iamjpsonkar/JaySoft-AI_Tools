@@ -26,7 +26,7 @@ Long-running tools stream **live progress notifications** to Claude Code — and
 | Feature | What it does |
 |---------|-------------|
 | **Persistent graph** | Index once, query forever — functions, classes, services, endpoints, Kafka topics, DB tables |
-| **51 slash commands** | `/jsat magic`, `/jsat crack`, `/jsat improve`, `/jsat security` and 47 more |
+| **53 slash commands** | `/jsat magic`, `/jsat crack`, `/jsat improve`, `/jsat security` and 49 more |
 | **Universal flags** | `timeout=<N>` sets a soft budget on any call; `dashboard=true` opens a live browser dashboard |
 | **Smart budgets** | Over-budget → AI gets notified (call keeps running). Force-kill only at 5× the budget |
 | **Session files** | All major skills write resumable session files — `--continue` picks up where it left off |
@@ -349,7 +349,7 @@ Most connect commands write both an MCP config **and** a guidance file so the AI
 
 | Tool | MCP config | Guidance file | Guidance format |
 |---|---|---|---|
-| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (51 files) + `CLAUDE.md` | Slash commands + always-on guidance |
+| Claude Code (project) | `.claude/settings.json` | `.claude/commands/jsat-*.md` (53 files) + `CLAUDE.md` | Slash commands + always-on guidance |
 | Claude Code (global) | `~/.claude/settings.json` | `~/.claude/commands/jsat-*.md` + `~/CLAUDE.md` | Slash commands + always-on guidance |
 | Codex | `~/.codex/config.toml` | `~/.codex/skills/jsat/SKILL.md` | `$jsat` dispatcher + MCP tools; no project files |
 | Bob Shell (project) | `.bob/settings.json` | `BOB.md` + `.bob/commands/jsat-*.md` | Slash commands |
@@ -366,10 +366,10 @@ Pass `--no-instructions` to skip writing guidance files on integrations that sup
 
 ### `/jsat` dispatcher
 
-`jsat connect claude` installs a single `/jsat` command rather than 51 individual `/jsat-*` commands. All skills are accessible as subcommands:
+`jsat connect claude` installs a single `/jsat` command rather than 53 individual `/jsat-*` commands. All skills are accessible as subcommands:
 
 ```bash
-/jsat help               # list all 50 subcommands
+/jsat help               # list all 52 subcommands
 /jsat query <question>   # answer codebase questions (Discuss→Verify pipeline)
 /jsat crack <task>       # multi-agent war room with artifact carry-forward
 /jsat aw <task>          # workflow advisor
@@ -393,10 +393,10 @@ jsat disconnect gemini                     # Gemini CLI
 jsat disconnect all                        # every tool at once
 ```
 
-### Claude Code — slash commands (50 subcommands + `/jsat-help`)
+### Claude Code — slash commands (52 subcommands + `/jsat-help`)
 
 `jsat connect claude` installs two slash commands:
-- `/jsat <subcommand>` — 50 subcommands organized by category (see table below)
+- `/jsat <subcommand>` — 52 subcommands organized by category (see table below)
 - `/jsat-help [command]` — no args lists all commands; `/jsat-help magic` shows full flags and examples for that command
 
 **Graph exploration**
@@ -429,6 +429,8 @@ jsat disconnect all                        # every tool at once
 | `/jsat review <diff>` | Multi-model parallel code review |
 | `/jsat test-gaps [path]` | Find untested paths, generate tests |
 | `/jsat coverage [path]` | Behavioral coverage estimate |
+| `/jsat gcp-logs <id or symptom>` | Real GCP Cloud Logging evidence via read-only `gcloud` (second sanctioned exception to graph-tools-only); correlates across hops and ties lines to code |
+| `/jsat test-atlas [--depth quick\|standard\|deep]` | Verified map of the test suite — fixtures, mocking rule, risk-ranked gaps, CI-vs-local mismatches, trend |
 | `/jsat dead-code [path]` | Find functions/classes with no callers (blast-radius inversion) |
 | `/jsat verify <change>` | Prove a change works end-to-end, prioritized by graph impact |
 
@@ -478,7 +480,7 @@ jsat disconnect all                        # every tool at once
 **Help**
 | Command | What it does |
 |---|---|
-| `/jsat-help` | List all 50 commands with one-liner descriptions |
+| `/jsat-help` | List all 52 commands with one-liner descriptions |
 | `/jsat-help <command>` | Full description, flags, and examples for a specific command (e.g. `/jsat-help magic`) |
 
 ### Open Claude with JSAT context pre-loaded
@@ -1114,7 +1116,7 @@ The skill recommends **and** acts — nothing falls through the cracks.
 
 | Command | Description |
 |---|---|
-| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 51 slash commands |
+| `jsat connect claude` | Wire JSAT into Claude Code (project scope) + install 53 slash commands |
 | `jsat connect claude --global` | Wire JSAT into Claude Code globally (all projects) |
 | `jsat connect claude --no-skills` | MCP only — skip slash command installation |
 | `jsat connect codex` | Wire JSAT into OpenAI Codex CLI via `~/.codex/config.toml` + `~/.codex/skills/jsat/SKILL.md` |

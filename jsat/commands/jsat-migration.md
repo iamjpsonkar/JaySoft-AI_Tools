@@ -48,6 +48,19 @@ Django/Rails — check which convention this repo's migration files actually use
 flagging it, since "no DOWN section" is a false positive for frameworks that express
 rollback differently), multiple locking ops in single file, FK without index.
 
+STATE YOUR ASSUMPTIONS: lock types, durations and "dangerous" labels depend on the
+database engine, its version, the operation, the table's size and its concurrent
+traffic. Name the engine/version the result assumes (from the repo's config or the
+tool output; if it cannot be determined, say "engine unknown — labels are generic"),
+present durations as estimates, and tell the user to confirm any decision to run it
+in production against that engine's own documentation.
+
+SCHEMA REVERSIBILITY IS NOT DATA RECOVERY: a migration that can be reversed in schema
+terms (a working downgrade/DOWN) may still destroy data irreversibly (dropping a
+column or table, narrowing a type, a lossy backfill). Report the two separately:
+"schema reversible: yes/no" and "data restorable from the migration alone: yes/no
+(backup required: yes/no)".
+
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):
   timeout=<N>     → override soft budget to N seconds (default varies per tool)

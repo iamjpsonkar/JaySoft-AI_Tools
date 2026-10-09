@@ -24,7 +24,11 @@ service that isn't indexed).
 Call: jsat__list_endpoints(service=<ServiceName>) — endpoint count, auth coverage.
 Call: jsat__get_auth_coverage() filtered to this service's endpoints, if available.
 
-Print: "🔍 Phase 1/4 — Found: <N> files, <N> endpoints, <N> unauthenticated"
+If the service has no HTTP endpoints (a worker, consumer, library or CLI), mark auth
+coverage "N/A — no endpoints" rather than counting it as "0 unauthenticated" (which
+reads as a pass) and do not let it affect the verdict.
+
+Print: "🔍 Phase 1/4 — Found: <N> files, <N> endpoints, <N> unauthenticated (or N/A)"
 
 ## Phase 2 — Documentation completeness
 
@@ -74,6 +78,13 @@ Print final summary:
   🔒 Security: <N critical/high>
   💥 Breaking: <N>
   Top recommendation: <one specific first action>
+
+This is a STATIC READINESS check from the index and the files — not live health
+(uptime, error rates, deploy state); say so in the report. If a phase's evidence
+could not be obtained (a tool errored, "[AI unavailable" with no fallback possible,
+the service path could not be resolved), mark that item UNKNOWN and, when it would
+change the outcome, give the verdict as INCOMPLETE (name what is missing) instead of
+READY — never fill a missing item with an assumed pass.
 
 
 BUDGET: Universal flags for every command (strip from ARGS, pass as tool args):

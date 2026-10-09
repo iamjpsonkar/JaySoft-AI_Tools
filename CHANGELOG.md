@@ -2,6 +2,47 @@
 
 All notable changes to JSAT.
 
+## [Unreleased]
+
+### Added
+
+- **`/jsat test-atlas` — a verified map of the repository's test suite.** Builds
+  the test tree, fixtures and the mocking convention actually in use, flags
+  quality problems (weak assertions, skips, thin integration suites), ranks
+  untested code by blast radius with a security lens (auth, malformed input,
+  signature checks), and compares CI configuration against the tests that
+  exist. `--depth quick|standard|deep`, `--service`, and a read-only `--trend`.
+  Each claim is tagged Verified / Sampled / Graph-derived / Unverified; a counter
+  from a phase that did not run is stored as "unknown", never 0, and trends only
+  compare runs with the same scope. Snapshots are saved to the knowledge base
+  (`category="test-atlas"`), so no files are written.
+
+- **`/jsat gcp-logs` — investigate an issue with real GCP Cloud Logging
+  evidence.** Resolves where to look (never guessing project, resource or log
+  shape), builds filters injection-safely through a temp file, checks every
+  query for saturation, correlates across hops, ties each log line back to the
+  code with the graph, and reports an absent line as "no matching entry
+  observed" until retention, level, deployed revision and exporter delay are
+  ruled out. It is the **second sanctioned exception** to the "`jsat__*` tools
+  only" rule (after `internet`): Bash is limited to read-only `gcloud auth list`,
+  `projects list`, `logging logs list` and `logging read`, `jsat-magic` never
+  selects it, and confirmed project/resource/shape profiles are saved to the
+  knowledge base (`category="gcp-log-profile"`). The "one exception" wording in
+  the dispatcher text, `jsat-internet`, `jsat-magic`, `docs/architecture.md` and
+  `ANALYSIS.md` is updated to match.
+
+### Changed
+
+- **Evidence-scope wording in four existing commands.** `blast-radius` states
+  that it covers only the indexed graph and reports "no dependents found in the
+  indexed graph" rather than "safe". `contract` pins the compared commit SHAs and
+  adds COMPATIBLE / BREAKING / PARTIAL / UNKNOWN verdicts (no spec found is
+  UNKNOWN, not a score of 100) plus request-vs-response guidance. `migration`
+  states its engine/version assumptions and reports schema reversibility
+  separately from data recovery. `service-health-check` marks auth coverage N/A
+  for services without endpoints, calls itself a static readiness check, and
+  returns INCOMPLETE rather than READY when evidence is missing.
+
 ## [0.4.24] — 2026-09-06
 
 ### Changed

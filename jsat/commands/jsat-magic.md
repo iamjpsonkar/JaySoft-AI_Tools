@@ -148,7 +148,9 @@ the sole sanctioned caller of WebSearch/WebFetch in the whole catalog, and magic
 must let it do so rather than trying to force it through a jsat__* substitute
 that cannot reach the internet. Do not extend this narrowing to any other
 selected skill in the same run — every other step in the same magic invocation
-still follows the unqualified CRITICAL rule.
+still follows the unqualified CRITICAL rule. The catalog's other sanctioned exception,
+/jsat gcp-logs, is never selected or composed by magic: it runs only when the user
+invokes it directly.
 
 ### 2d — Wire Step 1's classification into selection (this is the part that was
 previously missing: Step 1 extracted RISK/DEPTH but nothing consumed them)
@@ -259,7 +261,7 @@ CRITICAL: Use ONLY jsat__* MCP tools for every skill step.
   jsat tools have full graph access; native tools do not. The ONE exception: if
   Layer W (internet) was selected in Step 2, that step's own file
   (jsat-internet.md) is authorized to call WebSearch/WebFetch directly — see 2f.
-  No other step in this run gets that exception.
+  No other step in this run gets that exception (gcp-logs is never part of a magic run).
 
 Universal flag carry-through: if _BUDGET or _DASHBOARD were set by the universal flags
 preamble, add them to EVERY jsat MCP tool call in this section:

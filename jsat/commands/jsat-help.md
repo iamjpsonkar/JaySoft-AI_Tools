@@ -282,6 +282,23 @@ Examples:
 (see /jsat <command> for usage)
 ```
 
+### gcp-logs
+Investigate an issue with real GCP Cloud Logging evidence — injection-safe read-only `gcloud logging read` queries, correlation across hops, completeness checks, and each log line tied back to code. The second sanctioned exception to JSAT's "jsat__* tools only" rule.
+```
+/jsat gcp-logs [flags] <args>
+
+Flags:
+  --project <id>     → GCP project to query (otherwise resolved in Step 1)
+  --window <N>d|<N>h → how far back to look (default 7d with a rough time hint, 30d
+  --service <name>   → the indexed service this investigation is about
+
+Examples:
+  /jsat-gcp-logs why did order 12345 get two refund calls --service payments
+    → profile lookup, Step 2 from the code, then queries per hop
+  /jsat-gcp-logs --project my-proj-nonprod trace 9f2c1a7e-...
+    → scoped by that trace id, saturation-checked
+```
+
 ### improve
 Diagnose problems JSAT hit in itself and draft a patch to JSAT's own source.
 ```
@@ -326,7 +343,7 @@ Examples:
 ```
 
 ### internet
-Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. The one sanctioned exception to JSAT's "jsat__* tools only" rule, since no jsat__* tool reaches the internet.
+Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. A sanctioned exception to JSAT's "jsat__* tools only" rule (the other is /jsat gcp-logs), since no jsat__* tool reaches the internet.
 ```
 /jsat internet [flags] <args>
 
@@ -749,6 +766,27 @@ Examples:
 (see /jsat <command> for usage)
 ```
 
+### test-atlas
+Build a verified map of this repository's test suite — structure, fixtures, mocking conventions, risk-ranked gaps, CI-vs-local mismatches — and compare it with earlier runs. Supports --depth quick|standard|deep, --service, --trend.
+```
+/jsat test-atlas [flags] <args>
+
+Flags:
+  --depth quick      → Phases 0-3 only (tree, fixtures, mocking convention, flow map).
+  --depth standard   → (default) Phases 0-8: adds quality audit, risk-ranked gaps,
+  --depth deep       → standard + per-service behavioral coverage for every service
+  --service <name>   → scope the whole run to one indexed service (also the way to
+  --trend            → READ-ONLY: skip analysis and report the delta between the last
+
+Examples:
+  /jsat-test-atlas
+    → standard atlas of the whole indexed repo
+  /jsat-test-atlas --depth quick --service PaymentService
+    → orient in one service's tests (Phases 0-3)
+  /jsat-test-atlas --trend
+    → delta between the last comparable saved atlases, nothing new measured
+```
+
 ### test-gaps
 Find untested code paths and optionally generate tests. Supports flags in $ARGUMENTS.
 ```
@@ -843,11 +881,12 @@ Examples:
 | `doctor` | Run a full JSAT system health check. |
 | `find-class` | Find a class in the indexed codebase. Supports service scoping. |
 | `find-function` | Find a function or method in the indexed codebase. Supports service scoping. |
+| `gcp-logs` | Investigate an issue with real GCP Cloud Logging evidence — injection-safe read-only `gcloud logging read` queries, correlation across hops, completeness checks, and each log line tied back to code. The second sanctioned exception to JSAT's "jsat__* tools only" rule. |
 | `help` | Show flags, params, and examples for any /jsat command. Usage: /jsat-help <command> |
 | `improve` | Diagnose problems JSAT hit in itself and draft a patch to JSAT's own source. |
 | `incident` | Investigate a production incident. Supports subcommands in $ARGUMENTS. |
 | `index` | Build or refresh the JSAT codebase graph index. Supports flags in $ARGUMENTS. |
-| `internet` | Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. The one sanctioned exception to JSAT's "jsat__* tools only" rule, since no jsat__* tool reaches the internet. |
+| `internet` | Query the live internet for up-to-date facts (docs, versions, CVEs, best practices) and optionally ground the answer in this codebase. A sanctioned exception to JSAT's "jsat__* tools only" rule (the other is /jsat gcp-logs), since no jsat__* tool reaches the internet. |
 | `ithinking` | IThinking meta-cognitive reasoning. Supports subcommands in $ARGUMENTS. |
 | `knowledge` | Query or manage the JSAT knowledge base. Supports subcommands in $ARGUMENTS. |
 | `lazy` | Reuse-first code planning — runs a 5-rung ladder against the graph before suggesting new code. |
@@ -875,6 +914,7 @@ Examples:
 | `smart` | Terse compression mode — answers in fragments, no filler, code intact. Supports --lite / --full / --ultra. |
 | `sprint` | Seven-stage delivery workflow — Think → Plan → Build → Review → Test → Ship → Reflect, each stage fast and focused. |
 | `status` | Show JSAT index statistics and health. |
+| `test-atlas` | Build a verified map of this repository's test suite — structure, fixtures, mocking conventions, risk-ranked gaps, CI-vs-local mismatches — and compare it with earlier runs. Supports --depth quick|standard|deep, --service, --trend. |
 | `test-gaps` | Find untested code paths and optionally generate tests. Supports flags in $ARGUMENTS. |
 | `tokens` | Count, compress, or check token budget. Supports flags in $ARGUMENTS. |
 | `trace` | Trace a call chain from a symbol through the codebase. Supports depth and direction. |

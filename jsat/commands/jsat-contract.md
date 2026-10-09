@@ -40,6 +40,25 @@ Examples:
   /jsat-contract main feature/new-payments
     → jsat__get_api_diff(base="main", head="feature/new-payments")
 
+PIN WHAT WAS COMPARED: resolve <base> and <head> to commit SHAs
+(`git rev-parse <ref>`) and print them with the result, so the score can be
+reproduced after either branch moves.
+
+SCOPE OF EVIDENCE — verdict states: this check compares spec files between two refs;
+it does not know who consumes the API. Report one of:
+  COMPATIBLE   specs found on both refs, no breaking changes detected
+  BREAKING     one or more breaking changes (list them)
+  PARTIAL      some specs could not be parsed or compared — name them and what that
+               leaves unchecked
+  UNKNOWN      no spec files found on one or both refs, or the tool errored — do NOT
+               report a 100 score for this; say the contract could not be evaluated
+When reading the change list, judge by DIRECTION: a request-side change (new required
+field, narrower enum, tighter validation) breaks existing callers, while a
+response-side change (removed field, new enum value, changed type) breaks existing
+readers — and strict consumers that reject unknown fields or enum values can break on
+changes the tool classifies as non-breaking. Consumers outside the indexed repo are not
+visible to this check.
+
 Show:
   - Compatibility score (100 = no breaking changes; decays EXPONENTIALLY with the
     number of breaking changes — verified from the tool's own implementation:

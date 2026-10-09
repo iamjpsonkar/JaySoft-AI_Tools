@@ -328,13 +328,18 @@ ahead of and after the routed subcommand itself:
   about JSAT's own tools misbehaving are written instead to a `jsat-improvement` backlog that
   `/jsat improve` reads later. Nothing is written when the invocation was routine — this module
   is best-effort and silent in the common case.
-- **`jsat-internet` — the one sanctioned exception.** No `jsat__*` MCP tool reaches the live
+- **`jsat-internet` — a sanctioned exception.** No `jsat__*` MCP tool reaches the live
   internet, so every other skill is restricted to `jsat__*` tools only. `jsat-internet.md` is
   the deliberate carve-out: it calls native `WebSearch`/`WebFetch` directly for up-to-date facts
   (docs, released versions, CVEs), optionally grounding the external answer against this
   codebase via `jsat__query`. `jsat-magic.md` wires it in as an opt-in **Layer W** — never
   auto-selected for a pure-codebase task, added only when a task's own wording names external
   or current information, and dropped first if the composed skill sequence is over budget.
+- **`jsat-gcp-logs` — the second sanctioned exception.** No `jsat__*` tool can read what a
+  deployed service logged, so `jsat-gcp-logs.md` may run read-only `gcloud` commands
+  (`auth list`, `projects list`, `logging logs list`, `logging read`) and nothing else through
+  Bash; locating log statements, reading the code at a log line and saving learnings still use
+  `jsat__*` tools. It is never selected by `jsat-magic`: it runs only when invoked directly.
 
 ### Auto-generated help
 
