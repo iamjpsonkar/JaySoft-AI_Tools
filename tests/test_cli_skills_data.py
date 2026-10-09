@@ -174,3 +174,46 @@ def test_codex_skill_removes_stale_command_refs_but_keeps_user_files(tmp_path):
     assert not stale.exists()
     assert user_file.read_text(encoding="utf-8") == "mine"
     assert "references/my-notes.md" not in _codex_skill_owned_files(skill_dir)
+
+
+@pytest.mark.ci
+def test_test_atlas_command_is_registered_and_rendered(tmp_path):
+    from jsat._cli_skills_data import _JSAT_SKILLS
+
+    assert "jsat-test-atlas" in _JSAT_SKILLS
+    description, body = _JSAT_SKILLS["jsat-test-atlas"]
+    assert description.strip()
+    # The comparability rules are what keep trend output honest; guard them.
+    assert "NEVER 0" in body
+    assert "COMPARABLE" in body
+
+    commands_dir = tmp_path / "cmds"
+    _write_jsat_dispatcher("global", commands_dir=commands_dir)
+    dispatcher = (commands_dir / "jsat.md").read_text(encoding="utf-8")
+    assert "| `/jsat test-atlas` |" in dispatcher
+    assert "\n## test-atlas\n" in dispatcher
+
+
+@pytest.mark.ci
+def test_gcp_logs_is_a_narrow_registered_exception(tmp_path):
+    from jsat._cli_skills_data import _JSAT_SKILLS
+
+    assert "jsat-gcp-logs" in _JSAT_SKILLS
+    _, body = _JSAT_SKILLS["jsat-gcp-logs"]
+    # The Bash carve-out must stay read-only and explicit.
+    assert "SCOPE" in body and "second" in body
+    assert "gcloud logging read" in body
+    assert "Never run any gcloud command that" in body
+    # An injection-safe filter file, and an honest saturation/absence rule.
+    assert '"$(cat <filter file>)"' in body
+    assert "SATURATED" in body
+    assert "no matching entry observed" in body
+    # No private/organization-specific content ships in the generic command.
+    for private in ("gringotts", "Gringotts", "Fynd", ".zshrc", "switch_context"):
+        assert private not in body, f"{private!r} leaked into the generic command"
+
+    # magic must never compose it, and the exception wording must name both.
+    magic = _JSAT_SKILLS["jsat-magic"][1]
+    assert "never selected or composed by magic" in magic
+    internet = _JSAT_SKILLS["jsat-internet"][1]
+    assert "gcp-logs" in internet

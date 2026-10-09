@@ -283,7 +283,7 @@ and streams ~5s progress heartbeats.
 
 ---
 
-## §4 Slash commands & skills (51)
+## §4 Slash commands & skills (53)
 
 Installed on `jsat connect`: Claude gets all `/jsat-*` in `.claude/commands/`,
 Bob all `/jsat-*` in `.bob/commands/`, OpenCode gets the `/jsat` + `/jsat-help`
@@ -309,42 +309,44 @@ not commands. Args are parsed from `$ARGUMENTS` inside each `.md` body.
 | 13 | `jsat-doctor` | Full system health check | — | health, get_jsat_version, index_status |
 | 14 | `jsat-find-class` | Find a class, service-scoped | name (`--service`) | get_class, list_services |
 | 15 | `jsat-find-function` | Find a function/method, service-scoped | name (`--service`) | get_function, list_services |
-| 16 | `jsat-improve` | Diagnose JSAT friction, draft patch | — | improve_status |
-| 17 | `jsat-incident` | Incident investigation | `$ARGUMENTS` subcommands | investigate_incident, hypotheses, runbook |
-| 18 | `jsat-index` | Build/refresh the graph | `$ARGUMENTS` flags | index_repo, get_index_status |
-| 19 | `jsat-internet` | Live-web facts grounded in this repo | query | jsat__* + web search (only net-enabled skill) |
-| 20 | `jsat-ithinking` | Meta-cognitive reasoning | `$ARGUMENTS` subcommands | ithinking_plan/audit/execute/reflect |
-| 21 | `jsat-knowledge` | Query/manage the KB | `$ARGUMENTS` subcommands | knowledge_query/add/search/list |
-| 22 | `jsat-lazy` | Reuse-first planning — 5-rung ladder | query | query, trace_call_chain |
-| 23 | `jsat-list-endpoints` | All endpoints, filterable | `--method/--auth/--service` | list_endpoints |
-| 24 | `jsat-list-services` | All services, language filter | `--language` | list_services |
-| 25 | `jsat-magic` | Orchestrator — picks/orders the right skills | task | dynamic skill sequence |
-| 26 | `jsat-merge` | Graph-aware merge + conflict resolution | source→target branches | blast_radius, get_test_gaps |
-| 27 | `jsat-migration` | Validate a migration file | file (`--rows`) | validate_migration |
-| 28 | `jsat-performance` | Profile the hot paths that matter | `--service/--top/--dry-run` | query (complexity×fan-out), get_test_gaps, trace_call_chain |
-| 29 | `jsat-plan` | Pre-implementation planning gate | task | ithinking_plan, query, security |
-| 30 | `jsat-pr-describe` | PR description from review+contract+coverage | — | get_review_findings, api_diff |
-| 31 | `jsat-prompt` | Discuss→Plan→Execute→Verify→Synthesize | query | prompt_optimize |
-| 32 | `jsat-prompt-diff` | Raw vs optimized side by side | query | prompt_diff |
-| 33 | `jsat-prompt-rewrite` | Pipeline + parallel LLM agents | query | prompt_multi_agent |
-| 34 | `jsat-query` | Answer any codebase question | question (`--service`) | query |
-| 35 | `jsat-rebase` | Graph-aware rebase of current branch | target | blast_radius, git rebase |
-| 36 | `jsat-recent` | Recent changes, time/author filters | `--hours/--author` | get_recent_changes |
-| 37 | `jsat-refactor` | Blast-radius-first, behaviour-preserving staged refactor | `<file/symbol>`, `--service/--dry-run` | blast_radius, get_test_gaps, get_function |
-| 38 | `jsat-release` | Release plan + verification: contract diff, consumers, rollback | `<from-ref>`, `--to/--service` | get_api_diff, get_consumers, blast_radius, test_gaps |
-| 39 | `jsat-review` | Multi-model code review | `$ARGUMENTS` flags | submit_for_review, review_findings |
-| 40 | `jsat-runbook` | Incident runbook for a service | service | generate_runbook |
-| 41 | `jsat-security` | OWASP/secret scan | `$ARGUMENTS` flags | security_review, list_secrets |
-| 42 | `jsat-service-health-check` | One service's readiness verdict | `<ServiceName>` (required) | list_services, auth_coverage, test_gaps, security, blast_radius |
-| 43 | `jsat-short` | Briefest correct answer (≤3 sentences) | `--one-line` | short |
-| 44 | `jsat-smart` | Terse compression mode | `--lite/--full/--ultra` | query + compress |
-| 45 | `jsat-sprint` | Seven-stage delivery workflow | `--stage <1-7>`, `--dry`, `--continue` | ithinking, query, blast_radius, test_gaps, review |
-| 46 | `jsat-status` | Index stats + health (+ AI-reachability) | — | get_index_status, health, version |
-| 47 | `jsat-test-gaps` | Uncovered paths + optional generation | `--generate/--integration/--contract/--untested/--service` | get_test_gaps, generate_*_test, list_untested_paths |
-| 48 | `jsat-tokens` | Count/compress/budget | `--compress/--model/--budget` | token_count/compress/budget |
-| 49 | `jsat-trace` | Point-to-point call chain | `<source> [<target>]`, `--upstream` | trace_call_chain, get_consumers, blast_radius |
-| 50 | `jsat-upgrade-impact` | What breaks if a dependency bumps | `<package>`, `--service/--to` | query, security_review, blast_radius |
-| 51 | `jsat-verify` | Live-verify the diff's affected behaviors | `<target>`, `--service/--claim` | blast_radius_diff, get_test_gaps, git/test-run |
+| 16 | `jsat-gcp-logs` | Real GCP Cloud Logging evidence (read-only gcloud; 2nd sanctioned exception) | `--project`, `--window`, `--service` | query, get_function, trace_call_chain, knowledge_search/add |
+| 17 | `jsat-improve` | Diagnose JSAT friction, draft patch | — | improve_status |
+| 18 | `jsat-incident` | Incident investigation | `$ARGUMENTS` subcommands | investigate_incident, hypotheses, runbook |
+| 19 | `jsat-index` | Build/refresh the graph | `$ARGUMENTS` flags | index_repo, get_index_status |
+| 20 | `jsat-internet` | Live-web facts grounded in this repo | query | jsat__* + web search (only net-enabled skill) |
+| 21 | `jsat-ithinking` | Meta-cognitive reasoning | `$ARGUMENTS` subcommands | ithinking_plan/audit/execute/reflect |
+| 22 | `jsat-knowledge` | Query/manage the KB | `$ARGUMENTS` subcommands | knowledge_query/add/search/list |
+| 23 | `jsat-lazy` | Reuse-first planning — 5-rung ladder | query | query, trace_call_chain |
+| 24 | `jsat-list-endpoints` | All endpoints, filterable | `--method/--auth/--service` | list_endpoints |
+| 25 | `jsat-list-services` | All services, language filter | `--language` | list_services |
+| 26 | `jsat-magic` | Orchestrator — picks/orders the right skills | task | dynamic skill sequence |
+| 27 | `jsat-merge` | Graph-aware merge + conflict resolution | source→target branches | blast_radius, get_test_gaps |
+| 28 | `jsat-migration` | Validate a migration file | file (`--rows`) | validate_migration |
+| 29 | `jsat-performance` | Profile the hot paths that matter | `--service/--top/--dry-run` | query (complexity×fan-out), get_test_gaps, trace_call_chain |
+| 30 | `jsat-plan` | Pre-implementation planning gate | task | ithinking_plan, query, security |
+| 31 | `jsat-pr-describe` | PR description from review+contract+coverage | — | get_review_findings, api_diff |
+| 32 | `jsat-prompt` | Discuss→Plan→Execute→Verify→Synthesize | query | prompt_optimize |
+| 33 | `jsat-prompt-diff` | Raw vs optimized side by side | query | prompt_diff |
+| 34 | `jsat-prompt-rewrite` | Pipeline + parallel LLM agents | query | prompt_multi_agent |
+| 35 | `jsat-query` | Answer any codebase question | question (`--service`) | query |
+| 36 | `jsat-rebase` | Graph-aware rebase of current branch | target | blast_radius, git rebase |
+| 37 | `jsat-recent` | Recent changes, time/author filters | `--hours/--author` | get_recent_changes |
+| 38 | `jsat-refactor` | Blast-radius-first, behaviour-preserving staged refactor | `<file/symbol>`, `--service/--dry-run` | blast_radius, get_test_gaps, get_function |
+| 39 | `jsat-release` | Release plan + verification: contract diff, consumers, rollback | `<from-ref>`, `--to/--service` | get_api_diff, get_consumers, blast_radius, test_gaps |
+| 40 | `jsat-review` | Multi-model code review | `$ARGUMENTS` flags | submit_for_review, review_findings |
+| 41 | `jsat-runbook` | Incident runbook for a service | service | generate_runbook |
+| 42 | `jsat-security` | OWASP/secret scan | `$ARGUMENTS` flags | security_review, list_secrets |
+| 43 | `jsat-service-health-check` | One service's readiness verdict | `<ServiceName>` (required) | list_services, auth_coverage, test_gaps, security, blast_radius |
+| 44 | `jsat-short` | Briefest correct answer (≤3 sentences) | `--one-line` | short |
+| 45 | `jsat-smart` | Terse compression mode | `--lite/--full/--ultra` | query + compress |
+| 46 | `jsat-sprint` | Seven-stage delivery workflow | `--stage <1-7>`, `--dry`, `--continue` | ithinking, query, blast_radius, test_gaps, review |
+| 47 | `jsat-status` | Index stats + health (+ AI-reachability) | — | get_index_status, health, version |
+| 48 | `jsat-test-atlas` | Verified map of the test suite: structure, fixtures, mocking rule, risk-ranked gaps, CI-vs-local, trend | `--depth quick/standard/deep`, `--service`, `--trend` | query, get_function, test_gaps, behavioral_coverage, blast_radius, knowledge_add/list |
+| 49 | `jsat-test-gaps` | Uncovered paths + optional generation | `--generate/--integration/--contract/--untested/--service` | get_test_gaps, generate_*_test, list_untested_paths |
+| 50 | `jsat-tokens` | Count/compress/budget | `--compress/--model/--budget` | token_count/compress/budget |
+| 51 | `jsat-trace` | Point-to-point call chain | `<source> [<target>]`, `--upstream` | trace_call_chain, get_consumers, blast_radius |
+| 52 | `jsat-upgrade-impact` | What breaks if a dependency bumps | `<package>`, `--service/--to` | query, security_review, blast_radius |
+| 53 | `jsat-verify` | Live-verify the diff's affected behaviors | `<target>`, `--service/--claim` | blast_radius_diff, get_test_gaps, git/test-run |
 
 The definition lives in one place per skill: `jsat/commands/jsat-<name>.md`
 (frontmatter `description:` + body). The registry that drives install +

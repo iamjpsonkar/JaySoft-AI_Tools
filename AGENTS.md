@@ -66,7 +66,7 @@ jsat/
   tools/              the actual features: indexer, query, blast_radius, security,
                       incident, migration, contract, review, crack, knowledge,
                       improve, test_helper, token_optimizer, prompt_optimizer, …
-  commands/           50 jsat-*.md slash commands shipped inside the package
+  commands/           52 jsat-*.md slash commands shipped inside the package
 ```
 
 **Where things really live:** `tools/` holds logic, `_cli_*` holds argument parsing

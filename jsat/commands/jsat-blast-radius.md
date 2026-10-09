@@ -73,6 +73,14 @@ then 1) before giving up, and when reporting, state the depth actually used — 
 "12 breaking impacts" summary at depth 1 is not the same claim as depth 5 and must
 not be presented as if it were the full picture.
 
+SCOPE OF EVIDENCE: a blast radius lists what the INDEXED graph says depends on the
+target. It is not a guarantee: a dependent in a repo or service that is not indexed
+is invisible here, dynamic dispatch and reflection may be under-approximated, and
+"reachable" means "could be affected", not "will break". Say which repo(s) the graph
+covers, state the depth used and whether the traversal ended because no new
+dependents appeared or because the depth/budget limit was hit, and report "no
+dependents found in the indexed graph" rather than "safe".
+
 Group results by severity: breaking / degraded / warning / safe.
 Show summary counts first. Show Mermaid diagram if impacts > 5.
 
