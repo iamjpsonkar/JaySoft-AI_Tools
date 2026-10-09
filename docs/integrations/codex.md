@@ -15,8 +15,9 @@ jsat index .
 jsat connect codex
 ```
 
-The connection writes `~/.codex/config.toml` and `~/.codex/skills/jsat/SKILL.md`. Restart a
-Codex process that was already open.
+The connection writes `~/.codex/config.toml` and the `~/.codex/skills/jsat/` skill (a small
+`SKILL.md` dispatcher plus `references/commands/*.md` and `references/help.md`, loaded on demand).
+Restart a Codex process that was already open.
 
 ## Start and select a model
 

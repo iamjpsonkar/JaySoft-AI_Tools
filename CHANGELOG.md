@@ -2,6 +2,24 @@
 
 All notable changes to JSAT.
 
+## [Unreleased]
+
+### Changed
+
+- **The Codex skill is now a small dispatcher plus on-demand references, not one
+  ~300 KB `SKILL.md`.** `jsat connect codex` used to embed every command body
+  in `~/.codex/skills/jsat/SKILL.md`, so every `$jsat` call loaded the whole
+  catalog into context. It now writes a ~10 KB `SKILL.md` (dispatcher + command
+  table) and one `references/commands/<command>.md` per workflow, plus
+  `references/help.md`; the dispatcher tells Codex to read only the selected
+  command's reference. JSAT owns `SKILL.md`, `references/help.md` and
+  `references/commands/*.md`: command references that no longer ship are
+  removed, and other files in the directory are left alone.
+- `jsat refresh` now compares and re-syncs the reference files too (an older
+  monolithic `SKILL.md` is upgraded in place), and `jsat disconnect codex`
+  removes all generated files instead of leaving orphaned references behind.
+  Claude Code's `jsat.md` dispatcher is unchanged.
+
 ## [0.4.24] — 2026-09-06
 
 ### Changed

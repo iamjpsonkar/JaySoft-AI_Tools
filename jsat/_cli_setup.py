@@ -149,11 +149,21 @@ def cmd_disconnect(
                 _remove_jsat_block(Path.cwd() / ".codex" / "instructions.md")
 
             if not keep_skills and s == "global":
-                skill_file = base / ".codex" / "skills" / "jsat" / "SKILL.md"
-                if skill_file.exists():
-                    skill_file.unlink()
+                from jsat._cli_skills_data import _codex_skill_owned_files
+
+                skill_dir = base / ".codex" / "skills" / "jsat"
+                owned = _codex_skill_owned_files(skill_dir) if skill_dir.is_dir() else {}
+                for path in owned.values():
+                    path.unlink()
+                if owned:
+                    # Drop the now-empty generated directories; a non-empty one
+                    # holds user files, which are left in place.
+                    for d in (skill_dir / "references" / "commands",
+                              skill_dir / "references", skill_dir):
+                        with contextlib.suppress(OSError):
+                            d.rmdir()
                     console.print(
-                        f"[green]✓[/] Removed JSAT Codex skill ({skill_file})"
+                        f"[green]✓[/] Removed JSAT Codex skill ({skill_dir}, {len(owned)} files)"
                     )
                     removed_any = True
 

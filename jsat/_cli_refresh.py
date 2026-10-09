@@ -160,8 +160,10 @@ def _expected_artifacts(
         rendered = _write_jsat_dispatcher("global", commands_dir=out, source_dir=source)
         return {p.name: p.read_bytes() for p in rendered.glob("jsat*.md")}
     if tool == "codex":
-        skill = _write_codex_skill(skill_dir=out, source_dir=source) / "SKILL.md"
-        return {"SKILL.md": skill.read_bytes()}
+        from ._cli_skills_data import _codex_skill_owned_files
+
+        rendered = _write_codex_skill(skill_dir=out, source_dir=source)
+        return {rel: p.read_bytes() for rel, p in _codex_skill_owned_files(rendered).items()}
     if tool == "bob":
         rendered = _write_bob_commands(scope, commands_dir=out)
         return {p.name: p.read_bytes() for p in rendered.glob("*.md")}
@@ -220,9 +222,11 @@ def _sync_tool(
 def _diff_files(tool: str, expected: dict[str, bytes], installed: Path) -> tuple[int, int, int]:
     """Compare expected artifacts to what is on disk. Added / modified / removed."""
     if tool == "codex":
-        current = {}
-        if (installed / "SKILL.md").exists():
-            current["SKILL.md"] = installed / "SKILL.md"
+        # Only generator-owned files (SKILL.md, references/help.md,
+        # references/commands/*.md) are compared or removed; user files stay.
+        from ._cli_skills_data import _codex_skill_owned_files
+
+        current = _codex_skill_owned_files(installed) if installed.exists() else {}
     elif tool == "bob":
         current = {p.name: p for p in installed.glob("*.md")} if installed.exists() else {}
     else:

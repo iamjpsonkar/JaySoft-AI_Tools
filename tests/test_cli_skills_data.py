@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from jsat._cli_skills_data import (
+    _codex_skill_owned_files,
     _extract_flags_examples,
     _write_codex_skill,
     _write_jsat_dispatcher,
@@ -101,12 +102,75 @@ def test_codex_skill_help_section_not_embedded(tmp_path):
 def test_codex_skill_has_no_claude_specific_leaks(tmp_path):
     skill_dir = tmp_path / "codex-skill"
     _write_codex_skill(skill_dir=skill_dir)
-    content = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
-    for leaked in (
-        "Claude Code",
-        "Claude session",
-        "claude mcp list",
-        "CLAUDE.md",
-        "jsat connect claude",
-    ):
-        assert leaked not in content, f"{leaked!r} leaked untranslated into the Codex skill"
+    # SKILL.md AND every generated reference: the command bodies now live in
+    # references/, so scanning SKILL.md alone would miss a leak.
+    owned = _codex_skill_owned_files(skill_dir)
+    assert owned, "generator produced no files"
+    for rel, path in owned.items():
+        content = path.read_text(encoding="utf-8")
+        for leaked in (
+            "Claude Code",
+            "Claude session",
+            "claude mcp list",
+            "CLAUDE.md",
+            "jsat connect claude",
+        ):
+            assert leaked not in content, f"{leaked!r} leaked untranslated into {rel}"
+
+
+def _bundled_command_names() -> set[str]:
+    return {
+        p.stem.removeprefix("jsat-")
+        for p in PKG_COMMANDS_DIR.glob("jsat-*.md")
+        if p.stem != "jsat-help"
+    }
+
+
+@pytest.mark.ci
+def test_codex_skill_is_split_into_dispatcher_and_references(tmp_path):
+    skill_dir = tmp_path / "codex-skill"
+    _write_codex_skill(skill_dir=skill_dir)
+    skill_md = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+
+    # The dispatcher must stay small: it used to embed every command body (~300 KB).
+    assert len(skill_md.encode("utf-8")) < 20_000
+    assert "references/commands/<COMMAND>.md" in skill_md
+    assert "references/help.md" in skill_md
+
+    expected = _bundled_command_names()
+    assert expected, "no bundled commands found"
+    generated = {p.stem for p in (skill_dir / "references" / "commands").glob("*.md")}
+    assert generated == expected
+    assert (skill_dir / "references" / "help.md").is_file()
+
+    # Every command is in the catalog table, but no command body is embedded.
+    for name in expected:
+        assert f"| `$jsat {name}` |" in skill_md
+        assert f"\n## {name}\n" not in skill_md
+        assert (skill_dir / "references" / "commands" / f"{name}.md").stat().st_size > 0
+
+
+@pytest.mark.ci
+def test_codex_skill_output_is_idempotent(tmp_path):
+    skill_dir = tmp_path / "codex-skill"
+    _write_codex_skill(skill_dir=skill_dir)
+    first = {rel: p.read_bytes() for rel, p in _codex_skill_owned_files(skill_dir).items()}
+    _write_codex_skill(skill_dir=skill_dir)
+    second = {rel: p.read_bytes() for rel, p in _codex_skill_owned_files(skill_dir).items()}
+    assert first == second
+
+
+@pytest.mark.ci
+def test_codex_skill_removes_stale_command_refs_but_keeps_user_files(tmp_path):
+    skill_dir = tmp_path / "codex-skill"
+    _write_codex_skill(skill_dir=skill_dir)
+    stale = skill_dir / "references" / "commands" / "removed-command.md"
+    user_file = skill_dir / "references" / "my-notes.md"
+    stale.write_text("old", encoding="utf-8")
+    user_file.write_text("mine", encoding="utf-8")
+
+    _write_codex_skill(skill_dir=skill_dir)
+
+    assert not stale.exists()
+    assert user_file.read_text(encoding="utf-8") == "mine"
+    assert "references/my-notes.md" not in _codex_skill_owned_files(skill_dir)

@@ -174,7 +174,8 @@ jsat codex resume <session-id>            # resume an existing Codex session
 
 **What gets installed:**
 - `~/.codex/config.toml` — one `[mcp_servers.jsat]` entry
-- `~/.codex/skills/jsat/SKILL.md` — one Codex skill dispatcher for `$jsat`
+- `~/.codex/skills/jsat/SKILL.md` — one Codex skill dispatcher for `$jsat`, plus
+  `references/commands/*.md` and `references/help.md` loaded on demand
 
 JSAT does **not** generate `.codex/`, `AGENTS.md`, or `.agents/skills` inside the
 target repo for Codex. Run Codex from the repo you want to analyze, or use

@@ -256,3 +256,47 @@ def test_codex_cli_provider_exec_is_read_only_and_ephemeral(monkeypatch, tmp_pat
     assert "explain this" not in cmd
     assert captured["input"] == "explain this"
     assert captured["cwd"] == str(tmp_path)
+
+
+@pytest.mark.ci
+def test_disconnect_codex_removes_generated_references_and_keeps_user_files(monkeypatch, tmp_path):
+    import jsat._cli_setup as setupmod
+    from jsat._cli_skills_data import _write_codex_skill
+
+    home = tmp_path / "home"
+    config = home / ".codex" / "config.toml"
+    skill_dir = home / ".codex" / "skills" / "jsat"
+    config.parent.mkdir(parents=True)
+    config.write_text('[mcp_servers.jsat]\ncommand = "jsat"\nargs = ["mcp-server"]\n')
+    _write_codex_skill(skill_dir=skill_dir)
+    user_file = skill_dir / "references" / "original-command.md"
+    user_file.write_text("keep me", encoding="utf-8")
+    monkeypatch.setattr(setupmod.Path, "home", classmethod(lambda cls: home))
+
+    result = runner.invoke(app, ["disconnect", "codex"])
+
+    assert result.exit_code == 0
+    assert not (skill_dir / "SKILL.md").exists()
+    assert not (skill_dir / "references" / "help.md").exists()
+    assert not (skill_dir / "references" / "commands").exists()
+    # A non-generated file is never deleted, so its directory stays too.
+    assert user_file.read_text(encoding="utf-8") == "keep me"
+
+
+@pytest.mark.ci
+def test_disconnect_codex_removes_empty_skill_directory(monkeypatch, tmp_path):
+    import jsat._cli_setup as setupmod
+    from jsat._cli_skills_data import _write_codex_skill
+
+    home = tmp_path / "home"
+    config = home / ".codex" / "config.toml"
+    skill_dir = home / ".codex" / "skills" / "jsat"
+    config.parent.mkdir(parents=True)
+    config.write_text('[mcp_servers.jsat]\ncommand = "jsat"\nargs = ["mcp-server"]\n')
+    _write_codex_skill(skill_dir=skill_dir)
+    monkeypatch.setattr(setupmod.Path, "home", classmethod(lambda cls: home))
+
+    result = runner.invoke(app, ["disconnect", "codex"])
+
+    assert result.exit_code == 0
+    assert not skill_dir.exists()

@@ -136,3 +136,53 @@ def test_refresh_version_offline_still_syncs(monkeypatch, tmp_path):
     assert result.exit_code == 0
     assert "offline" in result.output
     assert "Skills:" in result.output
+
+def _wire_codex(home):
+    cfg = home / ".codex" / "config.toml"
+    cfg.parent.mkdir(parents=True, exist_ok=True)
+    cfg.write_text(
+        '[mcp_servers.jsat]\ncommand = "jsat"\nargs = ["mcp-server"]\n', encoding="utf-8"
+    )
+
+
+@pytest.mark.ci
+def test_refresh_codex_upgrades_monolithic_skill_to_split_layout(monkeypatch, tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    home = _fake_home(monkeypatch, tmp_path)
+    _stub_pypi(monkeypatch)
+    _wire_codex(home)
+    skill_dir = home / ".codex" / "skills" / "jsat"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("old monolithic dispatcher", encoding="utf-8")
+
+    synced = runner.invoke(app, ["refresh", "--ai", "codex", "--repo", str(repo)])
+    assert synced.exit_code == 0
+    assert (skill_dir / "references" / "help.md").is_file()
+    assert list((skill_dir / "references" / "commands").glob("*.md"))
+    skill_md = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+    assert "references/commands/<COMMAND>.md" in skill_md
+
+    again = runner.invoke(app, ["refresh", "--ai", "codex", "--repo", str(repo)])
+    assert "up to date" in again.output
+
+
+@pytest.mark.ci
+def test_refresh_codex_check_only_detects_modified_reference_without_writing(monkeypatch, tmp_path):
+    from jsat._cli_skills_data import _write_codex_skill
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    home = _fake_home(monkeypatch, tmp_path)
+    _stub_pypi(monkeypatch)
+    _wire_codex(home)
+    skill_dir = home / ".codex" / "skills" / "jsat"
+    _write_codex_skill(skill_dir=skill_dir)
+    ref = next((skill_dir / "references" / "commands").glob("*.md"))
+    ref.write_text("locally edited", encoding="utf-8")
+
+    result = runner.invoke(app, ["refresh", "--check-only", "--ai", "codex", "--repo", str(repo)])
+
+    assert result.exit_code == 0
+    assert "would" in result.output.lower() or "modified" in result.output.lower()
+    assert ref.read_text(encoding="utf-8") == "locally edited"

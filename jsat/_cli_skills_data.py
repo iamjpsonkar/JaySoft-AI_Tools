@@ -521,6 +521,27 @@ def _write_jsat_dispatcher(
     return commands_dir
 
 
+def _codex_skill_owned_files(skill_dir: Path) -> dict[str, Path]:
+    """Files under a Codex skill dir that JSAT generates and therefore owns.
+
+    Keyed by POSIX-relative path: ``SKILL.md``, ``references/help.md`` and
+    ``references/commands/*.md``. Anything else a user placed in the directory
+    is deliberately not listed, so refresh/disconnect never touch it.
+    """
+    owned: dict[str, Path] = {}
+    skill_md = skill_dir / "SKILL.md"
+    if skill_md.is_file():
+        owned["SKILL.md"] = skill_md
+    help_md = skill_dir / "references" / "help.md"
+    if help_md.is_file():
+        owned["references/help.md"] = help_md
+    cmds = skill_dir / "references" / "commands"
+    if cmds.is_dir():
+        for path in sorted(cmds.glob("*.md")):
+            owned[f"references/commands/{path.name}"] = path
+    return owned
+
+
 def _write_codex_skill(
     skill_dir: Path | None = None,
     source_dir: Path | None = None,
@@ -529,7 +550,18 @@ def _write_codex_skill(
 
     Codex does not use Claude's `.claude/commands/` slash-command directory. Keep
     the Codex integration project-clean by installing a single user-level skill
-    under `~/.codex/skills/jsat/SKILL.md`.
+    under `~/.codex/skills/jsat/`.
+
+    Layout (progressive disclosure — the dispatcher stays small and the model
+    loads only the workflow it needs, instead of one ~300 KB SKILL.md):
+
+    * ``SKILL.md``                     dispatcher + command table
+    * ``references/commands/<cmd>.md`` one file per command workflow
+    * ``references/help.md``           generated per-command help
+
+    JSAT owns ``SKILL.md``, ``references/help.md`` and ``references/commands/*.md``;
+    command references no longer in the bundled set are removed, other files in
+    the directory are left alone.
 
     ``source_dir`` overrides where the bundled skill files are read from; the
     default is the shipped command files. ``jsat refresh`` passes a throwaway
@@ -653,27 +685,59 @@ def _write_codex_skill(
         desc = _codex_text(_frontmatter_desc(fpath.read_text(encoding="utf-8")))
         lines.append(f"| `$jsat {short}` | {desc} |")
 
-    lines += ["", "---", ""]
+    lines += [
+        "",
+        "---",
+        "",
+        "## Load the selected workflow only",
+        "",
+        "The table above is the catalog. For an exact known COMMAND, read",
+        "`references/commands/<COMMAND>.md` (relative to this skill's directory) and",
+        "follow it; read further command references only when that workflow routes to",
+        "them. Do not read every reference. For `help [command]`, read",
+        "`references/help.md` and show only what was asked — help needs no MCP connection.",
+        "",
+        "Treat `$ARGUMENTS` inside a reference as the user's ARGS, passed as data and",
+        "never interpolated into shell or Python source. Explicit literal payloads",
+        "(paths, git refs, identifiers, diffs) must survive any prompt rewriting unchanged.",
+        "",
+    ]
+    (skill_dir / "SKILL.md").write_text("\n".join(lines), encoding="utf-8")
 
+    refs_dir = skill_dir / "references"
+    cmds_dir = refs_dir / "commands"
+    cmds_dir.mkdir(parents=True, exist_ok=True)
+
+    written: set[str] = set()
     for fpath in skill_files:
         short = fpath.stem.removeprefix("jsat-")
         if short == "help":
-            continue  # same duplication as jsat.md — see the parallel fix there
+            continue  # rendered separately as references/help.md
         content = fpath.read_text(encoding="utf-8")
         desc = _codex_text(_frontmatter_desc(content))
         body = _codex_text(_strip_frontmatter(content))
-        lines += [
-            f"## {short}",
-            "",
-            f"*{desc}*" if desc else "",
-            "",
-            body.rstrip(),
-            "",
-            "---",
-            "",
-        ]
+        ref_lines = [f"# {short}", "", f"*{desc}*" if desc else "", "", body.rstrip(), ""]
+        (cmds_dir / f"{short}.md").write_text("\n".join(ref_lines), encoding="utf-8")
+        written.add(f"{short}.md")
 
-    (skill_dir / "SKILL.md").write_text("\n".join(lines), encoding="utf-8")
+    removed_stale = 0
+    for existing in cmds_dir.glob("*.md"):
+        if existing.name not in written:
+            existing.unlink()
+            removed_stale += 1
+
+    help_body = _generate_help_body(skill_files, _frontmatter_desc, _strip_frontmatter)
+    (refs_dir / "help.md").write_text(
+        _codex_text(_strip_frontmatter(help_body)), encoding="utf-8"
+    )
+
+    _log.info(
+        "codex_skill_written",
+        skill_dir=str(skill_dir),
+        commands=len(written),
+        stale_removed=removed_stale,
+        skill_md_bytes=(skill_dir / "SKILL.md").stat().st_size,
+    )
     return skill_dir
 
 

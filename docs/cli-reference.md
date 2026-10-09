@@ -775,7 +775,8 @@ $jsat magic investigate the checkout flow     # inside Codex
 
 Writes global Codex files:
 - `~/.codex/config.toml` — one `[mcp_servers.jsat]` table
-- `~/.codex/skills/jsat/SKILL.md` — one Codex skill dispatcher
+- `~/.codex/skills/jsat/SKILL.md` — one Codex skill dispatcher, with per-command workflows in
+  `references/commands/*.md` and `references/help.md` (read on demand)
 
 No `.codex/`, `AGENTS.md`, or `.agents/skills` files are generated in the target
 repo. In Codex, use `$jsat magic TASK`, `$jsat query QUESTION`, or ask naturally.
